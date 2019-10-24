@@ -322,9 +322,9 @@ typedef union {
     ///
     UINT32  RDRAND:1;
     ///
-    /// [Bit 31] Always returns 0.
+/// [Bit 31] Indicate whether we are under visualization.
     ///
-    UINT32  NotUsed:1;
+    UINT32  HYPERVISOR:1;
   } Bits;
   ///
   /// All bit fields as a 32-bit value
