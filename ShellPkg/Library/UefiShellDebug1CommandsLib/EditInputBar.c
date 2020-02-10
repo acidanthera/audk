@@ -9,10 +9,10 @@
 #include "EditInputBar.h"
 #include "UefiShellDebug1CommandsLib.h"
 
-CHAR16                             *mPrompt;       // Input bar mPrompt string.
-CHAR16                             *mReturnString; // The returned string.
-UINTN                              StringSize;     // Size of mReturnString space size.
-EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mTextInEx;
+CHAR16  *mPrompt;        // Input bar mPrompt string.
+CHAR16  *mReturnString;  // The returned string.
+UINTN   StringSize;      // Size of mReturnString space size.
+EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *mTextInEx;
 
 /**
   Initialize the input bar.
@@ -21,7 +21,7 @@ EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *mTextInEx;
 **/
 VOID
 InputBarInit (
-  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *TextInEx
+  IN EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL *TextInEx
   )
 {
   mPrompt       = NULL;
@@ -56,8 +56,8 @@ InputBarCleanup (
 **/
 VOID
 InputBarPrintInput (
-  IN UINTN  LastColumn,
-  IN UINTN  LastRow
+  IN UINTN LastColumn,
+  IN UINTN LastRow
   )
 {
   UINTN   Limit;
@@ -67,8 +67,8 @@ InputBarPrintInput (
   UINTN   mPromptLen;
 
   mPromptLen = StrLen (mPrompt);
-  Limit      = LastColumn - mPromptLen - 1;
-  Size       = StrLen (mReturnString);
+  Limit     = LastColumn - mPromptLen - 1;
+  Size      = StrLen (mReturnString);
 
   //
   // check whether the mPrompt length and input length will
@@ -97,14 +97,15 @@ InputBarPrintInput (
 }
 
 typedef struct {
-  UINT32    Foreground : 4;
-  UINT32    Background : 3;
+  UINT32  Foreground : 4;
+  UINT32  Background : 3;
 } INPUT_BAR_COLOR_ATTRIBUTES;
 
 typedef union {
-  INPUT_BAR_COLOR_ATTRIBUTES    Colors;
-  UINTN                         Data;
+  INPUT_BAR_COLOR_ATTRIBUTES  Colors;
+  UINTN                       Data;
 } INPUT_BAR_COLOR_UNION;
+
 
 /**
   The refresh function for InputBar, it will wait for user input
@@ -116,25 +117,27 @@ typedef union {
 **/
 EFI_STATUS
 InputBarRefresh (
-  UINTN  LastRow,
-  UINTN  LastColumn
+  UINTN LastRow,
+  UINTN LastColumn
   )
 {
-  INPUT_BAR_COLOR_UNION  Orig;
-  INPUT_BAR_COLOR_UNION  New;
-  EFI_KEY_DATA           KeyData;
-  UINTN                  Size;
-  EFI_STATUS             Status;
-  BOOLEAN                NoDisplay;
-  UINTN                  EventIndex;
-  UINTN                  CursorRow;
-  UINTN                  CursorCol;
+  INPUT_BAR_COLOR_UNION   Orig;
+  INPUT_BAR_COLOR_UNION   New;
+  EFI_KEY_DATA            KeyData;
+  UINTN                   Size;
+  EFI_STATUS              Status;
+  BOOLEAN                 NoDisplay;
+  UINTN                   EventIndex;
+  UINTN                   CursorRow;
+  UINTN                   CursorCol;
+  BOOLEAN                 ShiftPressed;
+  BOOLEAN                 ModifiersPressed;
 
   //
   // variable initialization
   //
-  Size   = 0;
-  Status = EFI_SUCCESS;
+  Size    = 0;
+  Status  = EFI_SUCCESS;
 
   //
   // back up the old screen attributes
@@ -151,10 +154,10 @@ InputBarRefresh (
   //
   // clear input bar
   //
-  EditorClearLine (LastRow, LastColumn, LastRow);
+  EditorClearLine (LastRow , LastColumn, LastRow);
 
   gST->ConOut->SetCursorPosition (gST->ConOut, 0, LastRow - 1);
-  ShellPrintHiiEx (-1, -1, NULL, STRING_TOKEN (STR_EDIT_LIBINPUTBAR_MAININPUTBAR), gShellDebug1HiiHandle, mPrompt);
+  ShellPrintHiiEx(-1, -1, NULL, STRING_TOKEN(STR_EDIT_LIBINPUTBAR_MAININPUTBAR), gShellDebug1HiiHandle, mPrompt);
 
   //
   // this is a selection mPrompt, cursor will stay in edit area
@@ -167,45 +170,46 @@ InputBarRefresh (
   } else {
     NoDisplay = FALSE;
   }
-
   //
   // wait for user input
   //
-  for ( ; ;) {
+  for (;;) {
     Status = gBS->WaitForEvent (1, &mTextInEx->WaitForKeyEx, &EventIndex);
     if (EFI_ERROR (Status) || (EventIndex != 0)) {
       continue;
     }
-
     Status = mTextInEx->ReadKeyStrokeEx (mTextInEx, &KeyData);
     if (EFI_ERROR (Status)) {
       continue;
     }
+    ModifiersPressed = ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0)
+                    && (KeyData.KeyState.KeyShiftState != EFI_SHIFT_STATE_VALID);
 
-    if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0) &&
-        (KeyData.KeyState.KeyShiftState != EFI_SHIFT_STATE_VALID))
-    {
-      //
-      // Shift key pressed.
-      //
+    //
+    // TRUE if Shift is pressed and no other modifiers are pressed
+    //
+    ShiftPressed = ModifiersPressed &&
+                   ((KeyData.KeyState.KeyShiftState &
+                     ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_SHIFT_PRESSED | EFI_RIGHT_SHIFT_PRESSED)) == 0);
+
+    if (ModifiersPressed && !ShiftPressed) {
       continue;
     }
-
     //
     // pressed ESC
     //
-    if (KeyData.Key.ScanCode == SCAN_ESC) {
-      Size   = 0;
-      Status = EFI_NOT_READY;
+    if (!ModifiersPressed && KeyData.Key.ScanCode == SCAN_ESC) {
+      Size    = 0;
+      Status  = EFI_NOT_READY;
       break;
     }
-
     //
     // return pressed
     //
-    if ((KeyData.Key.UnicodeChar == CHAR_LINEFEED) || (KeyData.Key.UnicodeChar == CHAR_CARRIAGE_RETURN)) {
+    if (!ModifiersPressed
+      && (KeyData.Key.UnicodeChar == CHAR_LINEFEED || KeyData.Key.UnicodeChar == CHAR_CARRIAGE_RETURN)) {
       break;
-    } else if (KeyData.Key.UnicodeChar == CHAR_BACKSPACE) {
+    } else if (!ModifiersPressed && KeyData.Key.UnicodeChar == CHAR_BACKSPACE) {
       //
       // backspace
       //
@@ -213,10 +217,13 @@ InputBarRefresh (
         Size--;
         mReturnString[Size] = CHAR_NULL;
         if (!NoDisplay) {
+
           InputBarPrintInput (LastColumn, LastRow);
+
         }
       }
-    } else if ((KeyData.Key.UnicodeChar <= 127) && (KeyData.Key.UnicodeChar >= 32)) {
+    } else if ((!ModifiersPressed || ShiftPressed)
+            && KeyData.Key.UnicodeChar <= 127 && KeyData.Key.UnicodeChar >= 32) {
       //
       // VALID ASCII char pressed
       //
@@ -234,17 +241,21 @@ InputBarRefresh (
       mReturnString[Size] = CHAR_NULL;
 
       if (!NoDisplay) {
+
         InputBarPrintInput (LastColumn, LastRow);
+
       } else {
         //
         // if just choose yes/no
         //
         break;
       }
+
     }
   }
 
   mReturnString[Size] = CHAR_NULL;
+
 
   //
   // restore screen attributes
@@ -265,7 +276,7 @@ InputBarRefresh (
 **/
 EFI_STATUS
 InputBarSetPrompt (
-  IN CONST CHAR16  *Str
+  IN CONST CHAR16 *Str
   )
 {
   //
@@ -291,7 +302,7 @@ InputBarSetPrompt (
 **/
 EFI_STATUS
 InputBarSetStringSize (
-  UINTN  Size
+  UINTN   Size
   )
 {
   //
@@ -299,8 +310,8 @@ InputBarSetStringSize (
   //
   SHELL_FREE_NON_NULL (mReturnString);
 
-  StringSize    = Size;
-  mReturnString = AllocateZeroPool ((StringSize + 1) * sizeof (mReturnString[0]));
+  StringSize = Size;
+  mReturnString = AllocateZeroPool ((StringSize + 1) * sizeof(mReturnString[0]));
   if (mReturnString == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -314,7 +325,7 @@ InputBarSetStringSize (
   @retval NULL                  No input has been received.
   @return The string that was input.
 **/
-CONST CHAR16 *
+CONST CHAR16*
 InputBarGetString (
   VOID
   )
