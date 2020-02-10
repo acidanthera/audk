@@ -1397,9 +1397,8 @@ MainCommandDisplayHelp (
       continue;
     }
 
-    if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0) ||
-        (KeyData.KeyState.KeyShiftState == EFI_SHIFT_STATE_VALID))
-    {
+    if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0)
+      || (KeyData.KeyState.KeyShiftState == EFI_SHIFT_STATE_VALID)) {
       //
       // For consoles that don't support/report shift state,
       // CTRL+W is translated to L'W' - L'A' + 1.
@@ -1407,15 +1406,17 @@ MainCommandDisplayHelp (
       if (KeyData.Key.UnicodeChar == L'W' - L'A' + 1) {
         break;
       }
-    } else if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0) &&
-               ((KeyData.KeyState.KeyShiftState & (EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) != 0) &&
-               ((KeyData.KeyState.KeyShiftState & ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) == 0))
-    {
+    } else if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0)
+            && ((KeyData.KeyState.KeyShiftState & (EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) != 0)
+            && ((KeyData.KeyState.KeyShiftState & ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) == 0)) {
       //
       // For consoles that supports/reports shift state,
       // make sure that only CONTROL shift key is pressed.
+      // For some consoles that report shift state,
+      // CTRL+W is still translated to L'W' - L'A' + 1.
       //
-      if ((KeyData.Key.UnicodeChar == 'w') || (KeyData.Key.UnicodeChar == 'W')) {
+      if ((KeyData.Key.UnicodeChar == L'w') || (KeyData.Key.UnicodeChar == L'W')
+        || (KeyData.Key.UnicodeChar == L'w' - L'a' + 1) || (KeyData.Key.UnicodeChar == L'W' - L'A' + 1)) {
         break;
       }
     }
@@ -1854,7 +1855,8 @@ MainEditorKeyInput (
   EFI_KEY_DATA              KeyData;
   EFI_STATUS                Status;
   EFI_SIMPLE_POINTER_STATE  MouseState;
-  BOOLEAN                   NoShiftState;
+  BOOLEAN                   NoModifierState;
+  BOOLEAN                   ShiftOnlyState;
 
   do {
     Status            = EFI_SUCCESS;
@@ -1904,17 +1906,28 @@ MainEditorKeyInput (
         //
         StatusBarSetRefresh ();
         //
-        // NoShiftState: TRUE when no shift key is pressed.
+        // NoModifierState: TRUE when no modifier key is pressed.
         //
-        NoShiftState = ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0) || (KeyData.KeyState.KeyShiftState == EFI_SHIFT_STATE_VALID);
+        NoModifierState = ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0)
+                        || (KeyData.KeyState.KeyShiftState == EFI_SHIFT_STATE_VALID);
+        //
+        // ShiftOnlyState: TRUE when no modifier key except Shift is pressed.
+        //
+        ShiftOnlyState = ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0)
+                        || ((KeyData.KeyState.KeyShiftState
+                          & ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_SHIFT_PRESSED | EFI_RIGHT_SHIFT_PRESSED)) == 0);
         //
         // dispatch to different components' key handling function
         //
         if (EFI_NOT_FOUND != MenuBarDispatchControlHotKey (&KeyData)) {
           Status = EFI_SUCCESS;
-        } else if (NoShiftState && ((KeyData.Key.ScanCode == SCAN_NULL) || ((KeyData.Key.ScanCode >= SCAN_UP) && (KeyData.Key.ScanCode <= SCAN_PAGE_DOWN)))) {
+        } else if ((ShiftOnlyState && (KeyData.Key.ScanCode == SCAN_NULL))
+                || (NoModifierState && (KeyData.Key.ScanCode >= SCAN_UP) && (KeyData.Key.ScanCode <= SCAN_PAGE_DOWN))) {
+          //
+          // alphanumeric keys with or without shift, or arrow keys without shift
+          //
           Status = FileBufferHandleInput (&KeyData.Key);
-        } else if (NoShiftState && (KeyData.Key.ScanCode >= SCAN_F1) && (KeyData.Key.ScanCode <= SCAN_F12)) {
+        } else if (NoModifierState && (KeyData.Key.ScanCode >= SCAN_F1) && (KeyData.Key.ScanCode <= SCAN_F12)) {
           Status = MenuBarDispatchFunctionKey (&KeyData.Key);
         } else {
           StatusBarSetStatusString (L"Unknown Command");
