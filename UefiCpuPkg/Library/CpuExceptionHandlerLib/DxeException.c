@@ -22,7 +22,7 @@ EXCEPTION_HANDLER_DATA      mExceptionHandlerData;
 
 UINT8                       mNewStack[CPU_STACK_SWITCH_EXCEPTION_NUMBER *
                                       CPU_KNOWN_GOOD_STACK_SIZE];
-UINT8                       mNewGdt[CPU_TSS_GDT_SIZE];
+UINT8                       mNewGdt[CPU_TSS_GDT_SIZE + IA32_GDT_ALIGNMENT];
 
 /**
   Common exception handler.
@@ -238,6 +238,7 @@ InitializeCpuExceptionHandlersEx (
   CPU_EXCEPTION_INIT_DATA           EssData;
   IA32_DESCRIPTOR                   Idtr;
   IA32_DESCRIPTOR                   Gdtr;
+  UINT8                             *Gdt;
 
   //
   // To avoid repeat initialization of default handlers, the caller should pass
@@ -259,6 +260,7 @@ InitializeCpuExceptionHandlersEx (
     if (PcdGetBool (PcdCpuStackGuard)) {
       if (InitData == NULL) {
         SetMem (mNewGdt, sizeof (mNewGdt), 0);
+        Gdt = ALIGN_POINTER (mNewGdt, IA32_GDT_ALIGNMENT);
 
         AsmReadIdtr (&Idtr);
         AsmReadGdtr (&Gdtr);
@@ -270,11 +272,11 @@ InitializeCpuExceptionHandlersEx (
         EssData.X64.StackSwitchExceptionNumber = CPU_STACK_SWITCH_EXCEPTION_NUMBER;
         EssData.X64.IdtTable = (VOID *)Idtr.Base;
         EssData.X64.IdtTableSize = Idtr.Limit + 1;
-        EssData.X64.GdtTable = mNewGdt;
-        EssData.X64.GdtTableSize = sizeof (mNewGdt);
-        EssData.X64.ExceptionTssDesc = mNewGdt + Gdtr.Limit + 1;
+        EssData.X64.GdtTable = Gdt;
+        EssData.X64.GdtTableSize = CPU_TSS_GDT_SIZE;
+        EssData.X64.ExceptionTssDesc = Gdt + Gdtr.Limit + 1;
         EssData.X64.ExceptionTssDescSize = CPU_TSS_DESC_SIZE;
-        EssData.X64.ExceptionTss = mNewGdt + Gdtr.Limit + 1 + CPU_TSS_DESC_SIZE;
+        EssData.X64.ExceptionTss = Gdt + Gdtr.Limit + 1 + CPU_TSS_DESC_SIZE;
         EssData.X64.ExceptionTssSize = CPU_TSS_SIZE;
 
         InitData = &EssData;
