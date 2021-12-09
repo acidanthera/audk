@@ -405,7 +405,12 @@ UnitTestDebugAssert (
       }                             \
     } while (FALSE)
 #else
-  #define ASSERT(Expression)
+#define ASSERT(Expression)       \
+    do {                           \
+      if ((FALSE)) {               \
+        (VOID) (Expression);       \
+      }                            \
+    } while (FALSE)
 #endif
 
 /**
@@ -426,6 +431,16 @@ UnitTestDebugAssert (
       if (DebugPrintEnabled ()) {  \
         _DEBUG (Expression);       \
       }                            \
+    } while (FALSE)
+#elif defined (__GNUC__) || defined (__clang__)
+#define DEBUG(Expression)                                \
+    do {                                                   \
+      _Pragma("GCC diagnostic push")                       \
+      _Pragma("GCC diagnostic ignored \"-Wunused-value\"") \
+      if ((FALSE)) {                                       \
+        (VOID) Expression;                                 \
+      }                                                    \
+      _Pragma("GCC diagnostic pop")                        \
     } while (FALSE)
 #else
   #define DEBUG(Expression)
@@ -454,7 +469,12 @@ UnitTestDebugAssert (
       }                                                                                  \
     } while (FALSE)
 #else
-  #define ASSERT_EFI_ERROR(StatusParameter)
+#define ASSERT_EFI_ERROR(StatusParameter)                                             \
+    do {                                                                                \
+      if ((FALSE)) {                                                                    \
+        (VOID) (StatusParameter);                                                       \
+      }                                                                                 \
+    } while (FALSE)
 #endif
 
 /**
@@ -481,7 +501,12 @@ UnitTestDebugAssert (
       }                                                                 \
     } while (FALSE)
 #else
-  #define ASSERT_RETURN_ERROR(StatusParameter)
+#define ASSERT_RETURN_ERROR(StatusParameter)                          \
+    do {                                                                \
+      if ((FALSE)) {                                                    \
+        (VOID) (StatusParameter);                                       \
+      }                                                                 \
+    } while (FALSE)
 #endif
 
 /**
