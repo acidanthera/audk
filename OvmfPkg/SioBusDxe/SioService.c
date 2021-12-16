@@ -73,7 +73,12 @@ SIO_DEVICE_INFO  mDevicesInfo[] = {
     EISA_PNP_ID (0x303),
     0,
     { (ACPI_SMALL_RESOURCE_HEADER *)&mPs2KeyboardDeviceResources }
-  }   // PS/2 Keyboard Controller
+  },  // PS/2 Keyboard Controller
+  {
+    EISA_PNP_ID (0xF13),
+    0,
+    { (ACPI_SMALL_RESOURCE_HEADER *)&mPs2KeyboardDeviceResources }
+  }   // PS/2 Mouse Controller
 };
 
 //
