@@ -26,7 +26,6 @@
 #include <Library/PeimEntryPoint.h>
 #include <Library/PeiServicesLib.h>
 #include <Library/QemuFwCfgLib.h>
-#include <Library/QemuFwCfgS3Lib.h>
 #include <Library/QemuFwCfgSimpleParserLib.h>
 #include <Library/ResourcePublicationLib.h>
 #include <Ppi/MasterBootMode.h>
@@ -708,20 +707,10 @@ InitializePlatform (
   IN CONST EFI_PEI_SERVICES     **PeiServices
   )
 {
-  EFI_STATUS    Status;
-
   DEBUG ((DEBUG_INFO, "Platform PEIM Loaded\n"));
 
   DebugDumpCmos ();
 
-  if (QemuFwCfgS3Enabled ()) {
-    DEBUG ((DEBUG_INFO, "S3 support was detected on QEMU\n"));
-    mS3Supported = TRUE;
-    Status = PcdSetBoolS (PcdAcpiS3Enable, TRUE);
-    ASSERT_EFI_ERROR (Status);
-  }
-
-  S3Verification ();
   BootModeInitialization ();
   AddressWidthInitialization ();
 

@@ -57,7 +57,6 @@
   PeiServicesTablePointerLib
   PeimEntryPoint
   QemuFwCfgLib
-  QemuFwCfgS3Lib
   QemuFwCfgSimpleParserLib
   MtrrLib
   MemEncryptSevLib
@@ -130,4 +129,3 @@
 
 [Depex]
   TRUE
-
