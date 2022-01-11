@@ -678,7 +678,7 @@ CreateChildNode (
   VOID                                         *NewStreamBuffer;
   VOID                                         *ScratchBuffer;
   UINT32                                       ScratchSize;
-  UINTN                                        NewStreamBufferSize;
+  UINT32                                       NewStreamBufferSize;
   UINT32                                       AuthenticationStatus;
   VOID                                         *CompressionSource;
   UINT32                                       CompressionSourceSize;
@@ -772,7 +772,7 @@ CreateChildNode (
                                  Decompress,
                                  CompressionSource,
                                  CompressionSourceSize,
-                                 (UINT32 *)&NewStreamBufferSize,
+                                 &NewStreamBufferSize,
                                  &ScratchSize
                                  );
           if (EFI_ERROR (Status) || (NewStreamBufferSize != UncompressedLength)) {
@@ -796,7 +796,7 @@ CreateChildNode (
                                  CompressionSource,
                                  CompressionSourceSize,
                                  NewStreamBuffer,
-                                 (UINT32)NewStreamBufferSize,
+                                 NewStreamBufferSize,
                                  ScratchBuffer,
                                  ScratchSize
                                  );
@@ -844,7 +844,7 @@ CreateChildNode (
                                      GuidedExtraction,
                                      GuidedHeader,
                                      &NewStreamBuffer,
-                                     &NewStreamBufferSize,
+                                     (UINTN *)&NewStreamBufferSize,
                                      &AuthenticationStatus
                                      );
         if (EFI_ERROR (Status)) {
