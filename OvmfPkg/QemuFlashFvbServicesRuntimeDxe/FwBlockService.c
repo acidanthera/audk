@@ -1028,6 +1028,7 @@ FvbInitialize (
     //
     FvMemmapDevicePath = AllocateCopyPool (sizeof (FV_MEMMAP_DEVICE_PATH),
                            &mFvMemmapDevicePathTemplate);
+    ASSERT (FvMemmapDevicePath != NULL);
     FvMemmapDevicePath->MemMapDevPath.StartingAddress = BaseAddress;
     FvMemmapDevicePath->MemMapDevPath.EndingAddress   =
       BaseAddress + FwVolHeader->FvLength - 1;
@@ -1037,6 +1038,7 @@ FvbInitialize (
 
     FvPiwgDevicePath = AllocateCopyPool (sizeof (FV_PIWG_DEVICE_PATH),
                          &mFvPIWGDevicePathTemplate);
+    ASSERT (FvPiwgDevicePath != NULL);
     CopyGuid (
       &FvPiwgDevicePath->FvDevPath.FvName,
       (GUID *)(UINTN)(BaseAddress + FwVolHeader->ExtHeaderOffset)
