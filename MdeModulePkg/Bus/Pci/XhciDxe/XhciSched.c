@@ -2218,6 +2218,7 @@ XhcInitializeDeviceSlot (
   // 4) Allocate and initialize the Transfer Ring for the Default Control Endpoint.
   //
   EndpointTransferRing = AllocateZeroPool (sizeof (TRANSFER_RING));
+  ASSERT (EndpointTransferRing != NULL);
   Xhc->UsbDevContext[SlotId].EndpointTransferRing[0] = EndpointTransferRing;
   CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[0]);
   //
@@ -2431,6 +2432,7 @@ XhcInitializeDeviceSlot64 (
   // 4) Allocate and initialize the Transfer Ring for the Default Control Endpoint.
   //
   EndpointTransferRing = AllocateZeroPool (sizeof (TRANSFER_RING));
+  ASSERT (EndpointTransferRing != NULL);
   Xhc->UsbDevContext[SlotId].EndpointTransferRing[0] = EndpointTransferRing;
   CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[0]);
   //
@@ -2816,6 +2818,7 @@ XhcInitializeEndpointContext (
         InputContext->EP[Dci-1].AverageTRBLength = 0x1000;
         if (Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] == NULL) {
           EndpointTransferRing = AllocateZeroPool(sizeof (TRANSFER_RING));
+          ASSERT (EndpointTransferRing != NULL);
           Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] = (VOID *) EndpointTransferRing;
           CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1]);
           DEBUG ((DEBUG_INFO, "Endpoint[%x]: Created BULK ring [%p~%p)\n",
@@ -2889,6 +2892,7 @@ XhcInitializeEndpointContext (
 
         if (Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] == NULL) {
           EndpointTransferRing = AllocateZeroPool(sizeof (TRANSFER_RING));
+          ASSERT (EndpointTransferRing != NULL);
           Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] = (VOID *) EndpointTransferRing;
           CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1]);
           DEBUG ((DEBUG_INFO, "Endpoint[%x]: Created INT ring [%p~%p)\n",
@@ -3008,6 +3012,7 @@ XhcInitializeEndpointContext64 (
         InputContext->EP[Dci-1].AverageTRBLength = 0x1000;
         if (Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] == NULL) {
           EndpointTransferRing = AllocateZeroPool(sizeof (TRANSFER_RING));
+          ASSERT (EndpointTransferRing != NULL);
           Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] = (VOID *) EndpointTransferRing;
           CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1]);
           DEBUG ((DEBUG_INFO, "Endpoint64[%x]: Created BULK ring [%p~%p)\n",
@@ -3081,6 +3086,7 @@ XhcInitializeEndpointContext64 (
 
         if (Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] == NULL) {
           EndpointTransferRing = AllocateZeroPool(sizeof (TRANSFER_RING));
+          ASSERT (EndpointTransferRing != NULL);
           Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1] = (VOID *) EndpointTransferRing;
           CreateTransferRing(Xhc, TR_RING_TRB_NUMBER, (TRANSFER_RING *)Xhc->UsbDevContext[SlotId].EndpointTransferRing[Dci-1]);
           DEBUG ((DEBUG_INFO, "Endpoint64[%x]: Created INT ring [%p~%p)\n",
@@ -4120,5 +4126,3 @@ XhcConfigHubContext64 (
   }
   return Status;
 }
-
-
