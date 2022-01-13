@@ -479,6 +479,7 @@ SmbiosAdd (
   HandleEntry = AllocateZeroPool (sizeof(SMBIOS_HANDLE_ENTRY));
   if (HandleEntry == NULL) {
     EfiReleaseLock (&Private->DataLock);
+    FreePool (SmbiosEntry);
     return EFI_OUT_OF_RESOURCES;
   }
 
