@@ -864,6 +864,10 @@ SerialControllerDriverStart (
       // If the SerialIo instance is already created, NULL as RemainingDevicePath is treated
       // as to create the same SerialIo instance.
       //
+      if (SerialDevices != NULL) {
+        FreePool (SerialDevices);
+      }
+
       return EFI_SUCCESS;
     } else {
       //
