@@ -617,6 +617,9 @@ CustomGuidedSectionExtract (
     //
     *OutputBuffer = AllocatePages (EFI_SIZE_TO_PAGES (OutputBufferSize));
     if (*OutputBuffer == NULL) {
+      if (ScratchBufferSize != 0) {
+        FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
+      }
       return EFI_OUT_OF_RESOURCES;
     }
     DEBUG ((DEBUG_INFO, "Customized Guided section Memory Size required is 0x%x and address is 0x%p\n", OutputBufferSize, *OutputBuffer));
@@ -633,10 +636,20 @@ CustomGuidedSectionExtract (
     // Decode failed
     //
     DEBUG ((DEBUG_ERROR, "Extract guided section Failed - %r\n", Status));
+    if (ScratchBufferSize != 0) {
+      FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
+    }
+    if (*OutputBuffer != NULL) {
+      FreePages (*OutputBuffer, EFI_SIZE_TO_PAGES (OutputBufferSize));
+    }
     return Status;
   }
 
   *OutputSize = (UINTN) OutputBufferSize;
+
+  if (ScratchBufferSize != 0) {
+    FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
+  }
 
   return EFI_SUCCESS;
 }
@@ -734,6 +747,7 @@ Decompress (
       //
       DstBuffer = AllocatePages (EFI_SIZE_TO_PAGES (DstBufferSize));
       if (DstBuffer == NULL) {
+        FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
         return EFI_OUT_OF_RESOURCES;
       }
       //
@@ -749,8 +763,13 @@ Decompress (
         // Decompress failed
         //
         DEBUG ((DEBUG_ERROR, "Decompress Failed - %r\n", Status));
+        FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
+        FreePages (DstBuffer, EFI_SIZE_TO_PAGES (DstBufferSize));
         return EFI_NOT_FOUND;
       }
+
+      FreePages (ScratchBuffer, EFI_SIZE_TO_PAGES (ScratchBufferSize));
+      
       break;
     } else {
       //
@@ -832,4 +851,3 @@ UpdateStackHob (
     Hob.Raw = GET_NEXT_HOB (Hob);
   }
 }
-
