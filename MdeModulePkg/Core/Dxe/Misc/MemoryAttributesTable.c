@@ -160,6 +160,7 @@ InstallMemoryAttributesTable (
       FreePool (MemoryMap);
     }
   } while (Status == EFI_BUFFER_TOO_SMALL);
+  ASSERT_EFI_ERROR (Status);
 
   MemoryMapStart = MemoryMap;
   RuntimeEntryCount = 0;
