@@ -857,6 +857,7 @@ GetWorker (
   UINT8               *VaraiableDefaultBuffer;
   UINTN               VpdBaseAddress;
 
+  ASSERT (TokenNumber > 0);
   //
   // TokenNumber Zero is reserved as PCD_INVALID_TOKEN_NUMBER.
   // We have to decrement TokenNumber by 1 to make it usable

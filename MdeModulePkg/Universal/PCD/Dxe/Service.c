@@ -1028,6 +1028,7 @@ InvokeCallbackOnSet (
   LIST_ENTRY              *ListHead;
   LIST_ENTRY              *ListNode;
 
+  ASSERT (TokenNumber > 0);
   //
   // TokenNumber Zero is reserved as PCD_INVALID_TOKEN_NUMBER.
   // We have to decrement TokenNumber by 1 to make it usable
@@ -1112,6 +1113,7 @@ SetWorker (
   UINTN               MaxSize;
   UINTN               TmpTokenNumber;
 
+  ASSERT (TokenNumber > 0);
   //
   // TokenNumber Zero is reserved as PCD_INVALID_TOKEN_NUMBER.
   // We have to decrement TokenNumber by 1 to make it usable
@@ -1899,4 +1901,3 @@ VariableLockCallBack (
     VariableLockDynamicHiiPcd (FALSE, VariableLock);
   }
 }
-

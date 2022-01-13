@@ -969,7 +969,7 @@ MtrrLibSetMemoryType (
   UINT64                           LengthRight;
   UINTN                            StartIndex;
   UINTN                            EndIndex;
-  UINTN                            DeltaCount;
+  INTN                             DeltaCount;
 
   LengthRight = 0;
   LengthLeft  = 0;
