@@ -67,6 +67,8 @@ OrderedCollectionUserStruct (
   IN CONST RED_BLACK_TREE_NODE *Node
   )
 {
+  ASSERT (Node != NULL);
+  
   return Node->UserStruct;
 }
 
