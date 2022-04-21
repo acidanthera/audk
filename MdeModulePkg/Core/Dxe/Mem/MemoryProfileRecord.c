@@ -387,13 +387,14 @@ BuildDriverInfo (
   PdbSize         = 0;
   PdbOccupiedSize = 0;
   PdbString       = NULL;
-  if (ImageBase != 0) {
+  // FIXME:
+  /*if (ImageBase != 0) {
     PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageBase);
     if (PdbString != NULL) {
       PdbSize         = AsciiStrSize (PdbString);
       PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
     }
-  }
+  }*/
 
   //
   // Use CoreInternalAllocatePool() that will not update profile for this AllocatePool action.
@@ -424,7 +425,8 @@ BuildDriverInfo (
   DriverInfo->ImageSize      = ImageSize;
   DriverInfo->EntryPoint     = EntryPoint;
   DriverInfo->ImageSubsystem = ImageSubsystem;
-  if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
+  // FIXME:
+  /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageBuffer here to align the EntryPoint.
@@ -432,7 +434,7 @@ BuildDriverInfo (
     Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  }
+  }*/
 
   DriverInfo->FileType          = FileType;
   DriverInfoData->AllocInfoList = (LIST_ENTRY *)(DriverInfoData + 1);
@@ -718,7 +720,7 @@ RegisterMemoryProfileImage (
                      DriverEntry->ImageContext.ImageAddress,
                      DriverEntry->ImageContext.ImageSize,
                      DriverEntry->ImageContext.EntryPoint,
-                     DriverEntry->ImageContext.ImageType,
+                     DriverEntry->ImageContext.Subsystem,
                      FileType
                      );
   if (DriverInfoData == NULL) {
@@ -857,7 +859,8 @@ UnregisterMemoryProfileImage (
   DriverInfoData = NULL;
   FileName       = GetFileNameFromFilePath (DriverEntry->Info.FilePath);
   ImageAddress   = DriverEntry->ImageContext.ImageAddress;
-  if ((DriverEntry->ImageContext.EntryPoint < ImageAddress) || (DriverEntry->ImageContext.EntryPoint >= (ImageAddress + DriverEntry->ImageContext.ImageSize))) {
+  // FIXME:
+  /*if ((DriverEntry->ImageContext.EntryPoint < ImageAddress) || (DriverEntry->ImageContext.EntryPoint >= (ImageAddress + DriverEntry->ImageContext.ImageSize))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageAddress here to align the EntryPoint.
@@ -865,7 +868,7 @@ UnregisterMemoryProfileImage (
     Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageAddress, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     ImageAddress = ImageAddress + (UINTN)DriverEntry->ImageContext.EntryPoint - (UINTN)EntryPointInImage;
-  }
+  }*/
 
   if (FileName != NULL) {
     DriverInfoData = GetMemoryProfileDriverInfoByFileNameAndAddress (ContextData, FileName, ImageAddress);
@@ -882,7 +885,7 @@ UnregisterMemoryProfileImage (
   ContextData->Context.TotalImageSize -= DriverInfoData->DriverInfo.ImageSize;
 
   // Keep the ImageBase for RVA calculation in Application.
-  // DriverInfoData->DriverInfo.ImageBase = 0;
+  // DriverInfoData->DriverInfo.DestAddress = 0;
   DriverInfoData->DriverInfo.ImageSize = 0;
 
   if (DriverInfoData->DriverInfo.PeakUsage == 0) {
@@ -1647,7 +1650,7 @@ ProfileProtocolRegisterImage (
   Status                                = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
   ASSERT_EFI_ERROR (Status);
   DriverEntry.ImageContext.EntryPoint = (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  DriverEntry.ImageContext.ImageType  = InternalPeCoffGetSubsystem ((VOID *)(UINTN)ImageBase);
+  DriverEntry.ImageContext.Subsystem  = InternalPeCoffGetSubsystem ((VOID *)(UINTN)ImageBase);
 
   return RegisterMemoryProfileImage (&DriverEntry, FileType);
 }

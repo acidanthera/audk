@@ -108,6 +108,8 @@ typedef struct {
   /// The RVA of the CodeView debug information.
   ///
   UINT32     CodeViewRva;
+    // TODO: Fuckery
+  UINT64     DestAddress;
 } PE_COFF_IMAGE_CONTEXT;
 
 ///
@@ -324,6 +326,19 @@ PeCoffHashImage (
   IN     CONST PE_COFF_IMAGE_CONTEXT  *Context,
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
   IN OUT VOID                         *HashContext
+  );
+
+UINT16
+PeCoffGetSections (
+  IN OUT PE_COFF_IMAGE_CONTEXT    *Context,
+  OUT    EFI_IMAGE_SECTION_HEADER **Sections
+  );
+
+RETURN_STATUS
+PeCoffLoaderGetHiiResourceSection (
+  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  OUT UINT32                              *HiiOffset,
+  OUT UINT32                              *MaxHiiSize
   );
 
 #endif // OC_PE_COFF_LIB_H

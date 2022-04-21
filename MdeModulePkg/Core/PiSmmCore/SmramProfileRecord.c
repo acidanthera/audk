@@ -389,13 +389,14 @@ BuildDriverInfo (
   PdbSize         = 0;
   PdbOccupiedSize = 0;
   PdbString       = NULL;
-  if (ImageBase != 0) {
+  // FIXME:
+  /*if (ImageBase != 0) {
     PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageBase);
     if (PdbString != NULL) {
       PdbSize         = AsciiStrSize (PdbString);
       PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
     }
-  }
+  }*/
 
   //
   // Use SmmInternalAllocatePool() that will not update profile for this AllocatePool action.
@@ -426,7 +427,8 @@ BuildDriverInfo (
   DriverInfo->ImageSize      = ImageSize;
   DriverInfo->EntryPoint     = EntryPoint;
   DriverInfo->ImageSubsystem = ImageSubsystem;
-  if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
+  // FIXME:
+  /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageBuffer here to align the EntryPoint.
@@ -434,7 +436,7 @@ BuildDriverInfo (
     Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  }
+  }*/
 
   DriverInfo->FileType          = FileType;
   DriverInfoData->AllocInfoList = (LIST_ENTRY *)(DriverInfoData + 1);
@@ -950,7 +952,8 @@ UnregisterSmramProfileImage (
   DriverInfoData = NULL;
   FileName       = &DriverEntry->FileName;
   ImageAddress   = DriverEntry->ImageBuffer;
-  if ((DriverEntry->ImageEntryPoint < ImageAddress) || (DriverEntry->ImageEntryPoint >= (ImageAddress + EFI_PAGES_TO_SIZE (DriverEntry->NumberOfPage)))) {
+  // FIXME:
+  /*if ((DriverEntry->ImageEntryPoint < ImageAddress) || (DriverEntry->ImageEntryPoint >= (ImageAddress + EFI_PAGES_TO_SIZE (DriverEntry->NumberOfPage)))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageAddress here to align the EntryPoint.
@@ -958,7 +961,7 @@ UnregisterSmramProfileImage (
     Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageAddress, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     ImageAddress = ImageAddress + (UINTN)DriverEntry->ImageEntryPoint - (UINTN)EntryPointInImage;
-  }
+  }*/
 
   if (FileName != NULL) {
     DriverInfoData = GetMemoryProfileDriverInfoByFileNameAndAddress (ContextData, FileName, ImageAddress);
@@ -975,7 +978,7 @@ UnregisterSmramProfileImage (
   ContextData->Context.TotalImageSize -= DriverInfoData->DriverInfo.ImageSize;
 
   // Keep the ImageBase for RVA calculation in Application.
-  // DriverInfoData->DriverInfo.ImageBase = 0;
+  // DriverInfoData->DriverInfo.DestAddress = 0;
   DriverInfoData->DriverInfo.ImageSize = 0;
 
   if (DriverInfoData->DriverInfo.PeakUsage == 0) {

@@ -48,7 +48,7 @@
   DebugAgentLib
   IoLib
   PeCoffLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   PeCoffExtraActionLib
   ExtractGuidedSectionLib
   LocalApicLib

@@ -118,9 +118,11 @@ DumpModuleImageInfo (
   IN  UINTN  CurrentEip
   )
 {
-  EFI_STATUS  Status;
+  // TODO:
+  #if 0
+  //EFI_STATUS  Status;
   UINTN       Pe32Data;
-  VOID        *PdbPointer;
+  //VOID        *PdbPointer;
   VOID        *EntryPoint;
 
   Pe32Data = PeCoffSearchImageBase (CurrentEip);
@@ -130,16 +132,16 @@ DumpModuleImageInfo (
     //
     // Find Image Base entry point
     //
-    Status = PeCoffLoaderGetEntryPoint ((VOID *)Pe32Data, &EntryPoint);
-    if (EFI_ERROR (Status)) {
+    /*Status = PeCoffLoaderGetEntryPoint ((VOID *)Pe32Data, &EntryPoint);
+    if (EFI_ERROR (Status))*/ {
       EntryPoint = NULL;
     }
 
     InternalPrintMessage ("!!!! Find image based on IP(0x%x) ", CurrentEip);
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)Pe32Data);
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)Pe32Data);
     if (PdbPointer != NULL) {
       InternalPrintMessage ("%a", PdbPointer);
-    } else {
+    } else*/ {
       InternalPrintMessage ("(No PDB) ");
     }
 
@@ -149,6 +151,7 @@ DumpModuleImageInfo (
       EntryPoint
       );
   }
+  #endif
 }
 
 /**

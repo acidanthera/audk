@@ -87,6 +87,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   /* LCOV_EXCL_START */
     default:
       ASSERT (FALSE);
+      return;
   }
   /* LCOV_EXCL_STOP */
 

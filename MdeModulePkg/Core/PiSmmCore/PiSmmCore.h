@@ -41,7 +41,6 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/ReportStatusCodeLib.h>

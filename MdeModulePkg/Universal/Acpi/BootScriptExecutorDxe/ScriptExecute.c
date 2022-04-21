@@ -267,7 +267,7 @@ ReadyToLockEventNotify (
   EFI_HANDLE                       NewImageHandle;
   UINTN                            Pages;
   EFI_PHYSICAL_ADDRESS             FfsBuffer;
-  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
+  PE_COFF_IMAGE_CONTEXT     ImageContext;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
 
   Status = gBS->LocateProtocol (&gEfiDxeSmmReadyToLockProtocolGuid, NULL, &Interface);
@@ -298,19 +298,18 @@ ReadyToLockEventNotify (
              &BufferSize
              );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.Handle    = Buffer;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
+  UINT32 Size;
   if (ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + ImageContext.SectionAlignment));
+    Size = ImageContext.SizeOfImage + ImageContext.SectionAlignment;
   } else {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize);
+    Size = ImageContext.SizeOfImage;
   }
-
+  Pages = EFI_SIZE_TO_PAGES (Size);
   FfsBuffer = 0xFFFFFFFF;
   Status    = gBS->AllocatePages (
                      AllocateMaxAddress,
@@ -332,22 +331,22 @@ ReadyToLockEventNotify (
            );
   }
 
-  ImageContext.ImageAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
+  ImageContext.DestAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
   // Align buffer on section boundary
   //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  ImageContext.DestAddress += ImageContext.SectionAlignment - 1;
+  ImageContext.DestAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
+  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)ImageContext.DestAddress, Size);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Relocate the image in our new buffer
   //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
+  Status = PeCoffRelocateImage (&ImageContext, ImageContext.DestAddress, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -358,16 +357,16 @@ ReadyToLockEventNotify (
   //
   // Flush the instruction cache so the image data is written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.DestAddress, (UINTN)ImageContext.SizeOfImage);
 
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,
-    ImageContext.ImageAddress,
-    ImageContext.ImageSize,
+    ImageContext.DestAddress,
+    ImageContext.SizeOfImage,
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.EntryPoint))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -376,8 +375,8 @@ ReadyToLockEventNotify (
   //
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
-             (VOID *)(UINTN)ImageContext.ImageAddress,
-             (UINTN)ImageContext.ImageSize
+             (VOID *)(UINTN)ImageContext.DestAddress,
+             (UINTN)ImageContext.SizeOfImage
              );
   ASSERT_EFI_ERROR (Status);
 

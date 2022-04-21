@@ -317,10 +317,10 @@ RuntimeDriverSetVirtualAddressMap (
       Status        = RuntimeDriverConvertPointer (0, (VOID **)&VirtImageBase);
       ASSERT_EFI_ERROR (Status);
 
-      PeCoffLoaderRelocateImageForRuntime (
-        (EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase,
+      PeCoffRelocateImageForRuntime (
+        (VOID *)(UINTN)RuntimeImage->ImageBase,
+        (UINT32)RuntimeImage->ImageSize,
         VirtImageBase,
-        (UINTN)RuntimeImage->ImageSize,
         RuntimeImage->RelocationData
         );
 

@@ -50,7 +50,7 @@
   UefiBootServicesTableLib
   SortLib
   PrintLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
 
 [Pcd]
   gEfiShellPkgTokenSpaceGuid.PcdShellProfileMask  ## CONSUMES

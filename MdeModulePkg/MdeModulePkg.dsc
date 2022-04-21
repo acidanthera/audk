@@ -43,7 +43,6 @@
   PciSegmentLib|MdePkg/Library/BasePciSegmentLibPci/BasePciSegmentLibPci.inf
   CacheMaintenanceLib|MdePkg/Library/BaseCacheMaintenanceLib/BaseCacheMaintenanceLib.inf
   PeCoffLib|MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
-  PeCoffGetEntryPointLib|MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
   SortLib|MdeModulePkg/Library/BaseSortLib/BaseSortLib.inf
   #
   # UEFI & PI
@@ -442,9 +441,10 @@
   MdeModulePkg/Library/DxeCapsuleLibFmp/DxeRuntimeCapsuleLib.inf
 
 [Components.IA32, Components.X64, Components.AARCH64]
-  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
-  MdeModulePkg/Universal/EbcDxe/EbcDebugger.inf
-  MdeModulePkg/Universal/EbcDxe/EbcDebuggerConfig.inf
+  # FIXME:
+  #MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
+  #MdeModulePkg/Universal/EbcDxe/EbcDebugger.inf
+  #MdeModulePkg/Universal/EbcDxe/EbcDebuggerConfig.inf
 
 [Components.IA32, Components.X64, Components.ARM, Components.AARCH64]
   MdeModulePkg/Library/BrotliCustomDecompressLib/BrotliCustomDecompressLib.inf

@@ -34,11 +34,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PeiServicesLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/PcdLib.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeCoffImage.h>
 #include <Library/PeiServicesTablePointerLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Guid/FirmwareFileSystem2.h>
@@ -289,7 +288,7 @@ struct _PEI_CORE_INSTANCE {
   //
   // This field points to the shadowed image read function
   //
-  PE_COFF_LOADER_READ_FILE          ShadowedImageRead;
+  VOID          *ShadowedImageRead;
 
   UINTN                             TempPeimCount;
 

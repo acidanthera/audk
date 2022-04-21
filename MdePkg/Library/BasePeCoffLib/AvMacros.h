@@ -15,6 +15,7 @@
 #include "Frama.h"
 #endif
 
+#ifndef ASSERT
 #if defined(FUZZING)
   #include <assert.h>
   #define ASSERT  assert
@@ -22,6 +23,7 @@
   #define ASSERT(c)  do { if (!(c)) { __builtin_unreachable (); } } while (FALSE)
 #else
   #define ASSERT(...)
+#endif
 #endif
 
 #ifndef PRODUCTION

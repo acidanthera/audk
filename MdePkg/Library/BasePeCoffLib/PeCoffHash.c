@@ -515,6 +515,7 @@ PeCoffHashImage (
   /* LCOV_EXCL_START */
     default:
       ASSERT (FALSE);
+      return FALSE;
   }
   /* LCOV_EXCL_STOP */
   //

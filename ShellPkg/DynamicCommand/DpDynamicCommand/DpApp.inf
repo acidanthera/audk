@@ -50,7 +50,7 @@
   DevicePathLib
   PerformanceLib
   DxeServicesLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
 
 [Guids]
   gPerformanceProtocolGuid                                ## CONSUMES ## SystemTable

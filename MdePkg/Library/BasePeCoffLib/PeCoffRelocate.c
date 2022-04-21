@@ -384,6 +384,7 @@ InternalApplyRelocation (
     //@ assert RelocBlock->VirtualAddress + image_reloc_offset (RelocBlock->Relocations[RelocIndex]) > MAX_UINT32;
     //@ assert !(RelocBlock->VirtualAddress + image_reloc_offset (RelocBlock->Relocations[RelocIndex]) + image_reloc_size (RelocBlock->Relocations[RelocIndex]) <= Context->SizeOfImage);
     //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -404,6 +405,7 @@ InternalApplyRelocation (
   if (Result) {
     //@ assert !(RelocBlock->VirtualAddress + image_reloc_offset (RelocBlock->Relocations[RelocIndex]) + image_reloc_size (RelocBlock->Relocations[RelocIndex]) <= Context->SizeOfImage);
     //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -450,6 +452,7 @@ InternalApplyRelocation (
       if (sizeof (UINT32) > RemRelocTargetSize) {
         //@ assert !(image_reloc_size (RelocBlock->Relocations[RelocIndex]) <= RemRelocTargetSize);
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -466,6 +469,7 @@ InternalApplyRelocation (
           @        Context->RelocDirRva + Context->RelocDirSize <= RelocTarget);
         */
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -511,6 +515,7 @@ InternalApplyRelocation (
       if (sizeof (UINT64) > RemRelocTargetSize) {
         //@ assert !(image_reloc_size (RelocBlock->Relocations[RelocIndex]) <= RemRelocTargetSize);
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -527,6 +532,7 @@ InternalApplyRelocation (
           @        Context->RelocDirRva + Context->RelocDirSize <= RelocTarget);
         */
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -573,6 +579,7 @@ InternalApplyRelocation (
       if (!PcdGetBool (PcdImageLoaderSupportArmThumb)) {
         //@ assert !PcdGetBool (PcdImageLoaderSupportArmThumb);
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -582,6 +589,7 @@ InternalApplyRelocation (
       if (sizeof (UINT64) > RemRelocTargetSize) {
         //@ assert !(image_reloc_size (RelocBlock->Relocations[RelocIndex]) <= RemRelocTargetSize);
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -592,6 +600,7 @@ InternalApplyRelocation (
       if (!IS_ALIGNED (RelocTarget, OC_ALIGNOF (UINT16))) {
         //@ assert !is_aligned_32 (RelocTarget, AV_ALIGNOF (UINT16));
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -615,6 +624,7 @@ InternalApplyRelocation (
           @        Context->RelocDirRva + Context->RelocDirSize <= RelocTarget);
         */
         //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -639,6 +649,7 @@ InternalApplyRelocation (
 
     default:
       //@ assert !image_context_reloc_sane (Context, RelocBlock, RelocIndex);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
   }
 
@@ -675,6 +686,10 @@ PeCoffRelocateImage (
   ASSERT (!Context->RelocsStripped);
   ASSERT (RelocationData != NULL || RelocationDataSize == 0);
   ASSERT (RelocationData == NULL || RelocationDataSize >= sizeof (PE_COFF_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
+
+  if (Context->RelocDirSize == 0) {
+    return RETURN_SUCCESS;
+  }
   //
   // Calculate the Image displacement from its prefered load address.
   //
@@ -839,6 +854,7 @@ PeCoffRelocateImage (
       */
       //@ assert !\exists UINT32 NumRelocs; NumRelocs == image_base_reloc_num ((char *) Context->ImageBuffer, Context->RelocDirRva, Context->RelocDirSize);
       //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -878,6 +894,7 @@ PeCoffRelocateImage (
       */
       //@ assert !\exists UINT32 NumRelocs; NumRelocs == image_base_reloc_num ((char *) Context->ImageBuffer, Context->RelocDirRva, Context->RelocDirSize);
       //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -917,6 +934,7 @@ PeCoffRelocateImage (
       */
       //@ assert !\exists UINT32 NumRelocs; NumRelocs == image_base_reloc_num ((char *) Context->ImageBuffer, Context->RelocDirRva, Context->RelocDirSize);
       //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -1026,6 +1044,7 @@ PeCoffRelocateImage (
           @          image_relocs_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize, NumRelocs);
         */
         //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+        ASSERT (FALSE);
         return Status;
       }
     }
@@ -1099,6 +1118,7 @@ PeCoffRelocateImage (
       @        image_base_reloc_offset_index ((char *) Context->ImageBuffer, Context->RelocDirRva, Context->RelocDirSize, NumBaseRelocs) != Context->RelocDirRva + Context->RelocDirSize;
     */
     //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //

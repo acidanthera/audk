@@ -97,7 +97,7 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
 
 [Protocols]
   gEfiSmmAccess2ProtocolGuid               ## CONSUMES

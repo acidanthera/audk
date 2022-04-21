@@ -163,7 +163,7 @@ FindAndReportEntryPoints (
   // Report SEC Core debug information when remote debug is enabled
   //
   ImageContext.ImageAddress = SecCoreImageBase;
-  ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
+  //ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
   PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
   //
@@ -176,16 +176,16 @@ FindAndReportEntryPoints (
   // Report PEI Core debug information when remote debug is enabled
   //
   ImageContext.ImageAddress = PeiCoreImageBase;
-  ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
+  //ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
   PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+
+  Status = PeCoffInitializeContext (&ImageContext, (VOID*) (UINTN) ImageContext.ImageAddress, 0xFFFFFFFF);
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Find PEI Core entry point
   //
-  Status = PeCoffLoaderGetEntryPoint ((VOID *)(UINTN)PeiCoreImageBase, (VOID **)PeiCoreEntryPoint);
-  if (EFI_ERROR (Status)) {
-    *PeiCoreEntryPoint = 0;
-  }
+  *PeiCoreEntryPoint = ImageContext.DestAddress + ImageContext.AddressOfEntryPoint;
 
   return;
 }

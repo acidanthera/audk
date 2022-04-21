@@ -49,7 +49,7 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   DebugLib
   VmgExitLib
 

@@ -1470,14 +1470,15 @@ CoreAllocatePages (
                 NeedGuard
                 );
   if (!EFI_ERROR (Status)) {
-    CoreUpdateProfile (
+    // FIXME:
+    /*CoreUpdateProfile (
       (EFI_PHYSICAL_ADDRESS)(UINTN)RETURN_ADDRESS (0),
       MemoryProfileActionAllocatePages,
       MemoryType,
       EFI_PAGES_TO_SIZE (NumberOfPages),
       (VOID *)(UINTN)*Memory,
       NULL
-      );
+      );*/
     InstallMemoryAttributesTableOnMemoryAllocation (MemoryType);
     ApplyMemoryProtectionPolicy (
       EfiConventionalMemory,
@@ -1602,14 +1603,15 @@ CoreFreePages (
   Status = CoreInternalFreePages (Memory, NumberOfPages, &MemoryType);
   if (!EFI_ERROR (Status)) {
     GuardFreedPagesChecked (Memory, NumberOfPages);
-    CoreUpdateProfile (
+    // FIXME:
+    /*CoreUpdateProfile (
       (EFI_PHYSICAL_ADDRESS)(UINTN)RETURN_ADDRESS (0),
       MemoryProfileActionFreePages,
       MemoryType,
       EFI_PAGES_TO_SIZE (NumberOfPages),
       (VOID *)(UINTN)Memory,
       NULL
-      );
+      );*/
     InstallMemoryAttributesTableOnMemoryAllocation (MemoryType);
     ApplyMemoryProtectionPolicy (
       MemoryType,

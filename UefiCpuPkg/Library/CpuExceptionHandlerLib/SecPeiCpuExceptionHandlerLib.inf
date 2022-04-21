@@ -47,7 +47,7 @@
   SerialPortLib
   PrintLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   VmgExitLib
 
 [FeaturePcd]

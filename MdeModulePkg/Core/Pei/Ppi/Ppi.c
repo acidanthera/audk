@@ -1088,8 +1088,9 @@ ConvertPeiCorePpiPointers (
   UINTN                 PeiCoreModuleSize;
   EFI_PEI_FILE_HANDLE   PeiCoreFileHandle;
   VOID                  *PeiCoreImageBase;
-  VOID                  *PeiCoreEntryPoint;
+  //VOID                  *PeiCoreEntryPoint;
   EFI_STATUS            Status;
+  PE_COFF_IMAGE_CONTEXT ImageContext;
 
   PeiCoreFileHandle = NULL;
 
@@ -1114,11 +1115,11 @@ ConvertPeiCorePpiPointers (
     //
     // Find PEI Core EntryPoint in the BFV in temporary memory.
     //
-    Status = PeCoffLoaderGetEntryPoint ((VOID *)(UINTN)PeiCoreImageBase, &PeiCoreEntryPoint);
+    Status = PeCoffInitializeContext(&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, 0xFFFFFFFF);
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)PeiCoreEntryPoint - (UINTN)PeiCoreImageBase);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint) - (UINTN)PeiCoreImageBase);
 
     //
     // Size of loaded PEI_CORE in permanent memory.

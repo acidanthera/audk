@@ -47,7 +47,6 @@
   BaseLib
   BaseMemoryLib
   PeCoffLib
-  PeCoffGetEntryPointLib
   CacheMaintenanceLib
   DebugLib
   ReportStatusCodeLib

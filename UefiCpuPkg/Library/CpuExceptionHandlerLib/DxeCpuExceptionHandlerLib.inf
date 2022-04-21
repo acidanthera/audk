@@ -57,7 +57,7 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   MemoryAllocationLib
   DebugLib
   VmgExitLib

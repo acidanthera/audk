@@ -920,7 +920,7 @@ Returns:
     // If the image does not contain relocations and it is a runtime driver
     // then return an error.
     //
-    if (CheckContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+    if (CheckContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
       ImageContext->ImageError = IMAGE_ERROR_INVALID_SUBSYSTEM;
       return RETURN_LOAD_ERROR;
     }

@@ -21,6 +21,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeMain.h"
 #include "HeapGuard.h"
+#include "IndustryStandard/PeCoffImage.h"
 
 /**
   This function for GetMemoryMap() with properties table capability.
@@ -1279,20 +1280,20 @@ SortImageRecord (
 **/
 VOID
 InsertImageRecord (
-  IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
+  IN LOADED_IMAGE_PRIVATE_DATA   *Image
   )
 {
-  VOID                                  *ImageAddress;
-  EFI_IMAGE_DOS_HEADER                  *DosHdr;
-  UINT32                                PeCoffHeaderOffset;
+  EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
+  VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
   EFI_IMAGE_SECTION_HEADER              *Section;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION   Hdr;
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  CHAR8                                 *PdbPointer;
+  //CHAR8                                 *PdbPointer;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
+
+  RuntimeImage = Image->RuntimeData;
 
   DEBUG ((DEBUG_VERBOSE, "InsertImageRecord - 0x%x\n", RuntimeImage));
   DEBUG ((DEBUG_VERBOSE, "InsertImageRecord - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase, RuntimeImage->ImageSize));
@@ -1319,35 +1320,16 @@ InsertImageRecord (
 
   ImageAddress = RuntimeImage->ImageBase;
 
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+  // FIXME:
+  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
   if (PdbPointer != NULL) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
-  }
-
-  //
-  // Check PE/COFF image
-  //
-  DosHdr             = (EFI_IMAGE_DOS_HEADER *)(UINTN)ImageAddress;
-  PeCoffHeaderOffset = 0;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    PeCoffHeaderOffset = DosHdr->e_lfanew;
-  }
-
-  Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINT8 *)(UINTN)ImageAddress + PeCoffHeaderOffset);
-  if (Hdr.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
-    DEBUG ((DEBUG_VERBOSE, "Hdr.Pe32->Signature invalid - 0x%x\n", Hdr.Pe32->Signature));
-    // It might be image in SMM.
-    goto Finish;
-  }
+  }*/
 
   //
   // Get SectionAlignment
   //
-  if (Hdr.Pe32->OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    SectionAlignment = Hdr.Pe32->OptionalHeader.SectionAlignment;
-  } else {
-    SectionAlignment = Hdr.Pe32Plus->OptionalHeader.SectionAlignment;
-  }
+  SectionAlignment = Image->ImageContext.SectionAlignment;
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
@@ -1357,24 +1339,21 @@ InsertImageRecord (
       SectionAlignment,
       RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10
       ));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }
 
-  Section = (EFI_IMAGE_SECTION_HEADER *)(
-                                         (UINT8 *)(UINTN)ImageAddress +
-                                         PeCoffHeaderOffset +
-                                         sizeof (UINT32) +
-                                         sizeof (EFI_IMAGE_FILE_HEADER) +
-                                         Hdr.Pe32->FileHeader.SizeOfOptionalHeader
-                                         );
+  UINT16 NumberOfSections;
+  NumberOfSections = PeCoffGetSections(&Image->ImageContext, &Section);
+
   ImageRecord->CodeSegmentCount = 0;
   InitializeListHead (&ImageRecord->CodeSegmentList);
-  for (Index = 0; Index < Hdr.Pe32->FileHeader.NumberOfSections; Index++) {
+  for (Index = 0; Index < NumberOfSections; Index++) {
     Name = Section[Index].Name;
     DEBUG ((
       DEBUG_VERBOSE,
@@ -1390,7 +1369,7 @@ InsertImageRecord (
       ));
 
     if ((Section[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
-      DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].Misc.VirtualSize));
+      DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
       DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
       DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
       DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
@@ -1423,10 +1402,11 @@ InsertImageRecord (
   if (ImageRecord->CodeSegmentCount == 0) {
     SetMemoryAttributesTableSectionAlignment (1);
     DEBUG ((DEBUG_ERROR, "!!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_ERROR, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }

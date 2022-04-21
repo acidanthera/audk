@@ -74,7 +74,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PeCoffExtraActionLib.h>
 #include <Library/PcdLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -220,7 +219,7 @@ typedef struct {
   /// Pointer to Loaded Image Device Path Protocol
   EFI_DEVICE_PATH_PROTOCOL                *LoadedImageDevicePath;
   /// PeCoffLoader ImageContext
-  PE_COFF_LOADER_IMAGE_CONTEXT            ImageContext;
+  PE_COFF_IMAGE_CONTEXT            ImageContext;
   /// Status returned by LoadImage() service.
   EFI_STATUS                              LoadImageStatus;
 } LOADED_IMAGE_PRIVATE_DATA;
@@ -2715,7 +2714,7 @@ InstallMemoryAttributesTableOnMemoryAllocation (
 **/
 VOID
 InsertImageRecord (
-  IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
+  IN LOADED_IMAGE_PRIVATE_DATA   *Image
   );
 
 /**
@@ -2736,8 +2735,7 @@ RemoveImageRecord (
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
 /**

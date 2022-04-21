@@ -91,3 +91,16 @@ PeCoffGetSizeOfHeaders (
 
   return Context->SizeOfHeaders;
 }
+
+// TODO: CONST
+UINT16
+PeCoffGetSections (
+  IN OUT PE_COFF_IMAGE_CONTEXT    *Context,
+  OUT    EFI_IMAGE_SECTION_HEADER **Sections
+  )
+{
+  *Sections = (EFI_IMAGE_SECTION_HEADER *) (VOID *) (
+               (CHAR8 *) Context->FileBuffer + Context->SectionsOffset
+               );
+  return Context->NumberOfSections;
+}

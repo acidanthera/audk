@@ -387,23 +387,24 @@ FreeImageRecord (
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
-  VOID                                  *ImageAddress;
-  EFI_IMAGE_DOS_HEADER                  *DosHdr;
-  UINT32                                PeCoffHeaderOffset;
+  EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage;
+  EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
+  VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
   EFI_IMAGE_SECTION_HEADER              *Section;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION   Hdr;
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  CHAR8                                 *PdbPointer;
+  //CHAR8                                 *PdbPointer;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
   BOOLEAN                               IsAligned;
   UINT32                                ProtectionPolicy;
+
+  LoadedImage = &Image->Info;
+  LoadedImageDevicePath = Image->LoadedImageDevicePath;
 
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
@@ -438,35 +439,16 @@ ProtectUefiImage (
 
   ImageAddress = LoadedImage->ImageBase;
 
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+  // FIXME:
+  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
   if (PdbPointer != NULL) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
-  }
-
-  //
-  // Check PE/COFF image
-  //
-  DosHdr             = (EFI_IMAGE_DOS_HEADER *)(UINTN)ImageAddress;
-  PeCoffHeaderOffset = 0;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    PeCoffHeaderOffset = DosHdr->e_lfanew;
-  }
-
-  Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINT8 *)(UINTN)ImageAddress + PeCoffHeaderOffset);
-  if (Hdr.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
-    DEBUG ((DEBUG_VERBOSE, "Hdr.Pe32->Signature invalid - 0x%x\n", Hdr.Pe32->Signature));
-    // It might be image in SMM.
-    goto Finish;
-  }
+  }*/
 
   //
   // Get SectionAlignment
   //
-  if (Hdr.Pe32->OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    SectionAlignment = Hdr.Pe32->OptionalHeader.SectionAlignment;
-  } else {
-    SectionAlignment = Hdr.Pe32Plus->OptionalHeader.SectionAlignment;
-  }
+  SectionAlignment = Image->ImageContext.SectionAlignment;
 
   IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
   if (!IsAligned) {
@@ -475,24 +457,21 @@ ProtectUefiImage (
       "!!!!!!!!  ProtectUefiImageCommon - Section Alignment(0x%x) is incorrect  !!!!!!!!\n",
       SectionAlignment
       ));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_VERBOSE, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }
 
-  Section = (EFI_IMAGE_SECTION_HEADER *)(
-                                         (UINT8 *)(UINTN)ImageAddress +
-                                         PeCoffHeaderOffset +
-                                         sizeof (UINT32) +
-                                         sizeof (EFI_IMAGE_FILE_HEADER) +
-                                         Hdr.Pe32->FileHeader.SizeOfOptionalHeader
-                                         );
+  UINT16 NumberOfSections;
+  NumberOfSections = PeCoffGetSections(&Image->ImageContext, &Section);
+
   ImageRecord->CodeSegmentCount = 0;
   InitializeListHead (&ImageRecord->CodeSegmentList);
-  for (Index = 0; Index < Hdr.Pe32->FileHeader.NumberOfSections; Index++) {
+  for (Index = 0; Index < NumberOfSections; Index++) {
     Name = Section[Index].Name;
     DEBUG ((
       DEBUG_VERBOSE,
@@ -516,7 +495,7 @@ ProtectUefiImage (
     // Linux OS loaders that may consist of a single read/write/execute section.
     //
     if ((Section[Index].Characteristics & (EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_EXECUTE)) == EFI_IMAGE_SCN_MEM_EXECUTE) {
-      DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].Misc.VirtualSize));
+      DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
       DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
       DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
       DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
@@ -556,10 +535,11 @@ ProtectUefiImage (
     // of course).
     //
     DEBUG ((DEBUG_WARN, "!!!!!!!!  ProtectUefiImageCommon - CodeSegmentCount is 0  !!!!!!!!\n"));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }
@@ -774,7 +754,6 @@ MergeMemoryMapForProtectionPolicy (
   Remove exec permissions from all regions whose type is identified by
   PcdDxeNxMemoryProtectionPolicy.
 **/
-STATIC
 VOID
 InitializeDxeNxMemoryProtectionPolicy (
   VOID
@@ -975,7 +954,8 @@ InitializeDxeNxMemoryProtectionPolicy (
                                     which is implementation-dependent.
 
 **/
-VOID
+// FIXME:
+/*VOID
 EFIAPI
 MemoryProtectionCpuArchProtocolNotify (
   IN EFI_EVENT  Event,
@@ -1048,7 +1028,7 @@ MemoryProtectionCpuArchProtocolNotify (
 
 Done:
   CoreCloseEvent (Event);
-}
+}*/
 
 /**
   ExitBootServices Callback function for memory protection.
@@ -1140,9 +1120,9 @@ CoreInitializeMemoryProtection (
   )
 {
   EFI_STATUS  Status;
-  EFI_EVENT   Event;
+  //EFI_EVENT   Event;
   EFI_EVENT   EndOfDxeEvent;
-  VOID        *Registration;
+  //VOID        *Registration;
 
   mImageProtectionPolicy = PcdGet32 (PcdImageProtectionPolicy);
 
@@ -1162,7 +1142,8 @@ CoreInitializeMemoryProtection (
     GetPermissionAttributeForMemoryType (EfiConventionalMemory)
     );
 
-  Status = CoreCreateEvent (
+  // FIXME:
+  /*Status = CoreCreateEvent (
              EVT_NOTIFY_SIGNAL,
              TPL_CALLBACK,
              MemoryProtectionCpuArchProtocolNotify,
@@ -1179,7 +1160,7 @@ CoreInitializeMemoryProtection (
              Event,
              &Registration
              );
-  ASSERT_EFI_ERROR (Status);
+  ASSERT_EFI_ERROR (Status);*/
 
   //
   // Register a callback to disable NULL pointer detection at EndOfDxe

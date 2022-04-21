@@ -21,7 +21,7 @@
 #include <Library/DebugAgentLib.h>
 #include <Library/IoLib.h>
 #include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 #include <Library/PeCoffExtraActionLib.h>
 #include <Library/ExtractGuidedSectionLib.h>
 #include <Library/LocalApicLib.h>
@@ -687,23 +687,23 @@ FindAndReportEntryPoints (
   )
 {
   EFI_STATUS                    Status;
-  EFI_PHYSICAL_ADDRESS          SecCoreImageBase;
+  //EFI_PHYSICAL_ADDRESS          SecCoreImageBase;
   EFI_PHYSICAL_ADDRESS          PeiCoreImageBase;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_IMAGE_CONTEXT  ImageContext;
 
   //
   // Find SEC Core and PEI Core image base
   //
-  Status = FindImageBase (*BootFirmwareVolumePtr, &SecCoreImageBase);
-  ASSERT_EFI_ERROR (Status);
+  //Status = FindImageBase (*BootFirmwareVolumePtr, &SecCoreImageBase);
+  //ASSERT_EFI_ERROR (Status);
 
   FindPeiCoreImageBase (BootFirmwareVolumePtr, &PeiCoreImageBase);
 
-  ZeroMem ((VOID *)&ImageContext, sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
+  //ZeroMem ((VOID *)&ImageContext, sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
   //
   // Report SEC Core debug information when remote debug is enabled
   //
-  ImageContext.ImageAddress = SecCoreImageBase;
+  /*ImageContext.ImageAddress = SecCoreImageBase;
   ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
   PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
@@ -712,15 +712,14 @@ FindAndReportEntryPoints (
   //
   ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)PeiCoreImageBase;
   ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  PeCoffLoaderRelocateImageExtraAction (&ImageContext);*/
 
   //
   // Find PEI Core entry point
   //
-  Status = PeCoffLoaderGetEntryPoint ((VOID *)(UINTN)PeiCoreImageBase, (VOID **)PeiCoreEntryPoint);
-  if (EFI_ERROR (Status)) {
-    *PeiCoreEntryPoint = 0;
-  }
+  Status = PeCoffInitializeContext(&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, 0xFFFFFFFF);
+  ASSERT_EFI_ERROR (Status);
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint);
 
   return;
 }

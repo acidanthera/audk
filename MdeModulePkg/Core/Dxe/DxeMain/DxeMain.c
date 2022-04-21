@@ -237,12 +237,12 @@ DxeMain (
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          MemoryBaseAddress;
   UINT64                        MemoryLength;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  //PE_COFF_IMAGE_CONTEXT  ImageContext;
   UINTN                         Index;
   EFI_HOB_GUID_TYPE             *GuidHob;
   EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
   EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
-  VOID                          *EntryPoint;
+  //VOID                          *EntryPoint;
 
   //
   // Setup the default exception handlers
@@ -266,7 +266,7 @@ DxeMain (
   //
   CoreInitializeMemoryServices (&HobStart, &MemoryBaseAddress, &MemoryLength);
 
-  MemoryProfileInit (HobStart);
+  //MemoryProfileInit (HobStart);
 
   //
   // Allocate the EFI System Table and EFI Runtime Service Table from EfiRuntimeServicesData
@@ -315,7 +315,8 @@ DxeMain (
   //
   // Report DXE Core image information to the PE/COFF Extra Action Library
   //
-  ZeroMem (&ImageContext, sizeof (ImageContext));
+  // TODO:
+  /*ZeroMem (&ImageContext, sizeof (ImageContext));
   ImageContext.ImageAddress  = (EFI_PHYSICAL_ADDRESS)(UINTN)gDxeCoreLoadedImage->ImageBase;
   ImageContext.PdbPointer    = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
   ImageContext.SizeOfHeaders = PeCoffGetSizeOfHeaders ((VOID *)(UINTN)ImageContext.ImageAddress);
@@ -326,7 +327,7 @@ DxeMain (
 
   ImageContext.Handle    = (VOID *)(UINTN)gDxeCoreLoadedImage->ImageBase;
   ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  PeCoffLoaderRelocateImageExtraAction (&ImageContext);*/
 
   //
   // Install the DXE Services Table into the EFI System Tables's Configuration Table
@@ -442,7 +443,7 @@ DxeMain (
   Status = CoreInitializeEventServices ();
   ASSERT_EFI_ERROR (Status);
 
-  MemoryProfileInstallProtocol ();
+  //MemoryProfileInstallProtocol ();
 
   CoreInitializeMemoryAttributesTable ();
   CoreInitializeMemoryProtection ();

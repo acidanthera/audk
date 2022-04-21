@@ -16,7 +16,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PcdLib.h>
 
 #include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 
 #include <Guid/PiSmmMemoryAttributesTable.h>
 
@@ -1028,23 +1027,25 @@ DumpImageRecord (
 **/
 VOID
 SmmInsertImageRecord (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry
+  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
+  PE_COFF_IMAGE_CONTEXT   *ImageContext
   )
 {
-  VOID                                  *ImageAddress;
-  EFI_IMAGE_DOS_HEADER                  *DosHdr;
-  UINT32                                PeCoffHeaderOffset;
+  PHYSICAL_ADDRESS                     ImageBuffer;
+  UINTN                                NumberOfPage;
+  VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
   EFI_IMAGE_SECTION_HEADER              *Section;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION   Hdr;
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  CHAR8                                 *PdbPointer;
+  //CHAR8                                 *PdbPointer;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
 
-  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%x\n", DriverEntry));
-  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", DriverEntry->ImageBuffer, DriverEntry->NumberOfPage));
+  ImageBuffer  = (UINTN)LoadedImage->ImageBase;
+  NumberOfPage = EFI_SIZE_TO_PAGES((UINTN)LoadedImage->ImageSize);
+
+  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", ImageBuffer, NumberOfPage));
 
   ImageRecord = AllocatePool (sizeof (*ImageRecord));
   if (ImageRecord == NULL) {
@@ -1058,39 +1059,21 @@ SmmInsertImageRecord (
   //
   // Step 1: record whole region
   //
-  ImageRecord->ImageBase = DriverEntry->ImageBuffer;
-  ImageRecord->ImageSize = EfiPagesToSize (DriverEntry->NumberOfPage);
+  ImageRecord->ImageBase = ImageBuffer;
+  ImageRecord->ImageSize = EfiPagesToSize (NumberOfPage);
 
-  ImageAddress = (VOID *)(UINTN)DriverEntry->ImageBuffer;
+  ImageAddress = (VOID *)(UINTN)ImageBuffer;
 
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+  // FIXME:
+  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
   if (PdbPointer != NULL) {
     DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
-  }
-
-  //
-  // Check PE/COFF image
-  //
-  DosHdr             = (EFI_IMAGE_DOS_HEADER *)(UINTN)ImageAddress;
-  PeCoffHeaderOffset = 0;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    PeCoffHeaderOffset = DosHdr->e_lfanew;
-  }
-
-  Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINT8 *)(UINTN)ImageAddress + PeCoffHeaderOffset);
-  if (Hdr.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
-    DEBUG ((DEBUG_VERBOSE, "SMM Hdr.Pe32->Signature invalid - 0x%x\n", Hdr.Pe32->Signature));
-    goto Finish;
-  }
+  }*/
 
   //
   // Get SectionAlignment
   //
-  if (Hdr.Pe32->OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    SectionAlignment = Hdr.Pe32->OptionalHeader.SectionAlignment;
-  } else {
-    SectionAlignment = Hdr.Pe32Plus->OptionalHeader.SectionAlignment;
-  }
+  SectionAlignment = ImageContext->SectionAlignment;
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
@@ -1100,24 +1083,21 @@ SmmInsertImageRecord (
       SectionAlignment,
       RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10
       ));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_WARN, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }
 
-  Section = (EFI_IMAGE_SECTION_HEADER *)(
-                                         (UINT8 *)(UINTN)ImageAddress +
-                                         PeCoffHeaderOffset +
-                                         sizeof (UINT32) +
-                                         sizeof (EFI_IMAGE_FILE_HEADER) +
-                                         Hdr.Pe32->FileHeader.SizeOfOptionalHeader
-                                         );
+  UINT16 NumberOfSections;
+  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
+
   ImageRecord->CodeSegmentCount = 0;
   InitializeListHead (&ImageRecord->CodeSegmentList);
-  for (Index = 0; Index < Hdr.Pe32->FileHeader.NumberOfSections; Index++) {
+  for (Index = 0; Index < NumberOfSections; Index++) {
     Name = Section[Index].Name;
     DEBUG ((
       DEBUG_VERBOSE,
@@ -1133,7 +1113,7 @@ SmmInsertImageRecord (
       ));
 
     if ((Section[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
-      DEBUG ((DEBUG_VERBOSE, "SMM   VirtualSize          - 0x%08x\n", Section[Index].Misc.VirtualSize));
+      DEBUG ((DEBUG_VERBOSE, "SMM   VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
       DEBUG ((DEBUG_VERBOSE, "SMM   VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
       DEBUG ((DEBUG_VERBOSE, "SMM   SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
       DEBUG ((DEBUG_VERBOSE, "SMM   PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
@@ -1166,10 +1146,11 @@ SmmInsertImageRecord (
   if (ImageRecord->CodeSegmentCount == 0) {
     SetMemoryAttributesTableSectionAlignment (1);
     DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
+    // FIXME:
+    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+    }*/
 
     goto Finish;
   }
@@ -1282,60 +1263,6 @@ PublishMemoryAttributesTable (
 }
 
 /**
-  This function installs all SMM image record information.
-**/
-VOID
-SmmInstallImageRecord (
-  VOID
-  )
-{
-  EFI_STATUS                 Status;
-  UINTN                      NoHandles;
-  EFI_HANDLE                 *HandleBuffer;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  UINTN                      Index;
-  EFI_SMM_DRIVER_ENTRY       DriverEntry;
-
-  Status = SmmLocateHandleBuffer (
-             ByProtocol,
-             &gEfiLoadedImageProtocolGuid,
-             NULL,
-             &NoHandles,
-             &HandleBuffer
-             );
-  if (EFI_ERROR (Status)) {
-    return;
-  }
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gSmst->SmmHandleProtocol (
-                      HandleBuffer[Index],
-                      &gEfiLoadedImageProtocolGuid,
-                      (VOID **)&LoadedImage
-                      );
-    if (EFI_ERROR (Status)) {
-      continue;
-    }
-
-    DEBUG ((DEBUG_VERBOSE, "LoadedImage - 0x%x 0x%x ", LoadedImage->ImageBase, LoadedImage->ImageSize));
-    {
-      VOID  *PdbPointer;
-      PdbPointer = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
-      if (PdbPointer != NULL) {
-        DEBUG ((DEBUG_VERBOSE, "(%a) ", PdbPointer));
-      }
-    }
-    DEBUG ((DEBUG_VERBOSE, "\n"));
-    ZeroMem (&DriverEntry, sizeof (DriverEntry));
-    DriverEntry.ImageBuffer  = (UINTN)LoadedImage->ImageBase;
-    DriverEntry.NumberOfPage = EFI_SIZE_TO_PAGES ((UINTN)LoadedImage->ImageSize);
-    SmmInsertImageRecord (&DriverEntry);
-  }
-
-  FreePool (HandleBuffer);
-}
-
-/**
   Install MemoryAttributesTable.
 
   @param[in] Protocol   Points to the protocol's unique identifier.
@@ -1352,8 +1279,6 @@ SmmInstallMemoryAttributesTable (
   IN EFI_HANDLE      Handle
   )
 {
-  SmmInstallImageRecord ();
-
   DEBUG ((DEBUG_VERBOSE, "SMM MemoryProtectionAttribute - 0x%016lx\n", mMemoryProtectionAttribute));
   if ((mMemoryProtectionAttribute & EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA) == 0) {
     return EFI_SUCCESS;

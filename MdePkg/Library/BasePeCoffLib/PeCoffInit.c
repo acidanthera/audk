@@ -26,7 +26,8 @@
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
-
+#include <Uefi.h>
+#include <Library/DebugLib.h>
 #include "BasePeCoffLibInternals.h"
 
 #include "PeCoffInit.h"
@@ -519,7 +520,8 @@ InternalValidateRelocInfo (
     @           \let Sections      = image_context_get_sections (Context);
     @           image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
   */
-  if (!Context->RelocsStripped) {
+  // TODO: Prove new condition
+  if (!Context->RelocsStripped && Context->RelocDirSize) {
     //
     // Ensure the Relocation Directory is not empty.
     //
@@ -529,6 +531,7 @@ InternalValidateRelocInfo (
     if (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) > Context->RelocDirSize) {
       //@ assert !(sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) <= Context->RelocDirSize);
       //@ assert !image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -547,6 +550,7 @@ InternalValidateRelocInfo (
     if (Result) {
       //@ assert !(Context->RelocDirRva + Context->RelocDirSize <= Context->SizeOfImage);
       //@ assert !image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
@@ -558,6 +562,7 @@ InternalValidateRelocInfo (
     if (StartAddress > Context->RelocDirRva) {
       //@ assert !(StartAddress <= Context->RelocDirRva);
       //@ assert !image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
@@ -570,6 +575,7 @@ InternalValidateRelocInfo (
     if (SectRvaEnd > Context->SizeOfImage) {
       //@ assert !(Context->RelocDirRva + Context->RelocDirSize <= Context->SizeOfImage);
       //@ assert !image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
@@ -579,6 +585,7 @@ InternalValidateRelocInfo (
       @ ensures is_aligned_32 (Context->RelocDirRva, AV_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK));
     */
     if (!IS_ALIGNED (Context->RelocDirRva, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -591,6 +598,7 @@ InternalValidateRelocInfo (
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
     //@ assert !is_aligned_64 (Context->ImageBase, Context->SectionAlignment);
     //@ assert !image_base_sane (Context->ImageBase, Context->SectionAlignment);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1112,6 +1120,7 @@ InternalInitializePe (
           @          Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS32) <= Context->SizeOfHeaders;
         */
         //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -1213,6 +1222,7 @@ InternalInitializePe (
           @          Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS64) <= Context->SizeOfHeaders;
         */
         //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -1225,6 +1235,7 @@ InternalInitializePe (
       */
       if (!IS_ALIGNED (Context->ExeHdrOffset, OC_ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
         //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -1297,6 +1308,7 @@ InternalInitializePe (
 
     default:
       // assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
   }
   //
@@ -1307,6 +1319,7 @@ InternalInitializePe (
   */
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1315,6 +1328,7 @@ InternalInitializePe (
   */
   if (PeCommon->FileHeader.NumberOfSections == 0) {
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1324,6 +1338,7 @@ InternalInitializePe (
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
     //@ assert Context->AddressOfEntryPoint >= Context->SizeOfImage;
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1333,6 +1348,7 @@ InternalInitializePe (
   if (!IS_POW2 (Context->SectionAlignment)) {
     //@ assert !is_pow2_32 (Context->SectionAlignment);
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1378,6 +1394,7 @@ InternalInitializePe (
       @          !(image_pe32plus_get_min_SizeOfHeaders ((char *) Context->FileBuffer, Context->ExeHdrOffset) < Pe32Plus->SizeOfHeaders));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
@@ -1391,6 +1408,7 @@ InternalInitializePe (
     //@ assert !is_aligned_32 (Context->SectionsOffset, AV_ALIGNOF (EFI_IMAGE_SECTION_HEADER));
     //@ assert !is_aligned_32 ((UINT32) image_pecommon_get_sections_offset (PeCommon, Context->ExeHdrOffset), AV_ALIGNOF (EFI_IMAGE_SECTION_HEADER));
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1448,6 +1466,7 @@ InternalInitializePe (
       @          !(image_pe32plus_get_min_SizeOfHeaders ((char *) Context->FileBuffer, Context->ExeHdrOffset) <= Pe32Plus->SizeOfHeaders));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
@@ -1464,6 +1483,7 @@ InternalInitializePe (
       @          !(image_pe32plus_get_min_SizeOfOptionalHeader ((char *) Context->FileBuffer, Context->ExeHdrOffset) <= Pe32Plus->CommonHeader.FileHeader.SizeOfOptionalHeader));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1478,6 +1498,7 @@ InternalInitializePe (
       @          !(image_pe32plus_get_min_SizeOfHeaders ((char *) Context->FileBuffer, Context->ExeHdrOffset) <= Pe32Plus->SizeOfHeaders));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
@@ -1494,6 +1515,7 @@ InternalInitializePe (
       @          !(Pe32Plus->SizeOfHeaders <= FileSize));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1653,6 +1675,7 @@ InternalInitializePe (
       @          !(image_pe32plus_get_min_SizeOfImage ((char *) Context->FileBuffer, Context->ExeHdrOffset) <= Pe32Plus->SizeOfImage));
     */
     //@ assert !valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1667,10 +1690,14 @@ InternalInitializePe (
     @            image_pe32plus_reloc_info_valid ((char *) Context->FileBuffer, Context->ExeHdrOffset));
   */
   Status = InternalValidateRelocInfo (Context, StartAddress);
+  ASSERT_EFI_ERROR (Status);
 
   /*@ assert Status == RETURN_SUCCESS ==>
     @          valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
   */
+
+  // FIXME: Fuckery
+  Context->DestAddress = Context->ImageBase;
 
   return Status;
 }
@@ -1760,6 +1787,7 @@ PeCoffInitializeContext (
     if (sizeof (EFI_IMAGE_DOS_HEADER) > DosHdr->e_lfanew
      || DosHdr->e_lfanew > FileSize) {
       //@ assert !image_dos_sane ((char *) FileBuffer, FileSize);
+      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -1824,6 +1852,7 @@ PeCoffInitializeContext (
         @           image_te_valid ((char *) FileBuffer, FileSize);
       */
       Status = InternalInitializeTe (Context, FileSize);
+      ASSERT_EFI_ERROR (Status);
 
       //@ assigns \nothing;
       if (PcdGetBool (PcdImageLoaderSupportDebug) && Status == RETURN_SUCCESS) {
@@ -1842,6 +1871,7 @@ PeCoffInitializeContext (
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
     //@ assert FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16);
     //@ assert !image_signature_pe ((char *) FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1851,6 +1881,7 @@ PeCoffInitializeContext (
   if (!IS_ALIGNED (Context->ExeHdrOffset, OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
     //@ assert !is_aligned_32 (Context->ExeHdrOffset, AV_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR));
     //@ assert !image_signature_pe ((char *) FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1874,6 +1905,7 @@ PeCoffInitializeContext (
   if (READ_ALIGNED_32 ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
     //@ assert uint32_from_char ((char *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE;
     //@ assert !image_signature_pe ((char *) FileBuffer, Context->ExeHdrOffset, FileSize);
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -1900,6 +1932,7 @@ PeCoffInitializeContext (
     @           valid_pe ((char *) FileBuffer, Context->ExeHdrOffset, FileSize);
   */
   Status = InternalInitializePe (Context, FileSize);
+  ASSERT_EFI_ERROR (Status);
   //
   // If debugging is enabled, retrieve information on the debug data.
   //

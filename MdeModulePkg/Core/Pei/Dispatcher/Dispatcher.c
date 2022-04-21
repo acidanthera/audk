@@ -1009,8 +1009,8 @@ MigratePeim (
   EFI_FFS_FILE_HEADER  *FileHeader;
   VOID                 *Pe32Data;
   VOID                 *ImageAddress;
-  CHAR8                *AsciiString;
-  UINTN                Index;
+  //CHAR8                *AsciiString;
+  //UINTN                Index;
 
   Status = EFI_SUCCESS;
 
@@ -1020,6 +1020,8 @@ MigratePeim (
   ImageAddress = NULL;
   PeiGetPe32Data (MigratedFileHandle, &ImageAddress);
   if (ImageAddress != NULL) {
+    // FIXME:
+    /*
     DEBUG_CODE_BEGIN ();
     AsciiString = PeCoffLoaderGetPdbPointer (ImageAddress);
     for (Index = 0; AsciiString[Index] != 0; Index++) {
@@ -1033,6 +1035,7 @@ MigratePeim (
 
     DEBUG ((DEBUG_VERBOSE, "%a", AsciiString));
     DEBUG_CODE_END ();
+    */
 
     Pe32Data = (VOID *)((UINTN)ImageAddress - (UINTN)MigratedFileHandle + (UINTN)FileHandle);
     Status   = LoadAndRelocatePeCoffImageInPlace (Pe32Data, ImageAddress);

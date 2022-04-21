@@ -406,7 +406,7 @@ EbcRegisterImage (
   )
 {
   DEBUG_CODE_BEGIN ();
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_IMAGE_CONTEXT  ImageContext;
   EFI_STATUS                    Status;
 
   ZeroMem (&ImageContext, sizeof (ImageContext));
@@ -421,8 +421,8 @@ EbcRegisterImage (
 
   ASSERT (ImageContext.Machine == EFI_IMAGE_MACHINE_EBC);
   ASSERT (
-    ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ||
-    ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER
+    ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ||
+    ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER
     );
   DEBUG_CODE_END ();
 

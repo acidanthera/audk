@@ -48,7 +48,7 @@
   PcdLib
   DebugAgentLib
   UefiCpuLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   PeCoffExtraActionLib
   CpuExceptionHandlerLib
   ReportStatusCodeLib

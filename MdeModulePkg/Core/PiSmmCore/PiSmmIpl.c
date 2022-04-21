@@ -914,12 +914,11 @@ SmmIplSetVirtualAddressNotify (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
   )
 {
-  UINTN                            SectionHeaderOffset;
-  EFI_STATUS                       Status;
-  EFI_IMAGE_SECTION_HEADER         SectionHeader;
+   EFI_STATUS                         Status;
+   EFI_IMAGE_SECTION_HEADER           *Sections;
   EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
   EFI_PHYSICAL_ADDRESS             FixLoadingAddress;
   UINT16                           Index;
@@ -937,44 +936,23 @@ GetPeCoffImageFixLoadingAssignedAddress (
   FixLoadingAddress = 0;
   Status            = EFI_NOT_FOUND;
   SmramBase         = mLMFAConfigurationTable->SmramBase;
-  //
-  // Get PeHeader pointer
-  //
-  ImgHdr              = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((CHAR8 *)ImageContext->Handle + ImageContext->PeCoffHeaderOffset);
-  SectionHeaderOffset = ImageContext->PeCoffHeaderOffset +
-                        sizeof (UINT32) +
-                        sizeof (EFI_IMAGE_FILE_HEADER) +
-                        ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader;
-  NumberOfSections = ImgHdr->Pe32.FileHeader.NumberOfSections;
+
+   NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
 
   //
   // Get base address from the first section header that doesn't point to code section.
-  //
-  for (Index = 0; Index < NumberOfSections; Index++) {
-    //
-    // Read section header from file
-    //
-    Size   = sizeof (EFI_IMAGE_SECTION_HEADER);
-    Status = ImageContext->ImageRead (
-                             ImageContext->Handle,
-                             SectionHeaderOffset,
-                             &Size,
-                             &SectionHeader
-                             );
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
+   //
+   for (Index = 0; Index < NumberOfSections; Index++) {
+     Status = EFI_NOT_FOUND;
 
-    Status = EFI_NOT_FOUND;
-
-    if ((SectionHeader.Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
+    if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
       //
       // Build tool saves the offset to SMRAM base as image base in PointerToRelocations & PointerToLineNumbers fields in the
       // first section header that doesn't point to code section in image header. And there is an assumption that when the
       // feature is enabled, if a module is assigned a loading address by tools, PointerToRelocations & PointerToLineNumbers
       // fields should NOT be Zero, or else, these 2 fields should be set to Zero
       //
-      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&SectionHeader.PointerToRelocations);
+      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&Sections[Index].PointerToRelocations);
       if (ValueInSectionHeader != 0) {
         //
         // Found first section header that doesn't point to code section in which build tool saves the
@@ -986,18 +964,14 @@ GetPeCoffImageFixLoadingAssignedAddress (
           //
           // The assigned address is valid. Return the specified loading address
           //
-          ImageContext->ImageAddress = FixLoadingAddress;
+          ImageContext->ImageBase = FixLoadingAddress;
           Status                     = EFI_SUCCESS;
         }
       }
-
-      break;
-    }
-
-    SectionHeaderOffset += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r \n", FixLoadingAddress, Status));
+       break;
+     }
+   }
+   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r \n", FixLoadingAddress, Status));
   return Status;
 }
 
@@ -1024,7 +998,7 @@ ExecuteSmmCoreFromSmram (
   EFI_STATUS                    Status;
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_IMAGE_CONTEXT  ImageContext;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
 
@@ -1044,15 +1018,9 @@ ExecuteSmmCoreFromSmram (
   }
 
   //
-  // Initialize ImageContext
-  //
-  ImageContext.Handle    = SourceBuffer;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = PeCoffInitializeContext (&ImageContext, SourceBuffer, (UINT32) SourceSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -1081,7 +1049,7 @@ ExecuteSmmCoreFromSmram (
       // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
       // specified by SmramRange
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.SizeOfImage + ImageContext.SectionAlignment);
 
       ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
       ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1095,14 +1063,14 @@ ExecuteSmmCoreFromSmram (
       //
       // Align buffer on section boundary
       //
-      ImageContext.ImageAddress = SmramRangeSmmCore->CpuStart;
+      ImageContext.DestAddress = SmramRangeSmmCore->CpuStart;
     }
   } else {
     //
     // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
     // specified by SmramRange
     //
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.SizeOfImage + ImageContext.SectionAlignment);
 
     ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
     ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1116,48 +1084,48 @@ ExecuteSmmCoreFromSmram (
     //
     // Align buffer on section boundary
     //
-    ImageContext.ImageAddress = SmramRangeSmmCore->CpuStart;
+    ImageContext.DestAddress = SmramRangeSmmCore->CpuStart;
   }
 
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  ImageContext.DestAddress += ImageContext.SectionAlignment - 1;
+  ImageContext.DestAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
 
   //
   // Print debug message showing SMM Core load address.
   //
-  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM address %p\n", (VOID *)(UINTN)ImageContext.ImageAddress));
+  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM address %p\n", (VOID *)(UINTN)ImageContext.DestAddress));
 
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
+  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)ImageContext.DestAddress, ImageContext.SizeOfImage + ImageContext.SectionAlignment);
   if (!EFI_ERROR (Status)) {
     //
     // Relocate the image in our new buffer
     //
-    Status = PeCoffLoaderRelocateImage (&ImageContext);
+    Status = PeCoffRelocateImage (&ImageContext, ImageContext.DestAddress, NULL, 0);
     if (!EFI_ERROR (Status)) {
       //
       // Flush the instruction cache so the image data are written before we execute it
       //
-      InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
+      InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.DestAddress, (UINTN)ImageContext.SizeOfImage);
 
       //
       // Print debug message showing SMM Core entry point address.
       //
-      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)ImageContext.EntryPoint));
+      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint)));
 
-      gSmmCorePrivate->PiSmmCoreImageBase = ImageContext.ImageAddress;
-      gSmmCorePrivate->PiSmmCoreImageSize = ImageContext.ImageSize;
+      gSmmCorePrivate->PiSmmCoreImageBase = ImageContext.DestAddress;
+      gSmmCorePrivate->PiSmmCoreImageSize = ImageContext.SizeOfImage;
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageSize));
 
-      gSmmCorePrivate->PiSmmCoreEntryPoint = ImageContext.EntryPoint;
+      gSmmCorePrivate->PiSmmCoreEntryPoint = ImageContext.DestAddress + ImageContext.AddressOfEntryPoint;
 
       //
       // Execute image
       //
-      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)ImageContext.EntryPoint;
+      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint);
       Status     = EntryPoint ((EFI_HANDLE)Context, gST);
     }
   }

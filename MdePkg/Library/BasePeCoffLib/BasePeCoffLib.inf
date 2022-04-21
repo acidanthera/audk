@@ -24,6 +24,8 @@
   PeCoffLoad.c
   PeCoffRelocate.c
   BaseOverflow.c
+  PeCoffInfo.c
+  PeCoffHii.c
 
 [Packages]
   MdePkg/MdePkg.dec
