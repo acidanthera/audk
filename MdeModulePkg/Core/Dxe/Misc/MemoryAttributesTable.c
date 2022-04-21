@@ -1280,7 +1280,8 @@ SortImageRecord (
 **/
 VOID
 InsertImageRecord (
-  IN LOADED_IMAGE_PRIVATE_DATA   *Image
+  IN LOADED_IMAGE_PRIVATE_DATA   *Image,
+  IN PE_COFF_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
@@ -1329,7 +1330,7 @@ InsertImageRecord (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = Image->ImageContext.SectionAlignment;
+  SectionAlignment  = ImageContext->SectionAlignment;
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
@@ -1349,7 +1350,7 @@ InsertImageRecord (
   }
 
   UINT16 NumberOfSections;
-  NumberOfSections = PeCoffGetSections(&Image->ImageContext, &Section);
+  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
 
   ImageRecord->CodeSegmentCount = 0;
   InitializeListHead (&ImageRecord->CodeSegmentList);

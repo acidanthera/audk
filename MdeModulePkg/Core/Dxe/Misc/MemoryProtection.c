@@ -40,6 +40,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/SimpleFileSystem.h>
 
 #include "DxeMain.h"
+#include "Library/PeCoffLib.h"
 #include "Mem/HeapGuard.h"
 
 //
@@ -387,7 +388,8 @@ FreeImageRecord (
 **/
 VOID
 ProtectUefiImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
+  PE_COFF_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage;
@@ -448,7 +450,7 @@ ProtectUefiImage (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = Image->ImageContext.SectionAlignment;
+  SectionAlignment = ImageContext->SectionAlignment;
 
   IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
   if (!IsAligned) {
@@ -467,7 +469,7 @@ ProtectUefiImage (
   }
 
   UINT16 NumberOfSections;
-  NumberOfSections = PeCoffGetSections(&Image->ImageContext, &Section);
+  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
 
   ImageRecord->CodeSegmentCount = 0;
   InitializeListHead (&ImageRecord->CodeSegmentList);

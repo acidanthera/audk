@@ -218,10 +218,10 @@ typedef struct {
   EFI_RUNTIME_IMAGE_ENTRY                 *RuntimeData;
   /// Pointer to Loaded Image Device Path Protocol
   EFI_DEVICE_PATH_PROTOCOL                *LoadedImageDevicePath;
-  /// PeCoffLoader ImageContext
-  PE_COFF_IMAGE_CONTEXT            ImageContext;
   /// Status returned by LoadImage() service.
   EFI_STATUS                              LoadImageStatus;
+
+  VOID *HiiData;
 } LOADED_IMAGE_PRIVATE_DATA;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
@@ -2714,7 +2714,8 @@ InstallMemoryAttributesTableOnMemoryAllocation (
 **/
 VOID
 InsertImageRecord (
-  IN LOADED_IMAGE_PRIVATE_DATA   *Image
+  IN LOADED_IMAGE_PRIVATE_DATA   *Image,
+  IN PE_COFF_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2735,7 +2736,8 @@ RemoveImageRecord (
 **/
 VOID
 ProtectUefiImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
+  PE_COFF_IMAGE_CONTEXT *ImageContext
   );
 
 /**
