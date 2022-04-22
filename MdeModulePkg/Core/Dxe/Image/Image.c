@@ -182,7 +182,8 @@ PeCoffEmuProtocolNotify (
 **/
 EFI_STATUS
 CoreInitializeImageServices (
-  IN  VOID  *HobStart
+  IN  VOID                         *HobStart,
+  OUT PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_STATUS                 Status;
@@ -191,7 +192,6 @@ CoreInitializeImageServices (
   UINT64                     DxeCoreImageLength;
   VOID                       *DxeCoreEntryPoint;
   EFI_PEI_HOB_POINTERS       DxeCoreHob;
-  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
   //
   // Searching for image hob
@@ -221,12 +221,12 @@ CoreInitializeImageServices (
   Image = &mCorePrivateImage;
 
   Status = PeCoffInitializeContext (
-    &ImageContext,
+    ImageContext,
     (VOID *) (UINTN) DxeCoreImageBaseAddress,
     (UINT32) DxeCoreImageLength
     );
   ASSERT_EFI_ERROR (Status);
-  ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + ImageContext.AddressOfEntryPoint);
+  ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + ImageContext->AddressOfEntryPoint);
 
   Image->EntryPoint       = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage    = DxeCoreImageBaseAddress;
@@ -281,7 +281,7 @@ CoreInitializeImageServices (
 
   InitializeListHead (&mAvailableEmulators);
 
-  ProtectUefiImage (Image, &ImageContext);
+  ProtectUefiImage (Image, ImageContext);
 
   return Status;
 }

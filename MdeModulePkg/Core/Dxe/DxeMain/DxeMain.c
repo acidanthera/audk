@@ -237,7 +237,7 @@ DxeMain (
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          MemoryBaseAddress;
   UINT64                        MemoryLength;
-  //PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   UINTN                         Index;
   EFI_HOB_GUID_TYPE             *GuidHob;
   EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
@@ -266,8 +266,6 @@ DxeMain (
   //
   CoreInitializeMemoryServices (&HobStart, &MemoryBaseAddress, &MemoryLength);
 
-  //MemoryProfileInit (HobStart);
-
   //
   // Allocate the EFI System Table and EFI Runtime Service Table from EfiRuntimeServicesData
   // Use the templates to initialize the contents of the EFI System Table and EFI Runtime Services Table
@@ -283,8 +281,10 @@ DxeMain (
   //
   // Start the Image Services.
   //
-  Status = CoreInitializeImageServices (HobStart);
+  Status = CoreInitializeImageServices (HobStart, &ImageContext);
   ASSERT_EFI_ERROR (Status);
+
+  MemoryProfileInit (HobStart, &ImageContext);
 
   //
   // Initialize the Global Coherency Domain Services

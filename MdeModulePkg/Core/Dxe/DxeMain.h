@@ -400,7 +400,8 @@ CoreInitializeEventServices (
 **/
 EFI_STATUS
 CoreInitializeImageServices (
-  IN  VOID  *HobStart
+  IN  VOID                         *HobStart,
+  OUT PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2584,7 +2585,8 @@ VerifyFvHeaderChecksum (
 **/
 VOID
 MemoryProfileInit (
-  IN VOID  *HobStart
+  IN VOID                         *HobStart,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

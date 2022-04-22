@@ -269,10 +269,8 @@ MEMORY_PROFILE_DRIVER_INFO_DATA *
 BuildDriverInfo (
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
   IN EFI_GUID                     *FileName,
-  IN PHYSICAL_ADDRESS             ImageBase,
-  IN UINT64                       ImageSize,
-  IN PHYSICAL_ADDRESS             EntryPoint,
-  IN UINT16                       ImageSubsystem,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
+  IN EFI_PHYSICAL_ADDRESS           LoadAddress,
   IN EFI_FV_FILETYPE              FileType
   )
 {
@@ -286,14 +284,14 @@ BuildDriverInfo (
   PdbSize         = 0;
   PdbOccupiedSize = 0;
   PdbString       = NULL;
-  // FIXME:
-  /*if (ImageBase != 0) {
-    PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageBase);
-    if (PdbString != NULL) {
-      PdbSize         = AsciiStrSize (PdbString);
+
+  if (LoadAddress != 0) {
+    UINT32 PdbSize;
+    Status = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
+    if (!EFI_ERROR (Status)) {
       PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
     }
-  }*/
+  }
 
   //
   // Use CoreInternalAllocatePool() that will not update profile for this AllocatePool action.
@@ -320,10 +318,10 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = ImageBase;
-  DriverInfo->ImageSize      = ImageSize;
-  DriverInfo->EntryPoint     = EntryPoint;
-  DriverInfo->ImageSubsystem = ImageSubsystem;
+  DriverInfo->ImageBase      = LoadAddress;
+  DriverInfo->ImageSize      = ImageContext->SizeOfImage;
+  DriverInfo->EntryPoint     = LoadAddress + ImageContext->AddressOfEntryPoint;
+  DriverInfo->ImageSubsystem = ImageContext->Subsystem;
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
@@ -430,6 +428,7 @@ NeedRecordThisDriver (
 BOOLEAN
 RegisterDxeCore (
   IN VOID                         *HobStart,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData
   )
 {
@@ -470,10 +469,8 @@ RegisterDxeCore (
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      &DxeCoreHob.MemoryAllocationModule->ModuleName,
+                     ImageContext,
                      ImageBase,
-                     DxeCoreHob.MemoryAllocationModule->MemoryAllocationHeader.MemoryLength,
-                     DxeCoreHob.MemoryAllocationModule->EntryPoint,
-                     EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER,
                      EFI_FV_FILETYPE_DXE_CORE
                      );
   if (DriverInfoData == NULL) {
@@ -491,7 +488,8 @@ RegisterDxeCore (
 **/
 VOID
 MemoryProfileInit (
-  IN VOID  *HobStart
+  IN VOID                         *HobStart,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA  *ContextData;
@@ -516,7 +514,7 @@ MemoryProfileInit (
   mMemoryProfileDriverPath     = AllocateCopyPool (mMemoryProfileDriverPathSize, PcdGetPtr (PcdMemoryProfileDriverPath));
   mMemoryProfileContextPtr     = &mMemoryProfileContext;
 
-  RegisterDxeCore (HobStart, &mMemoryProfileContext);
+  RegisterDxeCore (HobStart, ImageContext, &mMemoryProfileContext);
 
   DEBUG ((DEBUG_INFO, "MemoryProfileInit MemoryProfileContext - 0x%x\n", &mMemoryProfileContext));
 }
@@ -618,10 +616,8 @@ RegisterMemoryProfileImage (
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      GetFileNameFromFilePath (FilePath),
+                     ImageContext,
                      LoadAddress,
-                     ImageContext->SizeOfImage,
-                     ImageContext->AddressOfEntryPoint,
-                     ImageContext->Subsystem,
                      FileType
                      );
   if (DriverInfoData == NULL) {
