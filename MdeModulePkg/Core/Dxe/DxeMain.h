@@ -230,21 +230,20 @@ typedef struct {
 #define IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE  SIGNATURE_32 ('I','P','R','C')
 
 typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    CodeSegmentBase;
-  UINT64                  CodeSegmentSize;
-} IMAGE_PROPERTIES_RECORD_CODE_SECTION;
+  EFI_PHYSICAL_ADDRESS   Address;
+  UINT32                 Size;
+  UINT32                 Attributes;
+} IMAGE_PROPERTIES_RECORD_SECTION;
 
 #define IMAGE_PROPERTIES_RECORD_SIGNATURE  SIGNATURE_32 ('I','P','R','D')
 
 typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    ImageBase;
-  UINT64                  ImageSize;
-  UINTN                   CodeSegmentCount;
-  LIST_ENTRY              CodeSegmentList;
+  UINT32                          Signature;
+  LIST_ENTRY                      Link;
+  EFI_PHYSICAL_ADDRESS            ImageBase;
+  UINT32                          ImageSize;
+  UINT32                          SectionCount;
+  IMAGE_PROPERTIES_RECORD_SECTION SectionList[];
 } IMAGE_PROPERTIES_RECORD;
 
 //

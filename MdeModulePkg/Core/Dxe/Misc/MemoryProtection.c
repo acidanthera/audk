@@ -70,29 +70,6 @@ extern LIST_ENTRY  mGcdMemorySpaceMap;
 STATIC LIST_ENTRY  mProtectedImageRecordList;
 
 /**
-  Sort code section in image record, based upon CodeSegmentBase from low to high.
-
-  @param  ImageRecord    image record to be sorted
-**/
-VOID
-SortImageRecordCodeSection (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
-  );
-
-/**
-  Check if code section in image record is valid.
-
-  @param  ImageRecord    image record to be checked
-
-  @retval TRUE  image record is valid
-  @retval FALSE image record is invalid
-**/
-BOOLEAN
-IsImageRecordCodeSectionValid (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
-  );
-
-/**
   Get the image type.
 
   @param[in]    File       This is a pointer to the device path of the file that is
@@ -242,68 +219,17 @@ SetUefiImageProtectionAttributes (
   IN IMAGE_PROPERTIES_RECORD  *ImageRecord
   )
 {
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-  LIST_ENTRY                            *ImageRecordCodeSectionLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionEndLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionList;
-  UINT64                                CurrentBase;
-  UINT64                                ImageEnd;
+  IMAGE_PROPERTIES_RECORD_SECTION *ImageRecordSection;
+  UINT32                          Index;
 
-  ImageRecordCodeSectionList = &ImageRecord->CodeSegmentList;
-
-  CurrentBase = ImageRecord->ImageBase;
-  ImageEnd    = ImageRecord->ImageBase + ImageRecord->ImageSize;
-
-  ImageRecordCodeSectionLink    = ImageRecordCodeSectionList->ForwardLink;
-  ImageRecordCodeSectionEndLink = ImageRecordCodeSectionList;
-  while (ImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-    ImageRecordCodeSection = CR (
-                               ImageRecordCodeSectionLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    ImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-
-    ASSERT (CurrentBase <= ImageRecordCodeSection->CodeSegmentBase);
-    if (CurrentBase < ImageRecordCodeSection->CodeSegmentBase) {
-      //
-      // DATA
-      //
-      SetUefiImageMemoryAttributes (
-        CurrentBase,
-        ImageRecordCodeSection->CodeSegmentBase - CurrentBase,
-        EFI_MEMORY_XP
-        );
-    }
-
-    //
-    // CODE
-    //
+  for (Index = 0; Index < ImageRecord->SectionCount; Index++) {
+    ImageRecordSection = &ImageRecord->SectionList[Index];
     SetUefiImageMemoryAttributes (
-      ImageRecordCodeSection->CodeSegmentBase,
-      ImageRecordCodeSection->CodeSegmentSize,
-      EFI_MEMORY_RO
-      );
-    CurrentBase = ImageRecordCodeSection->CodeSegmentBase + ImageRecordCodeSection->CodeSegmentSize;
-  }
-
-  //
-  // Last DATA
-  //
-  ASSERT (CurrentBase <= ImageEnd);
-  if (CurrentBase < ImageEnd) {
-    //
-    // DATA
-    //
-    SetUefiImageMemoryAttributes (
-      CurrentBase,
-      ImageEnd - CurrentBase,
-      EFI_MEMORY_XP
+      ImageRecordSection->Address,
+      ImageRecordSection->Size,
+      ImageRecordSection->Attributes
       );
   }
-
-  return;
 }
 
 /**
@@ -351,38 +277,7 @@ IsMemoryProtectionSectionAligned (
   }
 }
 
-/**
-  Free Image record.
-
-  @param[in]  ImageRecord    A UEFI image record
-**/
-VOID
-FreeImageRecord (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
-  )
-{
-  LIST_ENTRY                            *CodeSegmentListHead;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-
-  CodeSegmentListHead = &ImageRecord->CodeSegmentList;
-  while (!IsListEmpty (CodeSegmentListHead)) {
-    ImageRecordCodeSection = CR (
-                               CodeSegmentListHead->ForwardLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    RemoveEntryList (&ImageRecordCodeSection->Link);
-    FreePool (ImageRecordCodeSection);
-  }
-
-  if (ImageRecord->Link.ForwardLink != NULL) {
-    RemoveEntryList (&ImageRecord->Link);
-  }
-
-  FreePool (ImageRecord);
-}
-
+// FIXME: Deduplicate
 /**
   Protect UEFI PE/COFF image.
 
@@ -406,9 +301,14 @@ ProtectUefiImage (
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
   CHAR8                                *PdbPointer;
   UINT32                               PdbSize;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
+  IMAGE_PROPERTIES_RECORD_SECTION *ImageRecordCodeSection;
   BOOLEAN                               IsAligned;
   UINT32                                ProtectionPolicy;
+  UINT32                               StartAddress;
+  UINT32                               PrevMemCharacteristics;
+  UINT32                               CurMemCharacteristics;
+  UINT16                               NumberOfSections;
+  UINT32                               Attributes;
 
   LoadedImage = &Image->Info;
   LoadedImageDevicePath = Image->LoadedImageDevicePath;
@@ -427,7 +327,12 @@ ProtectUefiImage (
       return;
   }
 
-  ImageRecord = AllocateZeroPool (sizeof (*ImageRecord));
+  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
+
+  //
+  // The image headers are not recorded among the sections, allocate one more.
+  //
+  ImageRecord = AllocatePool (sizeof (*ImageRecord) + ((UINT32) NumberOfSections + 1) * sizeof (*ImageRecord->SectionList));
   if (ImageRecord == NULL) {
     return;
   }
@@ -438,7 +343,11 @@ ProtectUefiImage (
   // Step 1: record whole region
   //
   ImageRecord->ImageBase = (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase;
-  ImageRecord->ImageSize = LoadedImage->ImageSize;
+  //
+  // Round up the ImageSize, some CPU arch may return EFI_UNSUPPORTED if ImageSize is not aligned.
+  // Given that the loader always allocates full pages, we know the space after the image is not used.
+  //
+  ImageRecord->ImageSize = ALIGN_VALUE (LoadedImage->ImageSize, EFI_PAGE_SIZE);
 
   ImageAddress = LoadedImage->ImageBase;
 
@@ -465,11 +374,13 @@ ProtectUefiImage (
     goto Finish;
   }
 
-  UINT16 NumberOfSections;
-  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
+  //
+  // Map the headers as read-only data.
+  //
+  StartAddress = 0;
+  PrevMemCharacteristics = EFI_IMAGE_SCN_MEM_READ;
 
-  ImageRecord->CodeSegmentCount = 0;
-  InitializeListHead (&ImageRecord->CodeSegmentList);
+  ImageRecord->SectionCount = 0;
   for (Index = 0; Index < NumberOfSections; Index++) {
     Name = Section[Index].Name;
     DEBUG ((
@@ -484,82 +395,78 @@ ProtectUefiImage (
       Name[6],
       Name[7]
       ));
+    DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
+    DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
+    DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToRelocations - 0x%08x\n", Section[Index].PointerToRelocations));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToLinenumbers - 0x%08x\n", Section[Index].PointerToLinenumbers));
+    DEBUG ((DEBUG_VERBOSE, "  NumberOfRelocations  - 0x%08x\n", Section[Index].NumberOfRelocations));
+    DEBUG ((DEBUG_VERBOSE, "  NumberOfLinenumbers  - 0x%08x\n", Section[Index].NumberOfLinenumbers));
+    DEBUG ((DEBUG_VERBOSE, "  Characteristics      - 0x%08x\n", Section[Index].Characteristics));
 
-    //
-    // Instead of assuming that a PE/COFF section of type EFI_IMAGE_SCN_CNT_CODE
-    // can always be mapped read-only, classify a section as a code section only
-    // if it has the executable attribute set and the writable attribute cleared.
-    //
-    // This adheres more closely to the PE/COFF spec, and avoids issues with
-    // Linux OS loaders that may consist of a single read/write/execute section.
-    //
-    if ((Section[Index].Characteristics & (EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_EXECUTE)) == EFI_IMAGE_SCN_MEM_EXECUTE) {
-      DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
-      DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
-      DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
-      DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
-      DEBUG ((DEBUG_VERBOSE, "  PointerToRelocations - 0x%08x\n", Section[Index].PointerToRelocations));
-      DEBUG ((DEBUG_VERBOSE, "  PointerToLinenumbers - 0x%08x\n", Section[Index].PointerToLinenumbers));
-      DEBUG ((DEBUG_VERBOSE, "  NumberOfRelocations  - 0x%08x\n", Section[Index].NumberOfRelocations));
-      DEBUG ((DEBUG_VERBOSE, "  NumberOfLinenumbers  - 0x%08x\n", Section[Index].NumberOfLinenumbers));
-      DEBUG ((DEBUG_VERBOSE, "  Characteristics      - 0x%08x\n", Section[Index].Characteristics));
+    CurMemCharacteristics = Section[Index].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE);
 
-      //
-      // Step 2: record code section
-      //
-      ImageRecordCodeSection = AllocatePool (sizeof (*ImageRecordCodeSection));
-      if (ImageRecordCodeSection == NULL) {
-        return;
+    if (CurMemCharacteristics != PrevMemCharacteristics) {
+      if (Section[Index].VirtualAddress > StartAddress) {
+        ImageRecordCodeSection = &ImageRecord->SectionList[ImageRecord->SectionCount];
+        ImageRecordCodeSection->Address = (UINTN)ImageAddress + StartAddress;
+        ImageRecordCodeSection->Size = Section[Index].VirtualAddress - StartAddress;
+
+        Attributes = 0;
+        if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
+          Attributes |= EFI_MEMORY_XP;
+        }
+        if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_READ) == 0) {
+          Attributes |= EFI_MEMORY_RP;
+        }
+        if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_WRITE) == 0) {
+          Attributes |= EFI_MEMORY_RO;
+        }
+
+        ImageRecordCodeSection->Attributes = Attributes;
+
+        DEBUG ((DEBUG_VERBOSE, "Merged section: 0x%016lx - 0x%016lx: %x\n", ImageRecordCodeSection->Address, ImageRecordCodeSection->Size, Attributes));
+
+        ImageRecord->SectionCount++;
       }
 
-      ImageRecordCodeSection->Signature = IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE;
-
-      // CHANGE: VirtualSize!
-      // FIXME: Image may not be aligned (PCD)
-      ImageRecordCodeSection->CodeSegmentBase = (UINTN)ImageAddress + Section[Index].VirtualAddress;
-      ImageRecordCodeSection->CodeSegmentSize = ALIGN_VALUE (Section[Index].VirtualSize, SectionAlignment);
-
-      DEBUG ((DEBUG_VERBOSE, "ImageCode: 0x%016lx - 0x%016lx\n", ImageRecordCodeSection->CodeSegmentBase, ImageRecordCodeSection->CodeSegmentSize));
-
-      InsertTailList (&ImageRecord->CodeSegmentList, &ImageRecordCodeSection->Link);
-      ImageRecord->CodeSegmentCount++;
+      StartAddress = Section[Index].VirtualAddress;
+      PrevMemCharacteristics = CurMemCharacteristics;
     }
   }
 
-  if (ImageRecord->CodeSegmentCount == 0) {
-    //
-    // If a UEFI executable consists of a single read+write+exec PE/COFF
-    // section, that isn't actually an error. The image can be launched
-    // alright, only image protection cannot be applied to it fully.
-    //
-    // One example that elicits this is (some) Linux kernels (with the EFI stub
-    // of course).
-    //
-    DEBUG ((DEBUG_WARN, "!!!!!!!!  ProtectUefiImageCommon - CodeSegmentCount is 0  !!!!!!!!\n"));
-    if (!RETURN_ERROR (PdbStatus)) {
-      DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
+  //
+  // There is guaranteed to be at least one section.
+  //
+  if (Section[Index - 1].VirtualAddress + ALIGN_VALUE (Section[Index - 1].VirtualSize, SectionAlignment) > StartAddress) {
+    ImageRecordCodeSection = &ImageRecord->SectionList[ImageRecord->SectionCount];
+    ImageRecordCodeSection->Address = (UINTN)ImageAddress + StartAddress;
+    ImageRecordCodeSection->Size = Section[Index - 1].VirtualAddress + ALIGN_VALUE (Section[Index - 1].VirtualSize, SectionAlignment) - StartAddress;
+
+    Attributes = 0;
+    if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
+      Attributes |= EFI_MEMORY_XP;
+    }
+    if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_READ) == 0) {
+      Attributes |= EFI_MEMORY_RP;
     }
 
-    goto Finish;
+    if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_WRITE) == 0) {
+      Attributes |= EFI_MEMORY_RO;
+    }
+
+    ImageRecordCodeSection->Attributes = Attributes;
+
+    DEBUG ((DEBUG_VERBOSE, "Merged section: 0x%016lx - 0x%016lx: %x\n", ImageRecordCodeSection->Address, ImageRecordCodeSection->Size, Attributes));
+
+    ImageRecord->SectionCount++;
   }
 
   //
-  // Final
+  // Section order is guaranteed by the PE specification.
+  // Section validity (e.g. no overlap) is guaranteed by the PE specification.
   //
-  SortImageRecordCodeSection (ImageRecord);
-  //
-  // Check overlap all section in ImageBase/Size
-  //
-  if (!IsImageRecordCodeSectionValid (ImageRecord)) {
-    DEBUG ((DEBUG_ERROR, "IsImageRecordCodeSectionValid - FAIL\n"));
-    goto Finish;
-  }
-
-  //
-  // Round up the ImageSize, some CPU arch may return EFI_UNSUPPORTED if ImageSize is not aligned.
-  // Given that the loader always allocates full pages, we know the space after the image is not used.
-  //
-  ImageRecord->ImageSize = ALIGN_VALUE (LoadedImage->ImageSize, EFI_PAGE_SIZE);
 
   //
   // Record the image record in the list so we can undo the protections later
@@ -590,29 +497,34 @@ UnprotectUefiImage (
   )
 {
   IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  LIST_ENTRY               *ImageRecordLink;
+  LIST_ENTRY                 *ImageRecordLink;
 
-  if (gCpu != NULL && PcdGet32 (PcdImageProtectionPolicy) != 0) {
-    for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
-         ImageRecordLink != &mProtectedImageRecordList;
-         ImageRecordLink = ImageRecordLink->ForwardLink)
+  //
+  // FIXME: Borked function only dropped images after CpuDxe
+  //
+
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink)
     {
-      ImageRecord = CR (
-                      ImageRecordLink,
-                      IMAGE_PROPERTIES_RECORD,
-                      Link,
-                      IMAGE_PROPERTIES_RECORD_SIGNATURE
-                      );
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    IMAGE_PROPERTIES_RECORD,
+                    Link,
+                    IMAGE_PROPERTIES_RECORD_SIGNATURE
+                    );
 
-      if (ImageRecord->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+    if (ImageRecord->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+      if (gCpu != NULL) {
         SetUefiImageMemoryAttributes (
           ImageRecord->ImageBase,
           ImageRecord->ImageSize,
           0
           );
-        FreeImageRecord (ImageRecord);
-        return;
       }
+      RemoveEntryList (&ImageRecord->Link);
+      FreePool (ImageRecord);
+      return;
     }
   }
 }

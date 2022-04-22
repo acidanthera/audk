@@ -208,9 +208,6 @@ ThumbMovwMovtImmediateFixup (
   ThumbMovwMovtImmediatePatch (Fixup, Fixup32);
 }
 
-//
-// FIXME: Prove Relocation Directory memory is not assigned.
-//
 /**
   Apply an Image Base Relocation.
 
