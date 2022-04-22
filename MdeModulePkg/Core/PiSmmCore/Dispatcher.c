@@ -215,7 +215,8 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
   EFI_STATUS                         Status;
@@ -258,7 +259,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
           //
           // The assigned address is valid. Return the specified loading address
           //
-          ImageContext->ImageBase = FixLoadingAddress;
+          *LoadAddress = FixLoadingAddress;
         }
       }
 
@@ -450,9 +451,8 @@ SmmLoadImage (
     //
     // Get the fixed loading address assigned by Build tool
     //
-    Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext);
+    Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext, &LoadAddress);
     if (!EFI_ERROR (Status)) {
-      LoadAddress = ImageContext.ImageBase;
       //
       // Since the memory range to load Smm core already been cut out, so no need to allocate and free this range
       // following statements is to bypass SmmFreePages

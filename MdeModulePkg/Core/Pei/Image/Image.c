@@ -139,7 +139,8 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
   IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
-  IN     PEI_CORE_INSTANCE             *Private
+  IN     PEI_CORE_INSTANCE             *Private,
+  EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
    EFI_STATUS                         Status;
@@ -198,7 +199,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
           //
           // The assigned address is valid. Return the specified loading address
           //
-          ImageContext->ImageBase = FixLoadingAddress;
+           *LoadAddress = FixLoadingAddress;
         }
       }
        break;
@@ -337,7 +338,7 @@ LoadAndRelocatePeCoffImage (
     }
 
     if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
-      Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext, Private);
+      Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext, Private, &LoadAddress);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
         //

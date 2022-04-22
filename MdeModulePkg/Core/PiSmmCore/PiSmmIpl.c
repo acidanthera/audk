@@ -915,7 +915,8 @@ SmmIplSetVirtualAddressNotify (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
    EFI_STATUS                         Status;
@@ -965,7 +966,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
           //
           // The assigned address is valid. Return the specified loading address
           //
-          ImageContext->ImageBase = FixLoadingAddress;
+           *LoadAddress = FixLoadingAddress;
           Status                     = EFI_SUCCESS;
         }
       }
@@ -1035,7 +1036,7 @@ ExecuteSmmCoreFromSmram (
     //
     // Get the fixed loading address assigned by Build tool
     //
-    Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext);
+    Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext, &LoadAddress);
     if (!EFI_ERROR (Status)) {
       //
       // Since the memory range to load SMM CORE will be cut out in SMM core, so no need to allocate and free this range
@@ -1045,8 +1046,6 @@ ExecuteSmmCoreFromSmram (
       // Reserved Smram Region for SmmCore is not used, and remove it from SmramRangeCount.
       //
       gSmmCorePrivate->SmramRangeCount--;
-
-      LoadAddress = ImageContext.ImageBase;
     } else {
       DEBUG ((DEBUG_INFO, "LOADING MODULE FIXED ERROR: Loading module at fixed address at address failed\n"));
       //

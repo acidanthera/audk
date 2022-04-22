@@ -199,7 +199,8 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
   UINTN                            SectionHeaderOffset;
@@ -266,7 +267,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
           //
           // The assigned address is valid. Return the specified loading address
           //
-          ImageContext->ImageAddress = FixLoadingAddress;
+          *LoadAddress = FixLoadingAddress;
         }
       }
 

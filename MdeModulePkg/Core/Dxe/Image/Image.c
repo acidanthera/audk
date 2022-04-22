@@ -432,16 +432,17 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  OUT    EFI_PHYSICAL_ADDRESS   *LoadAddress
   )
 {
    EFI_STATUS                         Status;
    EFI_IMAGE_SECTION_HEADER           *Sections;
    UINT16                             Index;
    UINT16                             NumberOfSections;
-  UINT64                           ValueInSectionHeader;
+   UINT64                             ValueInSectionHeader;
 
-  Status = EFI_NOT_FOUND;
+   Status = EFI_NOT_FOUND;
 
    NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
 
@@ -468,7 +469,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         // relative to top address
         //
         if ((INT64)PcdGet64 (PcdLoadModuleAtFixAddressEnable) < 0) {
-          ImageContext->ImageBase = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)(INTN)ImageContext->ImageBase;
+          *LoadAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)(INTN)ImageContext->ImageBase;
         }
 
         //
@@ -656,8 +657,7 @@ CoreLoadPeImage (
     // a specified address.
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
-      Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext);
-      LoadAddress = ImageContext->ImageBase;
+      Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, &LoadAddress);
 
       if (EFI_ERROR (Status)) {
         //
