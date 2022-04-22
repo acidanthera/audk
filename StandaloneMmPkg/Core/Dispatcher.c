@@ -188,105 +188,6 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 }
 
 /**
-  Get the fixed loading address from image header assigned by build tool. This function only be called
-  when Loading module at Fixed address feature enabled.
-
-  @param  ImageContext              Pointer to the image context structure that describes the PE/COFF
-                                    image that needs to be examined by this function.
-  @retval EFI_SUCCESS               An fixed loading address is assigned to this image by build tools .
-  @retval EFI_NOT_FOUND             The image has no assigned fixed loadding address.
-
-**/
-EFI_STATUS
-GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  EFI_PHYSICAL_ADDRESS *LoadAddress
-  )
-{
-  UINTN                            SectionHeaderOffset;
-  EFI_STATUS                       Status;
-  EFI_IMAGE_SECTION_HEADER         SectionHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
-  EFI_PHYSICAL_ADDRESS             FixLoadingAddress;
-  UINT16                           Index;
-  UINTN                            Size;
-  UINT16                           NumberOfSections;
-  UINT64                           ValueInSectionHeader;
-
-  FixLoadingAddress = 0;
-  Status            = EFI_NOT_FOUND;
-
-  //
-  // Get PeHeader pointer
-  //
-  ImgHdr              = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((CHAR8 *)ImageContext->Handle + ImageContext->PeCoffHeaderOffset);
-  SectionHeaderOffset = ImageContext->PeCoffHeaderOffset + sizeof (UINT32) + sizeof (EFI_IMAGE_FILE_HEADER) +
-                        ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader;
-  NumberOfSections = ImgHdr->Pe32.FileHeader.NumberOfSections;
-
-  //
-  // Get base address from the first section header that doesn't point to code section.
-  //
-  for (Index = 0; Index < NumberOfSections; Index++) {
-    //
-    // Read section header from file
-    //
-    Size   = sizeof (EFI_IMAGE_SECTION_HEADER);
-    Status = ImageContext->ImageRead (
-                             ImageContext->Handle,
-                             SectionHeaderOffset,
-                             &Size,
-                             &SectionHeader
-                             );
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    Status = EFI_NOT_FOUND;
-
-    if ((SectionHeader.Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool will save the address in PointerToRelocations & PointerToLineNumbers fields
-      // in the first section header that doesn't point to code section in image header. So there
-      // is an assumption that when the feature is enabled, if a module with a loading address
-      // assigned by tools, the PointerToRelocations & PointerToLineNumbers fields should not be
-      // Zero, or else, these 2 fields should be set to Zero
-      //
-      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&SectionHeader.PointerToRelocations);
-      if (ValueInSectionHeader != 0) {
-        //
-        // Found first section header that doesn't point to code section in which build tool saves the
-        // offset to SMRAM base as image base in PointerToRelocations & PointerToLineNumbers fields
-        //
-        FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(gLoadModuleAtFixAddressMmramBase + (INT64)ValueInSectionHeader);
-        //
-        // Check if the memory range is available.
-        //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(ImageContext->ImageSize + PeCoffGetSectionAlignment (ImageContext)));
-        if (!EFI_ERROR (Status)) {
-          //
-          // The assigned address is valid. Return the specified loading address
-          //
-          *LoadAddress = FixLoadingAddress;
-        }
-      }
-
-      break;
-    }
-
-    SectionHeaderOffset += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  DEBUG ((
-    DEBUG_INFO|DEBUG_LOAD,
-    "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r\n",
-    FixLoadingAddress,
-    Status
-    ));
-  return Status;
-}
-
-/**
   Loads an EFI image into SMRAM.
 
   @param  DriverEntry             EFI_MM_DRIVER_ENTRY instance
@@ -300,6 +201,8 @@ MmLoadImage (
   IN OUT EFI_MM_DRIVER_ENTRY  *DriverEntry
   )
 {
+  UINT32                         DestinationSize;
+  UINTN                          ImageSize;
   UINTN                         PageCount;
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          DstBuffer;
@@ -310,20 +213,15 @@ MmLoadImage (
   Status = EFI_SUCCESS;
 
   //
-  // Initialize ImageContext
-  //
-  ImageContext.Handle    = DriverEntry->Pe32Data;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = PeCoffInitializeContext (&ImageContext, DriverEntry->Pe32Data, (UINT32) DriverEntry->Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize + PeCoffGetSectionAlignment (&ImageContext));
+  DestinationSize = PeCoffLoaderGetDestinationSize (&ImageContext);
+  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN) DestinationSize);
   DstBuffer = (UINTN)(-1);
 
   Status = MmAllocatePages (
@@ -336,18 +234,10 @@ MmLoadImage (
     return Status;
   }
 
-  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
-
-  //
-  // Align buffer on section boundary
-  //
-  ImageContext.ImageAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)(PeCoffGetSectionAlignment (&ImageContext) - 1));
-
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
+  Status = PeCoffLoadImage (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize);
   if (EFI_ERROR (Status)) {
     MmFreePages (DstBuffer, PageCount);
     return Status;
@@ -356,7 +246,8 @@ MmLoadImage (
   //
   // Relocate the image in our new buffer
   //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
+  DstBuffer = PeCoffLoaderGetDestinationAddress (&ImageContext);
+  Status = PeCoffRelocateImage (&ImageContext, DstBuffer, NULL, 0);
   if (EFI_ERROR (Status)) {
     MmFreePages (DstBuffer, PageCount);
     return Status;
@@ -365,12 +256,13 @@ MmLoadImage (
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
+  ImageSize = PeCoffGetSizeOfImage (&ImageContext);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)DstBuffer, ImageSize);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint = ImageContext.EntryPoint;
+  DriverEntry->ImageEntryPoint = DstBuffer + PeCoffGetEntryPoint (&ImageContext);
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -397,7 +289,7 @@ MmLoadImage (
     DriverEntry->LoadedImage->FilePath     = NULL;
 
     DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)DriverEntry->ImageBuffer;
-    DriverEntry->LoadedImage->ImageSize     = ImageContext.ImageSize;
+    DriverEntry->LoadedImage->ImageSize     = ImageSize;
     DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
     DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;
 
@@ -414,10 +306,13 @@ MmLoadImage (
   }
 
   //
+  // FIXME: Can this be removed entirely?
   // Print the load address and the PDB file name if it is available
   //
   DEBUG_CODE_BEGIN ();
 
+  CHAR8  *PdbPath;
+  UINT32 PdbSize;
   UINTN  Index;
   UINTN  StartIndex;
   CHAR8  EfiFileName[256];
@@ -425,18 +320,20 @@ MmLoadImage (
   DEBUG ((
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)ImageContext.ImageAddress,
-    FUNCTION_ENTRY_POINT (ImageContext.EntryPoint)
+    (VOID *)(UINTN)DstBuffer,
+    FUNCTION_ENTRY_POINT (DstBuffer + PeCoffGetEntryPoint (&ImageContext))
     ));
+
+  Status = PeCoffGetPdbPath (&ImageContext, &PdbPath, &PdbSize);
 
   //
   // Print Module Name by Pdb file path.
   // Windows and Unix style file path are all trimmed correctly.
   //
-  if (ImageContext.PdbPointer != NULL) {
+  if (!EFI_ERROR (Status)) {
     StartIndex = 0;
-    for (Index = 0; ImageContext.PdbPointer[Index] != 0; Index++) {
-      if ((ImageContext.PdbPointer[Index] == '\\') || (ImageContext.PdbPointer[Index] == '/')) {
+    for (Index = 0; PdbPath[Index] != 0; Index++) {
+      if ((PdbPath[Index] == '\\') || (PdbPath[Index] == '/')) {
         StartIndex = Index + 1;
       }
     }
@@ -447,7 +344,7 @@ MmLoadImage (
     // If the length is bigger than 255, trim the redundant characters to avoid overflow in array boundary.
     //
     for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-      EfiFileName[Index] = ImageContext.PdbPointer[Index + StartIndex];
+      EfiFileName[Index] = PdbPath[Index + StartIndex];
       if (EfiFileName[Index] == 0) {
         EfiFileName[Index] = '.';
       }
