@@ -1903,7 +1903,6 @@ EnrollImageSignatureToSigDB (
         goto ON_EXIT;
       }
 
-      // FIXME: Dynamically get hash function
       if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize, &CertType)) {
         Status = EFI_ABORTED;
         goto ON_EXIT;

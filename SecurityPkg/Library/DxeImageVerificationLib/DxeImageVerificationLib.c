@@ -1535,7 +1535,6 @@ DxeImageVerificationHandler (
     HashStatus = PeCoffGetNextCertificate (ImageContext, &WinCertificate)
     )
   {
-    // FIXME: sizes
     //
     // Verify the image's Authenticode signature, only DER-encoded PKCS#7 signed data is supported.
     //
