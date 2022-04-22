@@ -45,9 +45,6 @@ PeCoffLoaderRetrieveCodeViewInfo (
   ASSERT (Context != NULL);
   ASSERT (Context->SizeOfImageDebugAdd == 0);
   ASSERT (Context->CodeViewRva == 0);
-
-  Context->SizeOfImageDebugAdd = 0;
-  Context->CodeViewRva         = 0;
   //
   // Retrieve the Debug Directory information of the Image.
   //
@@ -91,14 +88,20 @@ PeCoffLoaderRetrieveCodeViewInfo (
   }
   /* LCOV_EXCL_STOP */
 
+  if (DebugDir->Size == 0) {
+    return;
+  }
+
   Result = BaseOverflowAddU32 (
              DebugDir->VirtualAddress,
              DebugDir->Size,
              &DebugDirTop
              );
   if (Result || DebugDirTop > Context->SizeOfImage) {
+    ASSERT (FALSE);
     return;
   }
+
   //
   // Determine the file offset of the debug directory...  This means we walk
   // the sections to find which section contains the RVA of the debug
@@ -152,8 +155,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
   }
 
   CodeViewEntry        = &DebugEntries[DebugIndex];
-  Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugIndex * sizeof (*DebugEntries);
+  Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
   ASSERT (Context->CodeViewRva >= Sections[SectIndex].VirtualAddress);
+  ASSERT (Context->CodeViewRva <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize);
   //
   // If the Image does not load the Debug information into memory on its own,
   // request reserved space for it to force-load it.
@@ -284,7 +288,7 @@ PeCoffGetPdbPath (
   ASSERT (PdbPathSize != NULL);
 
   if (Context->CodeViewRva == 0) {
-    return RETURN_UNSUPPORTED;
+    return RETURN_NOT_FOUND;
   }
 
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
