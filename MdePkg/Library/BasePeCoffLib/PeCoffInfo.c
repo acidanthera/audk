@@ -91,18 +91,17 @@ PeCoffGetSizeOfHeaders (
   return Context->SizeOfHeaders;
 }
 
-// FIXME: CONST
 UINT16
 PeCoffGetSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    EFI_IMAGE_SECTION_HEADER **Sections
+  OUT    CONST EFI_IMAGE_SECTION_HEADER **Sections
   )
 {
   ASSERT (Context != NULL);
 
-  *Sections = (EFI_IMAGE_SECTION_HEADER *) (VOID *) (
-               (CHAR8 *) Context->FileBuffer + Context->SectionsOffset
-               );
+  *Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
+                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
+                );
   return Context->NumberOfSections;
 }
 

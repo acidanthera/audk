@@ -436,7 +436,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   )
 {
    EFI_STATUS                         Status;
-   EFI_IMAGE_SECTION_HEADER           *Sections;
+   CONST EFI_IMAGE_SECTION_HEADER     *Sections;
    UINT16                             Index;
    UINT16                             NumberOfSections;
    UINT64                             ValueInSectionHeader;

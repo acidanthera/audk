@@ -1068,8 +1068,8 @@ InsertImageRecord (
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
   VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
-  EFI_IMAGE_SECTION_HEADER             *Sections;
-  UINT8                                 *Name;
+  CONST EFI_IMAGE_SECTION_HEADER       *Sections;
+  CONST UINT8                          *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
   CHAR8                                *PdbPointer;

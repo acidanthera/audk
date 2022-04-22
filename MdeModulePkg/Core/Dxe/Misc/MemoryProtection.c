@@ -294,8 +294,8 @@ ProtectUefiImage (
   EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
   VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
-  EFI_IMAGE_SECTION_HEADER              *Section;
-  UINT8                                 *Name;
+  CONST EFI_IMAGE_SECTION_HEADER       *Sections;
+  CONST UINT8                          *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
   CHAR8                                *PdbPointer;
@@ -326,7 +326,7 @@ ProtectUefiImage (
       return;
   }
 
-  NumberOfSections = PeCoffGetSections(ImageContext, &Section);
+  NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
 
   //
   // The image headers are not recorded among the sections, allocate one more.
@@ -381,7 +381,7 @@ ProtectUefiImage (
 
   ImageRecord->SectionCount = 0;
   for (Index = 0; Index < NumberOfSections; Index++) {
-    Name = Section[Index].Name;
+    Name = Sections[Index].Name;
     DEBUG ((
       DEBUG_VERBOSE,
       "  Section - '%c%c%c%c%c%c%c%c'\n",
@@ -394,23 +394,23 @@ ProtectUefiImage (
       Name[6],
       Name[7]
       ));
-    DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Section[Index].VirtualSize));
-    DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
-    DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToRelocations - 0x%08x\n", Section[Index].PointerToRelocations));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToLinenumbers - 0x%08x\n", Section[Index].PointerToLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "  NumberOfRelocations  - 0x%08x\n", Section[Index].NumberOfRelocations));
-    DEBUG ((DEBUG_VERBOSE, "  NumberOfLinenumbers  - 0x%08x\n", Section[Index].NumberOfLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "  Characteristics      - 0x%08x\n", Section[Index].Characteristics));
+    DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Sections[Index].VirtualSize));
+    DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Sections[Index].VirtualAddress));
+    DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Sections[Index].SizeOfRawData));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Sections[Index].PointerToRawData));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToRelocations - 0x%08x\n", Sections[Index].PointerToRelocations));
+    DEBUG ((DEBUG_VERBOSE, "  PointerToLinenumbers - 0x%08x\n", Sections[Index].PointerToLinenumbers));
+    DEBUG ((DEBUG_VERBOSE, "  NumberOfRelocations  - 0x%08x\n", Sections[Index].NumberOfRelocations));
+    DEBUG ((DEBUG_VERBOSE, "  NumberOfLinenumbers  - 0x%08x\n", Sections[Index].NumberOfLinenumbers));
+    DEBUG ((DEBUG_VERBOSE, "  Characteristics      - 0x%08x\n", Sections[Index].Characteristics));
 
-    CurMemCharacteristics = Section[Index].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE);
+    CurMemCharacteristics = Sections[Index].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE);
 
     if (CurMemCharacteristics != PrevMemCharacteristics) {
-      if (Section[Index].VirtualAddress > StartAddress) {
+      if (Sections[Index].VirtualAddress > StartAddress) {
         ImageRecordCodeSection = &ImageRecord->SectionList[ImageRecord->SectionCount];
         ImageRecordCodeSection->Address = (UINTN)ImageAddress + StartAddress;
-        ImageRecordCodeSection->Size = Section[Index].VirtualAddress - StartAddress;
+        ImageRecordCodeSection->Size = Sections[Index].VirtualAddress - StartAddress;
 
         Attributes = 0;
         if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
@@ -430,7 +430,7 @@ ProtectUefiImage (
         ImageRecord->SectionCount++;
       }
 
-      StartAddress = Section[Index].VirtualAddress;
+      StartAddress = Sections[Index].VirtualAddress;
       PrevMemCharacteristics = CurMemCharacteristics;
     }
   }
@@ -438,10 +438,10 @@ ProtectUefiImage (
   //
   // There is guaranteed to be at least one section.
   //
-  if (Section[Index - 1].VirtualAddress + ALIGN_VALUE (Section[Index - 1].VirtualSize, SectionAlignment) > StartAddress) {
+  if (Sections[Index - 1].VirtualAddress + ALIGN_VALUE (Sections[Index - 1].VirtualSize, SectionAlignment) > StartAddress) {
     ImageRecordCodeSection = &ImageRecord->SectionList[ImageRecord->SectionCount];
     ImageRecordCodeSection->Address = (UINTN)ImageAddress + StartAddress;
-    ImageRecordCodeSection->Size = Section[Index - 1].VirtualAddress + ALIGN_VALUE (Section[Index - 1].VirtualSize, SectionAlignment) - StartAddress;
+    ImageRecordCodeSection->Size = Sections[Index - 1].VirtualAddress + ALIGN_VALUE (Sections[Index - 1].VirtualSize, SectionAlignment) - StartAddress;
 
     Attributes = 0;
     if ((PrevMemCharacteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {

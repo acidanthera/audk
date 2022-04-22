@@ -351,7 +351,7 @@ PeCoffGetNextCertificate (
 UINT16
 PeCoffGetSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    EFI_IMAGE_SECTION_HEADER **Sections
+  OUT    CONST EFI_IMAGE_SECTION_HEADER **Sections
   );
 
 RETURN_STATUS
