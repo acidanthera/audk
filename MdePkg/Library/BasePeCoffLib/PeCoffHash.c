@@ -288,7 +288,7 @@ PeCoffGetNextCertificate (
   CONST WIN_CERTIFICATE *WinCertificate;
 
   WinCertificate = *Certificate;
-  CertOffset  = (UINT32) ((UINTN) WinCertificate - Context->SecDirRva);
+  CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirRva));
   CertOffset += WinCertificate->dwLength;
   if (CertOffset == Context->SecDirSize) {
     return RETURN_NOT_FOUND;
