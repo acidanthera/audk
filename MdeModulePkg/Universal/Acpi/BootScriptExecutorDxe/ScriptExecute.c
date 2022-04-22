@@ -335,7 +335,7 @@ ReadyToLockEventNotify (
   Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  LoadAddress = PeCoffLoaderGetDestinationAddress (&ImageContext);
+  LoadAddress = PeCoffLoaderGetImageBuffer (&ImageContext);
 
   //
   // Free the buffer allocated by ReadSection since the image has been relocated in the new buffer
@@ -348,7 +348,7 @@ ReadyToLockEventNotify (
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&ImageContext)))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetAddressOfEntryPoint (&ImageContext)))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //

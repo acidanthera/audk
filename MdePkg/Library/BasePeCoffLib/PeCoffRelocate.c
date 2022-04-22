@@ -4,15 +4,56 @@
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
   Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
+#include <Base.h>
+
+#include <IndustryStandard/PeImage.h>
+
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
+
+#include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
-#include "PeCoffRelocate.h"
+/**
+  Returns the type of a Base Relocation.
+
+  @param[in] Relocation  The composite Base Relocation value.
+**/
+#define IMAGE_RELOC_TYPE(Relocation)    ((Relocation) >> 12U)
+
+/**
+  Returns the target offset of a Base Relocation.
+
+  @param[in] Relocation  The composite Base Relocation value.
+**/
+#define IMAGE_RELOC_OFFSET(Relocation)  ((Relocation) & 0x0FFFU)
+
+/**
+  Returns whether the Image targets the UEFI Subsystem.
+
+  @param[in] Subsystem  The Subsystem value from the Image Header.
+**/
+#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
+  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
+   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
+
+#define IMAGE_RELOC_TYPE_SUPPORTED(Type) \
+  (((Type) == EFI_IMAGE_REL_BASED_ABSOLUTE) || \
+  ((Type) == EFI_IMAGE_REL_BASED_HIGHLOW) || \
+  ((Type) == EFI_IMAGE_REL_BASED_DIR64) || \
+  ((Type) == EFI_IMAGE_REL_BASED_ARM_MOV32T && PcdGetBool (PcdImageLoaderSupportArmThumb)))
+
+#define IMAGE_RELOC_SUPPORTED(Reloc) \
+  IMAGE_RELOC_TYPE_SUPPORTED (IMAGE_RELOC_TYPE (Reloc))
 
 #define COMPOSE_32(High, Low)  \
   ((UINT32) ((UINT32) (Low) + ((UINT32) (High) * 65536U)))
@@ -52,6 +93,7 @@ ThumbMovtImmediateAddress (
   Address  = (UINT16) (Movt & 0x000000FFU);         // imm8
   Address |= (UINT16) ((Movt >> 4U) & 0x0000F700U); // imm4 imm3
   Address |= (UINT16) ((Movt & BIT26) >> 15U);      // i, Bit26->11
+
   return Address;
 }
 
@@ -110,7 +152,7 @@ ThumbMovwMovtImmediateAddress (
   CONST CHAR8 *Word;
   CONST CHAR8 *Top;
 
-  Word = Instructions;                                // MOVW
+  Word = Instructions;                                        // MOVW
   Top  = (CONST CHAR8 *) Instructions + 2 * sizeof (UINT16);  // MOVT
 
   return (UINT32) (((UINT32) ThumbMovtImmediateAddress (Top) << 16U) | ThumbMovtImmediateAddress (Word));
@@ -179,11 +221,11 @@ ThumbMovwMovtImmediateFixup (
 STATIC
 RETURN_STATUS
 InternalApplyRelocation (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT            *Context,
-  IN  CONST EFI_IMAGE_BASE_RELOCATION_BLOCK  *RelocBlock,
-  IN  UINT32                                 RelocIndex,
-  IN  UINT64                                 Adjust,
-  OUT UINT64                                 *FixupData OPTIONAL
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT           *Context,
+  IN     CONST EFI_IMAGE_BASE_RELOCATION_BLOCK  *RelocBlock,
+  IN     UINT32                                 RelocIndex,
+  IN     UINT64                                 Adjust,
+  OUT    UINT64                                 *FixupData OPTIONAL
   )
 {
   UINT16  RelocType;
@@ -233,7 +275,7 @@ InternalApplyRelocation (
   Fixup = (CHAR8 *) Context->ImageBuffer + RelocTarget;
   //
   // Apply the Base Relocation fixup per type.
-  // If RelocationData is not NULL, store the current value of the fixup
+  // If RuntimeContext is not NULL, store the current value of the fixup
   // target to determine whether it has been changed during runtime
   // execution.
   //
@@ -338,10 +380,10 @@ InternalApplyRelocation (
 
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINT64                       BaseAddress,
-  OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
-  IN  UINT32                       RelocationDataSize
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
+  IN     UINT64                          BaseAddress,
+  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                          RuntimeContextSize
   )
 {
   BOOLEAN                               Result;
@@ -366,8 +408,8 @@ PeCoffRelocateImage (
 
   ASSERT (Context != NULL);
   ASSERT (!Context->RelocsStripped);
-  ASSERT (RelocationData != NULL || RelocationDataSize == 0);
-  ASSERT (RelocationData == NULL || RelocationDataSize >= sizeof (PE_COFF_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
+  ASSERT (RuntimeContext != NULL || RuntimeContextSize == 0);
+  ASSERT (RuntimeContext == NULL || RuntimeContextSize >= sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
 
   if (Context->RelocDirSize == 0) {
     return RETURN_SUCCESS;
@@ -384,7 +426,7 @@ PeCoffRelocateImage (
   // Skip explicit Relocation when the Image is already loaded at its
   // prefered location.
   //
-  if (RelocationData == NULL && Adjust == 0) {
+  if (RuntimeContext == NULL && Adjust == 0) {
     return RETURN_SUCCESS;
   }
 
@@ -396,9 +438,9 @@ PeCoffRelocateImage (
     }
   }
 
-  if (RelocationData != NULL) {
-    RelocationData->RelocDirRva = Context->RelocDirRva;
-    RelocationData->RelocDirSize = Context->RelocDirSize;
+  if (RuntimeContext != NULL) {
+    RuntimeContext->RelocDirRva = Context->RelocDirRva;
+    RuntimeContext->RelocDirSize = Context->RelocDirSize;
   }
   //
   // Apply Base Relocation fixups to the image.
@@ -458,8 +500,8 @@ PeCoffRelocateImage (
     //
     // Apply all Base Relocation fixups of the current block.
     //
-    if (RelocationData != NULL) {
-      WalkerFixupData = &RelocationData->FixupData[RelocDataIndex];
+    if (RuntimeContext != NULL) {
+      WalkerFixupData = &RuntimeContext->FixupData[RelocDataIndex];
     } else {
       WalkerFixupData = NULL;
     }
@@ -469,7 +511,7 @@ PeCoffRelocateImage (
     for (RelocIndex = 0; RelocIndex < NumRelocs; ++RelocIndex) {
       //
       // Apply the Base Relocation fixup per type.
-      // If RelocationData is not NULL, store the current value of the fixup
+      // If RuntimeContext is not NULL, store the current value of the fixup
       // target to determine whether it has been changed during runtime
       // execution.
       //
@@ -518,10 +560,10 @@ PeCoffRelocateImage (
   //
   // Initialise the still uninitialised portion of the Runtime context.
   //
-  if (RelocationData != NULL) {
+  if (RuntimeContext != NULL) {
     ZeroMem (
-      &RelocationData->FixupData[RelocDataIndex],
-      RelocationDataSize - sizeof (PE_COFF_RUNTIME_CONTEXT) - RelocDataIndex * sizeof (UINT64)
+      &RuntimeContext->FixupData[RelocDataIndex],
+      RuntimeContextSize - sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT) - RelocDataIndex * sizeof (UINT64)
       );
   }
 
@@ -622,9 +664,9 @@ InternalApplyRelocationRuntime (
 }
 
 RETURN_STATUS
-PeCoffRelocationDataSize (
+PeCoffLoaderGetRuntimeContextSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT UINT32                       *Size
+  OUT    UINT32                        *Size
   )
 {
   BOOLEAN Result;
@@ -653,7 +695,7 @@ PeCoffRelocationDataSize (
 
   Result = BaseOverflowAddU32 (
              *Size,
-             sizeof (PE_COFF_RUNTIME_CONTEXT),
+             sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT),
              Size
              );
   if (Result) {
@@ -665,10 +707,10 @@ PeCoffRelocationDataSize (
 
 RETURN_STATUS
 PeCoffRelocateImageForRuntime (
-  IN OUT VOID                           *Image,
-  IN     UINT32                         ImageSize,
-  IN     UINT64                         BaseAddress,
-  IN     CONST PE_COFF_RUNTIME_CONTEXT  *RelocationData
+  IN OUT VOID                                  *Image,
+  IN     UINT32                                ImageSize,
+  IN     UINT64                                BaseAddress,
+  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   )
 {
   UINTN                                 ImageAddress;
@@ -688,7 +730,7 @@ PeCoffRelocateImageForRuntime (
 
   ASSERT (Image != NULL);
   ASSERT (BaseAddress != 0);
-  ASSERT (RelocationData != NULL);
+  ASSERT (RuntimeContext != NULL);
   //
   // This function assumes the image has previously been validated by
   // PeCoffInitializeContext().
@@ -701,9 +743,9 @@ PeCoffRelocateImageForRuntime (
   }
 
   FixupDataIndex = 0;
-  RelocOffset = RelocationData->RelocDirRva;
+  RelocOffset = RuntimeContext->RelocDirRva;
 
-  while (RelocOffset < RelocationData->RelocDirRva + RelocationData->RelocDirSize) {
+  while (RelocOffset < RuntimeContext->RelocDirRva + RuntimeContext->RelocDirSize) {
     RelocWalker = (CONST EFI_IMAGE_BASE_RELOCATION_BLOCK *) (CONST VOID *) (
                     (CONST CHAR8 *) Image + RelocOffset
                     );
@@ -741,10 +783,11 @@ PeCoffRelocateImageForRuntime (
                  (CHAR8 *) Image + RelocTarget,
                  IMAGE_RELOC_TYPE (RelocWalker->Relocations[RelocIndex]),
                  Adjust,
-                 RelocationData->FixupData[FixupDataIndex]
+                 RuntimeContext->FixupData[FixupDataIndex]
                  );
 
-      if (!PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch) && Status != RETURN_SUCCESS) {
+      if (!PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)
+       && Status != RETURN_SUCCESS) {
         return Status;
       }
 
@@ -754,7 +797,7 @@ PeCoffRelocateImageForRuntime (
     RelocOffset += RelocWalker->SizeOfBlock;
   }
 
-  ASSERT (RelocOffset == RelocationData->RelocDirRva + RelocationData->RelocDirSize);
+  ASSERT (RelocOffset == RuntimeContext->RelocDirRva + RuntimeContext->RelocDirSize);
 
   return RETURN_SUCCESS;
 }

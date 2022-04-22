@@ -1248,7 +1248,7 @@ BmIsLoadOptionPeHeaderValid (
     return FALSE;
   }
   // FIXME: What about emu?
-  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (PeCoffGetMachineType (&ImageContext))) {
+  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (PeCoffGetMachine (&ImageContext))) {
     return FALSE;
   }
 

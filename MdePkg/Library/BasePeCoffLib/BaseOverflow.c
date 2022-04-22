@@ -1,7 +1,7 @@
 /** @file
   Implements APIs to perform safe overflow-aware arithmetic.
 
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause

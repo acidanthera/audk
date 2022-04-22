@@ -1,30 +1,22 @@
 /** @file
   Implements APIs to retrieve general information about PE/COFF Images.
 
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-/** @file
-  Provides the services to get the entry point to a PE/COFF image that has either been
-  loaded into memory or is executing at it's linked address.
+#include <Base.h>
+#include <Uefi/UefiBaseType.h>
 
-  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  SPDX-License-Identifier: BSD-2-Clause-Patent
-
-**/
-
-#include <Uefi.h>
+#include <Library/DebugLib.h>
+#include <Library/PeCoffLib.h>
 
 #include "BasePeCoffLibInternals.h"
 
-#include "PeCoffInfo.h"
-
 UINT32
-PeCoffGetEntryPoint (
+PeCoffGetAddressOfEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -34,7 +26,7 @@ PeCoffGetEntryPoint (
 }
 
 UINT16
-PeCoffGetMachineType (
+PeCoffGetMachine (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -115,7 +107,7 @@ PeCoffGetSizeOfHeaders (
 UINT16
 PeCoffGetSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    CONST EFI_IMAGE_SECTION_HEADER **Sections
+  OUT    CONST EFI_IMAGE_SECTION_HEADER  **Sections
   )
 {
   ASSERT (Context != NULL);
@@ -127,7 +119,7 @@ PeCoffGetSections (
 }
 
 BOOLEAN
-PeCoffRelocsStripped (
+PeCoffGetRelocsStripped (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -138,7 +130,7 @@ PeCoffRelocsStripped (
 
 // FIXME: How to handle TE XIP?
 UINTN
-PeCoffLoaderGetDestinationAddress (
+PeCoffLoaderGetImageBuffer (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {

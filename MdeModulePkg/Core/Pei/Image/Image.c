@@ -264,7 +264,7 @@ LoadAndRelocatePeCoffImage (
   //
   // When Image has no reloc section, it can't be relocated into memory.
   //
-  if (PeCoffRelocsStripped (ImageContext) && (Private->PeiMemoryInstalled) &&
+  if (PeCoffGetRelocsStripped (ImageContext) && (Private->PeiMemoryInstalled) &&
       ((!IsPeiModule) || PcdGetBool (PcdMigrateTemporaryRamFirmwareVolumes) ||
        (!IsS3Boot && (PcdGetBool (PcdShadowPeimOnBoot) || IsRegisterForShadow)) ||
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
@@ -285,7 +285,7 @@ LoadAndRelocatePeCoffImage (
   // On normal boot, PcdShadowPeimOnBoot decides whether load PEIM or PeiCore into memory.
   // On S3 boot, PcdShadowPeimOnS3Boot decides whether load PEIM or PeiCore into memory.
   //
-  if ((!PeCoffRelocsStripped (ImageContext)) && (Private->PeiMemoryInstalled) &&
+  if ((!PeCoffGetRelocsStripped (ImageContext)) && (Private->PeiMemoryInstalled) &&
       ((!IsPeiModule) || PcdGetBool (PcdMigrateTemporaryRamFirmwareVolumes) ||
        (!IsS3Boot && (PcdGetBool (PcdShadowPeimOnBoot) || IsRegisterForShadow)) ||
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
@@ -357,7 +357,7 @@ LoadAndRelocatePeCoffImage (
       return Status;
     }
 
-    LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
+    LoadAddress = PeCoffLoaderGetImageBuffer (ImageContext);
   } else {
     Status = PeCoffLoadImageInplace (ImageContext);
     if (EFI_ERROR (Status)) {
@@ -569,9 +569,9 @@ PeiLoadImageLoadImage (
   //
   // Got the entry point from the loaded Pe32Data
   //
-  *EntryPoint = ImageAddress + PeCoffGetEntryPoint (&ImageContext);
+  *EntryPoint = ImageAddress + PeCoffGetAddressOfEntryPoint (&ImageContext);
 
-  Machine = PeCoffGetMachineType (&ImageContext);
+  Machine = PeCoffGetMachine (&ImageContext);
 
   if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (Machine)) {
     if (!EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (Machine)) {

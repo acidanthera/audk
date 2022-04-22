@@ -1,46 +1,56 @@
 /** @file
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef BASE_PECOFF_LIB_INTERNALS_H
-#define BASE_PECOFF_LIB_INTERNALS_H
+#ifndef BASE_PECOFF_LIB_INTERNALS_H_
+#define BASE_PECOFF_LIB_INTERNALS_H_
 
-#include "Base.h"
-#include <Library/DebugLib.h>
-#include <IndustryStandard/PeImage.h>
-#include <Library/PeCoffLib.h>
-#include "BaseOverflow.h"
-#include <Library/BaseMemoryLib.h>
-#include <Library/BaseLib.h>
-
+#define ALIGNOF           _Alignof
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
-#define ALIGNOF        _Alignof
+
+//
+// 4 byte alignment has been replaced with ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
+// for proof simplicity. This obviously was the original intention of the
+// specification. Assert in case the equality is not given.
+//
+STATIC_ASSERT (
+  sizeof (UINT32) == ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+  "The current model violates the PE specification"
+  );
 
 /**
-  Returns the type of a Base Relocation.
+  Retrieves information about the Image CodeView data.
 
-  @param[in] Relocation  The composite Base Relocation value.
+  The Image context is updated accordingly.
+
+  @param[in,out]  Context   The context describing the Image. Must have been
+                            initialised by PeCoffInitializeContext().
+  @param[in]      FileSize  The size, in bytes, of Context->FileBuffer.
 **/
-#define IMAGE_RELOC_TYPE(Relocation)    ((Relocation) >> 12U)
+VOID
+PeCoffLoaderRetrieveCodeViewInfo (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT32                 FileSize
+  );
 
 /**
-  Returns the target offset of a Base Relocation.
+  Loads the Image CodeView data into memory.
 
-  @param[in] Relocation  The composite Base Relocation value.
+  @param[in,out]  Context   The context describing the Image. Must have been
+                            updated by PeCoffLoaderRetrieveCodeViewInfo().
 **/
-#define IMAGE_RELOC_OFFSET(Relocation)  ((Relocation) & 0x0FFFU)
+VOID
+PeCoffLoaderLoadCodeView (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
 
-/**
-  Returns whether the Image targets the UEFI Subsystem.
-
-  @param[in] Subsystem  The Subsystem value from the Image Header.
-**/
-#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
-  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
-   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
+VOID
+PeCoffLoaderLoadCodeViewInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
 
 #endif // BASE_PECOFF_LIB_INTERNALS_H

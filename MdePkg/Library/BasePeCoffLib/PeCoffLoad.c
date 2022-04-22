@@ -4,19 +4,23 @@
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
   Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#include <Uefi.h>
+#include <Base.h>
+#include <Uefi/UefiBaseType.h>
+
+#include <IndustryStandard/PeImage.h>
+
+#include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
 
 #include "BasePeCoffLibInternals.h"
-
-#include "PeCoffLoad.h"
-#include "PeCoffRelocate.h"
-#include "PeCoffDebug.h"
 
 /**
   Loads the Image Sections into the memory space and initialises any padding
@@ -39,9 +43,9 @@ STATIC
 VOID
 InternalLoadSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINT32                       LoadedHeaderSize,
-  OUT VOID                         *Destination,
-  IN  UINT32                       DestinationSize
+  IN     UINT32                        LoadedHeaderSize,
+  OUT    VOID                          *Destination,
+  IN     UINT32                        DestinationSize
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
@@ -91,8 +95,8 @@ InternalLoadSections (
 RETURN_STATUS
 PeCoffLoadImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    VOID                   *Destination,
-  IN     UINT32                 DestinationSize
+  OUT    VOID                          *Destination,
+  IN     UINT32                        DestinationSize
   )
 {
   CHAR8                          *AlignedDest;
@@ -118,10 +122,10 @@ PeCoffLoadImage (
     AlignedSize = DestinationSize;
     AlignOffset = 0;
   } else {
-    Address = (UINTN) Destination;
+    Address        = (UINTN) Destination;
     AlignedAddress = ALIGN_VALUE (Address, (UINTN) Context->SectionAlignment);
-    AlignOffset = (UINT32) (AlignedAddress - Address);
-    AlignedSize = DestinationSize - AlignOffset;
+    AlignOffset    = (UINT32) (AlignedAddress - Address);
+    AlignedSize    = DestinationSize - AlignOffset;
 
     ASSERT (Context->SizeOfImage <= AlignedSize);
 
@@ -211,7 +215,7 @@ PeCoffDiscardSections (
   // By the PE/COFF specification, the .reloc section is supposed to be
   // discardable, so we must assume it is no longer valid.
   //
-  Context->RelocDirRva = 0;
+  Context->RelocDirRva  = 0;
   Context->RelocDirSize = 0;
 
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (

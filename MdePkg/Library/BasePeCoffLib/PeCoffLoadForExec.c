@@ -1,3 +1,12 @@
+/** @file
+  Implements APIs to load PE/COFF Images for subsequent execution.
+
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
+  Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  SPDX-License-Identifier: BSD-3-Clause
+**/
+
 #include <Base.h>
 
 #include <Library/PeCoffLib.h>
@@ -8,8 +17,8 @@ PeCoffLoadImageForExecution (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    VOID                          *Destination,
   IN     UINT32                        DestinationSize,
-  OUT PE_COFF_RUNTIME_CONTEXT          *RelocationData OPTIONAL,
-  IN  UINT32                           RelocationDataSize
+  OUT PE_COFF_LOADER_RUNTIME_CONTEXT   *RuntimeContext OPTIONAL,
+  IN  UINT32                           RuntimeContextSize
   )
 {
   RETURN_STATUS Status;
@@ -21,12 +30,12 @@ PeCoffLoadImageForExecution (
     return Status;
   }
 
-  BaseAddress = PeCoffLoaderGetDestinationAddress (Context);
+  BaseAddress = PeCoffLoaderGetImageBuffer (Context);
   Status = PeCoffRelocateImage (
     Context,
     BaseAddress,
-    RelocationData,
-    RelocationDataSize
+    RuntimeContext,
+    RuntimeContextSize
     );
   if (RETURN_ERROR (Status)) {
     return Status;
@@ -44,10 +53,10 @@ PeCoffLoadImageForExecution (
 
 RETURN_STATUS
 PeCoffRelocateImageForRuntimeExecution (
-  IN OUT VOID                           *Image,
-  IN     UINT32                         ImageSize,
-  IN     UINT64                         BaseAddress,
-  IN     CONST PE_COFF_RUNTIME_CONTEXT  *RelocationData
+  IN OUT VOID                                  *Image,
+  IN     UINT32                                ImageSize,
+  IN     UINT64                                BaseAddress,
+  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   )
 {
   RETURN_STATUS Status;
@@ -56,7 +65,7 @@ PeCoffRelocateImageForRuntimeExecution (
              Image,
              ImageSize,
              BaseAddress,
-             RelocationData
+             RuntimeContext
              );
   if (RETURN_ERROR (Status)) {
     return Status;

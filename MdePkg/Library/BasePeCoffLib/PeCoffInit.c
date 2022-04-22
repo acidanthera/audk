@@ -4,34 +4,24 @@
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
   Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-/** @file
-  Base PE/COFF loader supports loading any PE32/PE32+ or TE image, but
-  only supports relocating IA32, x64, IPF, and EBC images.
+#include <Base.h>
+#include <Uefi/UefiBaseType.h>
 
-  Caution: This file requires additional review when modified.
-  This library will have external input - PE/COFF image.
-  This external input must be validated carefully to avoid security issue like
-  buffer overflow, integer overflow.
+#include <IndustryStandard/PeImage.h>
 
-  PeCoffInitializeContext() routine will do basic check for whole PE/COFF image.
-
-  Copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  SPDX-License-Identifier: BSD-2-Clause-Patent
-
-**/
-#include <Uefi.h>
+#include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include "BasePeCoffLibInternals.h"
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
 
-#include "PeCoffInit.h"
-#include "PeCoffDebug.h"
+#include "BaseOverflow.h"
+#include "BasePeCoffLibInternals.h"
 
 //
 // FIXME: Provide an API to destruct the context.
@@ -58,9 +48,9 @@ STATIC
 RETURN_STATUS
 InternalVerifySections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINT32                       FileSize,
-  OUT UINT32                       *StartAddress,
-  OUT UINT32                       *EndAddress
+  IN     UINT32                        FileSize,
+  OUT    UINT32                        *StartAddress,
+  OUT    UINT32                        *EndAddress
   )
 {
   BOOLEAN                        Result;
@@ -84,7 +74,7 @@ InternalVerifySections (
   // adjacent to the Image Headers.
   //
   if (Sections[0].VirtualAddress == 0) {
-    if (Context->ImageType == ImageTypeTe) {
+    if (Context->ImageType == PeCoffLoaderTypeTe) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -93,10 +83,10 @@ InternalVerifySections (
   } else {
     if (!PcdGetBool (PcdImageLoaderTolerantLoad)) {
       Result = BaseOverflowAlignUpU32 (
-                Sections[0].VirtualAddress,
-                Context->SectionAlignment,
-                &NextSectRva
-                );
+                 Sections[0].VirtualAddress,
+                 Context->SectionAlignment,
+                 &NextSectRva
+                 );
       if (Result) {
         ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
@@ -202,7 +192,7 @@ STATIC
 RETURN_STATUS
 InternalValidateRelocInfo (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN UINT32                       StartAddress
+  IN     UINT32                        StartAddress
   )
 {
   BOOLEAN Result;
@@ -281,7 +271,7 @@ STATIC
 RETURN_STATUS
 InternalInitializeTe (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                 FileSize
+  IN     UINT32                        FileSize
   )
 {
   RETURN_STATUS             Status;
@@ -294,7 +284,7 @@ InternalInitializeTe (
   ASSERT (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize);
   ASSERT (FileSize >= sizeof (EFI_TE_IMAGE_HEADER));
 
-  Context->ImageType = ImageTypeTe;
+  Context->ImageType = PeCoffLoaderTypeTe;
 
   TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
             (CONST CHAR8 *) Context->FileBuffer + 0
@@ -389,7 +379,7 @@ STATIC
 RETURN_STATUS
 InternalInitializePe (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                 FileSize
+  IN     UINT32                        FileSize
   )
 {
   BOOLEAN                               Result;
@@ -434,7 +424,7 @@ InternalInitializePe (
         "The following operations may be unaligned."
         );
 
-      Context->ImageType = ImageTypePe32;
+      Context->ImageType = PeCoffLoaderTypePe32;
 
       Pe32 = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
@@ -468,7 +458,7 @@ InternalInitializePe (
         return RETURN_UNSUPPORTED;
       }
 
-      Context->ImageType = ImageTypePe32Plus;
+      Context->ImageType = PeCoffLoaderTypePe32Plus;
 
       Pe32Plus = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
@@ -608,11 +598,11 @@ InternalInitializePe (
   }
 
   if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
-    Context->SecDirRva  = SecDir->VirtualAddress;
+    Context->SecDirOffset  = SecDir->VirtualAddress;
     Context->SecDirSize = SecDir->Size;
 
     Result = BaseOverflowAddU32 (
-      Context->SecDirRva,
+      Context->SecDirOffset,
       Context->SecDirSize,
       &SecDirEnd
       );
@@ -621,13 +611,13 @@ InternalInitializePe (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!IS_ALIGNED (Context->SecDirRva, 8)
+    if (!IS_ALIGNED (Context->SecDirOffset, 8)
      || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
        ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
   } else {
-    ASSERT (Context->SecDirRva == 0 && Context->SecDirSize == 0);
+    ASSERT (Context->SecDirOffset == 0 && Context->SecDirSize == 0);
   }
 
   Status = InternalVerifySections (
@@ -659,8 +649,8 @@ InternalInitializePe (
 RETURN_STATUS
 PeCoffInitializeContext (
   OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  CONST VOID             *FileBuffer,
-  IN  UINT32                 FileSize
+  IN  CONST VOID                    *FileBuffer,
+  IN  UINT32                        FileSize
   )
 {
   RETURN_STATUS               Status;

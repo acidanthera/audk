@@ -1019,7 +1019,7 @@ PeCoffLoaderRelocateImageExtraAction (
   // Load the DLL if it's not an EBC image.
   //
   if ((ImageContext->PdbPointer != NULL) &&
-      (PeCoffGetMachineType (ImageContext) != EFI_IMAGE_MACHINE_EBC))
+      (PeCoffGetMachine (ImageContext) != EFI_IMAGE_MACHINE_EBC))
   {
     //
     // Convert filename from ASCII to Unicode

@@ -283,7 +283,7 @@ BuildDriverInfo (
   PdbOccupiedSize = 0;
 
   // FIXME: This used to be allowed?
-  ASSERT (PeCoffLoaderGetDestinationAddress (ImageContext) != 0);
+  ASSERT (PeCoffLoaderGetImageBuffer (ImageContext) != 0);
 
   PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
@@ -316,9 +316,9 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = PeCoffLoaderGetDestinationAddress (ImageContext);
+  DriverInfo->ImageBase      = PeCoffLoaderGetImageBuffer (ImageContext);
   DriverInfo->ImageSize      = PeCoffGetSizeOfImage (ImageContext);
-  DriverInfo->EntryPoint     = PeCoffLoaderGetDestinationAddress (ImageContext) + PeCoffGetEntryPoint (ImageContext);
+  DriverInfo->EntryPoint     = PeCoffLoaderGetImageBuffer (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = PeCoffGetSubsystem (ImageContext);
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {

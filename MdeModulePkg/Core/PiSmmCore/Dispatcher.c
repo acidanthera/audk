@@ -522,12 +522,12 @@ SmmLoadImage (
     return Status;
   }
 
-  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
+  LoadAddress = PeCoffLoaderGetImageBuffer (ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint  = LoadAddress + PeCoffGetEntryPoint (ImageContext);
+  DriverEntry->ImageEntryPoint  = LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext);
   DriverEntry->ImageBuffer      = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -641,7 +641,7 @@ SmmLoadImage (
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
            (VOID *)(UINTN)LoadAddress,
-           FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetEntryPoint (ImageContext))));
+           FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext))));
 
   //
   // Print Module Name by Pdb file path.

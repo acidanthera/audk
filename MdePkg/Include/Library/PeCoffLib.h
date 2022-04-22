@@ -1,17 +1,14 @@
 /** @file
-  Provides services to load and relocate a PE/COFF image.
+  Provides APIs to load and relocate PE/COFF Images.
 
-  The PE/COFF Loader Library abstracts the implementation of a PE/COFF loader for
-  IA-32, x86, and EBC processor types. The library functions are memory-based
-  and can be ported easily to any environment.
-
-Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
-SPDX-License-Identifier: BSD-2-Clause-Patent
-
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
+  Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef OC_PE_COFF_LIB_H
-#define OC_PE_COFF_LIB_H
+#ifndef PE_COFF_LIB_H_
+#define PE_COFF_LIB_H_
 
 #include <IndustryStandard/PeImage.h>
 
@@ -21,11 +18,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 /// Image type enumeration for Image format identification from the context.
 ///
 typedef enum {
-  ImageTypeTe,
-  ImageTypePe32,
-  ImageTypePe32Plus,
-  ImageTypeMax
-} IMAGE_LOADER_IMAGE_TYPE;
+  PeCoffLoaderTypeTe,
+  PeCoffLoaderTypePe32,
+  PeCoffLoaderTypePe32Plus,
+  PeCoffLoaderTypeMax
+} PE_COFF_LOADER_IMAGE_TYPE;
 
 ///
 /// Image context structure used for abstraction and bookkeeping.
@@ -86,7 +83,7 @@ typedef struct {
   ///
   BOOLEAN    RelocsStripped;
   ///
-  /// The file format of the Image raw file, refer to IMAGE_LOADER_IMAGE_TYPE.
+  /// The file format of the Image raw file, refer to PE_COFF_LOADER_IMAGE_TYPE.
   ///
   UINT8      ImageType;
   ///
@@ -113,7 +110,7 @@ typedef struct {
   ///
   /// The RVA of the Security Directory.
   ///
-  UINT32     SecDirRva;
+  UINT32     SecDirOffset;
   ///
   /// The size, in bytes, of the Security Directory.
   ///
@@ -140,7 +137,7 @@ typedef struct {
   /// Information bookkept during the initial Image Relocation.
   ///
   UINT64 FixupData[];
-} PE_COFF_RUNTIME_CONTEXT;
+} PE_COFF_LOADER_RUNTIME_CONTEXT;
 
 /**
   Adds the digest of Data to HashContext. This function can be called multiple
@@ -154,7 +151,7 @@ typedef struct {
 **/
 typedef
 BOOLEAN
-(EFIAPI *PE_COFF_HASH_UPDATE)(
+(EFIAPI *PE_COFF_LOADER_HASH_UPDATE)(
   IN OUT VOID        *HashContext,
   IN     CONST VOID  *Data,
   IN     UINTN       DataSize
@@ -175,8 +172,8 @@ BOOLEAN
 RETURN_STATUS
 PeCoffInitializeContext (
   OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  CONST VOID             *FileBuffer,
-  IN  UINT32                 FileSize
+  IN  CONST VOID                    *FileBuffer,
+  IN  UINT32                        FileSize
   );
 
 /**
@@ -201,25 +198,25 @@ PeCoffInitializeContext (
 RETURN_STATUS
 PeCoffLoadImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    VOID                   *Destination,
-  IN     UINT32                 DestinationSize
+  OUT    VOID                          *Destination,
+  IN     UINT32                        DestinationSize
   );
 
 RETURN_STATUS
 PeCoffLoadImageForExecution (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    VOID                          *Destination,
-  IN     UINT32                        DestinationSize,
-  OUT PE_COFF_RUNTIME_CONTEXT          *RelocationData OPTIONAL,
-  IN  UINT32                           RelocationDataSize
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
+  OUT    VOID                            *Destination,
+  IN     UINT32                          DestinationSize,
+  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                          RuntimeContextSize
   );
 
 RETURN_STATUS
 PeCoffRelocateImageForRuntimeExecution (
-  IN OUT VOID                           *Image,
-  IN     UINT32                         ImageSize,
-  IN     UINT64                         BaseAddress,
-  IN     CONST PE_COFF_RUNTIME_CONTEXT  *RelocationData
+  IN OUT VOID                                  *Image,
+  IN     UINT32                                ImageSize,
+  IN     UINT64                                BaseAddress,
+  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   );
 
 RETURN_STATUS
@@ -251,9 +248,9 @@ PeCoffDiscardSections (
                           retrieved successfully.
 **/
 RETURN_STATUS
-PeCoffRelocationDataSize (
+PeCoffLoaderGetRuntimeContextSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT UINT32                       *Size
+  OUT    UINT32                        *Size
   );
 
 /**
@@ -262,20 +259,21 @@ PeCoffRelocationDataSize (
   @param[in]  Context             The context describing the Image. Must have
                                   been loaded by PeCoffLoadImage().
   @param[in]  BaseAddress         The address to relocate the Image to.
-  @param[out] RelocationData      If not NULL, on output, a buffer bookkeeping
+  @param[out] RuntimeContext      If not NULL, on output, a buffer bookkeeping
                                   data required for Runtime Relocation.
-  @param[in]  RelocationDataSize  The size, in bytes, of RelocationData. Must be
-                                  at least as big as PeCoffRelocationDataSize().
+  @param[in]  RuntimeContextSize  The size, in bytes, of RuntimeContext. Must be
+                                  at least as big as
+                                  PeCoffLoaderGetRuntimeContextSize().
 
   @retval RETURN_SUCCESS  The Image has been relocated successfully.
   @retval other           The Image could not be relocated successfully.
 **/
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINT64                       BaseAddress,
-  OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
-  IN  UINT32                       RelocationDataSize
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
+  IN     UINT64                          BaseAddress,
+  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                          RuntimeContextSize
   );
 
 /**
@@ -285,7 +283,7 @@ PeCoffRelocateImage (
                               relocated by PeCoffRelocateImage().
   @param[in]  ImageSize       The size, in bytes, of Image.
   @param[in]  BaseAddress     The address to relocate the Image to.
-  @param[in]  RelocationData  The Relocation context obtained by
+  @param[in]  RuntimeContext  The Relocation context obtained by
                               PeCoffRelocateImage().
 
   @retval RETURN_SUCCESS  The Image has been relocated successfully.
@@ -293,41 +291,10 @@ PeCoffRelocateImage (
 **/
 RETURN_STATUS
 PeCoffRelocateImageForRuntime (
-  IN OUT VOID                           *Image,
-  IN     UINT32                         ImageSize,
-  IN     UINT64                         BaseAddress,
-  IN     CONST PE_COFF_RUNTIME_CONTEXT  *RelocationData
-  );
-
-/**
-  Retrieves information about the Image CodeView data.
-
-  The Image context is updated accordingly.
-
-  @param[in,out]  Context   The context describing the Image. Must have been
-                            initialised by PeCoffInitializeContext().
-  @param[in]      FileSize  The size, in bytes, of Context->FileBuffer.
-**/
-VOID
-PeCoffLoaderRetrieveCodeViewInfo (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                 FileSize
-  );
-
-/**
-  Loads the Image CodeView data into memory.
-
-  @param[in,out]  Context   The context describing the Image. Must have been
-                            updated by PeCoffLoaderRetrieveCodeViewInfo().
-**/
-VOID
-PeCoffLoaderLoadCodeView (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
-VOID
-PeCoffLoaderLoadCodeViewInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT VOID                                  *Image,
+  IN     UINT32                                ImageSize,
+  IN     UINT64                                BaseAddress,
+  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   );
 
 /**
@@ -345,8 +312,8 @@ PeCoffLoaderLoadCodeViewInplace (
 RETURN_STATUS
 PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT CHAR8                        **PdbPath,
-  OUT UINT32                       *PdbPathSize
+  OUT    CHAR8                         **PdbPath,
+  OUT    UINT32                        *PdbPathSize
   );
 
 /**
@@ -363,8 +330,8 @@ PeCoffGetPdbPath (
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_HASH_UPDATE          HashUpdate,
-  IN OUT VOID                         *HashContext
+  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
+  IN OUT VOID                          *HashContext
   );
 
 RETURN_STATUS
@@ -382,23 +349,23 @@ PeCoffGetNextCertificate (
 UINT16
 PeCoffGetSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    CONST EFI_IMAGE_SECTION_HEADER **Sections
+  OUT    CONST EFI_IMAGE_SECTION_HEADER  **Sections
   );
 
 RETURN_STATUS
-PeCoffLoaderGetHiiResourceSection (
+PeCoffGetHiiResourceSection (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT UINT32                              *HiiOffset,
-  OUT UINT32                              *MaxHiiSize
+  OUT    UINT32                        *HiiRva,
+  OUT    UINT32                        *MaxHiiSize
   );
 
 UINT32
-PeCoffGetEntryPoint (
+PeCoffGetAddressOfEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT16
-PeCoffGetMachineType (
+PeCoffGetMachine (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -427,12 +394,12 @@ PeCoffGetSizeOfHeaders (
   );
 
 BOOLEAN
-PeCoffRelocsStripped (
+PeCoffGetRelocsStripped (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINTN
-PeCoffLoaderGetDestinationAddress (
+PeCoffLoaderGetImageBuffer (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -441,4 +408,4 @@ PeCoffLoaderGetDestinationSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-#endif // OC_PE_COFF_LIB_H
+#endif // PE_COFF_LIB_H

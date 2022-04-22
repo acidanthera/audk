@@ -3,23 +3,23 @@
 
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions Copyright (c) 2016, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
+#include <Base.h>
+
+#include <IndustryStandard/PeImage.h>
+
+#include <Library/DebugLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
+
 #include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
-
-#include "PeCoffHash.h"
-#include "ProcessorBind.h"
-
-#include <Library/MemoryAllocationLib.h>
-
-//
-// TODO: Import Authenticode fixes and improvements.
-//
 
 /**
   Hashes the Image Section data in ascending order of raw file apprearance.
@@ -35,9 +35,9 @@ STATIC
 BOOLEAN
 InternalHashSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_HASH_UPDATE          HashUpdate,
-  IN OUT VOID                         *HashContext,
-  IN OUT UINT32                       *SumBytesHashed
+  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
+  IN OUT VOID                          *HashContext,
+  IN OUT UINT32                        *SumBytesHashed
   )
 {
   BOOLEAN                        Result;
@@ -86,9 +86,8 @@ InternalHashSections (
     SortedSections[SectionPos] = &Sections[SectIndex];
   }
 
-  Result = TRUE;
-  SectionTop = 0;
-
+  Result      = TRUE;
+  SectionTop  = 0;
   CurHashSize = 0;
   //
   // 13. Repeat steps 11 and 12 for all of the sections in the sorted table.
@@ -139,15 +138,15 @@ InternalHashSections (
   }
 
   *SumBytesHashed = CurHashSize;
-
   FreePool (SortedSections);
+
   return Result;
 }
 
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_HASH_UPDATE          HashUpdate,
+  IN     PE_COFF_LOADER_HASH_UPDATE          HashUpdate,
   IN OUT VOID                         *HashContext
   )
 {
@@ -177,7 +176,7 @@ PeCoffHashImage (
   //    specification.
   //
   switch (Context->ImageType) { /* LCOV_EXCL_BR_LINE */
-    case ImageTypeTe:
+    case PeCoffLoaderTypeTe:
       //
       // TE images are not to be signed, as they are supposed to only be part of
       // Firmware Volumes, which may be signed as a whole.
@@ -185,7 +184,7 @@ PeCoffHashImage (
       ASSERT (FALSE);
       return FALSE;
 
-    case ImageTypePe32:
+    case PeCoffLoaderTypePe32:
       Pe32 = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                );
@@ -201,7 +200,7 @@ PeCoffHashImage (
 
       break;
 
-    case ImageTypePe32Plus:
+    case PeCoffLoaderTypePe32Plus:
       Pe32Plus = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                    );
@@ -341,7 +340,7 @@ PeCoffGetFirstCertificate (
   }
 
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
-                     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva
+                     (CONST UINT8 *) Context->FileBuffer + Context->SecDirOffset
                      );
 
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
@@ -357,6 +356,7 @@ PeCoffGetFirstCertificate (
   }
 
   *Certificate = WinCertificate;
+
   return RETURN_SUCCESS;
 }
 
@@ -373,7 +373,7 @@ PeCoffGetNextCertificate (
   CONST WIN_CERTIFICATE *WinCertificate;
 
   WinCertificate = *Certificate;
-  CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirRva));
+  CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirOffset));
 
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)) {
     CertSize = WinCertificate->dwLength;
@@ -399,7 +399,7 @@ PeCoffGetNextCertificate (
   }
 
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
-                     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva + CertOffset
+                     (CONST UINT8 *) Context->FileBuffer + Context->SecDirOffset + CertOffset
                      );
 
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
@@ -424,5 +424,6 @@ PeCoffGetNextCertificate (
   }
 
   *Certificate = WinCertificate;
+
   return RETURN_SUCCESS;
 }

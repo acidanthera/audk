@@ -244,7 +244,7 @@ MmLoadImage (
     return Status;
   }
 
-  ImageBase = PeCoffLoaderGetDestinationAddress (&ImageContext);
+  ImageBase = PeCoffLoaderGetImageBuffer (&ImageContext);
 
   //
   // Flush the instruction cache so the image data are written before we execute it
@@ -254,7 +254,7 @@ MmLoadImage (
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint  = ImageBase + PeCoffGetEntryPoint (&ImageContext);
+  DriverEntry->ImageEntryPoint  = ImageBase + PeCoffGetAddressOfEntryPoint (&ImageContext);
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -313,7 +313,7 @@ MmLoadImage (
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
     (VOID *)(UINTN)DstBuffer,
-    FUNCTION_ENTRY_POINT (DstBuffer + PeCoffGetEntryPoint (&ImageContext))
+    FUNCTION_ENTRY_POINT (DstBuffer + PeCoffGetAddressOfEntryPoint (&ImageContext))
     ));
 
   Status = PeCoffGetPdbPath (&ImageContext, &PdbPath, &PdbSize);

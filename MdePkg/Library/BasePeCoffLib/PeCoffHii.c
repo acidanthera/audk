@@ -4,21 +4,27 @@
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
   Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
+#include <Base.h>
+
+#include <IndustryStandard/PeImage.h>
+
+#include <Library/DebugLib.h>
+#include <Library/PeCoffLib.h>
+
+#include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
-#include "PeCoffHii.h"
-
 RETURN_STATUS
-PeCoffLoaderGetHiiResourceSection (
+PeCoffGetHiiResourceSection (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT UINT32                              *HiiOffset,
-  OUT UINT32                              *MaxHiiSize
+  OUT UINT32                           *HiiRva,
+  OUT UINT32                           *MaxHiiSize
   )
 {
   UINT16                                    Index;
@@ -37,10 +43,10 @@ PeCoffLoaderGetHiiResourceSection (
   // Get Image's HII resource section
   //
   switch (Context->ImageType) {
-    case ImageTypeTe:
+    case PeCoffLoaderTypeTe:
       return RETURN_NOT_FOUND;
 
-    case ImageTypePe32:
+    case PeCoffLoaderTypePe32:
       Pe32Hdr = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                   (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                   );
@@ -51,7 +57,7 @@ PeCoffLoaderGetHiiResourceSection (
       DirectoryEntry = &Pe32Hdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
       break;
 
-    case ImageTypePe32Plus:
+    case PeCoffLoaderTypePe32Plus:
       Pe32PlusHdr = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                       (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                       );
@@ -199,15 +205,15 @@ PeCoffLoaderGetHiiResourceSection (
                         );
 
   Result = BaseOverflowSubU32 (
-              Context->SizeOfImage,
-              ResourceDataEntry->OffsetToData,
-              MaxHiiSize
-              );
+             Context->SizeOfImage,
+             ResourceDataEntry->OffsetToData,
+             MaxHiiSize
+             );
   if (Result) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
-  *HiiOffset = ResourceDataEntry->OffsetToData;
+  *HiiRva = ResourceDataEntry->OffsetToData;
   return RETURN_SUCCESS;
 }

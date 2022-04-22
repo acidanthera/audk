@@ -4,20 +4,28 @@
   Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
   Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
   Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
-  Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
+  Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#include "BasePeCoffLibInternals.h"
+#include <Base.h>
 
-#include "PeCoffDebug.h"
+#include <IndustryStandard/PeImage.h>
+
+#include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
+
+#include "BaseOverflow.h"
+#include "BasePeCoffLibInternals.h"
 
 VOID
 PeCoffLoaderRetrieveCodeViewInfo (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                 FileSize
+  IN     UINT32                        FileSize
   )
 {
   BOOLEAN                               Result;
@@ -50,7 +58,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   // Retrieve the Debug Directory information of the Image.
   //
   switch (Context->ImageType) { /* LCOV_EXCL_BR_LINE */
-    case ImageTypeTe:
+    case PeCoffLoaderTypeTe:
       TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
                 (CONST CHAR8 *) Context->FileBuffer
                 );
@@ -58,7 +66,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
       DebugDir = &TeHdr->DataDirectory[1];
       break;
 
-    case ImageTypePe32:
+    case PeCoffLoaderTypePe32:
       Pe32Hdr = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                   (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                   );
@@ -70,7 +78,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
       DebugDir = &Pe32Hdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
       break;
 
-    case ImageTypePe32Plus:
+    case PeCoffLoaderTypePe32Plus:
       Pe32PlusHdr = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                       (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                       );
@@ -82,12 +90,10 @@ PeCoffLoaderRetrieveCodeViewInfo (
       DebugDir = &Pe32PlusHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
       break;
 
-  /* LCOV_EXCL_START */
     default:
       ASSERT (FALSE);
       return;
   }
-  /* LCOV_EXCL_STOP */
 
   if (DebugDir->Size == 0) {
     return;
@@ -186,50 +192,50 @@ PeCoffLoaderRetrieveCodeViewInfo (
     // request reserved space for it to force-load it.
     //
     Result = BaseOverflowSubU32 (
-              CodeViewEntry->FileOffset,
-              Context->TeStrippedOffset,
-              &DebugEntryTopOffset
-              );
+               CodeViewEntry->FileOffset,
+               Context->TeStrippedOffset,
+               &DebugEntryTopOffset
+               );
     if (Result) {
       ASSERT (FALSE);
       return;
     }
 
     Result = BaseOverflowAddU32 (
-              DebugEntryTopOffset,
-              CodeViewEntry->SizeOfData,
-              &DebugEntryTopOffset
-              );
+               DebugEntryTopOffset,
+               CodeViewEntry->SizeOfData,
+               &DebugEntryTopOffset
+               );
     if (Result || DebugEntryTopOffset > FileSize) {
       ASSERT (FALSE);
       return;
     }
 
     Result = BaseOverflowAlignUpU32 (
-                Context->SizeOfImage,
-                ALIGNOF (UINT32),
-                &DebugSizeOfImage
-                );
+               Context->SizeOfImage,
+               ALIGNOF (UINT32),
+               &DebugSizeOfImage
+               );
     if (Result) {
       ASSERT (FALSE);
       return;
     }
 
     Result = BaseOverflowAddU32 (
-                DebugSizeOfImage,
-                CodeViewEntry->SizeOfData,
-                &DebugSizeOfImage
-                );
+               DebugSizeOfImage,
+               CodeViewEntry->SizeOfData,
+               &DebugSizeOfImage
+               );
     if (Result) {
       ASSERT (FALSE);
       return;
     }
 
     Result = BaseOverflowAlignUpU32 (
-                DebugSizeOfImage,
-                Context->SectionAlignment,
-                &DebugSizeOfImage
-                );
+               DebugSizeOfImage,
+               Context->SectionAlignment,
+               &DebugSizeOfImage
+               );
     if (Result) {
       ASSERT (FALSE);
       return;
@@ -313,8 +319,8 @@ PeCoffLoaderLoadCodeViewInplace (
 RETURN_STATUS
 PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT CHAR8                        **PdbPath,
-  OUT UINT32                       *PdbPathSize
+  OUT    CHAR8                         **PdbPath,
+  OUT    UINT32                        *PdbPathSize
   )
 {
   BOOLEAN                         Result;
@@ -389,7 +395,8 @@ PeCoffGetPdbPath (
     return RETURN_UNSUPPORTED;
   }
 
-  *PdbPath = PdbName;
+  *PdbPath     = PdbName;
   *PdbPathSize = PdbNameSize;
+
   return RETURN_SUCCESS;
 }
