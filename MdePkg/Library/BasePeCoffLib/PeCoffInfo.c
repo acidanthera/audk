@@ -17,6 +17,8 @@
 
 **/
 
+#include <Uefi.h>
+
 #include "BasePeCoffLibInternals.h"
 
 #include "PeCoffInfo.h"
@@ -71,6 +73,25 @@ PeCoffGetSizeOfImage (
   return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
 }
 
+UINT32
+PeCoffLoaderGetDestinationSize (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  UINT32 TotalSize;
+
+  ASSERT (Context != NULL);
+  ASSERT (PeCoffGetSizeOfImage (Context) + PeCoffGetSectionAlignment (Context) >= PeCoffGetSizeOfImage (Context));
+
+  TotalSize = PeCoffGetSizeOfImage (Context);
+
+  if (PeCoffGetSectionAlignment (Context) > EFI_PAGE_SIZE) {
+    TotalSize += PeCoffGetSectionAlignment (Context);
+  }
+
+  return TotalSize;
+}
+
 UINT64
 PeCoffGetImageBase (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
@@ -113,4 +134,15 @@ PeCoffRelocsStripped (
   ASSERT (Context != NULL);
 
   return Context->RelocsStripped;
+}
+
+UINTN
+PeCoffLoaderGetDestinationAddress (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  ASSERT (Context != NULL);
+  ASSERT (Context->ImageBuffer != NULL);
+
+  return (UINTN) Context->ImageBuffer;
 }

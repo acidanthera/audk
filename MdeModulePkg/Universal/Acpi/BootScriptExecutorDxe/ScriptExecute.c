@@ -12,6 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "ScriptExecute.h"
+#include "Library/PeCoffLib.h"
 #include "Uefi/UefiBaseType.h"
 
 EFI_GUID  mBootScriptExecutorImageGuid = {
@@ -306,11 +307,7 @@ ReadyToLockEventNotify (
   Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
   UINT32 Size;
-  if (PeCoffGetSectionAlignment (&ImageContext) > EFI_PAGE_SIZE) {
-    Size =PeCoffGetSizeOfImage (&ImageContext) + PeCoffGetSectionAlignment (&ImageContext);
-  } else {
-    Size =PeCoffGetSizeOfImage (&ImageContext);
-  }
+  Size = PeCoffLoaderGetDestinationSize (&ImageContext);
   Pages = EFI_SIZE_TO_PAGES (Size);
   FfsBuffer = 0xFFFFFFFF;
   Status    = gBS->AllocatePages (
@@ -335,11 +332,6 @@ ReadyToLockEventNotify (
 
   LoadAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
-  // Align buffer on section boundary
-  //
-  LoadAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&ImageContext) - 1);
-  //
   // Load the image to our new buffer
   //
   Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)LoadAddress, Size);
@@ -348,6 +340,7 @@ ReadyToLockEventNotify (
   //
   // Relocate the image in our new buffer
   //
+  LoadAddress = PeCoffLoaderGetDestinationAddress (&ImageContext);
   Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 

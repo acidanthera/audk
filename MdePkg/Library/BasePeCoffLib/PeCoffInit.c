@@ -1898,6 +1898,14 @@ PeCoffInitializeContext (
       if (PcdGetBool (PcdImageLoaderSupportDebug) && Status == RETURN_SUCCESS) {
         PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
       }
+      //
+      // FIXME: Properly unify with PE somehow
+      // Space extension to ensure alignment must not overflow.
+      //
+      if (Context->SectionAlignment > EFI_PAGE_SIZE
+       && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
+        return EFI_UNSUPPORTED;
+      }
 
       return Status;
     }
@@ -1979,6 +1987,14 @@ PeCoffInitializeContext (
   //@ assigns \nothing;
   if (PcdGetBool (PcdImageLoaderSupportDebug) && Status == RETURN_SUCCESS) {
     PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+  }
+  //
+  // FIXME: Properly unify with TE somehow
+  // Space extension to ensure alignment must not overflow.
+  //
+  if (Context->SectionAlignment > EFI_PAGE_SIZE
+    && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
+    return EFI_UNSUPPORTED;
   }
 
   return Status;

@@ -279,7 +279,7 @@ LoadAndRelocatePeCoffImage (
   //
   LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
 
-  AlignImageSize = 0xFFFFFFFF;
+  AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
 
   //
   // Allocate Memory for the image when memory is ready, and image is relocatable.
@@ -295,11 +295,7 @@ LoadAndRelocatePeCoffImage (
     //
     // Allocate more buffer to avoid buffer overflow.
     //
-    AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
-
-    if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
-      AlignImageSize += PeCoffGetSectionAlignment (ImageContext);
-    }
+    AlignImageSize = PeCoffLoaderGetDestinationSize (ImageContext);
 
     if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
       Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, Private, &LoadAddress);
@@ -322,16 +318,7 @@ LoadAndRelocatePeCoffImage (
                  );
     }
 
-    if (!EFI_ERROR (Status)) {
-      //
-      // Adjust the Image Address to make sure it is section alignment.
-      //
-      if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
-        LoadAddress =
-            (LoadAddress + PeCoffGetSectionAlignment (ImageContext) - 1) &
-            ~((UINTN)PeCoffGetSectionAlignment (ImageContext) - 1);
-      }
-    } else {
+    if (EFI_ERROR (Status)) {
       //
       // No enough memory resource.
       //
@@ -340,6 +327,7 @@ LoadAndRelocatePeCoffImage (
         // XIP image can still be invoked.
         //
         LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
+        AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
         ReturnStatus              = EFI_WARN_BUFFER_TOO_SMALL;
       } else {
         //
@@ -349,10 +337,6 @@ LoadAndRelocatePeCoffImage (
         return EFI_OUT_OF_RESOURCES;
       }
     }
-  }
-
-  if (LoadAddress == (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
-    AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
   }
 
   // TODO: Why load XIP image?
@@ -372,6 +356,7 @@ LoadAndRelocatePeCoffImage (
   //
   // Relocate the image in our new buffer
   //
+  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
   Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
   if (EFI_ERROR (Status)) {
     return Status;

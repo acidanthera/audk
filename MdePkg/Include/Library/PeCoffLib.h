@@ -400,4 +400,14 @@ PeCoffRelocsStripped (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+UINTN
+PeCoffLoaderGetDestinationAddress (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT32
+PeCoffLoaderGetDestinationSize (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 #endif // OC_PE_COFF_LIB_H

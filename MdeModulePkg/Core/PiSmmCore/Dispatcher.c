@@ -255,7 +255,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)));
+        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)PeCoffLoaderGetDestinationSize (ImageContext));
         if (!EFI_ERROR (Status)) {
           //
           // The assigned address is valid. Return the specified loading address
@@ -308,6 +308,7 @@ SmmLoadImage (
   EFI_STATUS                     SecurityStatus;
   EFI_HANDLE                     DeviceHandle;
   EFI_PHYSICAL_ADDRESS           DstBuffer;
+  UINT32                         DstBufferSize;
   EFI_DEVICE_PATH_PROTOCOL       *FilePath;
   EFI_DEVICE_PATH_PROTOCOL       *OriginalFilePath;
   EFI_DEVICE_PATH_PROTOCOL       *HandleFilePath;
@@ -444,6 +445,7 @@ SmmLoadImage (
     return Status;
   }
 
+  DstBufferSize = PeCoffLoaderGetDestinationSize (ImageContext);
   //
   // if Loading module at Fixed Address feature is enabled, then  cut out a memory range started from TESG BASE
   // to hold the Smm driver code
@@ -465,7 +467,7 @@ SmmLoadImage (
       //
       // allocate the memory to load the SMM driver
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DstBufferSize);
       DstBuffer = (UINTN)(-1);
 
       Status = SmmAllocatePages (
@@ -479,13 +481,11 @@ SmmLoadImage (
           gBS->FreePool (Buffer);
         }
 
-        return Status;
-      }
-
-      LoadAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
+         return Status;
+       }
     }
   } else {
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DstBufferSize);
     DstBuffer = (UINTN)(-1);
 
     Status = SmmAllocatePages (
@@ -501,23 +501,15 @@ SmmLoadImage (
 
       return Status;
     }
-
-    LoadAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
   }
-
-  //
-  // Align buffer on section boundary
-  //
-  LoadAddress += PeCoffGetSectionAlignment (ImageContext) - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (ImageContext) - 1);
 
   //
   // Load the image to our new buffer
   //
   Status = PeCoffLoadImage (
     ImageContext,
-    (VOID *) (UINTN) LoadAddress,
-    PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)
+    (VOID *) (UINTN) DstBuffer,
+    DstBufferSize
     );
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
@@ -530,7 +522,9 @@ SmmLoadImage (
 
   //
   // Relocate the image in our new buffer
+  // FIXME: Support 0-value to do this internally?
   //
+  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
   Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
@@ -550,7 +544,7 @@ SmmLoadImage (
   // Save Image EntryPoint in DriverEntry
   //
   DriverEntry->ImageEntryPoint  = LoadAddress + PeCoffGetEntryPoint (ImageContext);
-  DriverEntry->ImageBuffer     = DstBuffer;
+  DriverEntry->ImageBuffer      = LoadAddress;
   DriverEntry->NumberOfPage    = PageCount;
 
   //

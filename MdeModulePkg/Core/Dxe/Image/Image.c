@@ -473,7 +473,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (PeCoffGetImageBase (ImageContext), (UINTN)(PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)));
+         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (PeCoffGetImageBase (ImageContext), (UINTN)PeCoffLoaderGetDestinationSize (ImageContext));
       }
        break;
      }
@@ -560,7 +560,7 @@ CoreLoadPeImage (
 {
   EFI_STATUS  Status;
   BOOLEAN     DstBufAlocated;
-  UINTN       Size;
+  UINT32                    Size;
   EFI_MEMORY_TYPE ImageCodeMemoryType;
   EFI_MEMORY_TYPE ImageDataMemoryType;
   PE_COFF_RUNTIME_CONTEXT      *RelocationData;
@@ -605,12 +605,7 @@ CoreLoadPeImage (
     return EFI_UNSUPPORTED;
   }
 
-  // FIXME: function call
-  if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
-    Size = (UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext);
-  } else {
-    Size = (UINTN)PeCoffGetSizeOfImage (ImageContext);
-  }
+  Size = PeCoffLoaderGetDestinationSize (ImageContext);
 
   LoadAddress = 0;
   //
@@ -621,13 +616,6 @@ CoreLoadPeImage (
     //
     // Allocate Destination Buffer as caller did not pass it in
     //
-
-    if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
-      Size = (UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext);
-    } else {
-      Size = (UINTN)PeCoffGetSizeOfImage (ImageContext);
-    }
-
     Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
 
     //
@@ -702,14 +690,14 @@ CoreLoadPeImage (
 
     if ((Image->NumberOfPages != 0) &&
         (Image->NumberOfPages <
-         (EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)))))
+         (EFI_SIZE_TO_PAGES (Size))))
     {
-      Image->NumberOfPages = EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
+      Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
       ASSERT (FALSE);
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    Image->NumberOfPages             = EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
+    Image->NumberOfPages             = EFI_SIZE_TO_PAGES (Size);
     LoadAddress = *DstBuffer;
   }
 
@@ -718,11 +706,13 @@ CoreLoadPeImage (
   //
   // Load the image from the file into the allocated memory
   //
-  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, (UINT32) Size);
+  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, Size);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     goto Done;
   }
+
+  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
 
   UINT32 RelocDataSize = 0;
 

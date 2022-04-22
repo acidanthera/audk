@@ -998,6 +998,7 @@ ExecuteSmmCoreFromSmram (
   EFI_STATUS                    Status;
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
+  UINT32                        DestinationSize;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
   EFI_PHYSICAL_ADDRESS          LoadAddress;
@@ -1025,6 +1026,7 @@ ExecuteSmmCoreFromSmram (
     return Status;
   }
 
+  DestinationSize = PeCoffLoaderGetDestinationSize (&gSmmCorePrivate->PiSmmCoreImageContext);
   //
   // if Loading module at Fixed Address feature is enabled, the SMM core driver will be loaded to
   // the address assigned by build tool.
@@ -1049,7 +1051,7 @@ ExecuteSmmCoreFromSmram (
       // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
       // specified by SmramRange
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize);
 
       ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
       ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1070,7 +1072,7 @@ ExecuteSmmCoreFromSmram (
     // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
     // specified by SmramRange
     //
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize);
 
     ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
     ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1087,19 +1089,17 @@ ExecuteSmmCoreFromSmram (
     LoadAddress = SmramRangeSmmCore->CpuStart;
   }
 
-  LoadAddress += PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext) - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext) - 1);
-
   //
   // Print debug message showing SMM Core load address.
   //
-  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM address %p\n", (VOID *)(UINTN)LoadAddress));
+  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM destination %p\n", (VOID *)(UINTN)LoadAddress));
 
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
+  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize);
   if (!EFI_ERROR (Status)) {
+    LoadAddress = PeCoffLoaderGetDestinationAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
     //
     // Relocate the image in our new buffer
     //
