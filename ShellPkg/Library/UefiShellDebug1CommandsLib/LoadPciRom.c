@@ -10,7 +10,7 @@
 #include "UefiShellDebug1CommandsLib.h"
 #include <IndustryStandard/Pci22.h>
 #include <IndustryStandard/Pci23.h>
-#include <IndustryStandard/PeCoffImage.h>
+#include <IndustryStandard/PeImage.h>
 #include <Protocol/Decompress.h>
 
 /**

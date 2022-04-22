@@ -13,7 +13,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef OC_PE_COFF_LIB_H
 #define OC_PE_COFF_LIB_H
 
-#include <IndustryStandard/PeCoffImage.h>
+#include <IndustryStandard/PeImage.h>
 
 ///
 /// Image type enumeration for Image format identification from the context.

@@ -21,7 +21,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeMain.h"
 #include "HeapGuard.h"
-#include "IndustryStandard/PeCoffImage.h"
+#include "IndustryStandard/PeImage.h"
 
 /**
   This function for GetMemoryMap() with properties table capability.

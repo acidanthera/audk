@@ -14,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <PiDxe.h>
 
 #include <IndustryStandard/Pci.h>
-#include <IndustryStandard/PeCoffImage.h>
+#include <IndustryStandard/PeImage.h>
 #include <IndustryStandard/Atapi.h>
 #include <IndustryStandard/Scsi.h>
 #include <IndustryStandard/Nvme.h>

@@ -11,7 +11,7 @@
 #include "Base.h"
 #include <Library/DebugLib.h>
 #include "AvMacros.h"
-#include <IndustryStandard/PeCoffImage.h>
+#include <IndustryStandard/PeImage.h>
 #include <Library/PeCoffLib.h>
 #include "BaseOverflow.h"
 #include "Unaligned.h"
