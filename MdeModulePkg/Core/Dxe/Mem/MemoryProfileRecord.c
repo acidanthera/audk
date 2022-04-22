@@ -278,7 +278,7 @@ BuildDriverInfo (
   MEMORY_PROFILE_DRIVER_INFO       *DriverInfo;
   MEMORY_PROFILE_DRIVER_INFO_DATA  *DriverInfoData;
   CHAR8                            *PdbString;
-  UINTN                            PdbSize;
+  UINT32                            PdbSize;
   UINTN                            PdbOccupiedSize;
 
   PdbSize         = 0;
@@ -286,9 +286,9 @@ BuildDriverInfo (
   PdbString       = NULL;
 
   if (LoadAddress != 0) {
-    UINT32 PdbSize;
     Status = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
     if (!EFI_ERROR (Status)) {
+      // FIXME: Unsafe operation. Why is this needed anyway? Alloc and copy use unaligned size!
       PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
     }
   }
@@ -909,6 +909,7 @@ CoreUpdateProfileAllocate (
   ActionStringOccupiedSize = 0;
   if (ActionString != NULL) {
     ActionStringSize         = AsciiStrSize (ActionString);
+    // FIXME: See PdbOccupiedSize
     ActionStringOccupiedSize = GET_OCCUPIED_SIZE (ActionStringSize, sizeof (UINT64));
   }
 

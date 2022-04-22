@@ -825,6 +825,7 @@ CoreLoadPeImage (
     Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbSize);
 
     //
+    // FIXME: Can this be removed entirely?
     // Print Module Name by Pdb file path.
   // Windows and Unix style file path are all trimmed correctly.
   //
