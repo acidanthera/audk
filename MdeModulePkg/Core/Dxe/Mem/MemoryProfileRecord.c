@@ -272,6 +272,7 @@ BuildDriverInfo (
   IN EFI_FV_FILETYPE              FileType
   )
 {
+  RETURN_STATUS                     PdbStatus;
   EFI_STATUS                       Status;
   MEMORY_PROFILE_DRIVER_INFO       *DriverInfo;
   MEMORY_PROFILE_DRIVER_INFO_DATA  *DriverInfoData;
@@ -279,15 +280,13 @@ BuildDriverInfo (
   UINT32                            PdbSize;
   UINTN                            PdbOccupiedSize;
 
-  PdbSize         = 0;
   PdbOccupiedSize = 0;
-  PdbString       = NULL;
 
   // FIXME: This used to be allowed?
   ASSERT (PeCoffLoaderGetDestinationAddress (ImageContext) != 0);
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
-  if (!EFI_ERROR (Status)) {
+  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
+  if (!EFI_ERROR (PdbStatus)) {
     // FIXME: Unsafe operation.
     PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
   }
@@ -338,7 +337,7 @@ BuildDriverInfo (
   DriverInfo->CurrentUsage     = 0;
   DriverInfo->PeakUsage        = 0;
   DriverInfo->AllocRecordCount = 0;
-  if (PdbSize != 0) {
+  if (!RETURN_ERROR (PdbStatus)) {
     DriverInfo->PdbStringOffset = (UINT16)sizeof (MEMORY_PROFILE_DRIVER_INFO);
     DriverInfoData->PdbString   = (CHAR8 *)(DriverInfoData->AllocInfoList + 1);
     CopyMem (DriverInfoData->PdbString, PdbString, PdbSize);
