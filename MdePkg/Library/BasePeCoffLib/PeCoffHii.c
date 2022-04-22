@@ -23,8 +23,8 @@
 RETURN_STATUS
 PeCoffGetHiiResourceSection (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT UINT32                           *HiiRva,
-  OUT UINT32                           *MaxHiiSize
+  OUT    UINT32                        *HiiRva,
+  OUT    UINT32                        *MaxHiiSize
   )
 {
   UINT16                                    Index;

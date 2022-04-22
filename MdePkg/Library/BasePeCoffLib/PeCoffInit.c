@@ -15,6 +15,8 @@
 
 #include <IndustryStandard/PeImage.h>
 
+#include <Guid/WinCertificate.h>
+
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>

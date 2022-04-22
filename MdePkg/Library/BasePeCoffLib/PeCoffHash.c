@@ -13,6 +13,8 @@
 
 #include <IndustryStandard/PeImage.h>
 
+#include <Guid/WinCertificate.h>
+
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
