@@ -30,7 +30,6 @@
 
 [Packages]
   MdePkg/MdePkg.dec
-  OpenCorePkg/OpenCorePkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -40,13 +39,13 @@
   MemoryAllocationLib
 
 [FixedPcd]
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -DPRODUCTION

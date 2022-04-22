@@ -476,13 +476,13 @@
 !endif
 
 [PcdsFixedAtBuild]
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch|FALSE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch|FALSE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeMemorySize|1
 !if $(SMM_REQUIRE) == FALSE
