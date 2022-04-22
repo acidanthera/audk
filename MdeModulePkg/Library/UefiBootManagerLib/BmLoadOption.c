@@ -1242,6 +1242,7 @@ BmIsLoadOptionPeHeaderValid (
     return FALSE;
   }
 
+  // FIXME: What?
   Status = PeCoffInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
   return !EFI_ERROR (Status);
 }

@@ -1115,11 +1115,12 @@ ConvertPeiCorePpiPointers (
     //
     // Find PEI Core EntryPoint in the BFV in temporary memory.
     //
-    Status = PeCoffInitializeContext(&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, 0xFFFFFFFF);
+    // FIXME: "Assume" sanity and skip full initialisation?
+    Status = PeCoffInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, 0xFFFFFFFF);
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)(PeCoffGetImageBase (&ImageContext) + PeCoffGetEntryPoint (&ImageContext)) - (UINTN)PeiCoreImageBase);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - PeCoffGetEntryPoint (&ImageContext);
 
     //
     // Size of loaded PEI_CORE in permanent memory.
