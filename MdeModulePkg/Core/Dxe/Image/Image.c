@@ -565,6 +565,7 @@ CoreLoadPeImage (
   EFI_MEMORY_TYPE ImageDataMemoryType;
   PE_COFF_RUNTIME_CONTEXT      *RelocationData;
   EFI_PHYSICAL_ADDRESS LoadAddress;
+  UINT32               RelocDataSize;
 
   RelocationData = NULL;
 
@@ -704,29 +705,17 @@ CoreLoadPeImage (
   Image->ImageBasePage = LoadAddress;
 
   //
-  // Load the image from the file into the allocated memory
-  //
-  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, Size);
-  if (EFI_ERROR (Status)) {
-    ASSERT (FALSE);
-    goto Done;
-  }
-
-  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
-
-  UINT32 RelocDataSize = 0;
-
-  //
   // If this is a Runtime Driver, then allocate memory for the FixupData that
   // is used to relocate the image when SetVirtualAddressMap() is called. The
   // relocation is done by the Runtime AP.
   //
+  RelocDataSize = 0;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
     if (PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
       Status = PeCoffRelocationDataSize (ImageContext, &RelocDataSize);
       if (EFI_ERROR (Status)) {
         ASSERT (FALSE);
-        return Status;
+        goto Done;
       }
       RelocationData = AllocateRuntimePool (RelocDataSize);
       if (RelocationData == NULL) {
@@ -736,6 +725,17 @@ CoreLoadPeImage (
       }
     }
   }
+
+  //
+  // Load the image from the file into the allocated memory
+  //
+  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, Size);
+  if (EFI_ERROR (Status)) {
+    ASSERT (FALSE);
+    goto Done;
+  }
+
+  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
 
   //
   // Relocate the image in memory
