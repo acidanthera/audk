@@ -659,8 +659,9 @@ PeCoffGetFirstCertificate (
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva
     );
-  if (WinCertificate->dwLength > Context->SecDirSize
-   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+  if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
+   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))
+   || WinCertificate->dwLength > Context->SecDirSize) {
     return RETURN_UNSUPPORTED;
   }
 
@@ -692,14 +693,17 @@ PeCoffGetNextCertificate (
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
     (CONST UINT8 *) Context->FileBuffer + CertOffset
     );
+  if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
+   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+    return RETURN_UNSUPPORTED;
+  }
 
   Result = BaseOverflowAddU32 (
     CertOffset,
     WinCertificate->dwLength,
     &CertEnd
     );
-  if (Result || CertEnd > Context->SecDirSize
-   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+  if (Result || CertEnd > Context->SecDirSize) {
     return RETURN_UNSUPPORTED;
   }
 
