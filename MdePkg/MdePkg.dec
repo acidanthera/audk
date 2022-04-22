@@ -2184,6 +2184,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|TRUE|BOOLEAN|0x4000101C
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE|BOOLEAN|0x4000101D
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE|BOOLEAN|0x4000101E
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowUnalignedCertificateSizes|TRUE|BOOLEAN|0x4000101F
 
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following

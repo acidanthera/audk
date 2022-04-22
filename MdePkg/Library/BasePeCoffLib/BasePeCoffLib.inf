@@ -46,6 +46,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowUnalignedCertificateSizes
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -DPRODUCTION

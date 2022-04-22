@@ -328,8 +328,6 @@ PeCoffHashImage (
   return Result;
 }
 
-// FIXME: optimise
-
 RETURN_STATUS
 PeCoffGetFirstCertificate (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
@@ -345,9 +343,15 @@ PeCoffGetFirstCertificate (
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
                      (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva
                      );
+
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
-   || !IS_ALIGNED (WinCertificate->dwLength, 8)
    || WinCertificate->dwLength > Context->SecDirSize) {
+    ASSERT (FALSE);
+    return RETURN_UNSUPPORTED;
+  }
+
+  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
+   && !IS_ALIGNED (WinCertificate->dwLength, 8)) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -364,12 +368,28 @@ PeCoffGetNextCertificate (
 {
   BOOLEAN               Result;
   UINT32                CertOffset;
+  UINT32                CertSize;
   UINT32                CertEnd;
   CONST WIN_CERTIFICATE *WinCertificate;
 
   WinCertificate = *Certificate;
   CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirRva));
-  CertOffset += WinCertificate->dwLength;
+
+  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)) {
+    CertSize = WinCertificate->dwLength;
+    if (!IS_ALIGNED (CertSize, 8)) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  } else {
+    Result = BaseOverflowAlignUpU32 (WinCertificate->dwLength, 8, &CertSize);
+    if (Result) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  CertOffset += CertSize;
   if (CertOffset == Context->SecDirSize) {
     return RETURN_NOT_FOUND;
   }
@@ -379,11 +399,17 @@ PeCoffGetNextCertificate (
   }
 
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
-    (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva + CertOffset
-    );
-  if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
-   || !IS_ALIGNED (WinCertificate->dwLength, 8)) {
-     ASSERT (FALSE);
+                     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva + CertOffset
+                     );
+
+  if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
+    ASSERT (FALSE);
+    return RETURN_UNSUPPORTED;
+  }
+
+  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
+   && !IS_ALIGNED (WinCertificate->dwLength, 8)) {
+    ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
