@@ -796,9 +796,9 @@ PeiLoadImage (
   EFI_PEI_LOAD_FILE_PPI  *LoadFile;
   EFI_PHYSICAL_ADDRESS   ImageAddress;
   UINT64                 ImageSize;
-  BOOLEAN                IsStrip;
+  //BOOLEAN                 IsStrip;
 
-  IsStrip = FALSE;
+  //IsStrip = FALSE;
   //
   // If any instances of PEI_LOAD_FILE_PPI are installed, they are called.
   // one at a time, until one reports EFI_SUCCESS.
