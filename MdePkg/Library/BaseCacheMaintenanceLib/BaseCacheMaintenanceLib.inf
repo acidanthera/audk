@@ -36,6 +36,8 @@
 [Sources.EBC]
   EbcCache.c
 
+# FIXME: Why no-op ARM functions here, when there is actual code in ArmPkg?
+
 [Sources.ARM]
   ArmCache.c
 
