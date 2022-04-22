@@ -691,7 +691,7 @@ PeCoffGetNextCertificate (
   }
 
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
-    (CONST UINT8 *) Context->FileBuffer + CertOffset
+    (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva + CertOffset
     );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
    || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
