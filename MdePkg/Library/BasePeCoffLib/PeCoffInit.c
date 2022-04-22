@@ -719,9 +719,6 @@ InternalInitializeTe (
             (CONST CHAR8 *) Context->FileBuffer + 0
             );
 
-#ifndef PRODUCTION
-  UINT16 TeStrippedOffset;
-#endif
   /*@ assigns Result, TeStrippedOffset;
     @ ensures Result <==> TeHdr->StrippedSize - sizeof (EFI_TE_IMAGE_HEADER) < 0;
     @ ensures !Result <==> TeStrippedOffset == TeHdr->StrippedSize - sizeof (EFI_TE_IMAGE_HEADER);
@@ -729,11 +726,7 @@ InternalInitializeTe (
   Result = BaseOverflowSubU16 (
              TeHdr->StrippedSize,
              sizeof (*TeHdr),
-  #ifdef PRODUCTION
              &Context->TeStrippedOffset
-  #else
-             &TeStrippedOffset
-  #endif
              );
   /*@ assigns Context->TeStrippedOffset;
     @ ensures !Result <==> Context->TeStrippedOffset == TeHdr->StrippedSize - sizeof (EFI_TE_IMAGE_HEADER);
@@ -1124,7 +1117,7 @@ InternalInitializePe (
     @           NumberOfRvaAndSizes == Pe32Plus->NumberOfRvaAndSizes &&
     @           HdrSizeWithoutDataDir == sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR));
   */
-  switch (READ_ALIGNED_16 (OptHdrPtr)) {
+  switch (*(CONST UINT16 *) (CONST VOID *) OptHdrPtr) {
     case EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
       /*@ assigns \nothing;
         @ ensures Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS32) <= FileSize;
@@ -1379,9 +1372,6 @@ InternalInitializePe (
   //   * ExeFileSize > sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) and
   //   * Context->ExeHdrOffset + ExeFileSize = FileSize
   //
-#ifndef PRODUCTION
-  UINT32 SectionsOffset;
-#endif
   /*@ assigns Result, SectionsOffset;
     @ ensures Result <==> Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + PeCommon->FileHeader.SizeOfOptionalHeader > MAX_UINT32;
     @ ensures !Result <==> SectionsOffset == image_pecommon_get_sections_offset (PeCommon, Context->ExeHdrOffset);
@@ -1389,11 +1379,7 @@ InternalInitializePe (
   Result = BaseOverflowAddU32 (
              Context->ExeHdrOffset + sizeof (*PeCommon),
              PeCommon->FileHeader.SizeOfOptionalHeader,
-#ifdef PRODUCTION
              &Context->SectionsOffset
-#else
-             &SectionsOffset
-#endif
              );
   /*@ assigns Context->SectionsOffset;
     @ ensures !Result <==> Context->SectionsOffset == image_pecommon_get_sections_offset (PeCommon, Context->ExeHdrOffset);
@@ -1807,7 +1793,7 @@ PeCoffInitializeContext (
     @ ensures !image_signature_te ((char *) FileBuffer, FileSize);
   */
   if (FileSize >= sizeof (*DosHdr)
-   && READ_ALIGNED_16 (FileBuffer) == EFI_IMAGE_DOS_SIGNATURE) {
+   && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_IMAGE_DOS_SIGNATURE) {
     //@ assert \valid ((EFI_IMAGE_DOS_HEADER *) ((char *) FileBuffer + 0));
 
     /*@ assigns DosHdr;
@@ -1861,7 +1847,7 @@ PeCoffInitializeContext (
       @ ensures !image_signature_te ((char *) FileBuffer, FileSize);
     */
     if (FileSize >= sizeof (EFI_TE_IMAGE_HEADER)
-     && READ_ALIGNED_16 (FileBuffer) == EFI_TE_IMAGE_HEADER_SIGNATURE) {
+     && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_TE_IMAGE_HEADER_SIGNATURE) {
       /*@ assert \let TeHdr = image_te_get_hdr ((char *) FileBuffer);
         @        \valid (TeHdr) &&
         @        (\let SectsOffset = image_te_get_sections_offset ((char *) FileBuffer);
@@ -1950,7 +1936,7 @@ PeCoffInitializeContext (
   /*@ assigns \nothing;
     @ ensures uint32_from_char ((char *) FileBuffer + Context->ExeHdrOffset) == EFI_IMAGE_NT_SIGNATURE;
   */
-  if (READ_ALIGNED_32 ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
+  if (*(CONST UINT32 *) (CONST VOID *) ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
     //@ assert uint32_from_char ((char *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE;
     //@ assert !image_signature_pe ((char *) FileBuffer, Context->ExeHdrOffset, FileSize);
     ASSERT (FALSE);

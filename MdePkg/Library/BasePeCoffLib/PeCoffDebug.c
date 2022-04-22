@@ -339,7 +339,7 @@ PeCoffGetPdbPath (
 
   CodeView = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA;
 
-  switch (READ_ALIGNED_32 (CodeView)) {
+  switch (*(CONST UINT32 *) (CONST VOID *) CodeView) {
     case CODEVIEW_SIGNATURE_NB10:
       PdbOffset = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY);
 

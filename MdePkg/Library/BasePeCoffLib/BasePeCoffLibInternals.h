@@ -10,20 +10,15 @@
 
 #include "Base.h"
 #include <Library/DebugLib.h>
-#include "AvMacros.h"
 #include <IndustryStandard/PeImage.h>
 #include <Library/PeCoffLib.h>
 #include "BaseOverflow.h"
-#include "Unaligned.h"
-
-#ifndef PRODUCTION
-#include "Frama.h"
-#else
 #include <Library/BaseMemoryLib.h>
-#endif
+#include <Library/BaseLib.h>
 
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
+#define OC_ALIGNOF        _Alignof
 
 /**
   Returns the type of a Base Relocation.

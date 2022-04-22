@@ -14,6 +14,9 @@
 
 #include "PeCoffRelocate.h"
 
+#define COMPOSE_32(High, Low)  \
+  ((UINT32) ((UINT32) (Low) + ((UINT32) (High) * 65536U)))
+
 /**
   Retrieve the immediate data encoded in an ARM MOVT or MOVW immediate
   instruciton.
@@ -41,8 +44,8 @@ ThumbMovtImmediateAddress (
   // Thumb2 is two separate 16-bit instructions working together, e.g.
   // MOVT R0, #0 is 0x0000f2c0 or 0xf2c0 0x0000
   //
-  Movt1 = READ_ALIGNED_16 (Instruction);
-  Movt2 = READ_ALIGNED_16 ((CONST CHAR8 *) Instruction + sizeof (UINT16));
+  Movt1 = *(CONST UINT16 *) (CONST VOID *) Instruction;
+  Movt2 = *(CONST UINT16 *) (CONST VOID *) ((CONST CHAR8 *) Instruction + sizeof (UINT16));
   Movt  = COMPOSE_32 (Movt1, Movt2);
   //
   // imm16 = imm4:i:imm3:imm8
@@ -86,8 +89,8 @@ ThumbMovtImmediatePatch (
   //
   // Mask out instruction bits and or in address.
   //
-  PatchedInstruction = READ_ALIGNED_16 (Instruction);
-  WRITE_ALIGNED_16 (Instruction, (PatchedInstruction & ~(UINT16) 0x040FU) | Patch);
+  PatchedInstruction = *(CONST UINT16 *) (CONST VOID *) Instruction;
+  *(UINT16 *) (VOID *) Instruction = (PatchedInstruction & ~(UINT16) 0x040FU) | Patch;
   //
   // Second 16-bit chunk of instruction.
   //
@@ -96,11 +99,9 @@ ThumbMovtImmediatePatch (
   //
   // Mask out instruction bits and or in address.
   //
-  PatchedInstruction = READ_ALIGNED_16 ((CHAR8 *) Instruction + sizeof (UINT16));
-  WRITE_ALIGNED_16 (
-    (CHAR8 *) Instruction + sizeof (UINT16),
-    (PatchedInstruction & ~(UINT16) 0x70FFU) | Patch
-    );
+  PatchedInstruction = *(CONST UINT16 *) (CONST VOID *) ((CHAR8 *) Instruction + sizeof (UINT16));
+  *(UINT16 *) (VOID *) ((CHAR8 *) Instruction + sizeof (UINT16)) =
+    (PatchedInstruction & ~(UINT16) 0x70FFU) | Patch;
 }
 
 /**
@@ -474,7 +475,7 @@ InternalApplyRelocation (
         @ assigns Fixup32;
         @ ensures Fixup32 == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
       */
-      Fixup32 = ReadUnaligned32 (Fixup);
+      Fixup32 = ReadUnaligned32 ((CONST VOID *) Fixup);
 
       /*@ requires Fixup32 == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
         @ assigns Fixup32;
@@ -488,7 +489,7 @@ InternalApplyRelocation (
         @ ensures image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex) == Fixup32;
         @ ensures image_reloc_applied_highlow{Old,Here} ((char *) Context->ImageBuffer, RelocBlock, RelocIndex, Adjust);
       */
-      WriteUnaligned32 (Fixup, Fixup32);
+      WriteUnaligned32 ((VOID *) Fixup, Fixup32);
 
       /*@ requires Fixup32 == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
         @ assigns FixupData[RelocIndex];
@@ -538,7 +539,7 @@ InternalApplyRelocation (
         @ ensures Fixup64 == uint64_from_char ((char *) Context->ImageBuffer + RelocTarget);
         @ ensures Fixup64 == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
       */
-      Fixup64 = ReadUnaligned64 (Fixup);
+      Fixup64 = ReadUnaligned64 ((CONST VOID *) Fixup);
 
       /*@ requires Fixup64 == (UINT64) image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
         @ assigns Fixup64;
@@ -552,7 +553,7 @@ InternalApplyRelocation (
         @ ensures image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex) == Fixup64;
         @ ensures image_reloc_applied_dir64{Old,Here} ((char *) Context->ImageBuffer, RelocBlock, RelocIndex, Adjust);
       */
-      WriteUnaligned64 (Fixup, Fixup64);
+      WriteUnaligned64 ((VOID *) Fixup, Fixup64);
 
       /*@ requires Fixup64 == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
         @ assigns FixupData[RelocIndex];
@@ -637,7 +638,7 @@ InternalApplyRelocation (
           @ assigns FixupData[RelocIndex];
           @ ensures FixupData[RelocIndex] == image_reloc_value ((char *) Context->ImageBuffer, RelocBlock, RelocIndex);
         */
-        FixupData[RelocIndex] = ReadUnaligned64 (Fixup);
+        FixupData[RelocIndex] = ReadUnaligned64 ((CONST VOID *) Fixup);
       }
 
       //@ assert is_aligned_32 (RelocTarget, AV_ALIGNOF (UINT16));
@@ -1237,7 +1238,7 @@ InternalApplyRelocationRuntime (
       /*@ assigns Fixup32;
         @ ensures Fixup32 == uint32_from_char ((char *) Fixup);
       */
-      Fixup32 = ReadUnaligned32 (Fixup);
+      Fixup32 = ReadUnaligned32 ((CONST VOID *) Fixup);
 
       /*@ assigns \nothing;
         @ ensures FixupData == Fixup32;
@@ -1440,7 +1441,7 @@ PeCoffRelocateImageForRuntime (
   /*@ assigns ImageAddress;
     @ ensures ImageAddress == pointer_to_address (Image);
   */
-  ImageAddress = PTR_TO_ADDR (Image, 0);
+  ImageAddress = (UINTN) Image;
 
   /*@ assigns Adjust;
     @ ensures Adjust == BaseAddress -% ImageAddress;

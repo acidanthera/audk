@@ -708,7 +708,7 @@ PeCoffLoadImage (
       @ ensures Address + Context->SectionAlignment <= Address + DestinationSize <= MAX_UINTN;
       @ ensures is_aligned_N (pointer_to_address (Destination), AV_MAX_ALIGN);
     */
-    Address = PTR_TO_ADDR (Destination, DestinationSize);
+    Address = (UINTN) Destination;
 
     /*@ requires is_pow2_N ((UINTN) Context->SectionAlignment);
       @ requires align_safe_N (Address, Context->SectionAlignment);

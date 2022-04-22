@@ -17,10 +17,6 @@
 
 #include <Library/MemoryAllocationLib.h>
 
-#ifndef PRODUCTION
-#include "AvSectionSort.h"
-#endif
-
 //
 // TODO: Import Authenticode fixes and improvements.
 //
@@ -52,9 +48,7 @@ STATIC
 BOOLEAN
 InternalHashSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-#ifdef PRODUCTION
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
-#endif
   IN OUT VOID                         *HashContext
   )
 {
@@ -413,9 +407,7 @@ InternalHashSections (
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-#ifdef PRODUCTION
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
-#endif
   IN OUT VOID                         *HashContext
   )
 {
@@ -625,9 +617,7 @@ PeCoffHashImage (
   //@ assigns \nothing;
   return InternalHashSections (
            Context,
-#ifdef PRODUCTION
            HashUpdate,
-#endif
            HashContext
            );
 

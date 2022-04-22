@@ -69,9 +69,7 @@ BOOLEAN
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-#ifdef PRODUCTION
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
-#endif
   IN OUT VOID                         *HashContext
   );
 
