@@ -136,6 +136,7 @@ PeCoffRelocsStripped (
   return Context->RelocsStripped;
 }
 
+// FIXME: How to handle TE XIP?
 UINTN
 PeCoffLoaderGetDestinationAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
