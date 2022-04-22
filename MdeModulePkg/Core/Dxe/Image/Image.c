@@ -886,6 +886,7 @@ Done:
   //
 
   if (DstBufAlocated) {
+    ZeroMem ((VOID *)(UINTN)LoadAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
     CoreFreePages (LoadAddress, Image->NumberOfPages);
     Image->ImageBasePage             = 0;
   }
@@ -957,8 +958,6 @@ CoreUnloadAndCloseImage (
   ProtocolGuidArray = NULL;
 
   UnregisterMemoryProfileImage (Image->Info.FilePath, Image->ImageBasePage);
-
-  UnprotectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
 
   if (Image->PeCoffEmu != NULL) {
     //
@@ -1064,25 +1063,28 @@ CoreUnloadAndCloseImage (
   }
 
   //
-  // Free the Image from memory
+  // Done with the Image structure
   //
-  if ((Image->ImageBasePage != 0) && FreePage) {
-    CoreFreePages (Image->ImageBasePage, Image->NumberOfPages);
+  if (Image->FixupData != NULL) {
+    CoreFreePool (Image->FixupData);
   }
 
   //
-  // Done with the Image structure
+  // Free the Image from memory
   //
+  if ((Image->ImageBasePage != 0) && FreePage) {
+    UnprotectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
+    // FIXME: SecureZeroMem; instruction pattern to trap?
+    ZeroMem ((VOID *)(UINTN)Image->ImageBasePage, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
+    CoreFreePages (Image->ImageBasePage, Image->NumberOfPages);
+  }
+
   if (Image->Info.FilePath != NULL) {
     CoreFreePool (Image->Info.FilePath);
   }
 
   if (Image->LoadedImageDevicePath != NULL) {
     CoreFreePool (Image->LoadedImageDevicePath);
-  }
-
-  if (Image->FixupData != NULL) {
-    CoreFreePool (Image->FixupData);
   }
 
   CoreFreePool (Image);
