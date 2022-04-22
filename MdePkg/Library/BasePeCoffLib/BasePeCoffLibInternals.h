@@ -12,6 +12,8 @@
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
 
+#define IMAGE_CERTIFICATE_ALIGN  8U
+
 //
 // 4 byte alignment has been replaced with ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
 // for proof simplicity. This obviously was the original intention of the

@@ -613,7 +613,7 @@ InternalInitializePe (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!IS_ALIGNED (Context->SecDirOffset, 8)
+    if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)
      || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
        ASSERT (FALSE);
       return RETURN_UNSUPPORTED;

@@ -352,7 +352,7 @@ PeCoffGetFirstCertificate (
   }
 
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
-   && !IS_ALIGNED (WinCertificate->dwLength, 8)) {
+   && !IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -379,12 +379,16 @@ PeCoffGetNextCertificate (
 
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)) {
     CertSize = WinCertificate->dwLength;
-    if (!IS_ALIGNED (CertSize, 8)) {
+    if (!IS_ALIGNED (CertSize, IMAGE_CERTIFICATE_ALIGN)) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
   } else {
-    Result = BaseOverflowAlignUpU32 (WinCertificate->dwLength, 8, &CertSize);
+    Result = BaseOverflowAlignUpU32 (
+               WinCertificate->dwLength,
+               IMAGE_CERTIFICATE_ALIGN,
+               &CertSize
+               );
     if (Result) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
@@ -410,7 +414,7 @@ PeCoffGetNextCertificate (
   }
 
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
-   && !IS_ALIGNED (WinCertificate->dwLength, 8)) {
+   && !IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
