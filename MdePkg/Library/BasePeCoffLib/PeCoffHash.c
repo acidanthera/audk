@@ -352,10 +352,11 @@ PeCoffGetFirstCertificate (
     return RETURN_UNSUPPORTED;
   }
 
-  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
-   && !IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-    CRITIAL_ERROR (FALSE);
-    return RETURN_UNSUPPORTED;
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
+    if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
+      CRITIAL_ERROR (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
   }
 
   *Certificate = WinCertificate;
@@ -378,7 +379,7 @@ PeCoffGetNextCertificate (
   WinCertificate = *Certificate;
   CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirOffset));
 
-  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)) {
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     CertSize = WinCertificate->dwLength;
     if (!IS_ALIGNED (CertSize, IMAGE_CERTIFICATE_ALIGN)) {
       CRITIAL_ERROR (FALSE);
@@ -414,10 +415,11 @@ PeCoffGetNextCertificate (
     return RETURN_UNSUPPORTED;
   }
 
-  if (!PcdGetBool (PcdImageLoaderAllowUnalignedCertificateSizes)
-   && !IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-    CRITIAL_ERROR (FALSE);
-    return RETURN_UNSUPPORTED;
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
+    if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
+      CRITIAL_ERROR (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
   }
 
   Result = BaseOverflowAddU32 (

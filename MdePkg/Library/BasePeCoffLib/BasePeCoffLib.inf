@@ -42,12 +42,9 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowUnalignedCertificateSizes
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowUnalignedRelocationSizes
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRelocTypePolicy
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -DPRODUCTION

@@ -50,7 +50,7 @@
   (((Type) == EFI_IMAGE_REL_BASED_ABSOLUTE) || \
   ((Type) == EFI_IMAGE_REL_BASED_HIGHLOW) || \
   ((Type) == EFI_IMAGE_REL_BASED_DIR64) || \
-  ((Type) == EFI_IMAGE_REL_BASED_ARM_MOV32T && PcdGetBool (PcdImageLoaderSupportArmThumb)))
+  ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) != 0 && (Type) == EFI_IMAGE_REL_BASED_ARM_MOV32T))
 
 #define IMAGE_RELOC_SUPPORTED(Reloc) \
   IMAGE_RELOC_TYPE_SUPPORTED (IMAGE_RELOC_TYPE (Reloc))
@@ -338,7 +338,7 @@ InternalApplyRelocation (
       break;
 
     case EFI_IMAGE_REL_BASED_ARM_MOV32T:
-      if (!PcdGetBool (PcdImageLoaderSupportArmThumb)) {
+      if ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) == 0) {
         CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -431,7 +431,7 @@ PeCoffRelocateImage (
   }
 
   TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
-  if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) == 0) {
     if (!IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
       CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
@@ -475,7 +475,7 @@ PeCoffRelocateImage (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) == 0) {
       RelocBlockSize = RelocWalker->SizeOfBlock;
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
         CRITIAL_ERROR (FALSE);
@@ -539,7 +539,7 @@ PeCoffRelocateImage (
     RelocOffset += RelocBlockSize;
   }
 
-  if (PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) != 0) {
     Result = BaseOverflowAlignUpU32 (
                TopOfRelocDir,
                ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
@@ -638,7 +638,7 @@ InternalApplyRelocationRuntime (
       break;
 
     case EFI_IMAGE_REL_BASED_ARM_MOV32T:
-      ASSERT (PcdGetBool (PcdImageLoaderSupportArmThumb));
+      ASSERT ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) != 0);
 
       Fixup64 = ReadUnaligned64 (Fixup);
 

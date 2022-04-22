@@ -160,7 +160,7 @@ PeCoffLoadImage (
   //
   // If debugging is enabled, force-load its contents into the memory space.
   //
-  if (PcdGetBool (PcdImageLoaderSupportDebug)) {
+  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     PeCoffLoaderLoadCodeView (Context);
   }
 
@@ -190,8 +190,10 @@ PeCoffLoadImageInplace (
   }
 
   Context->ImageBuffer = (VOID *) Context->FileBuffer;
-
-  if (PcdGetBool (PcdImageLoaderSupportDebug)) {
+  //
+  // If debugging is enabled, force-load its contents into the memory space.
+  //
+  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     PeCoffLoaderLoadCodeViewInplace (Context);
   }
 

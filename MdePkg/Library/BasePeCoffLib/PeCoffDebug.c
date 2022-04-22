@@ -184,7 +184,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
       return;
     }
   } else {
-    if (!PcdGetBool (PcdImageLoaderForceLoadDebug)) {
+    if (PcdGet32 (PcdImageLoaderDebugSupport) < PCD_DEBUG_SUPPORT_FORCE_LOAD) {
       return;
     }
     //

@@ -83,7 +83,7 @@ InternalVerifySections (
 
     NextSectRva = 0;
   } else {
-    if (!PcdGetBool (PcdImageLoaderTolerantLoad)) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Result = BaseOverflowAlignUpU32 (
                  Sections[0].VirtualAddress,
                  Context->SectionAlignment,
@@ -108,14 +108,16 @@ InternalVerifySections (
     //
     // Ensure the Image Section are disjunct (relaxed) or adjacent (strict).
     //
-    if (!PcdGetBool (PcdImageLoaderTolerantLoad) && Sections[SectIndex].VirtualAddress != NextSectRva) {
-      CRITIAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
-
-    if (PcdGetBool (PcdImageLoaderTolerantLoad) && Sections[SectIndex].VirtualAddress < NextSectRva) {
-      CRITIAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
+      if (Sections[SectIndex].VirtualAddress != NextSectRva) {
+        CRITIAL_ERROR (FALSE);
+        return RETURN_UNSUPPORTED;
+      }
+    } else {
+      if (Sections[SectIndex].VirtualAddress < NextSectRva) {
+        CRITIAL_ERROR (FALSE);
+        return RETURN_UNSUPPORTED;
+      }
     }
     //
     // Ensure Image Sections with data are in bounds.
@@ -158,7 +160,7 @@ InternalVerifySections (
     //
     // SectionSize does not need to be aligned, so align the result.
     //
-    if (!PcdGetBool (PcdImageLoaderTolerantLoad)) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Result = BaseOverflowAlignUpU32 (
                 NextSectRva,
                 Context->SectionAlignment,
@@ -694,8 +696,10 @@ PeCoffInitializeContext (
       Status = InternalInitializeTe (Context, FileSize);
       ASSERT_EFI_ERROR (Status);
 
-      if (PcdGetBool (PcdImageLoaderSupportDebug) && Status == RETURN_SUCCESS) {
-        PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+      if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
+        if (Status == RETURN_SUCCESS) {
+          PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+        }
       }
       //
       // FIXME: Properly unify with PE somehow
@@ -739,8 +743,10 @@ PeCoffInitializeContext (
   //
   // If debugging is enabled, retrieve information on the debug data.
   //
-  if (PcdGetBool (PcdImageLoaderSupportDebug) && Status == RETURN_SUCCESS) {
-    PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
+    if (Status == RETURN_SUCCESS) {
+      PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+    }
   }
   //
   // FIXME: Properly unify with TE somehow
