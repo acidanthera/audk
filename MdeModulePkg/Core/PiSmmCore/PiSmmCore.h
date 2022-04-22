@@ -1018,7 +1018,8 @@ SmramProfileInstallProtocol (
 EFI_STATUS
 RegisterSmramProfileImage (
   IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN               RegisterToDxe
+  IN BOOLEAN                RegisterToDxe,
+  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

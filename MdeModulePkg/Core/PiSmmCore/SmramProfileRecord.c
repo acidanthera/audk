@@ -275,7 +275,6 @@ BuildDriverInfo (
   EFI_STATUS                       Status;
   MEMORY_PROFILE_DRIVER_INFO       *DriverInfo;
   MEMORY_PROFILE_DRIVER_INFO_DATA  *DriverInfoData;
-  VOID                             *EntryPointInImage;
   CHAR8                            *PdbString;
   UINTN                            PdbSize;
   UINTN                            PdbOccupiedSize;
@@ -317,10 +316,10 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = ImageBase;
-  DriverInfo->ImageSize      = ImageSize;
-  DriverInfo->EntryPoint     = EntryPoint;
-  DriverInfo->ImageSubsystem = ImageSubsystem;
+  DriverInfo->ImageBase      = LoadAddress;
+  DriverInfo->ImageSize      = ImageContext->SizeOfImage;
+  DriverInfo->EntryPoint     = LoadAddress + ImageContext->AddressOfEntryPoint;
+  DriverInfo->ImageSubsystem = ImageContext->Subsystem;
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
@@ -506,7 +505,6 @@ RegisterSmmCore (
   )
 {
   MEMORY_PROFILE_DRIVER_INFO_DATA    *DriverInfoData;
-  PHYSICAL_ADDRESS                   ImageBase;
   UINT8                              TempBuffer[sizeof (MEDIA_FW_VOL_FILEPATH_DEVICE_PATH) + sizeof (EFI_DEVICE_PATH_PROTOCOL)];
   MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  *FilePath;
 
@@ -518,14 +516,11 @@ RegisterSmmCore (
     return FALSE;
   }
 
-  ImageBase      = gSmmCorePrivate->PiSmmCoreImageBase;
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      &gEfiCallerIdGuid,
-                     ImageBase,
-                     gSmmCorePrivate->PiSmmCoreImageSize,
-                     gSmmCorePrivate->PiSmmCoreEntryPoint,
-                     InternalPeCoffGetSubsystem ((VOID *)(UINTN)ImageBase),
+                     &gSmmCorePrivate->PiSmmCoreImageContext,
+                     gSmmCorePrivate->PiSmmCoreImageBase,
                      EFI_FV_FILETYPE_SMM_CORE
                      );
   if (DriverInfoData == NULL) {
@@ -549,7 +544,7 @@ SmramProfileInit (
   RegisterImageToDxe (
     &gEfiCallerIdGuid,
     gSmmCorePrivate->PiSmmCoreImageBase,
-    gSmmCorePrivate->PiSmmCoreImageSize,
+    gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage,
     EFI_FV_FILETYPE_SMM_CORE
     );
 
@@ -651,7 +646,8 @@ GetFileNameFromFilePath (
 EFI_STATUS
 RegisterSmramProfileImage (
   IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN               RegisterToDxe
+  IN BOOLEAN                RegisterToDxe,
+  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA        *ContextData;
@@ -688,10 +684,8 @@ RegisterSmramProfileImage (
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      &DriverEntry->FileName,
+                     ImageContext,
                      DriverEntry->ImageBuffer,
-                     EFI_PAGES_TO_SIZE (DriverEntry->NumberOfPage),
-                     DriverEntry->ImageEntryPoint,
-                     InternalPeCoffGetSubsystem ((VOID *)(UINTN)DriverEntry->ImageBuffer),
                      EFI_FV_FILETYPE_SMM
                      );
   if (DriverInfoData == NULL) {
@@ -809,12 +803,10 @@ UnregisterSmramProfileImage (
   IN BOOLEAN               UnregisterFromDxe
   )
 {
-  EFI_STATUS                         Status;
   MEMORY_PROFILE_CONTEXT_DATA        *ContextData;
   MEMORY_PROFILE_DRIVER_INFO_DATA    *DriverInfoData;
   EFI_GUID                           *FileName;
   PHYSICAL_ADDRESS                   ImageAddress;
-  VOID                               *EntryPointInImage;
   UINT8                              TempBuffer[sizeof (MEDIA_FW_VOL_FILEPATH_DEVICE_PATH) + sizeof (EFI_DEVICE_PATH_PROTOCOL)];
   MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  *FilePath;
 
@@ -1891,7 +1883,8 @@ SmramProfileProtocolRegisterImage (
   IN EFI_FV_FILETYPE                    FileType
   )
 {
-  EFI_STATUS            Status;
+  // FIXME:
+  /*EFI_STATUS                        Status;
   EFI_SMM_DRIVER_ENTRY  DriverEntry;
   VOID                  *EntryPointInImage;
   EFI_GUID              *Name;
@@ -1908,7 +1901,8 @@ SmramProfileProtocolRegisterImage (
   ASSERT_EFI_ERROR (Status);
   DriverEntry.ImageEntryPoint = (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
 
-  return RegisterSmramProfileImage (&DriverEntry, FALSE);
+  return RegisterSmramProfileImage (&DriverEntry, FALSE);*/
+  return EFI_UNSUPPORTED;
 }
 
 /**
@@ -1934,7 +1928,8 @@ SmramProfileProtocolUnregisterImage (
   IN UINT64                             ImageSize
   )
 {
-  EFI_STATUS            Status;
+  // FIXME:
+  /*EFI_STATUS                        Status;
   EFI_SMM_DRIVER_ENTRY  DriverEntry;
   VOID                  *EntryPointInImage;
   EFI_GUID              *Name;
@@ -1951,7 +1946,8 @@ SmramProfileProtocolUnregisterImage (
   ASSERT_EFI_ERROR (Status);
   DriverEntry.ImageEntryPoint = (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
 
-  return UnregisterSmramProfileImage (&DriverEntry, FALSE);
+  return UnregisterSmramProfileImage (&DriverEntry, FALSE);*/
+  return EFI_UNSUPPORTED;
 }
 
 /**

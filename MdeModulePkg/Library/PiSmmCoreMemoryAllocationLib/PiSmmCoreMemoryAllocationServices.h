@@ -12,6 +12,9 @@
 #ifndef _PI_SMM_CORE_MEMORY_ALLOCATION_SERVICES_H_
 #define _PI_SMM_CORE_MEMORY_ALLOCATION_SERVICES_H_
 
+#include <Library/PeCoffLib.h>
+
+// FIXME: WTF?
 //
 // It should be aligned with the definition in PiSmmCore.
 //
@@ -86,8 +89,7 @@ typedef struct {
   EFI_STATUS               ReturnStatus;
 
   EFI_PHYSICAL_ADDRESS     PiSmmCoreImageBase;
-  UINT64                   PiSmmCoreImageSize;
-  EFI_PHYSICAL_ADDRESS     PiSmmCoreEntryPoint;
+  PE_COFF_LOADER_IMAGE_CONTEXT    PiSmmCoreImageContext;
 } SMM_CORE_PRIVATE_DATA;
 
 /**

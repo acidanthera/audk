@@ -921,10 +921,8 @@ GetPeCoffImageFixLoadingAssignedAddress (
 {
    EFI_STATUS                         Status;
    EFI_IMAGE_SECTION_HEADER           *Sections;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
   EFI_PHYSICAL_ADDRESS             FixLoadingAddress;
   UINT16                           Index;
-  UINTN                            Size;
   UINT16                           NumberOfSections;
   EFI_PHYSICAL_ADDRESS             SmramBase;
   UINT64                           SmmCodeSize;
@@ -1119,11 +1117,8 @@ ExecuteSmmCoreFromSmram (
       DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint)));
 
       gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
-      gSmmCorePrivate->PiSmmCoreImageSize = ImageContext.SizeOfImage;
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageSize));
-
-      gSmmCorePrivate->PiSmmCoreEntryPoint = LoadAddress + ImageContext.AddressOfEntryPoint;
+      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage));
 
       //
       // Execute image
