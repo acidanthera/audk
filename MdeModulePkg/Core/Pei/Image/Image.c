@@ -294,7 +294,10 @@ LoadAndRelocatePeCoffImage (
     //
     // Allocate more buffer to avoid buffer overflow.
     //
-    AlignImageSize = PeCoffLoaderGetDestinationSize (ImageContext);
+    Status = PeCoffLoaderGetDestinationSize (ImageContext, &AlignImageSize);
+    if (RETURN_ERROR (Status)) {
+      return Status;
+    }
 
     if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
       Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, Private, &LoadAddress);

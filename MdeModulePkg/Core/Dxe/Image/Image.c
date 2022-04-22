@@ -437,6 +437,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
 {
    EFI_STATUS                         Status;
    CONST EFI_IMAGE_SECTION_HEADER     *Sections;
+   UINT32                             DestinationSize;
    UINT16                             Index;
    UINT16                             NumberOfSections;
    UINT64                             ValueInSectionHeader;
@@ -444,6 +445,11 @@ GetPeCoffImageFixLoadingAssignedAddress (
    Status = EFI_NOT_FOUND;
 
    NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+
+   Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
+   if (RETURN_ERROR (Status)) {
+     return Status;
+   }
 
   //
   // Get base address from the first section header that doesn't point to code section.
@@ -473,7 +479,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (PeCoffGetImageBase (ImageContext), (UINTN)PeCoffLoaderGetDestinationSize (ImageContext));
+         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (PeCoffGetImageBase (ImageContext), DestinationSize);
       }
        break;
      }
@@ -607,7 +613,10 @@ CoreLoadPeImage (
     return EFI_UNSUPPORTED;
   }
 
-  Size = PeCoffLoaderGetDestinationSize (ImageContext);
+  Status = PeCoffLoaderGetDestinationSize (ImageContext, &Size);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
 
   BufferAddress = 0;
   //

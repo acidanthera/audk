@@ -11,7 +11,6 @@
 **/
 
 #include <Base.h>
-#include <Uefi/UefiBaseType.h>
 
 #include <IndustryStandard/PeImage.h>
 
@@ -701,14 +700,6 @@ PeCoffInitializeContext (
         return Status;
       }
       //
-      // FIXME: Properly unify with PE somehow
-      // Space extension to ensure alignment must not overflow.
-      //
-      if (Context->SectionAlignment > EFI_PAGE_SIZE
-       && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
-        return EFI_UNSUPPORTED;
-      }
-      //
       // If debugging is enabled, retrieve information on the debug data.
       //
       if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
@@ -747,14 +738,6 @@ PeCoffInitializeContext (
   if (Status != RETURN_SUCCESS) {
     CRITICAL_ERROR (FALSE);
     return Status;
-  }
-  //
-  // FIXME: Properly unify with TE somehow
-  // Space extension to ensure alignment must not overflow.
-  //
-  if (Context->SectionAlignment > EFI_PAGE_SIZE
-    && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
-    return EFI_UNSUPPORTED;
   }
   //
   // If debugging is enabled, retrieve information on the debug data.

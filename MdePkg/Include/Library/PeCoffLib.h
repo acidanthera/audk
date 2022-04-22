@@ -403,9 +403,10 @@ PeCoffLoaderGetImageBuffer (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-UINT32
+RETURN_STATUS
 PeCoffLoaderGetDestinationSize (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT32                        *Size
   );
 
 #endif // PE_COFF_LIB_H

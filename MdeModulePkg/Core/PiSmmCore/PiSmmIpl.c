@@ -1026,7 +1026,13 @@ ExecuteSmmCoreFromSmram (
     return Status;
   }
 
-  DestinationSize = PeCoffLoaderGetDestinationSize (&gSmmCorePrivate->PiSmmCoreImageContext);
+  Status = PeCoffLoaderGetDestinationSize (
+             &gSmmCorePrivate->PiSmmCoreImageContext,
+             &DestinationSize
+             );
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
   //
   // if Loading module at Fixed Address feature is enabled, the SMM core driver will be loaded to
   // the address assigned by build tool.

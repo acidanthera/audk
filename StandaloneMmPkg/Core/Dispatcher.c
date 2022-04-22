@@ -221,7 +221,11 @@ MmLoadImage (
     return Status;
   }
 
-  DestinationSize = PeCoffLoaderGetDestinationSize (&ImageContext);
+  Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+
   PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN) DestinationSize);
   DstBuffer = (UINTN)(-1);
 

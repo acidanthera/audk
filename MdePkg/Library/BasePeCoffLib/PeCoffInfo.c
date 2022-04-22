@@ -13,6 +13,7 @@
 #include <Library/DebugLib.h>
 #include <Library/PeCoffLib.h>
 
+#include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
 UINT32
@@ -65,23 +66,34 @@ PeCoffGetSizeOfImage (
   return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
 }
 
-UINT32
+RETURN_STATUS
 PeCoffLoaderGetDestinationSize (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT32                        *Size
   )
 {
-  UINT32 TotalSize;
+  BOOLEAN Result;
+  UINT32  TotalSize;
 
   ASSERT (Context != NULL);
-  ASSERT (PeCoffGetSizeOfImage (Context) + PeCoffGetSectionAlignment (Context) >= PeCoffGetSizeOfImage (Context));
+  ASSERT (Size != NULL);
 
   TotalSize = PeCoffGetSizeOfImage (Context);
 
   if (PeCoffGetSectionAlignment (Context) > EFI_PAGE_SIZE) {
-    TotalSize += PeCoffGetSectionAlignment (Context);
+    Result = BaseOverflowAddU32 (
+               TotalSize,
+               PeCoffGetSectionAlignment (Context),
+               &TotalSize
+               );
+    if (Result) {
+      return RETURN_UNSUPPORTED;
+    }
   }
 
-  return TotalSize;
+  *Size = TotalSize;
+
+  return RETURN_SUCCESS;
 }
 
 UINT64

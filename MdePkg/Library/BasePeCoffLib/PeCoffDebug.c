@@ -11,6 +11,7 @@
 **/
 
 #include <Base.h>
+#include <Uefi/UefiBaseType.h>
 
 #include <IndustryStandard/PeImage.h>
 
@@ -238,6 +239,15 @@ PeCoffLoaderRetrieveCodeViewInfo (
                );
     if (Result) {
       CRITICAL_ERROR (FALSE);
+      return;
+    }
+    //
+    // Ensure the destination space extension for images aligned more strictly
+    // than by page size does not overflow. This may allow images to load that
+    // would become too large by force-loading the debug data.
+    //
+    if (Context->SectionAlignment > EFI_PAGE_SIZE
+     && DebugSizeOfImage + Context->SectionAlignment < DebugSizeOfImage) {
       return;
     }
 

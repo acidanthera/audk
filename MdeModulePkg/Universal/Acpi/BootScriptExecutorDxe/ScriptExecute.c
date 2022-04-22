@@ -305,7 +305,8 @@ ReadyToLockEventNotify (
   Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
   UINT32 Size;
-  Size = PeCoffLoaderGetDestinationSize (&ImageContext);
+  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &Size);
+  ASSERT_EFI_ERROR (Status);
   Pages = EFI_SIZE_TO_PAGES (Size);
   FfsBuffer = 0xFFFFFFFF;
   Status    = gBS->AllocatePages (

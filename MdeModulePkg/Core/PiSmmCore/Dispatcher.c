@@ -222,6 +222,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
 {
   EFI_STATUS                         Status;
   CONST EFI_IMAGE_SECTION_HEADER     *Sections;
+  UINT32                             DestinationSize;
   EFI_PHYSICAL_ADDRESS               FixLoadingAddress;
   UINT16                             Index;
   UINT16                           NumberOfSections;
@@ -231,6 +232,11 @@ GetPeCoffImageFixLoadingAssignedAddress (
   Status            = EFI_NOT_FOUND;
 
   NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+
+  Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
 
   //
   // Get base address from the first section header that doesn't point to code section.
@@ -255,7 +261,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)PeCoffLoaderGetDestinationSize (ImageContext));
+        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, DestinationSize);
         if (!EFI_ERROR (Status)) {
           //
           // The assigned address is valid. Return the specified loading address
@@ -445,7 +451,10 @@ SmmLoadImage (
     return Status;
   }
 
-  DstBufferSize = PeCoffLoaderGetDestinationSize (ImageContext);
+  Status = PeCoffLoaderGetDestinationSize (ImageContext, &DstBufferSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
   //
   // if Loading module at Fixed Address feature is enabled, then  cut out a memory range started from TESG BASE
   // to hold the Smm driver code
