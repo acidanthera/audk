@@ -1101,9 +1101,9 @@ CoreInitializeMemoryProtection (
   )
 {
   EFI_STATUS  Status;
-  //EFI_EVENT   Event;
+  EFI_EVENT   Event;
   EFI_EVENT   EndOfDxeEvent;
-  //VOID        *Registration;
+  VOID        *Registration;
 
   mImageProtectionPolicy = PcdGet32 (PcdImageProtectionPolicy);
 
@@ -1123,8 +1123,7 @@ CoreInitializeMemoryProtection (
     GetPermissionAttributeForMemoryType (EfiConventionalMemory)
     );
 
-  // FIXME:
-  /*Status = CoreCreateEvent (
+  Status = CoreCreateEvent (
              EVT_NOTIFY_SIGNAL,
              TPL_CALLBACK,
              MemoryProtectionCpuArchProtocolNotify,
@@ -1141,7 +1140,7 @@ CoreInitializeMemoryProtection (
              Event,
              &Registration
              );
-  ASSERT_EFI_ERROR (Status);*/
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Register a callback to disable NULL pointer detection at EndOfDxe
