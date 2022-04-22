@@ -86,7 +86,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED MACHINE_TYPE_INFO  mMachineTypeInfo[] = {
   { EFI_IMAGE_MACHINE_AARCH64,        L"AARCH64" }
 };
 
-//UINT16  mDxeCoreImageMachineType = 0;
+UINT16  mDxeCoreImageMachineType = 0;
 
 /**
  Return machine type name.
@@ -253,7 +253,7 @@ CoreInitializeImageServices (
   // Fill in DXE globals
   //
   // FIXME:
-  //mDxeCoreImageMachineType = PeCoffLoaderGetMachineType (Image->Info.ImageBase);
+  mDxeCoreImageMachineType = ImageContext->Machine;
   gDxeCoreImageHandle      = Image->Handle;
   gDxeCoreLoadedImage      = &Image->Info;
 
@@ -590,8 +590,8 @@ CoreLoadPeImage (
     DEBUG ((
       DEBUG_ERROR,
       "Image type %s can't be loaded on UEFI system.\n",
-      GetMachineTypeName (ImageContext->Machine)
-      //GetMachineTypeName (mDxeCoreImageMachineType)
+      GetMachineTypeName (ImageContext->Machine),
+      GetMachineTypeName (mDxeCoreImageMachineType)
       ));
     ASSERT (FALSE);
     return EFI_UNSUPPORTED;
@@ -1642,7 +1642,7 @@ CoreStartImage (
     // But it can not be started.
     //
     DEBUG ((DEBUG_ERROR, "Image type %s can't be started ", GetMachineTypeName (Image->Machine)));
-    //DEBUG ((DEBUG_ERROR, "on %s UEFI system.\n", GetMachineTypeName (mDxeCoreImageMachineType)));
+    DEBUG ((DEBUG_ERROR, "on %s UEFI system.\n", GetMachineTypeName (mDxeCoreImageMachineType)));
     return EFI_UNSUPPORTED;
   }
 
