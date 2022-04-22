@@ -519,7 +519,7 @@ UnprotectUefiImage (
         SetUefiImageMemoryAttributes (
           ImageRecord->ImageBase,
           ImageRecord->ImageSize,
-          0
+          EFI_MEMORY_XP
           );
       }
       RemoveEntryList (&ImageRecord->Link);
@@ -1024,9 +1024,6 @@ CoreInitializeMemoryProtection (
   // - EfiConventionalMemory and EfiBootServicesData should use the
   //   same attribute
   //
-  ASSERT ((GetPermissionAttributeForMemoryType (EfiBootServicesCode) & EFI_MEMORY_XP) == 0);
-  ASSERT ((GetPermissionAttributeForMemoryType (EfiRuntimeServicesCode) & EFI_MEMORY_XP) == 0);
-  ASSERT ((GetPermissionAttributeForMemoryType (EfiLoaderCode) & EFI_MEMORY_XP) == 0);
   ASSERT (
     GetPermissionAttributeForMemoryType (EfiBootServicesData) ==
     GetPermissionAttributeForMemoryType (EfiConventionalMemory)
@@ -1107,6 +1104,7 @@ IsInSmm (
   @return other             Return value of gCpu->SetMemoryAttributes()
 
 **/
+// FIXME: Permissions might not match type
 EFI_STATUS
 EFIAPI
 ApplyMemoryProtectionPolicy (

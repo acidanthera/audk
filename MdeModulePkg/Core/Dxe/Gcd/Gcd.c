@@ -11,6 +11,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "Gcd.h"
 #include "Mem/HeapGuard.h"
+#include "Uefi/UefiMultiPhase.h"
 
 #define MINIMUM_INITIAL_MEMORY_SIZE  0x10000
 
@@ -2689,6 +2690,15 @@ CoreInitializeGcdServices (
             RShiftU64 (MemoryHob->AllocDescriptor.MemoryLength, EFI_PAGE_SHIFT),
             Descriptor.Capabilities & (~EFI_MEMORY_RUNTIME)
             );
+          ASSERT (MemoryHob->AllocDescriptor.MemoryType != EfiLoaderCode);
+          ASSERT (MemoryHob->AllocDescriptor.MemoryType != EfiRuntimeServicesCode);
+          if (MemoryHob->AllocDescriptor.MemoryType == EfiBootServicesCode) {
+            CoreSetMemorySpaceAttributes (
+              MemoryHob->AllocDescriptor.MemoryBaseAddress,
+              MemoryHob->AllocDescriptor.MemoryLength,
+              EFI_MEMORY_RO
+              );
+          }
         }
       }
     }
