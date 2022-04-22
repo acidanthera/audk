@@ -510,9 +510,12 @@ UnprotectUefiImage (
                     );
 
     if (ImageRecord->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
-      SetUefiImageMemoryAttributes (ImageRecord->ImageBase,
-                                    ImageRecord->ImageSize,
-                                    EFI_MEMORY_XP);
+      // TODO: Revise for removal (e.g. CpuDxe integration)
+      if (gCpu != NULL) {
+        SetUefiImageMemoryAttributes (ImageRecord->ImageBase,
+                                      ImageRecord->ImageSize,
+                                      EFI_MEMORY_XP);
+      }
       RemoveEntryList (&ImageRecord->Link);
       FreePool (ImageRecord);
       return;
