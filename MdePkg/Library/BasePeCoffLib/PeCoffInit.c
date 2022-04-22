@@ -672,6 +672,7 @@ PeCoffInitializeContext (
   ZeroMem (Context, sizeof (*Context));
 
   Context->FileBuffer = FileBuffer;
+  Context->FileSize   = FileSize;
   //
   // Check whether the DOS Image Header is present.
   //

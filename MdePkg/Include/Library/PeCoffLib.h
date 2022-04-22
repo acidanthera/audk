@@ -42,6 +42,10 @@ typedef struct {
   ///
   CONST VOID *FileBuffer;
   ///
+  /// The size, in bytes, of FileBuffer.
+  ///
+  UINT32     FileSize;
+  ///
   /// A pointer to the loaded Image destination.
   ///
   VOID       *ImageBuffer;
