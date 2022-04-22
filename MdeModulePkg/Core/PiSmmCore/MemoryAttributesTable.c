@@ -872,7 +872,7 @@ SmmInsertImageRecord (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = ImageContext->SectionAlignment;
+  SectionAlignment = PeCoffGetSectionAlignment (ImageContext);
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {

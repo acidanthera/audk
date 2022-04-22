@@ -160,7 +160,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, (UINT32)ImageContext->SizeOfImage);
+        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, (UINT32)PeCoffGetSizeOfImage (ImageContext));
         if (!EFI_ERROR (Status)) {
           //
           // The assigned address is valid. Return the specified loading address
@@ -241,7 +241,7 @@ LoadAndRelocatePeCoffImage (
   //
   // XIP image that ImageAddress is same to Image handle.
   //
-  if (ImageContext->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
+  if (PeCoffGetImageBase (ImageContext) == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
     IsXipImage = TRUE;
   }
 
@@ -265,7 +265,7 @@ LoadAndRelocatePeCoffImage (
   //
   // When Image has no reloc section, it can't be relocated into memory.
   //
-  if (ImageContext->RelocsStripped && (Private->PeiMemoryInstalled) &&
+  if (PeCoffRelocsStripped (ImageContext) && (Private->PeiMemoryInstalled) &&
       ((!IsPeiModule) || PcdGetBool (PcdMigrateTemporaryRamFirmwareVolumes) ||
        (!IsS3Boot && (PcdGetBool (PcdShadowPeimOnBoot) || IsRegisterForShadow)) ||
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
@@ -286,7 +286,7 @@ LoadAndRelocatePeCoffImage (
   // On normal boot, PcdShadowPeimOnBoot decides whether load PEIM or PeiCore into memory.
   // On S3 boot, PcdShadowPeimOnS3Boot decides whether load PEIM or PeiCore into memory.
   //
-  if ((!ImageContext->RelocsStripped) && (Private->PeiMemoryInstalled) &&
+  if ((!PeCoffRelocsStripped (ImageContext)) && (Private->PeiMemoryInstalled) &&
       ((!IsPeiModule) || PcdGetBool (PcdMigrateTemporaryRamFirmwareVolumes) ||
        (!IsS3Boot && (PcdGetBool (PcdShadowPeimOnBoot) || IsRegisterForShadow)) ||
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
@@ -295,10 +295,10 @@ LoadAndRelocatePeCoffImage (
     //
     // Allocate more buffer to avoid buffer overflow.
     //
-    AlignImageSize = ImageContext->SizeOfImage;
+    AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
 
-    if (ImageContext->SectionAlignment > EFI_PAGE_SIZE) {
-      AlignImageSize += ImageContext->SectionAlignment;
+    if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
+      AlignImageSize += PeCoffGetSectionAlignment (ImageContext);
     }
 
     if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
@@ -326,10 +326,10 @@ LoadAndRelocatePeCoffImage (
       //
       // Adjust the Image Address to make sure it is section alignment.
       //
-      if (ImageContext->SectionAlignment > EFI_PAGE_SIZE) {
+      if (PeCoffGetSectionAlignment (ImageContext) > EFI_PAGE_SIZE) {
         LoadAddress =
-          (LoadAddress + ImageContext->SectionAlignment - 1) &
-            ~((UINTN)ImageContext->SectionAlignment - 1);
+            (LoadAddress + PeCoffGetSectionAlignment (ImageContext) - 1) &
+            ~((UINTN)PeCoffGetSectionAlignment (ImageContext) - 1);
       }
     } else {
       //
@@ -352,7 +352,7 @@ LoadAndRelocatePeCoffImage (
   }
 
   if (LoadAddress == (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
-    AlignImageSize = ImageContext->SizeOfImage;
+    AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
   }
 
   // TODO: Why load XIP image?
@@ -382,7 +382,7 @@ LoadAndRelocatePeCoffImage (
   // Flush the instruction cache so the image data is written before we execute it
   //
   if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
-    InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext->SizeOfImage);
+    InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (ImageContext));
   }
 
   *ImageAddress = LoadAddress;

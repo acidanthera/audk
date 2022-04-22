@@ -468,9 +468,9 @@
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|FALSE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|FALSE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeMemorySize|1
 !if $(SMM_REQUIRE) == FALSE

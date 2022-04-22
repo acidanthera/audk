@@ -255,7 +255,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(ImageContext->SizeOfImage + ImageContext->SectionAlignment));
+        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)));
         if (!EFI_ERROR (Status)) {
           //
           // The assigned address is valid. Return the specified loading address
@@ -465,7 +465,7 @@ SmmLoadImage (
       //
       // allocate the memory to load the SMM driver
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext->SizeOfImage + ImageContext->SectionAlignment);
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
       DstBuffer = (UINTN)(-1);
 
       Status = SmmAllocatePages (
@@ -485,7 +485,7 @@ SmmLoadImage (
       LoadAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
     }
   } else {
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext->SizeOfImage + ImageContext->SectionAlignment);
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext));
     DstBuffer = (UINTN)(-1);
 
     Status = SmmAllocatePages (
@@ -508,8 +508,8 @@ SmmLoadImage (
   //
   // Align buffer on section boundary
   //
-  LoadAddress += ImageContext->SectionAlignment - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext->SectionAlignment - 1);
+  LoadAddress += PeCoffGetSectionAlignment (ImageContext) - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (ImageContext) - 1);
 
   //
   // Load the image to our new buffer
@@ -517,7 +517,7 @@ SmmLoadImage (
   Status = PeCoffLoadImage (
     ImageContext,
     (VOID *) (UINTN) LoadAddress,
-    ImageContext->SizeOfImage + ImageContext->SectionAlignment
+    PeCoffGetSizeOfImage (ImageContext) + PeCoffGetSectionAlignment (ImageContext)
     );
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
@@ -544,12 +544,12 @@ SmmLoadImage (
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN) ImageContext->SizeOfImage);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN) PeCoffGetSizeOfImage (ImageContext));
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint  = LoadAddress + ImageContext->AddressOfEntryPoint;
+  DriverEntry->ImageEntryPoint  = LoadAddress + PeCoffGetEntryPoint (ImageContext);
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -597,7 +597,7 @@ SmmLoadImage (
   CopyMem (DriverEntry->LoadedImage->FilePath, FilePath, GetDevicePathSize (FilePath));
 
   DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)LoadAddress;
-  DriverEntry->LoadedImage->ImageSize     = ImageContext->SizeOfImage;
+  DriverEntry->LoadedImage->ImageSize     = PeCoffGetSizeOfImage (ImageContext);
   DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;
 
@@ -618,7 +618,7 @@ SmmLoadImage (
   CopyMem (DriverEntry->SmmLoadedImage.FilePath, FilePath, GetDevicePathSize(FilePath));
 
   DriverEntry->SmmLoadedImage.ImageBase = (VOID *)(UINTN)LoadAddress;
-  DriverEntry->SmmLoadedImage.ImageSize = ImageContext->SizeOfImage;
+  DriverEntry->SmmLoadedImage.ImageSize = PeCoffGetSizeOfImage (ImageContext);
   DriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
@@ -663,7 +663,7 @@ SmmLoadImage (
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
            (VOID *)(UINTN)LoadAddress,
-           FUNCTION_ENTRY_POINT (LoadAddress + ImageContext->AddressOfEntryPoint)));
+           FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetEntryPoint (ImageContext))));
 
   //
   // Print Module Name by Pdb file path.

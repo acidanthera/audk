@@ -79,14 +79,14 @@ PeCoffLoaderRelocateImageExtraAction (
  #ifdef __CC_ARM
  #if (__ARMCC_VERSION < 500000)
     // Print out the command for the RVD debugger to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
     // Print out the command for the DS-5 to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
  #endif
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)ImageContext->ImageAddress, FUNCTION_ENTRY_POINT (ImageContext->EntryPoint)));
  #endif
@@ -121,7 +121,7 @@ PeCoffLoaderUnloadImageExtraAction (
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "unload symbols_only %a\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp))));
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading %a\n", ImageContext->PdbPointer));
  #endif

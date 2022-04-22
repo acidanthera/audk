@@ -361,4 +361,43 @@ PeCoffLoaderGetHiiResourceSection (
   OUT UINT32                              *MaxHiiSize
   );
 
+UINT32
+PeCoffGetEntryPoint (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT16
+PeCoffGetMachineType (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT16
+PeCoffGetSubsystem (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+UINT32
+PeCoffGetSectionAlignment (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT32
+PeCoffGetSizeOfImage (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT64
+PeCoffGetImageBase (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+UINT32
+PeCoffGetSizeOfHeaders (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+BOOLEAN
+PeCoffRelocsStripped (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 #endif // OC_PE_COFF_LIB_H

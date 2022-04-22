@@ -358,7 +358,7 @@ ProtectUefiImage (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = ImageContext->SectionAlignment;
+  SectionAlignment = PeCoffGetSectionAlignment (ImageContext);
 
   IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
   if (!IsAligned) {

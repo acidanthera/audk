@@ -262,7 +262,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         //
         // Check if the memory range is available.
         //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(ImageContext->ImageSize + ImageContext->SectionAlignment));
+        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, (UINTN)(ImageContext->ImageSize + PeCoffGetSectionAlignment (ImageContext)));
         if (!EFI_ERROR (Status)) {
           //
           // The assigned address is valid. Return the specified loading address

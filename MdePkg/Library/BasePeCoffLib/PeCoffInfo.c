@@ -27,7 +27,6 @@ PeCoffGetEntryPoint (
   )
 {
   ASSERT (Context != NULL);
-  ASSERT (Context->ImageBuffer != NULL);
 
   return Context->AddressOfEntryPoint;
 }
@@ -69,7 +68,7 @@ PeCoffGetSizeOfImage (
 {
   ASSERT (Context != NULL);
 
-  return Context->SizeOfImage;
+  return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
 }
 
 UINT64
@@ -99,8 +98,20 @@ PeCoffGetSections (
   OUT    EFI_IMAGE_SECTION_HEADER **Sections
   )
 {
+  ASSERT (Context != NULL);
+
   *Sections = (EFI_IMAGE_SECTION_HEADER *) (VOID *) (
                (CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   return Context->NumberOfSections;
+}
+
+BOOLEAN
+PeCoffRelocsStripped (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  ASSERT (Context != NULL);
+
+  return Context->RelocsStripped;
 }

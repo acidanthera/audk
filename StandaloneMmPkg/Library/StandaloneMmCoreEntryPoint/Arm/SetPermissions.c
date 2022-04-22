@@ -257,7 +257,7 @@ GetPeCoffSectionInformation (
     return Status;
   }
 
-  if (ImageContext->SectionAlignment < EFI_PAGE_SIZE) {
+  if (PeCoffGetSectionAlignment (ImageContext) < EFI_PAGE_SIZE) {
     //
     // The sections need to be at least 4 KB aligned, since that is the
     // granularity at which we can tighten permissions.
@@ -268,12 +268,12 @@ GetPeCoffSectionInformation (
         "%a: non-TE Image at 0x%lx has SectionAlignment < 4 KB (%lu)\n",
         __FUNCTION__,
         ImageContext->ImageAddress,
-        ImageContext->SectionAlignment
+        PeCoffGetSectionAlignment (ImageContext)
         ));
       return RETURN_UNSUPPORTED;
     }
 
-    ImageContext->SectionAlignment = EFI_PAGE_SIZE;
+    PeCoffGetSectionAlignment (ImageContext) = EFI_PAGE_SIZE;
   }
 
   //
