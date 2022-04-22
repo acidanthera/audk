@@ -631,7 +631,7 @@ InternalInitializePe (
              &MinSizeOfImage
              );
   if (Status != RETURN_SUCCESS) {
-    ASSERT_EFI_ERROR (Status);
+    CRITICAL_ERROR (FALSE);
     return Status;
   }
 
@@ -645,7 +645,9 @@ InternalInitializePe (
   }
 
   Status = InternalValidateRelocInfo (Context, StartAddress);
-  ASSERT_EFI_ERROR (Status);
+  if (Status != RETURN_SUCCESS) {
+    CRITICAL_ERROR (FALSE);
+  }
 
   return Status;
 }
