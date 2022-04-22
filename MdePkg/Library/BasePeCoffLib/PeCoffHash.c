@@ -267,7 +267,7 @@ PeCoffGetFirstCertificate (
     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva
     );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
-   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))
+   || !IS_ALIGNED (WinCertificate->dwLength, 8)
    || WinCertificate->dwLength > Context->SecDirSize) {
     return RETURN_UNSUPPORTED;
   }
@@ -301,7 +301,7 @@ PeCoffGetNextCertificate (
     (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva + CertOffset
     );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
-   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+   || !IS_ALIGNED (WinCertificate->dwLength, 8)) {
     return RETURN_UNSUPPORTED;
   }
 

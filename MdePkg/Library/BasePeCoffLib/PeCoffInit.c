@@ -621,7 +621,7 @@ InternalInitializePe (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!IS_ALIGNED (Context->SecDirRva, OC_ALIGNOF (WIN_CERTIFICATE))
+    if (!IS_ALIGNED (Context->SecDirRva, 8)
      || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
        ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
