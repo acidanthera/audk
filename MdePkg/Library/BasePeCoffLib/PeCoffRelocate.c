@@ -348,8 +348,7 @@ InternalApplyRelocation (
         return RETURN_UNSUPPORTED;
       }
 
-      // FIXME: 32-bit
-      if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT16))) {
+      if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT32))) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
