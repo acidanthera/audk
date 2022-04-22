@@ -220,8 +220,7 @@ S3BootScriptExecutorEntryFunction (
 VOID
 RegisterMemoryProfileImage (
   IN EFI_GUID          *FileName,
-  IN PHYSICAL_ADDRESS  ImageBase,
-  IN UINT64            ImageSize,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
   IN EFI_FV_FILETYPE   FileType
   )
 {
@@ -240,8 +239,7 @@ RegisterMemoryProfileImage (
       Status = ProfileProtocol->RegisterImage (
                                   ProfileProtocol,
                                   (EFI_DEVICE_PATH_PROTOCOL *)FilePath,
-                                  ImageBase,
-                                  ImageSize,
+                                  ImageContext,
                                   FileType
                                   );
     }
@@ -356,8 +354,7 @@ ReadyToLockEventNotify (
 
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,
-    LoadAddress,
-   PeCoffGetSizeOfImage (&ImageContext),
+    &ImageContext,
     EFI_FV_FILETYPE_DRIVER
     );
 

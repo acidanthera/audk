@@ -912,7 +912,7 @@ SmmDispatcher (
       //
       // For each SMM driver, pass NULL as ImageHandle
       //
-      RegisterSmramProfileImage (DriverEntry, TRUE, &ImageContext);
+      RegisterSmramProfileImage (&DriverEntry->FileName, TRUE, &ImageContext);
       PERF_START_IMAGE_BEGIN (DriverEntry->ImageHandle);
       Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)DriverEntry->ImageEntryPoint)(DriverEntry->ImageHandle, gST);
       PERF_START_IMAGE_END (DriverEntry->ImageHandle);
@@ -923,7 +923,12 @@ SmmDispatcher (
           DriverEntry->SmmLoadedImage.ImageBase,
           Status
           ));
-        UnregisterSmramProfileImage (DriverEntry, TRUE);
+        UnregisterSmramProfileImage (
+          &DriverEntry->FileName,
+          DriverEntry->ImageBuffer,
+          DriverEntry->LoadedImage->ImageSize,
+          TRUE
+          );
         SmmFreePages (DriverEntry->ImageBuffer, DriverEntry->NumberOfPage);
         //
         // Uninstall LoadedImage

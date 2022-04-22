@@ -2613,8 +2613,7 @@ EFI_STATUS
 RegisterMemoryProfileImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
   IN EFI_FV_FILETYPE            FileType,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext,
-  IN UINT64                     LoadAddress
+  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext
   );
 
 /**

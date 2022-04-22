@@ -1134,6 +1134,8 @@ PeCoffRelocateImage (
       );
   }
 
+  // FIXME: InvalidateInstructionCacheRange here?
+
   return RETURN_SUCCESS;
 }
 

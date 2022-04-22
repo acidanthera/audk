@@ -1017,9 +1017,9 @@ SmramProfileInstallProtocol (
 **/
 EFI_STATUS
 RegisterSmramProfileImage (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN                RegisterToDxe,
-  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN EFI_GUID                     *FileName,
+  IN BOOLEAN                      RegisterToDxe,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -1036,8 +1036,10 @@ RegisterSmramProfileImage (
 **/
 EFI_STATUS
 UnregisterSmramProfileImage (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN               UnregisterToDxe
+  IN EFI_GUID                           *FileName,
+  IN PHYSICAL_ADDRESS                   ImageBase,
+  IN UINT64                             ImageSize,
+  IN BOOLEAN                            UnregisterFromDxe
   );
 
 /**

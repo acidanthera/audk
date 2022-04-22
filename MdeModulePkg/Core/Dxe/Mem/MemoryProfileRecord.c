@@ -108,8 +108,7 @@ EFIAPI
 ProfileProtocolRegisterImage (
   IN EDKII_MEMORY_PROFILE_PROTOCOL  *This,
   IN EFI_DEVICE_PATH_PROTOCOL       *FilePath,
-  IN PHYSICAL_ADDRESS               ImageBase,
-  IN UINT64                         ImageSize,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
   IN EFI_FV_FILETYPE                FileType
   );
 
@@ -270,7 +269,6 @@ BuildDriverInfo (
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
   IN EFI_GUID                     *FileName,
   IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
-  IN EFI_PHYSICAL_ADDRESS           LoadAddress,
   IN EFI_FV_FILETYPE              FileType
   )
 {
@@ -285,12 +283,13 @@ BuildDriverInfo (
   PdbOccupiedSize = 0;
   PdbString       = NULL;
 
-  if (LoadAddress != 0) {
-    Status = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
-    if (!EFI_ERROR (Status)) {
-      // FIXME: Unsafe operation. Why is this needed anyway? Alloc and copy use unaligned size!
-      PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
-    }
+  // FIXME: This used to be allowed?
+  ASSERT (PeCoffLoaderGetDestinationAddress (ImageContext) != 0);
+
+  Status = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
+  if (!EFI_ERROR (Status)) {
+    // FIXME: Unsafe operation.
+    PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
   }
 
   //
@@ -318,9 +317,9 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = LoadAddress;
+  DriverInfo->ImageBase      = PeCoffLoaderGetDestinationAddress (ImageContext);
   DriverInfo->ImageSize      = PeCoffGetSizeOfImage (ImageContext);
-  DriverInfo->EntryPoint     = LoadAddress + PeCoffGetEntryPoint (ImageContext);
+  DriverInfo->EntryPoint     = PeCoffLoaderGetDestinationAddress (ImageContext) + PeCoffGetEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = PeCoffGetSubsystem (ImageContext);
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
@@ -434,7 +433,6 @@ RegisterDxeCore (
 {
   EFI_PEI_HOB_POINTERS               DxeCoreHob;
   MEMORY_PROFILE_DRIVER_INFO_DATA    *DriverInfoData;
-  PHYSICAL_ADDRESS                   ImageBase;
   UINT8                              TempBuffer[sizeof (MEDIA_FW_VOL_FILEPATH_DEVICE_PATH) + sizeof (EFI_DEVICE_PATH_PROTOCOL)];
   MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  *FilePath;
 
@@ -465,12 +463,10 @@ RegisterDxeCore (
     return FALSE;
   }
 
-  ImageBase      = DxeCoreHob.MemoryAllocationModule->MemoryAllocationHeader.MemoryBaseAddress;
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      &DxeCoreHob.MemoryAllocationModule->ModuleName,
                      ImageContext,
-                     ImageBase,
                      EFI_FV_FILETYPE_DXE_CORE
                      );
   if (DriverInfoData == NULL) {
@@ -593,8 +589,7 @@ EFI_STATUS
 RegisterMemoryProfileImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
   IN EFI_FV_FILETYPE            FileType,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext,
-  IN UINT64                     LoadAddress
+  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA      *ContextData;
@@ -617,7 +612,6 @@ RegisterMemoryProfileImage (
                      ContextData,
                      GetFileNameFromFilePath (FilePath),
                      ImageContext,
-                     LoadAddress,
                      FileType
                      );
   if (DriverInfoData == NULL) {
@@ -909,7 +903,7 @@ CoreUpdateProfileAllocate (
   ActionStringOccupiedSize = 0;
   if (ActionString != NULL) {
     ActionStringSize         = AsciiStrSize (ActionString);
-    // FIXME: See PdbOccupiedSize
+    // FIXME: Unsafe operation
     ActionStringOccupiedSize = GET_OCCUPIED_SIZE (ActionStringSize, sizeof (UINT64));
   }
 
@@ -1529,16 +1523,13 @@ ProfileProtocolGetData (
 EFI_STATUS
 EFIAPI
 ProfileProtocolRegisterImage (
-  IN EDKII_MEMORY_PROFILE_PROTOCOL  *This,
-  IN EFI_DEVICE_PATH_PROTOCOL       *FilePath,
-  IN PHYSICAL_ADDRESS               ImageBase,
-  IN UINT64                         ImageSize,
-  IN EFI_FV_FILETYPE                FileType
+  IN EDKII_MEMORY_PROFILE_PROTOCOL      *This,
+  IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN EFI_FV_FILETYPE                    FileType
   )
 {
-  // FIXME:
-  //return RegisterMemoryProfileImage (FilePath, FileType, NULL, ImageBase);
-  return EFI_UNSUPPORTED;
+  return RegisterMemoryProfileImage (FilePath, FileType, ImageContext);
 }
 
 /**
