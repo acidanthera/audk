@@ -998,7 +998,6 @@ ExecuteSmmCoreFromSmram (
   EFI_STATUS                    Status;
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
   EFI_PHYSICAL_ADDRESS          LoadAddress;
@@ -1021,7 +1020,7 @@ ExecuteSmmCoreFromSmram (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, SourceBuffer, (UINT32) SourceSize);
+  Status = PeCoffInitializeContext (&gSmmCorePrivate->PiSmmCoreImageContext, SourceBuffer, (UINT32) SourceSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -1034,7 +1033,7 @@ ExecuteSmmCoreFromSmram (
     //
     // Get the fixed loading address assigned by Build tool
     //
-    Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext, &LoadAddress);
+    Status = GetPeCoffImageFixLoadingAssignedAddress (&gSmmCorePrivate->PiSmmCoreImageContext, &LoadAddress);
     if (!EFI_ERROR (Status)) {
       //
       // Since the memory range to load SMM CORE will be cut out in SMM core, so no need to allocate and free this range
@@ -1050,7 +1049,7 @@ ExecuteSmmCoreFromSmram (
       // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
       // specified by SmramRange
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.SizeOfImage + ImageContext.SectionAlignment);
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
 
       ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
       ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1071,7 +1070,7 @@ ExecuteSmmCoreFromSmram (
     // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
     // specified by SmramRange
     //
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.SizeOfImage + ImageContext.SectionAlignment);
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
 
     ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
     ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1088,8 +1087,8 @@ ExecuteSmmCoreFromSmram (
     LoadAddress = SmramRangeSmmCore->CpuStart;
   }
 
-  LoadAddress += ImageContext.SectionAlignment - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  LoadAddress += gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment - 1);
 
   //
   // Print debug message showing SMM Core load address.
@@ -1099,22 +1098,22 @@ ExecuteSmmCoreFromSmram (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)LoadAddress, ImageContext.SizeOfImage + ImageContext.SectionAlignment);
+  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
   if (!EFI_ERROR (Status)) {
     //
     // Relocate the image in our new buffer
     //
-    Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
+    Status = PeCoffRelocateImage (&gSmmCorePrivate->PiSmmCoreImageContext, LoadAddress, NULL, 0);
     if (!EFI_ERROR (Status)) {
       //
       // Flush the instruction cache so the image data are written before we execute it
       //
-      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext.SizeOfImage);
+      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage);
 
       //
       // Print debug message showing SMM Core entry point address.
       //
-      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint)));
+      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + gSmmCorePrivate->PiSmmCoreImageContext.AddressOfEntryPoint)));
 
       gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
@@ -1123,7 +1122,7 @@ ExecuteSmmCoreFromSmram (
       //
       // Execute image
       //
-      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint);
+      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + gSmmCorePrivate->PiSmmCoreImageContext.AddressOfEntryPoint);
       Status     = EntryPoint ((EFI_HANDLE)Context, gST);
     }
   }
