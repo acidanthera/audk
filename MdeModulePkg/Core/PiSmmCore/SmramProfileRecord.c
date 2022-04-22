@@ -978,7 +978,7 @@ UnregisterSmramProfileImage (
   ContextData->Context.TotalImageSize -= DriverInfoData->DriverInfo.ImageSize;
 
   // Keep the ImageBase for RVA calculation in Application.
-  // DriverInfoData->DriverInfo.DestAddress = 0;
+  // DriverInfoData->DriverInfo.ImageBase = 0;
   DriverInfoData->DriverInfo.ImageSize = 0;
 
   if (DriverInfoData->DriverInfo.PeakUsage == 0) {

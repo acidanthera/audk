@@ -9,6 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "Image.h"
 #include "Library/PeCoffLib.h"
+#include "Uefi/UefiBaseType.h"
 
 //
 // Module Globals
@@ -225,8 +226,7 @@ CoreInitializeImageServices (
     (UINT32) DxeCoreImageLength
     );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.DestAddress = DxeCoreImageBaseAddress;
-  ASSERT ((UINTN) DxeCoreEntryPoint == ImageContext.DestAddress + ImageContext.AddressOfEntryPoint);
+  ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + ImageContext.AddressOfEntryPoint);
 
   Image->EntryPoint       = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage    = DxeCoreImageBaseAddress;
@@ -568,6 +568,7 @@ CoreLoadPeImage (
   EFI_MEMORY_TYPE ImageDataMemoryType;
   PE_COFF_RUNTIME_CONTEXT      *RelocationData;
   IMAGE_FILE_HANDLE  *FileHandle = Pe32Handle;
+  EFI_PHYSICAL_ADDRESS LoadAddress;
 
   DEBUG ((DEBUG_WARN, "Loading image...\n"));
 
@@ -626,6 +627,7 @@ CoreLoadPeImage (
     Size = (UINTN)ImageContext->SizeOfImage;
   }
 
+  LoadAddress = 0;
   //
   // Allocate memory of the correct memory type aligned on the required image boundary
   //
@@ -657,6 +659,7 @@ CoreLoadPeImage (
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
       Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext);
+      LoadAddress = ImageContext->ImageBase;
 
       if (EFI_ERROR (Status)) {
         //
@@ -668,16 +671,16 @@ CoreLoadPeImage (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &ImageContext->DestAddress
+                   &LoadAddress
                    );
       }
     } else {
-      if ((ImageContext->DestAddress >= 0x100000) || ImageContext->RelocsStripped) {
+      if ((ImageContext->ImageBase >= 0x100000) || ImageContext->RelocsStripped) {
         Status = CoreAllocatePages (
                    AllocateAddress,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &ImageContext->DestAddress
+                   &LoadAddress
                    );
       }
 
@@ -686,7 +689,7 @@ CoreLoadPeImage (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &ImageContext->DestAddress
+                   &LoadAddress
                    );
       }
     }
@@ -702,7 +705,7 @@ CoreLoadPeImage (
     // Caller provided the destination buffer
     //
 
-    if (ImageContext->RelocsStripped && (ImageContext->DestAddress != DstBuffer)) {
+    if (ImageContext->RelocsStripped && (LoadAddress != DstBuffer)) {
       //
       // If the image relocations were stripped, and the caller provided a
       // destination buffer address that does not match the address that the
@@ -722,15 +725,15 @@ CoreLoadPeImage (
     }
 
     Image->NumberOfPages             = EFI_SIZE_TO_PAGES ((UINTN)ImageContext->SizeOfImage + ImageContext->SectionAlignment);
-    ImageContext->DestAddress = DstBuffer;
+    LoadAddress = DstBuffer;
   }
 
-  Image->ImageBasePage = ImageContext->DestAddress;
+  Image->ImageBasePage = LoadAddress;
 
   //
   // Load the image from the file into the allocated memory
   //
-  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)ImageContext->DestAddress, (UINT32) Size);
+  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, (UINT32) Size);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     goto Done;
@@ -762,7 +765,7 @@ CoreLoadPeImage (
   //
   // Relocate the image in memory
   //
-  Status = PeCoffRelocateImage (ImageContext, ImageContext->DestAddress, RelocationData, RelocDataSize);
+  Status = PeCoffRelocateImage (ImageContext, LoadAddress, RelocationData, RelocDataSize);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     goto Done;
@@ -771,7 +774,7 @@ CoreLoadPeImage (
   //
   // Flush the Instruction Cache
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext->DestAddress, (UINTN)ImageContext->SizeOfImage);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext->SizeOfImage);
 
   //
   // Copy the machine type from the context to the image private data.
@@ -781,13 +784,13 @@ CoreLoadPeImage (
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)((UINTN)(ImageContext->DestAddress + ImageContext->AddressOfEntryPoint));
+  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)((UINTN)(LoadAddress + ImageContext->AddressOfEntryPoint));
 
   //
   // Fill in the image information for the Loaded Image Protocol
   //
   Image->Type               = ImageContext->Subsystem;
-  Image->Info.ImageBase     = (VOID *)(UINTN)ImageContext->DestAddress;
+  Image->Info.ImageBase     = (VOID *)(UINTN)LoadAddress;
   Image->Info.ImageSize     = ImageContext->SizeOfImage;
   Image->Info.ImageCodeType = ImageCodeMemoryType;
   Image->Info.ImageDataType = ImageDataMemoryType;
@@ -814,7 +817,7 @@ CoreLoadPeImage (
   // Fill in the entry point of the image if it is available
   //
   if (EntryPoint != NULL) {
-    *EntryPoint = ImageContext->DestAddress + ImageContext->AddressOfEntryPoint;
+    *EntryPoint = LoadAddress + ImageContext->AddressOfEntryPoint;
   }
 
   UINT32 Hiioff;
@@ -824,7 +827,7 @@ CoreLoadPeImage (
     ASSERT_EFI_ERROR (Status);
   }
   if (!EFI_ERROR (Status)) {
-    Image->HiiData = (VOID *)(UINTN)(ImageContext->DestAddress + Hiioff);
+    Image->HiiData = (VOID *)(UINTN)(LoadAddress + Hiioff);
   }
 
   //
@@ -838,11 +841,10 @@ CoreLoadPeImage (
   //UINTN  StartIndex;
   //CHAR8  EfiFileName[256];
 
-  DEBUG ((
-    DEBUG_INFO | DEBUG_LOAD,
-    "Loading driver at 0x%11p EntryPoint=0x%11p \n",
-    (VOID *)(UINTN)ImageContext->DestAddress,
-           FUNCTION_ENTRY_POINT (ImageContext->DestAddress + ImageContext->AddressOfEntryPoint)));
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,
+           "Loading driver at 0x%11p EntryPoint=0x%11p \n",
+           (VOID *)(UINTN)LoadAddress,
+           FUNCTION_ENTRY_POINT (LoadAddress + ImageContext->AddressOfEntryPoint)));
 
 
     //
@@ -897,8 +899,7 @@ Done:
   //
 
   if (DstBufAlocated) {
-    CoreFreePages (ImageContext->DestAddress, Image->NumberOfPages);
-    ImageContext->DestAddress = 0;
+    CoreFreePages (LoadAddress, Image->NumberOfPages);
     Image->ImageBasePage             = 0;
   }
 

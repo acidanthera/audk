@@ -1696,9 +1696,6 @@ InternalInitializePe (
     @          valid_pe ((char *) Context->FileBuffer, Context->ExeHdrOffset, FileSize);
   */
 
-  // FIXME: Fuckery
-  Context->DestAddress = Context->ImageBase;
-
   return Status;
 }
 

@@ -719,7 +719,7 @@ FindAndReportEntryPoints (
   //
   Status = PeCoffInitializeContext(&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, 0xFFFFFFFF);
   ASSERT_EFI_ERROR (Status);
-  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint);
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(ImageContext.ImageBase + ImageContext.AddressOfEntryPoint);
 
   return;
 }

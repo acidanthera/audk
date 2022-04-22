@@ -36,6 +36,7 @@
 #include <Library/ReportStatusCodeLib.h>
 
 #include "PiSmmCorePrivateData.h"
+#include "Uefi/UefiBaseType.h"
 
 #define SMRAM_CAPABILITIES  (EFI_MEMORY_WB | EFI_MEMORY_UC)
 
@@ -1001,6 +1002,7 @@ ExecuteSmmCoreFromSmram (
   PE_COFF_IMAGE_CONTEXT  ImageContext;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
+  EFI_PHYSICAL_ADDRESS          LoadAddress;
 
   //
   // Search all Firmware Volumes for a PE/COFF image in a file of type SMM_CORE
@@ -1043,6 +1045,8 @@ ExecuteSmmCoreFromSmram (
       // Reserved Smram Region for SmmCore is not used, and remove it from SmramRangeCount.
       //
       gSmmCorePrivate->SmramRangeCount--;
+
+      LoadAddress = ImageContext.ImageBase;
     } else {
       DEBUG ((DEBUG_INFO, "LOADING MODULE FIXED ERROR: Loading module at fixed address at address failed\n"));
       //
@@ -1063,7 +1067,7 @@ ExecuteSmmCoreFromSmram (
       //
       // Align buffer on section boundary
       //
-      ImageContext.DestAddress = SmramRangeSmmCore->CpuStart;
+      LoadAddress = SmramRangeSmmCore->CpuStart;
     }
   } else {
     //
@@ -1084,48 +1088,48 @@ ExecuteSmmCoreFromSmram (
     //
     // Align buffer on section boundary
     //
-    ImageContext.DestAddress = SmramRangeSmmCore->CpuStart;
+    LoadAddress = SmramRangeSmmCore->CpuStart;
   }
 
-  ImageContext.DestAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.DestAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  LoadAddress += ImageContext.SectionAlignment - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
 
   //
   // Print debug message showing SMM Core load address.
   //
-  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM address %p\n", (VOID *)(UINTN)ImageContext.DestAddress));
+  DEBUG ((DEBUG_INFO, "SMM IPL loading SMM Core at SMRAM address %p\n", (VOID *)(UINTN)LoadAddress));
 
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)ImageContext.DestAddress, ImageContext.SizeOfImage + ImageContext.SectionAlignment);
+  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)LoadAddress, ImageContext.SizeOfImage + ImageContext.SectionAlignment);
   if (!EFI_ERROR (Status)) {
     //
     // Relocate the image in our new buffer
     //
-    Status = PeCoffRelocateImage (&ImageContext, ImageContext.DestAddress, NULL, 0);
+    Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
     if (!EFI_ERROR (Status)) {
       //
       // Flush the instruction cache so the image data are written before we execute it
       //
-      InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.DestAddress, (UINTN)ImageContext.SizeOfImage);
+      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext.SizeOfImage);
 
       //
       // Print debug message showing SMM Core entry point address.
       //
-      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint)));
+      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint)));
 
-      gSmmCorePrivate->PiSmmCoreImageBase = ImageContext.DestAddress;
+      gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
       gSmmCorePrivate->PiSmmCoreImageSize = ImageContext.SizeOfImage;
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageSize));
 
-      gSmmCorePrivate->PiSmmCoreEntryPoint = ImageContext.DestAddress + ImageContext.AddressOfEntryPoint;
+      gSmmCorePrivate->PiSmmCoreEntryPoint = LoadAddress + ImageContext.AddressOfEntryPoint;
 
       //
       // Execute image
       //
-      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint);
+      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint);
       Status     = EntryPoint ((EFI_HANDLE)Context, gST);
     }
   }

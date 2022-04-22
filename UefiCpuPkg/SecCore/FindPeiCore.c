@@ -158,13 +158,14 @@ FindAndReportEntryPoints (
   Status = FindImageBase (SecCoreFirmwareVolumePtr, EFI_FV_FILETYPE_SECURITY_CORE, &SecCoreImageBase);
   ASSERT_EFI_ERROR (Status);
 
-  ZeroMem ((VOID *)&ImageContext, sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
+  // FIXME:
+  //ZeroMem ((VOID *)&ImageContext, sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
   //
   // Report SEC Core debug information when remote debug is enabled
   //
-  ImageContext.ImageAddress = SecCoreImageBase;
+  //ImageContext.ImageAddress = SecCoreImageBase;
   //ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  //PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
   //
   // Find PEI Core image base
@@ -175,11 +176,12 @@ FindAndReportEntryPoints (
   //
   // Report PEI Core debug information when remote debug is enabled
   //
-  ImageContext.ImageAddress = PeiCoreImageBase;
+  // FIXME:
+  //ImageContext.ImageAddress = PeiCoreImageBase;
   //ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  /PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
-  Status = PeCoffInitializeContext (&ImageContext, (VOID*) (UINTN) ImageContext.ImageAddress, 0xFFFFFFFF);
+  Status = PeCoffInitializeContext (&ImageContext, (VOID*)(UINTN)PeiCoreImageBase, 0xFFFFFFFF);
   ASSERT_EFI_ERROR (Status);
 
   //

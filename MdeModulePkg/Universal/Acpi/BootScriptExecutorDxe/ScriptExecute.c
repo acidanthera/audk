@@ -12,6 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "ScriptExecute.h"
+#include "Uefi/UefiBaseType.h"
 
 EFI_GUID  mBootScriptExecutorImageGuid = {
   0x9a8d3433, 0x9fe8, 0x42b6, { 0x87, 0xb, 0x1e, 0x31, 0xc8, 0x4e, 0xbe, 0x3b }
@@ -269,6 +270,7 @@ ReadyToLockEventNotify (
   EFI_PHYSICAL_ADDRESS             FfsBuffer;
   PE_COFF_IMAGE_CONTEXT     ImageContext;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
+  EFI_PHYSICAL_ADDRESS LoadAddress;
 
   Status = gBS->LocateProtocol (&gEfiDxeSmmReadyToLockProtocolGuid, NULL, &Interface);
   if (EFI_ERROR (Status)) {
@@ -331,22 +333,22 @@ ReadyToLockEventNotify (
            );
   }
 
-  ImageContext.DestAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
+  LoadAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
   // Align buffer on section boundary
   //
-  ImageContext.DestAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.DestAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  LoadAddress += ImageContext.SectionAlignment - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)ImageContext.DestAddress, Size);
+  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)LoadAddress, Size);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Relocate the image in our new buffer
   //
-  Status = PeCoffRelocateImage (&ImageContext, ImageContext.DestAddress, NULL, 0);
+  Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -357,16 +359,16 @@ ReadyToLockEventNotify (
   //
   // Flush the instruction cache so the image data is written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.DestAddress, (UINTN)ImageContext.SizeOfImage);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext.SizeOfImage);
 
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,
-    ImageContext.DestAddress,
+    LoadAddress,
     ImageContext.SizeOfImage,
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -375,7 +377,7 @@ ReadyToLockEventNotify (
   //
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
-             (VOID *)(UINTN)ImageContext.DestAddress,
+             (VOID *)(UINTN)LoadAddress,
              (UINTN)ImageContext.SizeOfImage
              );
   ASSERT_EFI_ERROR (Status);

@@ -108,8 +108,6 @@ typedef struct {
   /// The RVA of the CodeView debug information.
   ///
   UINT32     CodeViewRva;
-    // TODO: Fuckery
-  UINT64     DestAddress;
 } PE_COFF_IMAGE_CONTEXT;
 
 ///

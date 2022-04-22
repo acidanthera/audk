@@ -34,6 +34,7 @@
 **/
 
 #include "PiSmmCore.h"
+#include "Uefi/UefiBaseType.h"
 
 //
 // SMM Dispatcher Data structures
@@ -309,6 +310,7 @@ SmmLoadImage (
   EFI_DEVICE_PATH_PROTOCOL       *HandleFilePath;
   EFI_FIRMWARE_VOLUME2_PROTOCOL  *Fv;
   PE_COFF_IMAGE_CONTEXT   ImageContext;
+  EFI_PHYSICAL_ADDRESS LoadAddress;
 
   PERF_LOAD_IMAGE_BEGIN (DriverEntry->ImageHandle);
 
@@ -431,7 +433,7 @@ SmmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, Buffer, Size);
+  Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) Size);
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);
@@ -450,6 +452,7 @@ SmmLoadImage (
     //
     Status = GetPeCoffImageFixLoadingAssignedAddress (&ImageContext);
     if (!EFI_ERROR (Status)) {
+      LoadAddress = ImageContext.ImageBase;
       //
       // Since the memory range to load Smm core already been cut out, so no need to allocate and free this range
       // following statements is to bypass SmmFreePages
@@ -478,7 +481,7 @@ SmmLoadImage (
         return Status;
       }
 
-      ImageContext.DestAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
+      LoadAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
     }
   } else {
     PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.SizeOfImage + ImageContext.SectionAlignment);
@@ -498,21 +501,21 @@ SmmLoadImage (
       return Status;
     }
 
-    ImageContext.DestAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
+    LoadAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
   }
 
   //
   // Align buffer on section boundary
   //
-  ImageContext.DestAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.DestAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  LoadAddress += ImageContext.SectionAlignment - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
 
   //
   // Load the image to our new buffer
   //
   Status = PeCoffLoadImage (
     &ImageContext,
-    (VOID *) (UINTN) ImageContext.DestAddress,
+    (VOID *) (UINTN) LoadAddress,
     ImageContext.SizeOfImage + ImageContext.SectionAlignment
     );
   if (EFI_ERROR (Status)) {
@@ -527,7 +530,7 @@ SmmLoadImage (
   //
   // Relocate the image in our new buffer
   //
-  Status = PeCoffRelocateImage (&ImageContext, ImageContext.DestAddress, NULL, 0);
+  Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);
@@ -540,12 +543,12 @@ SmmLoadImage (
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.DestAddress, (UINTN)ImageContext.SizeOfImage);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN) ImageContext.SizeOfImage);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint = ImageContext.DestAddress + ImageContext.AddressOfEntryPoint;
+  DriverEntry->ImageEntryPoint = LoadAddress + ImageContext.AddressOfEntryPoint;
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -592,7 +595,7 @@ SmmLoadImage (
 
   CopyMem (DriverEntry->LoadedImage->FilePath, FilePath, GetDevicePathSize (FilePath));
 
-  DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)ImageContext.DestAddress;
+  DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)LoadAddress;
   DriverEntry->LoadedImage->ImageSize     = ImageContext.SizeOfImage;
   DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;
@@ -611,10 +614,10 @@ SmmLoadImage (
     return Status;
   }
 
-  CopyMem (DriverEntry->SmmLoadedImage.FilePath, FilePath, GetDevicePathSize (FilePath));
+  CopyMem (DriverEntry->SmmLoadedImage.FilePath, FilePath, GetDevicePathSize(FilePath));
 
-  DriverEntry->SmmLoadedImage.ImageBase     = (VOID *)(UINTN)ImageContext.DestAddress;
-  DriverEntry->SmmLoadedImage.ImageSize     = ImageContext.SizeOfImage;
+  DriverEntry->SmmLoadedImage.ImageBase = (VOID *)(UINTN)LoadAddress;
+  DriverEntry->SmmLoadedImage.ImageSize = ImageContext.SizeOfImage;
   DriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
@@ -655,12 +658,10 @@ SmmLoadImage (
   UINTN  StartIndex;
   CHAR8  EfiFileName[256];
 
-  DEBUG ((
-    DEBUG_INFO | DEBUG_LOAD,
-    "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)ImageContext.DestAddress,
-    FUNCTION_ENTRY_POINT (ImageContext.EntryPoint)
-    ));
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD,
+           "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
+           (VOID *)(UINTN)LoadAddress,
+           FUNCTION_ENTRY_POINT (ImageContext.EntryPoint)));
 
   //
   // Print Module Name by Pdb file path.

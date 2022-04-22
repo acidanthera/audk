@@ -1119,7 +1119,7 @@ ConvertPeiCorePpiPointers (
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)(ImageContext.DestAddress + ImageContext.AddressOfEntryPoint) - (UINTN)PeiCoreImageBase);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)(ImageContext.ImageBase + ImageContext.AddressOfEntryPoint) - (UINTN)PeiCoreImageBase);
 
     //
     // Size of loaded PEI_CORE in permanent memory.
