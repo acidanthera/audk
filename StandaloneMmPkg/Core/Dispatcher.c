@@ -206,7 +206,7 @@ MmLoadImage (
   UINTN                         PageCount;
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          DstBuffer;
-  UINTN                          ImageBase
+  UINTN                          ImageBase;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
@@ -244,7 +244,7 @@ MmLoadImage (
     return Status;
   }
 
-  DstBuffer = PeCoffLoaderGetDestinationAddress (&ImageContext);
+  ImageBase = PeCoffLoaderGetDestinationAddress (&ImageContext);
 
   //
   // Flush the instruction cache so the image data are written before we execute it
@@ -254,7 +254,7 @@ MmLoadImage (
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint = DstBuffer + PeCoffGetEntryPoint (&ImageContext);
+  DriverEntry->ImageEntryPoint  = ImageBase + PeCoffGetEntryPoint (&ImageContext);
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -265,7 +265,6 @@ MmLoadImage (
                                               (VOID **)&DriverEntry->LoadedImage
                                               );
     if (EFI_ERROR (Status)) {
-      // FIXME: Check buffer vs image start usage *everywhere*
       MmFreePages (DstBuffer, PageCount);
       return Status;
     }
@@ -281,7 +280,7 @@ MmLoadImage (
     DriverEntry->LoadedImage->DeviceHandle = NULL;
     DriverEntry->LoadedImage->FilePath     = NULL;
 
-    DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)DriverEntry->ImageBuffer;
+    DriverEntry->LoadedImage->ImageBase     = (VOID *) ImageBase;
     DriverEntry->LoadedImage->ImageSize     = ImageSize;
     DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
     DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;

@@ -409,8 +409,6 @@ LoadAndRelocatePeCoffImageInPlace (
     return Status;
   }
 
-  ImageAddress = (VOID *) PeCoffLoaderGetDestinationAddress (&ImageContext);
-
   return Status;
 }
 
@@ -571,7 +569,6 @@ PeiLoadImageLoadImage (
   //
   // Got the entry point from the loaded Pe32Data
   //
-  Pe32Data    = (VOID *)((UINTN)ImageAddress);
   *EntryPoint = ImageAddress + PeCoffGetEntryPoint (&ImageContext);
 
   Machine = PeCoffGetMachineType (&ImageContext);

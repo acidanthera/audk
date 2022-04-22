@@ -564,7 +564,8 @@ CoreLoadPeImage (
   EFI_MEMORY_TYPE ImageCodeMemoryType;
   EFI_MEMORY_TYPE ImageDataMemoryType;
   PE_COFF_RUNTIME_CONTEXT      *RelocationData;
-  EFI_PHYSICAL_ADDRESS LoadAddress;
+  EFI_PHYSICAL_ADDRESS BufferAddress;
+  UINTN                LoadAddress;
   UINT32               RelocDataSize;
 
   RelocationData = NULL;
@@ -608,7 +609,7 @@ CoreLoadPeImage (
 
   Size = PeCoffLoaderGetDestinationSize (ImageContext);
 
-  LoadAddress = 0;
+  BufferAddress = 0;
   //
   // Allocate memory of the correct memory type aligned on the required image boundary
   //
@@ -632,7 +633,7 @@ CoreLoadPeImage (
     // a specified address.
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
-      Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, &LoadAddress);
+      Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
 
       if (EFI_ERROR (Status)) {
         //
@@ -644,7 +645,7 @@ CoreLoadPeImage (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &LoadAddress
+                     &BufferAddress
                    );
       }
     } else {
@@ -653,7 +654,7 @@ CoreLoadPeImage (
                    AllocateAddress,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &LoadAddress
+                   &BufferAddress
                    );
       }
 
@@ -662,7 +663,7 @@ CoreLoadPeImage (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
-                   &LoadAddress
+                   &BufferAddress
                    );
       }
     }
@@ -673,13 +674,13 @@ CoreLoadPeImage (
     }
 
     DstBufAlocated = TRUE;
-    *DstBuffer = LoadAddress;
+    *DstBuffer = BufferAddress;
   } else {
     //
     // Caller provided the destination buffer
     //
 
-    if (PeCoffRelocsStripped (ImageContext) && (LoadAddress != *DstBuffer)) {
+    if (PeCoffRelocsStripped (ImageContext) && (BufferAddress != *DstBuffer)) {
       //
       // If the image relocations were stripped, and the caller provided a
       // destination buffer address that does not match the address that the
@@ -699,10 +700,10 @@ CoreLoadPeImage (
     }
 
     Image->NumberOfPages             = EFI_SIZE_TO_PAGES (Size);
-    LoadAddress = *DstBuffer;
+    BufferAddress = *DstBuffer;
   }
 
-  Image->ImageBasePage = LoadAddress;
+  Image->ImageBasePage = BufferAddress;
 
   //
   // If this is a Runtime Driver, then allocate memory for the FixupData that
@@ -731,7 +732,7 @@ CoreLoadPeImage (
   //
   Status = PeCoffLoadImageForExecution (
     ImageContext,
-    (VOID *)(UINTN)LoadAddress,
+    (VOID *)(UINTN)BufferAddress,
     Size,
     RelocationData,
     RelocDataSize
@@ -869,8 +870,8 @@ Done:
   //
 
   if (DstBufAlocated) {
-    ZeroMem ((VOID *)(UINTN)LoadAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
-    CoreFreePages (LoadAddress, Image->NumberOfPages);
+    ZeroMem ((VOID *)(UINTN)BufferAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
+    CoreFreePages (BufferAddress, Image->NumberOfPages);
     Image->ImageBasePage             = 0;
   }
 
@@ -946,7 +947,7 @@ CoreUnloadAndCloseImage (
     //
     // If the PE/COFF Emulator protocol exists we must unregister the image.
     //
-    Image->PeCoffEmu->UnregisterImage (Image->PeCoffEmu, Image->ImageBasePage);
+    Image->PeCoffEmu->UnregisterImage (Image->PeCoffEmu, (UINTN) Image->Info.ImageBase);
   }
 
   //
@@ -1630,8 +1631,8 @@ CoreStartImage (
   if (Image->PeCoffEmu != NULL) {
     Status = Image->PeCoffEmu->RegisterImage (
                                  Image->PeCoffEmu,
-                                 Image->ImageBasePage,
-                                 EFI_PAGES_TO_SIZE (Image->NumberOfPages),
+                                 (UINTN) Image->Info.ImageBase,
+                                 Image->Info.ImageSize,
                                  &Image->EntryPoint
                                  );
     if (EFI_ERROR (Status)) {

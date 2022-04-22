@@ -528,7 +528,7 @@ SmmLoadImage (
   // Save Image EntryPoint in DriverEntry
   //
   DriverEntry->ImageEntryPoint  = LoadAddress + PeCoffGetEntryPoint (ImageContext);
-  DriverEntry->ImageBuffer      = LoadAddress;
+  DriverEntry->ImageBuffer      = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
   //
@@ -909,7 +909,7 @@ SmmDispatcher (
           ));
         UnregisterSmramProfileImage (
           &DriverEntry->FileName,
-          DriverEntry->ImageBuffer,
+          (UINTN) DriverEntry->LoadedImage->ImageBase,
           DriverEntry->LoadedImage->ImageSize,
           TRUE
           );
