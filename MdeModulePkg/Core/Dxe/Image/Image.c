@@ -252,7 +252,6 @@ CoreInitializeImageServices (
   //
   // Fill in DXE globals
   //
-  // FIXME:
   mDxeCoreImageMachineType = ImageContext->Machine;
   gDxeCoreImageHandle      = Image->Handle;
   gDxeCoreLoadedImage      = &Image->Info;
@@ -461,7 +460,6 @@ GetPeCoffImageFixLoadingAssignedAddress (
        //
        ValueInSectionHeader = ReadUnaligned64((UINT64*)&Sections[Index].PointerToRelocations);
 
-       // FIXME: Don't write to context!!
        if (ValueInSectionHeader != 0) {
          //
          // When the feature is configured as load module at fixed absolute address, the ImageAddress field of ImageContext
@@ -834,26 +832,29 @@ CoreLoadPeImage (
   //
 
   // FIXME:
-  //DEBUG_CODE_BEGIN ();
+  DEBUG_CODE_BEGIN ();
 
-  //UINTN  Index;
-  //UINTN  StartIndex;
-  //CHAR8  EfiFileName[256];
+  CHAR8  *PdbPath;
+    UINT32 PdbSize;
+    UINTN  Index;
+  UINTN  StartIndex;
+  CHAR8  EfiFileName[256];
 
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading driver at 0x%11p EntryPoint=0x%11p \n",
            (VOID *)(UINTN)LoadAddress,
            FUNCTION_ENTRY_POINT (LoadAddress + ImageContext->AddressOfEntryPoint)));
 
+    Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbSize);
 
     //
     // Print Module Name by Pdb file path.
   // Windows and Unix style file path are all trimmed correctly.
   //
-  /*if (ImageContext->PdbPointer != NULL) {
+  if (!EFI_ERROR (Status)) {
     StartIndex = 0;
-    for (Index = 0; ImageContext->PdbPointer[Index] != 0; Index++) {
-      if ((ImageContext->PdbPointer[Index] == '\\') || (ImageContext->PdbPointer[Index] == '/')) {
+    for (Index = 0; PdbPath[Index] != 0; Index++) {
+      if ((PdbPath[Index] == '\\') || (PdbPath[Index] == '/')) {
         StartIndex = Index + 1;
       }
     }
@@ -864,7 +865,7 @@ CoreLoadPeImage (
     // If the length is bigger than 255, trim the redudant characters to avoid overflow in array boundary.
     //
     for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-        EfiFileName[Index] = ImageContext->PdbPointer[Index + StartIndex];
+        EfiFileName[Index] = PdbPath[Index + StartIndex];
       if (EfiFileName[Index] == 0) {
         EfiFileName[Index] = '.';
       }
@@ -887,7 +888,7 @@ CoreLoadPeImage (
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "\n"));
 
-  DEBUG_CODE_END ();*/
+  DEBUG_CODE_END ();
 
   return EFI_SUCCESS;
 

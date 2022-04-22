@@ -478,7 +478,7 @@
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE
   gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE
-  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|FALSE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeMemorySize|1
 !if $(SMM_REQUIRE) == FALSE
