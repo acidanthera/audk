@@ -831,7 +831,6 @@ CoreLoadPeImage (
   // Print the load address and the PDB file name if it is available
   //
 
-  // FIXME:
   DEBUG_CODE_BEGIN ();
 
   CHAR8  *PdbPath;
