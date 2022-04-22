@@ -69,7 +69,7 @@ PeCoffLoaderGetHiiResourceSection (
     return RETURN_NOT_FOUND;
   }
 
-  if (!IS_ALIGNED (DirectoryEntry->VirtualAddress, OC_ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
+  if (!IS_ALIGNED (DirectoryEntry->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
     DEBUG ((DEBUG_WARN, "%u, %u\n", DirectoryEntry->VirtualAddress, DirectoryEntry->Size));
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
@@ -119,7 +119,7 @@ PeCoffLoaderGetHiiResourceSection (
     }
 
     Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
-    if (!IS_ALIGNED (Offset, OC_ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
+    if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -155,7 +155,7 @@ PeCoffLoaderGetHiiResourceSection (
     }
 
     Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
-    if (!IS_ALIGNED (Offset, OC_ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
+    if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -189,7 +189,7 @@ PeCoffLoaderGetHiiResourceSection (
   }
 
   Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
-  if (!IS_ALIGNED (Offset, OC_ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
+  if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }

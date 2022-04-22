@@ -20,12 +20,12 @@
   IMAGE_RELOC_TYPE_SUPPORTED (IMAGE_RELOC_TYPE (Reloc))
 
 //
-// 4 byte alignment has been replaced with OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
+// 4 byte alignment has been replaced with ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
 // for proof simplicity. This obviously was the original intention of the
 // specification. Assert in case the equality is not given.
 //
 STATIC_ASSERT (
-  sizeof (UINT32) == OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+  sizeof (UINT32) == ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
   "The current model violates the PE specification"
   );
 

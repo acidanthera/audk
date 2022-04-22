@@ -18,7 +18,7 @@
 
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
-#define OC_ALIGNOF        _Alignof
+#define ALIGNOF        _Alignof
 
 /**
   Returns the type of a Base Relocation.

@@ -7,8 +7,8 @@
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef OC_OVERFLOW_H
-#define OC_OVERFLOW_H
+#ifndef BASE_OVERFLOW_H
+#define BASE_OVERFLOW_H
 
 BOOLEAN
 BaseOverflowAddU32 (
@@ -45,4 +45,4 @@ BaseOverflowAlignUpU32 (
   OUT UINT32  *Result
   );
 
-#endif // OC_OVERFLOW_H
+#endif // BASE_OVERFLOW_H

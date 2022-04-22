@@ -248,7 +248,7 @@ InternalValidateRelocInfo (
     //
     // Ensure the Relocation Directory start is correctly aligned.
     //
-    if (!IS_ALIGNED (Context->RelocDirRva, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+    if (!IS_ALIGNED (Context->RelocDirRva, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -314,7 +314,7 @@ InternalInitializeTe (
   }
 
   STATIC_ASSERT (
-    IS_ALIGNED (sizeof (*TeHdr), OC_ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
+    IS_ALIGNED (sizeof (*TeHdr), ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
     "The section alignment requirements are violated."
     );
   //
@@ -409,14 +409,14 @@ InternalInitializePe (
   UINT32                                MinSizeOfImage;
 
   ASSERT (Context != NULL);
-  ASSERT (IS_ALIGNED (Context->ExeHdrOffset, OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR)));
+  ASSERT (IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR)));
 
   OptHdrPtr = (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset;
   OptHdrPtr += sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
 
   STATIC_ASSERT (
-    IS_ALIGNED (OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR), OC_ALIGNOF (UINT16))
-   && IS_ALIGNED (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR), OC_ALIGNOF (UINT16)),
+    IS_ALIGNED (ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR), ALIGNOF (UINT16))
+   && IS_ALIGNED (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR), ALIGNOF (UINT16)),
     "The following operation might be an unaligned access."
   );
   //
@@ -430,7 +430,7 @@ InternalInitializePe (
       }
 
       STATIC_ASSERT (
-        OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR) == OC_ALIGNOF (EFI_IMAGE_NT_HEADERS32),
+        ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR) == ALIGNOF (EFI_IMAGE_NT_HEADERS32),
         "The following operations may be unaligned."
         );
 
@@ -463,7 +463,7 @@ InternalInitializePe (
         return RETURN_UNSUPPORTED;
       }
 
-      if (!IS_ALIGNED (Context->ExeHdrOffset, OC_ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
+      if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
         ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -540,7 +540,7 @@ InternalInitializePe (
   //
   // Ensure the section headers offset is properly aligned.
   //
-  if (!IS_ALIGNED (Context->SectionsOffset, OC_ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
+  if (!IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -725,13 +725,13 @@ PeCoffInitializeContext (
     return RETURN_UNSUPPORTED;
   }
 
-  if (!IS_ALIGNED (Context->ExeHdrOffset, OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
+  if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   STATIC_ASSERT (
-    OC_ALIGNOF (UINT32) <= OC_ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR),
+    ALIGNOF (UINT32) <= ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR),
     "The following access may be performed unaligned"
     );
   //

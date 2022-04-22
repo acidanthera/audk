@@ -307,7 +307,7 @@ InternalApplyRelocation (
       }
 
       // FIXME: 32-bit
-      if (!IS_ALIGNED (RelocTarget, OC_ALIGNOF (UINT16))) {
+      if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT16))) {
         ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -390,7 +390,7 @@ PeCoffRelocateImage (
 
   TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
-    if (!IS_ALIGNED (TopOfRelocDir, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+    if (!IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -435,14 +435,14 @@ PeCoffRelocateImage (
 
     if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
       RelocBlockSize = RelocWalker->SizeOfBlock;
-      if (!IS_ALIGNED (RelocBlockSize, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+      if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
         ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
     } else {
       Result = BaseOverflowAlignUpU32 (
                  RelocWalker->SizeOfBlock,
-                 OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                 ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
                  &RelocBlockSize
                  );
       if (Result) {
@@ -500,7 +500,7 @@ PeCoffRelocateImage (
   if (PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
     Result = BaseOverflowAlignUpU32 (
                TopOfRelocDir,
-               OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+               ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
                &TopOfRelocDir
                );
     if (Result) {
@@ -709,7 +709,7 @@ PeCoffRelocateImageForRuntime (
                     );
 
     STATIC_ASSERT (
-      (sizeof (UINT32) % OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)) == 0,
+      (sizeof (UINT32) % ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)) == 0,
       "The following accesses must be performed unaligned."
       );
 
@@ -717,7 +717,7 @@ PeCoffRelocateImageForRuntime (
 
     SizeOfRelocs = RelocWalker->SizeOfBlock - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
 
-    ASSERT (IS_ALIGNED (RelocWalker->SizeOfBlock, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)));
+    ASSERT (IS_ALIGNED (RelocWalker->SizeOfBlock, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)));
     //
     // This division is safe due to the guarantee made above.
     //
