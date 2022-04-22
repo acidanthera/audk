@@ -184,6 +184,9 @@ FindAndReportEntryPoints (
   Status = PeCoffInitializeContext (&ImageContext, (VOID*)(UINTN)PeiCoreImageBase, 0xFFFFFFFF);
   ASSERT_EFI_ERROR (Status);
 
+  Status = PeCoffLoadImageInplace (&ImageContext);
+  ASSERT_EFI_ERROR (Status);
+
   //
   // Find PEI Core entry point
   //

@@ -278,7 +278,7 @@ LoadAndRelocatePeCoffImage (
   //
   LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
 
-  AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
+  AlignImageSize = 0;
 
   //
   // Allocate Memory for the image when memory is ready, and image is relocatable.
@@ -326,7 +326,7 @@ LoadAndRelocatePeCoffImage (
         // XIP image can still be invoked.
         //
         LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
-        AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
+        //AlignImageSize = PeCoffGetSizeOfImage (ImageContext);
         ReturnStatus              = EFI_WARN_BUFFER_TOO_SMALL;
       } else {
         //
@@ -338,35 +338,37 @@ LoadAndRelocatePeCoffImage (
     }
   }
 
-  // TODO: Why load XIP image?
-  //if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
-  //
-  // Load the image to our new buffer
-  //
-  Status = PeCoffLoadImage (ImageContext, (VOID *) (UINTN) LoadAddress, AlignImageSize);
-  if (EFI_ERROR (Status)) {
-    // TODO: Fix?
-    //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
-      //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, PeCoffGetSectionAlignment (&ImageContext)));
-    //}
-    return Status;
-  }
+  if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
+    //
+    // Load the image to our new buffer
+    //
+    Status = PeCoffLoadImage (ImageContext, (VOID *) (UINTN) LoadAddress, AlignImageSize);
+    if (EFI_ERROR (Status)) {
+      // TODO: Fix?
+      //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
+        //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, PeCoffGetSectionAlignment (&ImageContext)));
+      //}
+      return Status;
+    }
 
-  //
-  // Relocate the image in our new buffer
-  //
-  LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
-  Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-  //}
+    //
+    // Relocate the image in our new buffer
+    //
+    LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
+    Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
 
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
+    //
+    // Flush the instruction cache so the image data is written before we execute it
+    //
     InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (ImageContext));
+  } else {
+    Status = PeCoffLoadImageInplace (ImageContext);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
   }
 
   *ImageAddress = LoadAddress;
