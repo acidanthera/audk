@@ -605,7 +605,7 @@ CoreLoadPeImage (
     return EFI_UNSUPPORTED;
   }
 
-  // FIXME: param...
+  // FIXME: function call
   if (ImageContext->SectionAlignment > EFI_PAGE_SIZE) {
     Size = (UINTN)ImageContext->SizeOfImage + ImageContext->SectionAlignment;
   } else {

@@ -14,7 +14,7 @@
 
 #include <Library/PeCoffLib.h>
 
-// FIXME: WTF?
+// FIXME: Duplication of private data?
 //
 // It should be aligned with the definition in PiSmmCore.
 //

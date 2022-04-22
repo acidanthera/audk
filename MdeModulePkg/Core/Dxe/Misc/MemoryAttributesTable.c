@@ -881,7 +881,6 @@ SplitTable (
 
   *MemoryMapSize = (*MemoryMapSize) + DescriptorSize * TotalSplitRecordCount;
 
-  // FIXME: Purge?
   //
   // Sort from low to high (Just in case)
   //

@@ -880,7 +880,6 @@ SmmDispatcher (
       //
       if (DriverEntry->ImageHandle == NULL) {
         Status = SmmLoadImage (DriverEntry);
-        // FIXME: What in the fucking world is this...?
         //
         // Update the driver state to reflect that it's been loaded
         //

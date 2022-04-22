@@ -163,7 +163,6 @@ GetUefiImageProtectionPolicy (
   }
 
   if (InSmm) {
-    // FIXME: Please...
     return FALSE;
   }
 
@@ -499,10 +498,6 @@ UnprotectUefiImage (
   IMAGE_PROPERTIES_RECORD  *ImageRecord;
   LIST_ENTRY                 *ImageRecordLink;
 
-  //
-  // FIXME: Borked function only dropped images after CpuDxe
-  //
-
   for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
         ImageRecordLink != &mProtectedImageRecordList;
         ImageRecordLink = ImageRecordLink->ForwardLink)
@@ -515,13 +510,9 @@ UnprotectUefiImage (
                     );
 
     if (ImageRecord->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
-      if (gCpu != NULL) {
-        SetUefiImageMemoryAttributes (
-          ImageRecord->ImageBase,
-          ImageRecord->ImageSize,
-          EFI_MEMORY_XP
-          );
-      }
+      SetUefiImageMemoryAttributes (ImageRecord->ImageBase,
+                                    ImageRecord->ImageSize,
+                                    EFI_MEMORY_XP);
       RemoveEntryList (&ImageRecord->Link);
       FreePool (ImageRecord);
       return;
@@ -1104,7 +1095,6 @@ IsInSmm (
   @return other             Return value of gCpu->SetMemoryAttributes()
 
 **/
-// FIXME: Permissions might not match type
 EFI_STATUS
 EFIAPI
 ApplyMemoryProtectionPolicy (

@@ -409,7 +409,7 @@ LoadAndRelocatePeCoffImageInPlace (
   EFI_STATUS                    Status;
   PE_COFF_LOADER_IMAGE_CONTEXT    ImageContext;
 
-  // FIXME: File size?
+  // FIXME: File size
   Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
@@ -419,7 +419,7 @@ LoadAndRelocatePeCoffImageInPlace (
   //
   // Load the image in place
   //
-  // FIXME: Destination size ???
+  // FIXME: Destination size
   Status = PeCoffLoadImage (&ImageContext, ImageAddress, 0xFFFFFFFF);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
