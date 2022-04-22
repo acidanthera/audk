@@ -357,6 +357,8 @@ PeCoffRelocateImage (
 
   UINT32                                RelocOffset;
   UINT32                                RelocMax;
+  UINT32                                RelocBlockSize;
+  UINT32                                TopOfRelocDir;
 
   UINT32                                RelocIndex;
 
@@ -386,6 +388,14 @@ PeCoffRelocateImage (
     return RETURN_SUCCESS;
   }
 
+  TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
+  if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+    if (!IS_ALIGNED (TopOfRelocDir, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
   if (RelocationData != NULL) {
     RelocationData->RelocDirRva = Context->RelocDirRva;
     RelocationData->RelocDirSize = Context->RelocDirSize;
@@ -394,7 +404,7 @@ PeCoffRelocateImage (
   // Apply Base Relocation fixups to the image.
   //
   RelocOffset = Context->RelocDirRva;
-  RelocMax = Context->RelocDirRva + Context->RelocDirSize - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
+  RelocMax = TopOfRelocDir - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
   RelocDataIndex = 0;
   //
   // Process all Base Relocation Blocks.
@@ -423,10 +433,22 @@ PeCoffRelocateImage (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!IS_ALIGNED (RelocWalker->SizeOfBlock, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-      DEBUG ((DEBUG_INFO, "RelocSize %u\n", RelocWalker->SizeOfBlock));
-      ASSERT (FALSE);
-      return RETURN_UNSUPPORTED;
+    if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+      RelocBlockSize = RelocWalker->SizeOfBlock;
+      if (!IS_ALIGNED (RelocBlockSize, OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+        ASSERT (FALSE);
+        return RETURN_UNSUPPORTED;
+      }
+    } else {
+      Result = BaseOverflowAlignUpU32 (
+                 RelocWalker->SizeOfBlock,
+                 OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                 &RelocBlockSize
+                 );
+      if (Result) {
+        ASSERT (FALSE);
+        return RETURN_UNSUPPORTED;
+      }
     }
 
     //
@@ -472,12 +494,24 @@ PeCoffRelocateImage (
     }
 
     RelocDataIndex += NumRelocs;
-    RelocOffset += RelocWalker->SizeOfBlock;
+    RelocOffset += RelocBlockSize;
+  }
+
+  if (PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
+    Result = BaseOverflowAlignUpU32 (
+               TopOfRelocDir,
+               OC_ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+               &TopOfRelocDir
+               );
+    if (Result) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
   }
   //
   // Ensure the Relocation Directory size matches the contained data.
   //
-  if (RelocOffset != RelocMax + sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK)) {
+  if (RelocOffset != TopOfRelocDir) {
     ASSERT (FALSE);
     return RETURN_UNSUPPORTED;
   }
