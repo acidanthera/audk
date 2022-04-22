@@ -11,6 +11,7 @@
 #include <Uefi/UefiBaseType.h>
 
 #include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
 #include <Library/PeCoffLib.h>
 
 #include "BaseOverflow.h"
@@ -63,7 +64,14 @@ PeCoffGetSizeOfImage (
 {
   ASSERT (Context != NULL);
 
-  return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
+  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
+    ASSERT (Context->SizeOfImage + Context->SizeOfImageDebugAdd >= Context->SizeOfImage);
+    return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
+  }
+
+  ASSERT (Context->SizeOfImageDebugAdd == 0);
+
+  return Context->SizeOfImage;
 }
 
 RETURN_STATUS
