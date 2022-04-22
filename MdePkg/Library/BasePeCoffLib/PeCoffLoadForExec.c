@@ -34,9 +34,38 @@ PeCoffLoadImageForExecution (
 
   SizeOfImage = PeCoffGetSizeOfImage (Context);
   //
-  // Flush the instruction cache so the image data is written before we execute it
+  // Flush the instruction cache so the image data is written before we execute
+  // it.
   //
   InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
+
+  return RETURN_SUCCESS;
+}
+
+RETURN_STATUS
+PeCoffRelocateImageForRuntimeExecution (
+  IN OUT VOID                           *Image,
+  IN     UINT32                         ImageSize,
+  IN     UINT64                         BaseAddress,
+  IN     CONST PE_COFF_RUNTIME_CONTEXT  *RelocationData
+  )
+{
+  RETURN_STATUS Status;
+
+  Status = PeCoffRelocateImageForRuntime (
+             Image,
+             ImageSize,
+             BaseAddress,
+             RelocationData
+             );
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+  //
+  // Flush the instruction cache so the image data is written before we execute
+  // it.
+  //
+  InvalidateInstructionCacheRange (Image, ImageSize);
 
   return RETURN_SUCCESS;
 }
