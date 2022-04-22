@@ -431,15 +431,9 @@ PeCoffRelocateImage (
   }
 
   TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) == 0) {
-    if (!IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-      CRITICAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
-  }
 
   if (RuntimeContext != NULL) {
-    RuntimeContext->RelocDirRva = Context->RelocDirRva;
+    RuntimeContext->RelocDirRva  = Context->RelocDirRva;
     RuntimeContext->RelocDirSize = Context->RelocDirSize;
   }
   //
@@ -448,6 +442,23 @@ PeCoffRelocateImage (
   RelocOffset = Context->RelocDirRva;
   RelocMax = TopOfRelocDir - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
   RelocDataIndex = 0;
+  //
+  // Align TopOfRelocDir because, if the policy does not demand Relocation Block
+  // sizes to be aligned, the code below will manually align them. Thus, the
+  // end offset of the last Relocation Block must be compared to a manually
+  // aligned Relocation Directoriy end offset.
+  //
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) != 0) {
+    Overflow = BaseOverflowAlignUpU32 (
+                 TopOfRelocDir,
+                 ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                 &TopOfRelocDir
+                 );
+    if (Overflow) {
+      CRITICAL_ERROR (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  }
   //
   // Process all Base Relocation Blocks.
   //
@@ -482,15 +493,15 @@ PeCoffRelocateImage (
         return RETURN_UNSUPPORTED;
       }
     } else {
-      Overflow = BaseOverflowAlignUpU32 (
-                   RelocWalker->SizeOfBlock,
-                   ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
-                   &RelocBlockSize
-                   );
-      if (Overflow) {
-        CRITICAL_ERROR (FALSE);
-        return RETURN_UNSUPPORTED;
-      }
+      //
+      // This arithmetics cannot overflow because we know
+      //   1) RelocWalker->SizeOfBlock <= RelocMax <= TopOfRelocDir
+      //   2) IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)).
+      //
+      RelocBlockSize = ALIGN_VALUE (
+                         RelocWalker->SizeOfBlock,
+                         ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
+                         );
     }
 
     //
@@ -537,18 +548,6 @@ PeCoffRelocateImage (
 
     RelocDataIndex += NumRelocs;
     RelocOffset += RelocBlockSize;
-  }
-
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) != 0) {
-    Overflow = BaseOverflowAlignUpU32 (
-                 TopOfRelocDir,
-                 ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
-                 &TopOfRelocDir
-                 );
-    if (Overflow) {
-      CRITICAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
   }
   //
   // Ensure the Relocation Directory size matches the contained data.
