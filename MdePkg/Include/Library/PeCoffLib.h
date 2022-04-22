@@ -226,7 +226,7 @@ PeCoffDiscardSections (
 **/
 RETURN_STATUS
 PeCoffRelocationDataSize (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                       *Size
   );
 
@@ -246,7 +246,7 @@ PeCoffRelocationDataSize (
 **/
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT64                       BaseAddress,
   OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
   IN  UINT32                       RelocationDataSize
@@ -313,7 +313,7 @@ PeCoffLoaderLoadCodeView (
 **/
 RETURN_STATUS
 PeCoffGetPdbPath (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT CHAR8                        **PdbPath,
   OUT UINT32                       *PdbPathSize
   );
@@ -331,7 +331,7 @@ PeCoffGetPdbPath (
 **/
 BOOLEAN
 PeCoffHashImage (
-  IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
   IN OUT VOID                         *HashContext
   );
@@ -356,7 +356,7 @@ PeCoffGetSections (
 
 RETURN_STATUS
 PeCoffLoaderGetHiiResourceSection (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                              *HiiOffset,
   OUT UINT32                              *MaxHiiSize
   );

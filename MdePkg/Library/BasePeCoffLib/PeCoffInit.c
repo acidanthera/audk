@@ -123,7 +123,7 @@
 STATIC
 RETURN_STATUS
 InternalVerifySections (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT32                       FileSize,
   OUT UINT32                       *StartAddress,
   OUT UINT32                       *EndAddress
@@ -515,7 +515,7 @@ InternalVerifySections (
 STATIC
 RETURN_STATUS
 InternalValidateRelocInfo (
-  IN CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN UINT32                       StartAddress
   )
 {

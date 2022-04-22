@@ -95,7 +95,7 @@
 STATIC
 VOID
 InternalLoadSections (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT32                       LoadedHeaderSize,
   OUT VOID                         *Destination,
   IN  UINT32                       DestinationSize
