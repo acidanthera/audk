@@ -39,7 +39,7 @@ typedef struct {
   ///
   CONST VOID *FileBuffer;
   ///
-  /// The size, in bytes, of FileBuffer.
+  /// The size, in Bytes, of FileBuffer.
   ///
   UINT32     FileSize;
   ///
@@ -55,15 +55,15 @@ typedef struct {
   ///
   UINT16     NumberOfSections;
   ///
-  /// The size, in bytes, required to load the Image.
+  /// The size, in Bytes, required to load the Image.
   ///
   UINT32     SizeOfImage;
   ///
-  /// The additional size, in bytes, required to force-load debug information.
+  /// The additional size, in Bytes, required to force-load debug information.
   ///
   UINT32     SizeOfImageDebugAdd;
   ///
-  /// The alignment, in bytes, of Image Sections virtual addresses.
+  /// The alignment, in Bytes, of Image Sections virtual addresses.
   ///
   UINT32     SectionAlignment;
   ///
@@ -71,7 +71,7 @@ typedef struct {
   ///
   UINT32     ExeHdrOffset;
   ///
-  /// The combined size, in bytes, of all Image Headers.
+  /// The combined size, in Bytes, of all Image Headers.
   ///
   UINT32     SizeOfHeaders;
   ///
@@ -95,7 +95,7 @@ typedef struct {
   ///
   UINT16     Machine;
   ///
-  /// The size, in bytes, stripped from the beginning of the Image raw file
+  /// The size, in Bytes, stripped from the beginning of the Image raw file
   /// during TE file generation. Always 0 for PE Images.
   ///
   UINT16     TeStrippedOffset;
@@ -104,7 +104,7 @@ typedef struct {
   ///
   UINT32     RelocDirRva;
   ///
-  /// The size, in bytes, of the Relocation Directory.
+  /// The size, in Bytes, of the Relocation Directory.
   ///
   UINT32     RelocDirSize;
   ///
@@ -112,7 +112,7 @@ typedef struct {
   ///
   UINT32     SecDirOffset;
   ///
-  /// The size, in bytes, of the Security Directory.
+  /// The size, in Bytes, of the Security Directory.
   ///
   UINT32     SecDirSize;
   ///
@@ -130,7 +130,7 @@ typedef struct {
   ///
   UINT32 RelocDirRva;
   ///
-  /// The size, in bytes, of the Relocation Directory.
+  /// The size, in Bytes, of the Relocation Directory.
   ///
   UINT32 RelocDirSize;
   ///
@@ -145,7 +145,7 @@ typedef struct {
 
   @param[in,out] HashContext  The context of the current hash.
   @param[in]     Data         Pointer to the data to be hashed.
-  @param[in]     DataSize     The size, in bytes, of Data.
+  @param[in]     DataSize     The size, in Bytes, of Data.
 
   @returns  Whether hashing has been successful.
 **/
@@ -164,7 +164,7 @@ BOOLEAN
   Image Section Headers and basic Relocation information must be correct.
 
   @param[out] Context   The context describing the Image.
-  @param[in]  FileSize  The size, in bytes, of Context->FileBuffer.
+  @param[in]  FileSize  The size, in Bytes, of Context->FileBuffer.
 
   @retval RETURN_SUCCESS  The file data is correct.
   @retval other           The file data is malformed.
@@ -183,7 +183,7 @@ PeCoffInitializeContext (
                                initialised by PeCoffInitializeContext().
   @param[out] Destination      The Image destination memory. Must be allocated
                                from page memory.
-  @param[in]  DestinationSize  The size, in bytes, of Destination.
+  @param[in]  DestinationSize  The size, in Bytes, of Destination.
                                Must be at least
                                Context->SizeOfImage +
                                Context->SizeOfImageDebugAdd. If the Section
@@ -240,7 +240,7 @@ PeCoffDiscardSections (
 
   @param[in]  Context  The context describing the Image. Must have been loaded
                        by PeCoffLoadImage().
-  @param[out] Size     On output, the size, in bytes, of the bookkeeping buffer.
+  @param[out] Size     On output, the size, in Bytes, of the bookkeeping buffer.
 
   @retval RETURN_SUCCESS  The Runtime context size for the Image was retrieved
                           successfully.
@@ -261,7 +261,7 @@ PeCoffLoaderGetRuntimeContextSize (
   @param[in]  BaseAddress         The address to relocate the Image to.
   @param[out] RuntimeContext      If not NULL, on output, a buffer bookkeeping
                                   data required for Runtime Relocation.
-  @param[in]  RuntimeContextSize  The size, in bytes, of RuntimeContext. Must be
+  @param[in]  RuntimeContextSize  The size, in Bytes, of RuntimeContext. Must be
                                   at least as big as
                                   PeCoffLoaderGetRuntimeContextSize().
 
@@ -281,7 +281,7 @@ PeCoffRelocateImage (
 
   @param[in]  Image           The Image destination memory. Must have been
                               relocated by PeCoffRelocateImage().
-  @param[in]  ImageSize       The size, in bytes, of Image.
+  @param[in]  ImageSize       The size, in Bytes, of Image.
   @param[in]  BaseAddress     The address to relocate the Image to.
   @param[in]  RuntimeContext  The Relocation context obtained by
                               PeCoffRelocateImage().
@@ -303,7 +303,7 @@ PeCoffRelocateImageForRuntime (
   @param[in,out] Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
   @param[out]    PdbPath      On output, a pointer to the Image PDB path.
-  @param[out]    PdbPathSize  On output, the size, in bytes, of *PdbPath.
+  @param[out]    PdbPathSize  On output, the size, in Bytes, of *PdbPath.
 
   @retval RETURN_SUCCESS  The Image PDB path was retrieved successfully.
   @retval other           The Image PDB path could not be retrieved

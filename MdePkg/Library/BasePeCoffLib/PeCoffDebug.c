@@ -57,7 +57,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // Retrieve the Debug Directory information of the Image.
   //
-  switch (Context->ImageType) { /* LCOV_EXCL_BR_LINE */
+  switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
       TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
                 (CONST CHAR8 *) Context->FileBuffer
@@ -75,7 +75,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
         return;
       }
 
-      DebugDir = &Pe32Hdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
+      DebugDir = Pe32Hdr->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_DEBUG;
       break;
 
     case PeCoffLoaderTypePe32Plus:
@@ -87,7 +87,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
         return;
       }
 
-      DebugDir = &Pe32PlusHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
+      DebugDir = Pe32PlusHdr->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_DEBUG;
       break;
 
     default:
@@ -145,8 +145,8 @@ PeCoffLoaderRetrieveCodeViewInfo (
   }
 
   DebugEntries = (CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (CONST VOID *) (
-                  (CONST CHAR8 *) Context->FileBuffer + DebugDirFileOffset
-                  );
+                   (CONST CHAR8 *) Context->FileBuffer + DebugDirFileOffset
+                   );
 
   NumDebugEntries = DebugDir->Size / sizeof (*DebugEntries);
 
@@ -388,7 +388,7 @@ PeCoffGetPdbPath (
     return RETURN_UNSUPPORTED;
   }
 
-  PdbName = (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
+  PdbName = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
 
   if (PdbName[PdbNameSize - 1] != 0) {
     CRITIAL_ERROR (FALSE);

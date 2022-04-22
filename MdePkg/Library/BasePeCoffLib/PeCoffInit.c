@@ -39,7 +39,7 @@
 
   @param[in]  Context       The context describing the Image. Must have been
                             initialised by PeCoffInitializeContext().
-  @param[in]  FileSize      The size, in bytes, of Context->FileBuffer.
+  @param[in]  FileSize      The size, in Bytes, of Context->FileBuffer.
   @param[out] StartAddress  On output, the RVA of the first Image Section.
   @param[out] EndAddress    On output, the size of the virtual address space.
 
@@ -136,7 +136,7 @@ InternalVerifySections (
         return RETURN_UNSUPPORTED;
       }
 
-      if ((SectRawEnd - Context->TeStrippedOffset) > FileSize) {
+      if (SectRawEnd - Context->TeStrippedOffset > FileSize) {
         CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -264,7 +264,7 @@ InternalValidateRelocInfo (
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
-  @param[in]     FileSize  The size, in bytes, of Context->FileBuffer.
+  @param[in]     FileSize  The size, in Bytes, of Context->FileBuffer.
 
   @retval RETURN_SUCCESS  The TE Image is correct.
   @retval other           The TE Image is malformed.
@@ -372,7 +372,7 @@ InternalInitializeTe (
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
-  @param[in]     FileSize  The size, in bytes, of Context->FileBuffer.
+  @param[in]     FileSize  The size, in Bytes, of Context->FileBuffer.
 
   @retval RETURN_SUCCESS  The PE Image is correct.
   @retval other           The PE Image is malformed.

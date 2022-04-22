@@ -567,8 +567,6 @@ PeCoffRelocateImage (
       );
   }
 
-  // FIXME: InvalidateInstructionCacheRange here?
-
   return RETURN_SUCCESS;
 }
 
@@ -681,7 +679,7 @@ PeCoffLoaderGetRuntimeContextSize (
 
   //
   // Request 64-bit of source value per 16-bit Base Relocation.
-  // This allocates too many bytes because it assumes that every Base Relocation
+  // This allocates too many Bytes because it assumes that every Base Relocation
   // refers to a 64-bit target and does not account for Base Relocation Block
   // headers.
   //

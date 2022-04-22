@@ -9,7 +9,7 @@
 #define BASE_PECOFF_LIB_INTERNALS_H_
 
 #define ALIGNOF           _Alignof
-#define CRITIAL_ERROR     ASSERT
+#define CRITIAL_ERROR(x)  ASSERT(x)
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
 
@@ -32,7 +32,7 @@ STATIC_ASSERT (
 
   @param[in,out]  Context   The context describing the Image. Must have been
                             initialised by PeCoffInitializeContext().
-  @param[in]      FileSize  The size, in bytes, of Context->FileBuffer.
+  @param[in]      FileSize  The size, in Bytes, of Context->FileBuffer.
 **/
 VOID
 PeCoffLoaderRetrieveCodeViewInfo (

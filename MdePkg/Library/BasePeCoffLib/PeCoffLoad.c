@@ -28,9 +28,9 @@
 
   @param[in]  Context           The context describing the Image. Must have been
                                 initialised by PeCoffInitializeContext().
-  @param[in]  LoadedHeaderSize  The size, in bytes, of the loaded Image Headers.
+  @param[in]  LoadedHeaderSize  The size, in Bytes, of the loaded Image Headers.
   @param[out] Destination       The Image destination memory.
-  @param[in]  DestinationSize   The size, in bytes, of Destination.
+  @param[in]  DestinationSize   The size, in Bytes, of Destination.
                                 Must be at least
                                 Context->SizeOfImage +
                                 Context->SizeOfImageDebugAdd. If the Section
@@ -142,7 +142,7 @@ PeCoffLoadImage (
   //
   // If configured, load the Image Headers into the memory space.
   //
-  if (Sections[0].VirtualAddress != 0 && PcdGetBool (PcdImageLoaderLoadHeader)) {
+  if (PcdGetBool (PcdImageLoaderLoadHeader) && Sections[0].VirtualAddress != 0) {
     LoadedHeaderSize = (Context->SizeOfHeaders - Context->TeStrippedOffset);
     CopyMem (AlignedDest, Context->FileBuffer, LoadedHeaderSize);
   } else {

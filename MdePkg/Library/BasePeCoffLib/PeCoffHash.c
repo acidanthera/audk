@@ -73,7 +73,7 @@ InternalHashSections (
   //     ascending order. In other words, sort the section headers in ascending
   //     order according to the disk-file offset of the sections.
   //
-  SortedSections[0] = &Sections[0];
+  SortedSections[0] = Sections;
   //
   // Perform Insertion Sort.
   //
@@ -85,7 +85,7 @@ InternalHashSections (
       SortedSections[SectionPos] = SortedSections[SectionPos - 1];
     }
 
-    SortedSections[SectionPos] = &Sections[SectIndex];
+    SortedSections[SectionPos] = Sections + SectIndex;
   }
 
   Result      = TRUE;
@@ -94,6 +94,7 @@ InternalHashSections (
   //
   // 13. Repeat steps 11 and 12 for all of the sections in the sorted table.
   //
+  ASSERT (Context->TeStrippedOffset == 0);
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
       if (SectionTop > SortedSections[SectIndex]->PointerToRawData) {
@@ -177,7 +178,7 @@ PeCoffHashImage (
   //    Certificate Table entry. For details, see section 5.7 of the PE/COFF
   //    specification.
   //
-  switch (Context->ImageType) { /* LCOV_EXCL_BR_LINE */
+  switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
       //
       // TE images are not to be signed, as they are supposed to only be part of
@@ -264,7 +265,7 @@ PeCoffHashImage (
   // 7. Exclude the Certificate Table entry from the calculation and hash
   //    everything from the end of the Certificate Table entry to the end of
   //    image header, including Section Table (headers).The Certificate Table
-  //    entry is 8 bytes long, as specified in Optional Header Data Directories.
+  //    entry is 8 Bytes long, as specified in Optional Header Data Directories.
   //
   HashSize = Context->SizeOfHeaders - CurrentOffset;
   Result = HashUpdate (
