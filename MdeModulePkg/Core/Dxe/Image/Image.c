@@ -722,6 +722,11 @@ CoreLoadPeImage (
   RelocDataSize = 0;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
     if (PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+      if (PeCoffGetRelocsStripped (ImageContext)) {
+        ASSERT (FALSE);
+        Status = RETURN_UNSUPPORTED;
+        goto Done;
+      }
       Status = PeCoffLoaderGetRuntimeContextSize (ImageContext, &RelocDataSize);
       if (EFI_ERROR (Status)) {
         ASSERT (FALSE);
