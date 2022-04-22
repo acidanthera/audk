@@ -39,6 +39,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/FirmwareVolume2.h>
 #include <Protocol/SimpleFileSystem.h>
 
+#include "Base.h"
 #include "DxeMain.h"
 #include "Library/PeCoffLib.h"
 #include "Mem/HeapGuard.h"
@@ -184,6 +185,7 @@ GetUefiImageProtectionPolicy (
   }
 
   if (InSmm) {
+    // FIXME: Please...
     return FALSE;
   }
 
@@ -411,10 +413,6 @@ ProtectUefiImage (
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
 
-  if (gCpu == NULL) {
-    return;
-  }
-
   ProtectionPolicy = GetUefiImageProtectionPolicy (LoadedImage, LoadedImageDevicePath);
   switch (ProtectionPolicy) {
     case DO_NOT_PROTECT:
@@ -517,8 +515,10 @@ ProtectUefiImage (
 
       ImageRecordCodeSection->Signature = IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE;
 
+      // CHANGE: VirtualSize!
+      // FIXME: Image may not be aligned (PCD)
       ImageRecordCodeSection->CodeSegmentBase = (UINTN)ImageAddress + Section[Index].VirtualAddress;
-      ImageRecordCodeSection->CodeSegmentSize = ALIGN_VALUE (Section[Index].SizeOfRawData, SectionAlignment);
+      ImageRecordCodeSection->CodeSegmentSize = ALIGN_VALUE (Section[Index].VirtualSize, SectionAlignment);
 
       DEBUG ((DEBUG_VERBOSE, "ImageCode: 0x%016lx - 0x%016lx\n", ImageRecordCodeSection->CodeSegmentBase, ImageRecordCodeSection->CodeSegmentSize));
 
@@ -565,14 +565,16 @@ ProtectUefiImage (
   ImageRecord->ImageSize = ALIGN_VALUE (LoadedImage->ImageSize, EFI_PAGE_SIZE);
 
   //
-  // CPU ARCH present. Update memory attribute directly.
-  //
-  SetUefiImageProtectionAttributes (ImageRecord);
-
-  //
   // Record the image record in the list so we can undo the protections later
   //
   InsertTailList (&mProtectedImageRecordList, &ImageRecord->Link);
+
+  if (gCpu != NULL) {
+    //
+    // CPU ARCH present. Update memory attribute directly.
+    //
+    SetUefiImageProtectionAttributes (ImageRecord);
+  }
 
 Finish:
   return;
@@ -593,7 +595,7 @@ UnprotectUefiImage (
   IMAGE_PROPERTIES_RECORD  *ImageRecord;
   LIST_ENTRY               *ImageRecordLink;
 
-  if (PcdGet32 (PcdImageProtectionPolicy) != 0) {
+  if (gCpu != NULL && PcdGet32 (PcdImageProtectionPolicy) != 0) {
     for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
          ImageRecordLink != &mProtectedImageRecordList;
          ImageRecordLink = ImageRecordLink->ForwardLink)
@@ -956,8 +958,7 @@ InitializeDxeNxMemoryProtectionPolicy (
                                     which is implementation-dependent.
 
 **/
-// FIXME:
-/*VOID
+VOID
 EFIAPI
 MemoryProtectionCpuArchProtocolNotify (
   IN EFI_EVENT  Event,
@@ -965,11 +966,8 @@ MemoryProtectionCpuArchProtocolNotify (
   )
 {
   EFI_STATUS                 Status;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath;
-  UINTN                      NoHandles;
-  EFI_HANDLE                 *HandleBuffer;
-  UINTN                      Index;
+  LIST_ENTRY                  *ImageRecordLink;
+  IMAGE_PROPERTIES_RECORD     *ImageRecord;
 
   DEBUG ((DEBUG_INFO, "MemoryProtectionCpuArchProtocolNotify:\n"));
   Status = CoreLocateProtocol (&gEfiCpuArchProtocolGuid, NULL, (VOID **)&gCpu);
@@ -993,44 +991,25 @@ MemoryProtectionCpuArchProtocolNotify (
     goto Done;
   }
 
-  Status = gBS->LocateHandleBuffer (
-                  ByProtocol,
-                  &gEfiLoadedImageProtocolGuid,
-                  NULL,
-                  &NoHandles,
-                  &HandleBuffer
-                  );
-  if (EFI_ERROR (Status) && (NoHandles == 0)) {
-    goto Done;
-  }
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gBS->HandleProtocol (
-                    HandleBuffer[Index],
-                    &gEfiLoadedImageProtocolGuid,
-                    (VOID **)&LoadedImage
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    IMAGE_PROPERTIES_RECORD,
+                    Link,
+                    IMAGE_PROPERTIES_RECORD_SIGNATURE
                     );
-    if (EFI_ERROR (Status)) {
-      continue;
-    }
 
-    Status = gBS->HandleProtocol (
-                    HandleBuffer[Index],
-                    &gEfiLoadedImageDevicePathProtocolGuid,
-                    (VOID **)&LoadedImageDevicePath
-                    );
-    if (EFI_ERROR (Status)) {
-      LoadedImageDevicePath = NULL;
-    }
-
-    ProtectUefiImage (LoadedImage, LoadedImageDevicePath);
+    //
+    // CPU ARCH present. Update memory attribute directly.
+    //
+    SetUefiImageProtectionAttributes (ImageRecord);
   }
-
-  FreePool (HandleBuffer);
 
 Done:
   CoreCloseEvent (Event);
-}*/
+}
 
 /**
   ExitBootServices Callback function for memory protection.
