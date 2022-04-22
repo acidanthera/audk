@@ -276,6 +276,8 @@ PeCoffGetPdbPath (
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
   CONST CHAR8                     *CodeView;
   UINT32                          PdbOffset;
+  CHAR8                           *PdbName;
+  UINT32                          PdbNameSize;
 
   ASSERT (Context != NULL);
   ASSERT (PdbPath != NULL);
@@ -326,12 +328,19 @@ PeCoffGetPdbPath (
   Result = BaseOverflowSubU32 (
              CodeViewEntry->SizeOfData,
              PdbOffset,
-             PdbPathSize
+             &PdbNameSize
              );
-  if (Result) {
+  if (Result || PdbNameSize == 0) {
     return RETURN_UNSUPPORTED;
   }
 
-  *PdbPath = (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
+  PdbName = (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
+
+  if (PdbName[PdbNameSize - 1] != 0) {
+    return RETURN_UNSUPPORTED;
+  }
+
+  *PdbPath = PdbName;
+  *PdbPathSize = PdbNameSize;
   return RETURN_SUCCESS;
 }
