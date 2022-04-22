@@ -652,26 +652,28 @@ SmmLoadImage (
   // Print the load address and the PDB file name if it is available
   //
 
-  // FIXME:
-  /*DEBUG_CODE_BEGIN ();
+  DEBUG_CODE_BEGIN ();
 
-  UINTN  Index;
-  UINTN  StartIndex;
-  CHAR8  EfiFileName[256];
+    UINTN  Index;
+    UINTN  StartIndex;
+    CHAR8  *PdbPath;
+    UINT32 PdbSize;
+    CHAR8  EfiFileName[256];
 
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
            (VOID *)(UINTN)LoadAddress,
-           FUNCTION_ENTRY_POINT (ImageContext->EntryPoint)));
+           FUNCTION_ENTRY_POINT (LoadAddress + ImageContext->AddressOfEntryPoint)));
 
   //
   // Print Module Name by Pdb file path.
   // Windows and Unix style file path are all trimmed correctly.
   //
-  if (ImageContext->PdbPointer != NULL) {
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbSize);
+    if (!EFI_ERROR (Status)) {
     StartIndex = 0;
-    for (Index = 0; ImageContext->PdbPointer[Index] != 0; Index++) {
-      if ((ImageContext->PdbPointer[Index] == '\\') || (ImageContext->PdbPointer[Index] == '/')) {
+    for (Index = 0; PdbPath[Index] != 0; Index++) {
+      if ((PdbPath[Index] == '\\') || (PdbPath[Index] == '/')) {
         StartIndex = Index + 1;
       }
     }
@@ -682,7 +684,7 @@ SmmLoadImage (
     // If the length is bigger than 255, trim the redundant characters to avoid overflow in array boundary.
     //
     for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-        EfiFileName[Index] = ImageContext->PdbPointer[Index + StartIndex];
+        EfiFileName[Index] = PdbPath[Index + StartIndex];
       if (EfiFileName[Index] == 0) {
         EfiFileName[Index] = '.';
       }
@@ -705,7 +707,7 @@ SmmLoadImage (
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "\n"));
 
-  DEBUG_CODE_END ();*/
+  DEBUG_CODE_END ();
 
   //
   // Free buffer allocated by Fv->ReadSection.
