@@ -2180,10 +2180,10 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch|FALSE|BOOLEAN|0x40001018
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE|BOOLEAN|0x40001019
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE|BOOLEAN|0x4000101A
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|FALSE|BOOLEAN|0x4000101B
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE|BOOLEAN|0x4000101C
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE|BOOLEAN|0x4000101B
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|TRUE|BOOLEAN|0x4000101C
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE|BOOLEAN|0x4000101D
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|FALSE|BOOLEAN|0x4000101E
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|TRUE|BOOLEAN|0x4000101E
 
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following
