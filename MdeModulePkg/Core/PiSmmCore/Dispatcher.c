@@ -879,7 +879,7 @@ SmmDispatcher (
       // skip the LoadImage
       //
       if (DriverEntry->ImageHandle == NULL) {
-        Status = SmmLoadImage (DriverEntry);
+        Status = SmmLoadImage (DriverEntry, &ImageContext);
         //
         // Update the driver state to reflect that it's been loaded
         //
