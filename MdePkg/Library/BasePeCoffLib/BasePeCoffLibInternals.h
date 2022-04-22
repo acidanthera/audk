@@ -16,9 +16,20 @@
 #define IMAGE_CERTIFICATE_ALIGN  8U
 
 //
-// 4 byte alignment has been replaced with ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
-// for proof simplicity. This obviously was the original intention of the
-// specification. Assert in case the equality is not given.
+// The PE specification guarantees an 8 Byte alignment for certificate sizes.
+// This is larger than the alignment requirement for WIN_CERTIFICATE implied by
+// the UEFI ABI. ASSERT this is holds.
+//
+STATIC_ASSERT (
+  ALIGNOF (WIN_CERTIFICATE) <= IMAGE_CERTIFICATE_ALIGN,
+  "The PE specification guarantee does not suffice."
+  );
+
+//
+// The 4 Byte alignment guaranteed by the PE specification has been replaced
+// with ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK) for proof simplicity. This
+// obviously was the original intention of the specification. Assert in case the
+// equality is not given.
 //
 STATIC_ASSERT (
   sizeof (UINT32) == ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
