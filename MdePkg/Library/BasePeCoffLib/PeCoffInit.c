@@ -1780,10 +1780,6 @@ PeCoffInitializeContext (
   */
   Context->FileBuffer = FileBuffer;
 
-  // FIXME: This is needed to get the destination address of XIP modules, if they
-  // are not loaded in-place. Possibly have a XIP-dedicated function?
-  Context->ImageBuffer = (VOID *) FileBuffer;
-
   //@ assert pointer_aligned (FileBuffer, AV_ALIGNOF (UINT16));
   //
   // Check whether the DOS Image Header is present.
