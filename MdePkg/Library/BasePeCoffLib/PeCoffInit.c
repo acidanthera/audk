@@ -77,7 +77,7 @@ InternalVerifySections (
   //
   if (Sections[0].VirtualAddress == 0) {
     if (Context->ImageType == PeCoffLoaderTypeTe) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -90,7 +90,7 @@ InternalVerifySections (
                  &NextSectRva
                  );
       if (Result) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     } else {
@@ -110,12 +110,12 @@ InternalVerifySections (
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       if (Sections[SectIndex].VirtualAddress != NextSectRva) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     } else {
       if (Sections[SectIndex].VirtualAddress < NextSectRva) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     }
@@ -124,7 +124,7 @@ InternalVerifySections (
     //
     if (Sections[SectIndex].SizeOfRawData > 0) {
       if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -134,12 +134,12 @@ InternalVerifySections (
                  &SectRawEnd
                  );
       if (Result) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
       if (SectRawEnd - Context->TeStrippedOffset > FileSize) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     }
@@ -154,7 +154,7 @@ InternalVerifySections (
     DEBUG ((DEBUG_INFO, "- %u\n", NextSectRva));
 
     if (Result) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
@@ -167,7 +167,7 @@ InternalVerifySections (
                 &NextSectRva
                 );
       if (Result) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     }
@@ -212,7 +212,7 @@ InternalValidateRelocInfo (
     // Ensure the Relocation Directory is not empty.
     //
     if (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) > Context->RelocDirSize) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -222,28 +222,28 @@ InternalValidateRelocInfo (
                &SectRvaEnd
                );
     if (Result) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
     // Ensure the Relocation Directory does not overlap with the Image Header.
     //
     if (StartAddress > Context->RelocDirRva) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
     // Ensure the Relocation Directory is contained in the Image memory space.
     //
     if (SectRvaEnd > Context->SizeOfImage) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
     // Ensure the Relocation Directory start is correctly aligned.
     //
     if (!IS_ALIGNED (Context->RelocDirRva, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -251,7 +251,7 @@ InternalValidateRelocInfo (
   // Ensure the preferred load address is correctly aligned.
   //
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -419,7 +419,7 @@ InternalInitializePe (
   switch (*(CONST UINT16 *) (CONST VOID *) OptHdrPtr) {
     case EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
       if (sizeof (*Pe32) > FileSize - Context->ExeHdrOffset) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -453,12 +453,12 @@ InternalInitializePe (
 
     case EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC:
       if (sizeof (*Pe32Plus) > FileSize - Context->ExeHdrOffset) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
       if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
-        CRITIAL_ERROR (FALSE);
+        CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -487,29 +487,29 @@ InternalInitializePe (
       break;
 
     default:
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
   }
   //
   // Do not load images with unknown directories.
   //
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if (PeCommon->FileHeader.NumberOfSections == 0) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if (!IS_POW2 (Context->SectionAlignment)) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -528,14 +528,14 @@ InternalInitializePe (
              &Context->SectionsOffset
              );
   if (Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
   // Ensure the section headers offset is properly aligned.
   //
   if (!IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
@@ -558,7 +558,7 @@ InternalInitializePe (
              &MinSizeOfHeaders
              );
   if (Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
@@ -566,19 +566,19 @@ InternalInitializePe (
   // components (DOS, PE Common and Optional Header).
   //
   if (MinSizeOfOptionalHeader > PeCommon->FileHeader.SizeOfOptionalHeader) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if (MinSizeOfHeaders > Context->SizeOfHeaders) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
   // Ensure that all headers are in bounds of the file buffer.
   //
   if (Context->SizeOfHeaders > FileSize) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -611,13 +611,13 @@ InternalInitializePe (
       &SecDirEnd
       );
     if (Result || SecDirEnd > FileSize) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
     if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)
      || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   } else {
@@ -640,7 +640,7 @@ InternalInitializePe (
   //
   if (MinSizeOfImage > Context->SizeOfImage) {
     DEBUG ((DEBUG_WARN, "SOI %u vs %u\n", MinSizeOfImage, Context->SizeOfImage));
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -681,7 +681,7 @@ PeCoffInitializeContext (
     //
     if (sizeof (EFI_IMAGE_DOS_HEADER) > DosHdr->e_lfanew
      || DosHdr->e_lfanew > FileSize) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -694,12 +694,9 @@ PeCoffInitializeContext (
     if (FileSize >= sizeof (EFI_TE_IMAGE_HEADER)
      && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_TE_IMAGE_HEADER_SIGNATURE) {
       Status = InternalInitializeTe (Context, FileSize);
-      ASSERT_EFI_ERROR (Status);
-
-      if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
-        if (Status == RETURN_SUCCESS) {
-          PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
-        }
+      if (Status != RETURN_SUCCESS) {
+        CRITICAL_ERROR (FALSE);
+        return Status;
       }
       //
       // FIXME: Properly unify with PE somehow
@@ -709,6 +706,12 @@ PeCoffInitializeContext (
        && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
         return EFI_UNSUPPORTED;
       }
+      //
+      // If debugging is enabled, retrieve information on the debug data.
+      //
+      if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
+        PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
+      }
 
       return Status;
     }
@@ -717,12 +720,12 @@ PeCoffInitializeContext (
   // Use Signature to determine and handle the image format (PE32(+) / TE).
   //
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -734,19 +737,14 @@ PeCoffInitializeContext (
   // Ensure the Image Executable Header has a PE signature.
   //
   if (*(CONST UINT32 *) (CONST VOID *) ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   Status = InternalInitializePe (Context, FileSize);
-  ASSERT_EFI_ERROR (Status);
-  //
-  // If debugging is enabled, retrieve information on the debug data.
-  //
-  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
-    if (Status == RETURN_SUCCESS) {
-      PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
-    }
+  if (Status != RETURN_SUCCESS) {
+    CRITICAL_ERROR (FALSE);
+    return Status;
   }
   //
   // FIXME: Properly unify with TE somehow
@@ -755,6 +753,12 @@ PeCoffInitializeContext (
   if (Context->SectionAlignment > EFI_PAGE_SIZE
     && MAX_UINT32 - Context->SectionAlignment < Context->SizeOfImage + Context->SizeOfImageDebugAdd) {
     return EFI_UNSUPPORTED;
+  }
+  //
+  // If debugging is enabled, retrieve information on the debug data.
+  //
+  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
+    PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
   }
 
   return Status;

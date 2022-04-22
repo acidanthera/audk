@@ -184,7 +184,7 @@ PeCoffHashImage (
       // TE images are not to be signed, as they are supposed to only be part of
       // Firmware Volumes, which may be signed as a whole.
       //
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return FALSE;
 
     case PeCoffLoaderTypePe32:
@@ -232,7 +232,7 @@ PeCoffHashImage (
   Result = HashUpdate (HashContext, Context->FileBuffer, ChecksumOffset);
 
   if (!Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return FALSE;
   }
   //
@@ -252,7 +252,7 @@ PeCoffHashImage (
                HashSize
                );
     if (!Result) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return FALSE;
     }
     //
@@ -274,7 +274,7 @@ PeCoffHashImage (
              HashSize
              );
   if (!Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return FALSE;
   }
 
@@ -285,7 +285,7 @@ PeCoffHashImage (
              &SumBytesHashed
              );
   if (!Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return FALSE;
   }
   //
@@ -299,7 +299,7 @@ PeCoffHashImage (
               &SumBytesHashed
               );
   if (!Result) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return FALSE;
   }
   //
@@ -348,13 +348,13 @@ PeCoffGetFirstCertificate (
 
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
    || WinCertificate->dwLength > Context->SecDirSize) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -382,7 +382,7 @@ PeCoffGetNextCertificate (
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     CertSize = WinCertificate->dwLength;
     if (!IS_ALIGNED (CertSize, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   } else {
@@ -392,7 +392,7 @@ PeCoffGetNextCertificate (
                &CertSize
                );
     if (Result) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -402,7 +402,7 @@ PeCoffGetNextCertificate (
     return RETURN_NOT_FOUND;
   }
   if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -411,13 +411,13 @@ PeCoffGetNextCertificate (
                      );
 
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITIAL_ERROR (FALSE);
+      CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -428,7 +428,7 @@ PeCoffGetNextCertificate (
              &CertEnd
              );
   if (Result || CertEnd > Context->SecDirSize) {
-    CRITIAL_ERROR (FALSE);
+    CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
