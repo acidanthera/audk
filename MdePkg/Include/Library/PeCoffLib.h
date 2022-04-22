@@ -202,6 +202,15 @@ PeCoffLoadImage (
   );
 
 RETURN_STATUS
+PeCoffLoadImageForExecution (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    VOID                          *Destination,
+  IN     UINT32                        DestinationSize,
+  OUT PE_COFF_RUNTIME_CONTEXT          *RelocationData OPTIONAL,
+  IN  UINT32                           RelocationDataSize
+  );
+
+RETURN_STATUS
 PeCoffLoadImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
