@@ -1009,8 +1009,10 @@ MigratePeim (
   EFI_FFS_FILE_HEADER  *FileHeader;
   VOID                 *Pe32Data;
   VOID                 *ImageAddress;
-  //CHAR8                *AsciiString;
-  //UINTN                Index;
+  CHAR8                     *AsciiString;
+  UINTN                     Index;
+  UINT32                    AsciiStringSize;
+  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
   Status = EFI_SUCCESS;
 
@@ -1020,22 +1022,23 @@ MigratePeim (
   ImageAddress = NULL;
   PeiGetPe32Data (MigratedFileHandle, &ImageAddress);
   if (ImageAddress != NULL) {
-    // FIXME:
-    /*
+    // FIXME (size, overwiriting PDB data):
     DEBUG_CODE_BEGIN ();
-    AsciiString = PeCoffLoaderGetPdbPointer (ImageAddress);
-    for (Index = 0; AsciiString[Index] != 0; Index++) {
-      if ((AsciiString[Index] == '\\') || (AsciiString[Index] == '/')) {
-        AsciiString = AsciiString + Index + 1;
-        Index       = 0;
-      } else if (AsciiString[Index] == '.') {
-        AsciiString[Index] = 0;
+    Status = PeCoffInitializeContext (&ImageContext, (CONST VOID *) ImageAddress, 0xFFFFFFFF);
+    ASSERT_EFI_ERROR (Status);
+    Status = PeCoffGetPdbPath (&ImageContext, &AsciiString, &AsciiStringSize);
+    if (!EFI_ERROR (Status)) {
+      for (Index = 0; AsciiString[Index] != 0; Index++) {
+        if ((AsciiString[Index] == '\\') || (AsciiString[Index] == '/')) {
+          AsciiString = AsciiString + Index + 1;
+          Index       = 0;
+        } else if (AsciiString[Index] == '.') {
+          AsciiString[Index] = 0;
+        }
       }
+      DEBUG ((DEBUG_INFO, "%a", AsciiString));
     }
-
-    DEBUG ((DEBUG_VERBOSE, "%a", AsciiString));
     DEBUG_CODE_END ();
-    */
 
     Pe32Data = (VOID *)((UINTN)ImageAddress - (UINTN)MigratedFileHandle + (UINTN)FileHandle);
     Status   = LoadAndRelocatePeCoffImageInPlace (Pe32Data, ImageAddress);
