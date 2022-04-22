@@ -80,7 +80,7 @@ PeCoffLoaderGetDestinationSize (
   OUT    UINT32                        *Size
   )
 {
-  BOOLEAN Result;
+  BOOLEAN Overflow;
   UINT32  TotalSize;
 
   ASSERT (Context != NULL);
@@ -89,12 +89,12 @@ PeCoffLoaderGetDestinationSize (
   TotalSize = PeCoffGetSizeOfImage (Context);
 
   if (PeCoffGetSectionAlignment (Context) > EFI_PAGE_SIZE) {
-    Result = BaseOverflowAddU32 (
-               TotalSize,
-               PeCoffGetSectionAlignment (Context),
-               &TotalSize
-               );
-    if (Result) {
+    Overflow = BaseOverflowAddU32 (
+                 TotalSize,
+                 PeCoffGetSectionAlignment (Context),
+                 &TotalSize
+                 );
+    if (Overflow) {
       return RETURN_UNSUPPORTED;
     }
   }

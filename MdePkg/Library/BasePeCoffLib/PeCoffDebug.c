@@ -29,7 +29,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   IN     UINT32                        FileSize
   )
 {
-  BOOLEAN                               Result;
+  BOOLEAN                               Overflow;
 
   CONST EFI_IMAGE_DATA_DIRECTORY        *DebugDir;
   CONST EFI_TE_IMAGE_HEADER             *TeHdr;
@@ -100,12 +100,12 @@ PeCoffLoaderRetrieveCodeViewInfo (
     return;
   }
 
-  Result = BaseOverflowAddU32 (
-             DebugDir->VirtualAddress,
-             DebugDir->Size,
-             &DebugDirTop
-             );
-  if (Result || DebugDirTop > Context->SizeOfImage) {
+  Overflow = BaseOverflowAddU32 (
+               DebugDir->VirtualAddress,
+               DebugDir->Size,
+               &DebugDirTop
+               );
+  if (Overflow || DebugDirTop > Context->SizeOfImage) {
     CRITICAL_ERROR (FALSE);
     return;
   }
@@ -174,12 +174,12 @@ PeCoffLoaderRetrieveCodeViewInfo (
   }
 
   if (CodeViewEntry->RVA != 0) {
-    Result = BaseOverflowAddU32 (
-               CodeViewEntry->RVA,
-               CodeViewEntry->SizeOfData,
-               &DebugEntryRvaTop
-               );
-    if (Result || DebugEntryRvaTop > Context->SizeOfImage
+    Overflow = BaseOverflowAddU32 (
+                 CodeViewEntry->RVA,
+                 CodeViewEntry->SizeOfData,
+                 &DebugEntryRvaTop
+                 );
+    if (Overflow || DebugEntryRvaTop > Context->SizeOfImage
      || !IS_ALIGNED (CodeViewEntry->RVA, ALIGNOF (UINT32))) {
       CRITICAL_ERROR (FALSE);
       return;
@@ -192,52 +192,52 @@ PeCoffLoaderRetrieveCodeViewInfo (
     // If the Image does not load the Debug information into memory on its own,
     // request reserved space for it to force-load it.
     //
-    Result = BaseOverflowSubU32 (
-               CodeViewEntry->FileOffset,
-               Context->TeStrippedOffset,
-               &DebugEntryTopOffset
-               );
-    if (Result) {
+    Overflow = BaseOverflowSubU32 (
+                 CodeViewEntry->FileOffset,
+                 Context->TeStrippedOffset,
+                 &DebugEntryTopOffset
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return;
     }
 
-    Result = BaseOverflowAddU32 (
-               DebugEntryTopOffset,
-               CodeViewEntry->SizeOfData,
-               &DebugEntryTopOffset
-               );
-    if (Result || DebugEntryTopOffset > FileSize) {
+    Overflow = BaseOverflowAddU32 (
+                 DebugEntryTopOffset,
+                 CodeViewEntry->SizeOfData,
+                 &DebugEntryTopOffset
+                 );
+    if (Overflow || DebugEntryTopOffset > FileSize) {
       CRITICAL_ERROR (FALSE);
       return;
     }
 
-    Result = BaseOverflowAlignUpU32 (
-               Context->SizeOfImage,
-               ALIGNOF (UINT32),
-               &DebugSizeOfImage
-               );
-    if (Result) {
+    Overflow = BaseOverflowAlignUpU32 (
+                 Context->SizeOfImage,
+                 ALIGNOF (UINT32),
+                 &DebugSizeOfImage
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return;
     }
 
-    Result = BaseOverflowAddU32 (
-               DebugSizeOfImage,
-               CodeViewEntry->SizeOfData,
-               &DebugSizeOfImage
-               );
-    if (Result) {
+    Overflow = BaseOverflowAddU32 (
+                 DebugSizeOfImage,
+                 CodeViewEntry->SizeOfData,
+                 &DebugSizeOfImage
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return;
     }
 
-    Result = BaseOverflowAlignUpU32 (
-               DebugSizeOfImage,
-               Context->SectionAlignment,
-               &DebugSizeOfImage
-               );
-    if (Result) {
+    Overflow = BaseOverflowAlignUpU32 (
+                 DebugSizeOfImage,
+                 Context->SectionAlignment,
+                 &DebugSizeOfImage
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return;
     }
@@ -333,7 +333,7 @@ PeCoffGetPdbPath (
   OUT    UINT32                        *PdbPathSize
   )
 {
-  BOOLEAN                         Result;
+  BOOLEAN                         Overflow;
 
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
   CONST CHAR8                     *CodeView;
@@ -388,12 +388,12 @@ PeCoffGetPdbPath (
       return RETURN_UNSUPPORTED;
   }
 
-  Result = BaseOverflowSubU32 (
-             CodeViewEntry->SizeOfData,
-             PdbOffset,
-             &PdbNameSize
-             );
-  if (Result || PdbNameSize == 0) {
+  Overflow = BaseOverflowSubU32 (
+               CodeViewEntry->SizeOfData,
+               PdbOffset,
+               &PdbNameSize
+               );
+  if (Overflow || PdbNameSize == 0) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }

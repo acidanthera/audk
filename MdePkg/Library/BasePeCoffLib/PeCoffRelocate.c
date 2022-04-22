@@ -230,7 +230,7 @@ InternalApplyRelocation (
 {
   UINT16  RelocType;
   UINT16  RelocOff;
-  BOOLEAN Result;
+  BOOLEAN Overflow;
   UINT32  RelocTarget;
   UINT32  RemRelocTargetSize;
   UINT32  Fixup32;
@@ -252,22 +252,22 @@ InternalApplyRelocation (
   //
   // Determine the Base Relocation target address.
   //
-  Result = BaseOverflowAddU32 (
-             RelocBlock->VirtualAddress,
-             RelocOff,
-             &RelocTarget
-             );
-  if (Result) {
+  Overflow = BaseOverflowAddU32 (
+               RelocBlock->VirtualAddress,
+               RelocOff,
+               &RelocTarget
+               );
+  if (Overflow) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
-  Result = BaseOverflowSubU32 (
-             Context->SizeOfImage,
-             RelocTarget,
-             &RemRelocTargetSize
-             );
-  if (Result) {
+  Overflow = BaseOverflowSubU32 (
+               Context->SizeOfImage,
+               RelocTarget,
+               &RemRelocTargetSize
+               );
+  if (Overflow) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -386,7 +386,7 @@ PeCoffRelocateImage (
   IN     UINT32                          RuntimeContextSize
   )
 {
-  BOOLEAN                               Result;
+  BOOLEAN                               Overflow;
   RETURN_STATUS                         Status;
 
   UINT64                                Adjust;
@@ -456,16 +456,16 @@ PeCoffRelocateImage (
                     (CONST CHAR8 *) Context->ImageBuffer + RelocOffset
                     );
 
-    Result = BaseOverflowSubU32 (
-               RelocWalker->SizeOfBlock,
-               sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK),
-               &SizeOfRelocs
-               );
+    Overflow = BaseOverflowSubU32 (
+                 RelocWalker->SizeOfBlock,
+                 sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                 &SizeOfRelocs
+                 );
     //
     // Ensure there is at least one entry.
     // Ensure the block's size is padded to ensure proper alignment.
     //
-    if (Result) {
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -482,12 +482,12 @@ PeCoffRelocateImage (
         return RETURN_UNSUPPORTED;
       }
     } else {
-      Result = BaseOverflowAlignUpU32 (
-                 RelocWalker->SizeOfBlock,
-                 ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
-                 &RelocBlockSize
-                 );
-      if (Result) {
+      Overflow = BaseOverflowAlignUpU32 (
+                   RelocWalker->SizeOfBlock,
+                   ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                   &RelocBlockSize
+                   );
+      if (Overflow) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -540,12 +540,12 @@ PeCoffRelocateImage (
   }
 
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) != 0) {
-    Result = BaseOverflowAlignUpU32 (
-               TopOfRelocDir,
-               ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
-               &TopOfRelocDir
-               );
-    if (Result) {
+    Overflow = BaseOverflowAlignUpU32 (
+                 TopOfRelocDir,
+                 ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
+                 &TopOfRelocDir
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -667,7 +667,7 @@ PeCoffLoaderGetRuntimeContextSize (
   OUT    UINT32                        *Size
   )
 {
-  BOOLEAN Result;
+  BOOLEAN Overflow;
   UINT32  FixupDataSize;
 
   ASSERT (Context != NULL);
@@ -683,21 +683,21 @@ PeCoffLoaderGetRuntimeContextSize (
   // refers to a 64-bit target and does not account for Base Relocation Block
   // headers.
   //
-  Result = BaseOverflowMulU32 (
-             Context->RelocDirSize,
-             sizeof (UINT64) / sizeof (UINT16),
-             &FixupDataSize
-             );
-  if (Result) {
+  Overflow = BaseOverflowMulU32 (
+               Context->RelocDirSize,
+               sizeof (UINT64) / sizeof (UINT16),
+               &FixupDataSize
+               );
+  if (Overflow) {
     return RETURN_UNSUPPORTED;
   }
 
-  Result = BaseOverflowAddU32 (
-             FixupDataSize,
-             sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT),
-             Size
-             );
-  if (Result) {
+  Overflow = BaseOverflowAddU32 (
+               FixupDataSize,
+               sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT),
+               Size
+               );
+  if (Overflow) {
     return RETURN_UNSUPPORTED;
   }
 

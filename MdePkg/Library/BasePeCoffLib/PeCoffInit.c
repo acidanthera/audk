@@ -54,7 +54,7 @@ InternalVerifySections (
   OUT    UINT32                        *EndAddress
   )
 {
-  BOOLEAN                        Result;
+  BOOLEAN                        Overflow;
   UINT32                         NextSectRva;
   UINT32                         SectRawEnd;
   UINT16                         SectIndex;
@@ -86,12 +86,12 @@ InternalVerifySections (
     NextSectRva = 0;
   } else {
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
-      Result = BaseOverflowAlignUpU32 (
-                 Sections[0].VirtualAddress,
-                 Context->SectionAlignment,
-                 &NextSectRva
-                 );
-      if (Result) {
+      Overflow = BaseOverflowAlignUpU32 (
+                   Sections[0].VirtualAddress,
+                   Context->SectionAlignment,
+                   &NextSectRva
+                   );
+      if (Overflow) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -128,12 +128,12 @@ InternalVerifySections (
         return RETURN_UNSUPPORTED;
       }
 
-      Result = BaseOverflowAddU32 (
-                 Sections[SectIndex].PointerToRawData,
-                 Sections[SectIndex].SizeOfRawData,
-                 &SectRawEnd
-                 );
-      if (Result) {
+      Overflow = BaseOverflowAddU32 (
+                   Sections[SectIndex].PointerToRawData,
+                   Sections[SectIndex].SizeOfRawData,
+                   &SectRawEnd
+                   );
+      if (Overflow) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -146,12 +146,12 @@ InternalVerifySections (
     //
     // Determine the end of the current Image Section.
     //
-    Result = BaseOverflowAddU32 (
-              Sections[SectIndex].VirtualAddress,
-              Sections[SectIndex].VirtualSize,
-              &NextSectRva
-              );
-    if (Result) {
+    Overflow = BaseOverflowAddU32 (
+                 Sections[SectIndex].VirtualAddress,
+                 Sections[SectIndex].VirtualSize,
+                 &NextSectRva
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -159,12 +159,12 @@ InternalVerifySections (
     // SectionSize does not need to be aligned, so align the result.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
-      Result = BaseOverflowAlignUpU32 (
-                NextSectRva,
-                Context->SectionAlignment,
-                &NextSectRva
-                );
-      if (Result) {
+      Overflow = BaseOverflowAlignUpU32 (
+                   NextSectRva,
+                   Context->SectionAlignment,
+                   &NextSectRva
+                   );
+      if (Overflow) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
@@ -197,7 +197,7 @@ InternalValidateRelocInfo (
   IN     UINT32                        StartAddress
   )
 {
-  BOOLEAN Result;
+  BOOLEAN Overflow;
   UINT32  SectRvaEnd;
 
   ASSERT (Context != NULL);
@@ -214,12 +214,12 @@ InternalValidateRelocInfo (
       return RETURN_UNSUPPORTED;
     }
 
-    Result = BaseOverflowAddU32 (
-               Context->RelocDirRva,
-               Context->RelocDirSize,
-               &SectRvaEnd
-               );
-    if (Result) {
+    Overflow = BaseOverflowAddU32 (
+                 Context->RelocDirRva,
+                 Context->RelocDirSize,
+                 &SectRvaEnd
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -277,7 +277,7 @@ InternalInitializeTe (
   )
 {
   RETURN_STATUS             Status;
-  BOOLEAN                   Result;
+  BOOLEAN                   Overflow;
   CONST EFI_TE_IMAGE_HEADER *TeHdr;
   UINT32                    StartAddress;
   UINT32                    SizeOfImage;
@@ -292,12 +292,12 @@ InternalInitializeTe (
             (CONST CHAR8 *) Context->FileBuffer
             );
 
-  Result = BaseOverflowSubU16 (
-             TeHdr->StrippedSize,
-             sizeof (*TeHdr),
-             &Context->TeStrippedOffset
-             );
-  if (Result) {
+  Overflow = BaseOverflowSubU16 (
+               TeHdr->StrippedSize,
+               sizeof (*TeHdr),
+               &Context->TeStrippedOffset
+               );
+  if (Overflow) {
     return RETURN_UNSUPPORTED;
   }
 
@@ -380,7 +380,7 @@ InternalInitializePe (
   IN     UINT32                        FileSize
   )
 {
-  BOOLEAN                               Result;
+  BOOLEAN                               Overflow;
   CONST EFI_IMAGE_NT_HEADERS_COMMON_HDR *PeCommon;
   CONST EFI_IMAGE_NT_HEADERS32          *Pe32;
   CONST EFI_IMAGE_NT_HEADERS64          *Pe32Plus;
@@ -511,12 +511,12 @@ InternalInitializePe (
   //   * ExeFileSize > sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) and
   //   * Context->ExeHdrOffset + ExeFileSize = FileSize
   //
-  Result = BaseOverflowAddU32 (
-             Context->ExeHdrOffset + sizeof (*PeCommon),
-             PeCommon->FileHeader.SizeOfOptionalHeader,
-             &Context->SectionsOffset
-             );
-  if (Result) {
+  Overflow = BaseOverflowAddU32 (
+               Context->ExeHdrOffset + sizeof (*PeCommon),
+               PeCommon->FileHeader.SizeOfOptionalHeader,
+               &Context->SectionsOffset
+               );
+  if (Overflow) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -541,12 +541,12 @@ InternalInitializePe (
     "The following arithmetic may overflow."
     );
 
-  Result = BaseOverflowAddU32 (
-             Context->SectionsOffset,
-             (UINT32) PeCommon->FileHeader.NumberOfSections * sizeof (EFI_IMAGE_SECTION_HEADER),
-             &MinSizeOfHeaders
-             );
-  if (Result) {
+  Overflow = BaseOverflowAddU32 (
+               Context->SectionsOffset,
+               (UINT32) PeCommon->FileHeader.NumberOfSections * sizeof (EFI_IMAGE_SECTION_HEADER),
+               &MinSizeOfHeaders
+               );
+  if (Overflow) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -594,12 +594,12 @@ InternalInitializePe (
     Context->SecDirOffset  = SecDir->VirtualAddress;
     Context->SecDirSize = SecDir->Size;
 
-    Result = BaseOverflowAddU32 (
-      Context->SecDirOffset,
-      Context->SecDirSize,
-      &SecDirEnd
-      );
-    if (Result || SecDirEnd > FileSize) {
+    Overflow = BaseOverflowAddU32 (
+                 Context->SecDirOffset,
+                 Context->SecDirSize,
+                 &SecDirEnd
+                 );
+    if (Overflow || SecDirEnd > FileSize) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }

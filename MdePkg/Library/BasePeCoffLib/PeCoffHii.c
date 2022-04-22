@@ -35,7 +35,7 @@ PeCoffGetHiiResourceSection (
   CONST EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *ResourceDirEntry;
   CONST EFI_IMAGE_RESOURCE_DIRECTORY_STRING *ResourceDirString;
   CONST EFI_IMAGE_RESOURCE_DATA_ENTRY       *ResourceDataEntry;
-  BOOLEAN                                   Result;
+  BOOLEAN                                   Overflow;
   UINT32                                    Offset;
   UINT32                                    TopOffset;
   UINT8                                     ResourceLevel;
@@ -80,12 +80,12 @@ PeCoffGetHiiResourceSection (
     return RETURN_UNSUPPORTED;
   }
 
-  Result = BaseOverflowAddU32 (
-             DirectoryEntry->VirtualAddress,
-             DirectoryEntry->Size,
-             &TopOffset
-             );
-  if (Result || TopOffset > Context->SizeOfImage) {
+  Overflow = BaseOverflowAddU32 (
+               DirectoryEntry->VirtualAddress,
+               DirectoryEntry->Size,
+               &TopOffset
+               );
+  if (Overflow || TopOffset > Context->SizeOfImage) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
@@ -113,12 +113,12 @@ PeCoffGetHiiResourceSection (
     //
     // Check the ResourceDirEntry->u1.s.NameOffset before use it.
     //
-    Result = BaseOverflowAddU32 (
-               ResourceDirEntry->u1.s.NameOffset,
-               sizeof (*ResourceDirString) + 3 * sizeof (CHAR16),
-               &TopOffset
-               );
-    if (Result || TopOffset > DirectoryEntry->Size) {
+    Overflow = BaseOverflowAddU32 (
+                 ResourceDirEntry->u1.s.NameOffset,
+                 sizeof (*ResourceDirString) + 3 * sizeof (CHAR16),
+                 &TopOffset
+                 );
+    if (Overflow || TopOffset > DirectoryEntry->Size) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -203,12 +203,12 @@ PeCoffGetHiiResourceSection (
                         (CONST CHAR8 *) Context->ImageBuffer + Offset
                         );
 
-  Result = BaseOverflowSubU32 (
-             Context->SizeOfImage,
-             ResourceDataEntry->OffsetToData,
-             MaxHiiSize
-             );
-  if (Result) {
+  Overflow = BaseOverflowSubU32 (
+               Context->SizeOfImage,
+               ResourceDataEntry->OffsetToData,
+               MaxHiiSize
+               );
+  if (Overflow) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }

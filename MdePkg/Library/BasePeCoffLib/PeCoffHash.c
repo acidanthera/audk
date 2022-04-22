@@ -43,6 +43,7 @@ InternalHashSections (
   )
 {
   BOOLEAN                        Result;
+  BOOLEAN                        Overflow;
 
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   CONST EFI_IMAGE_SECTION_HEADER **SortedSections;
@@ -126,13 +127,13 @@ InternalHashSections (
       if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
         CurHashSize += SortedSections[SectIndex]->SizeOfRawData;
       } else {
-        Result = BaseOverflowAddU32 (
-                   CurHashSize,
-                   SortedSections[SectIndex]->SizeOfRawData,
-                   &CurHashSize
-                   );
+        Overflow = BaseOverflowAddU32 (
+                     CurHashSize,
+                     SortedSections[SectIndex]->SizeOfRawData,
+                     &CurHashSize
+                     );
 
-        if (Result) {
+        if (Overflow) {
           Result = FALSE;
           break;
         }
@@ -370,7 +371,7 @@ PeCoffGetNextCertificate (
   OUT    CONST WIN_CERTIFICATE         **Certificate
   )
 {
-  BOOLEAN               Result;
+  BOOLEAN               Overflow;
   UINT32                CertOffset;
   UINT32                CertSize;
   UINT32                CertEnd;
@@ -386,12 +387,12 @@ PeCoffGetNextCertificate (
       return RETURN_UNSUPPORTED;
     }
   } else {
-    Result = BaseOverflowAlignUpU32 (
-               WinCertificate->dwLength,
-               IMAGE_CERTIFICATE_ALIGN,
-               &CertSize
-               );
-    if (Result) {
+    Overflow = BaseOverflowAlignUpU32 (
+                 WinCertificate->dwLength,
+                 IMAGE_CERTIFICATE_ALIGN,
+                 &CertSize
+                 );
+    if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
@@ -422,12 +423,12 @@ PeCoffGetNextCertificate (
     }
   }
 
-  Result = BaseOverflowAddU32 (
-             CertOffset,
-             WinCertificate->dwLength,
-             &CertEnd
-             );
-  if (Result || CertEnd > Context->SecDirSize) {
+  Overflow = BaseOverflowAddU32 (
+               CertOffset,
+               WinCertificate->dwLength,
+               &CertEnd
+               );
+  if (Overflow || CertEnd > Context->SecDirSize) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }

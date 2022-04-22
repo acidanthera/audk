@@ -103,11 +103,11 @@ BaseOverflowAlignUpU32 (
   OUT UINT32  *Result
   )
 {
-  BOOLEAN Status;
+  BOOLEAN Overflow;
   UINT32  AddResult;
 
-  Status = BaseOverflowAddU32 (Value, Alignment - 1U, &AddResult);
+  Overflow = BaseOverflowAddU32 (Value, Alignment - 1U, &AddResult);
   *Result = (AddResult & ~(Alignment - 1U));
 
-  return Status;
+  return Overflow;
 }
