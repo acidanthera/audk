@@ -43,6 +43,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "Library/PeCoffLib.h"
 #include "Mem/HeapGuard.h"
+#include "ProcessorBind.h"
 
 //
 // Image type definitions
@@ -394,6 +395,7 @@ ProtectUefiImage (
   PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
+  RETURN_STATUS               PdbStatus;
   EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage;
   EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
   VOID                                 *ImageAddress;
@@ -402,7 +404,8 @@ ProtectUefiImage (
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  //CHAR8                                 *PdbPointer;
+  CHAR8                                *PdbPointer;
+  UINT32                               PdbSize;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
   BOOLEAN                               IsAligned;
   UINT32                                ProtectionPolicy;
@@ -439,11 +442,10 @@ ProtectUefiImage (
 
   ImageAddress = LoadedImage->ImageBase;
 
-  // FIXME:
-  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-  if (PdbPointer != NULL) {
+  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!RETURN_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
-  }*/
+  }
 
   //
   // Get SectionAlignment
@@ -455,13 +457,10 @@ ProtectUefiImage (
     DEBUG ((
       DEBUG_VERBOSE,
       "!!!!!!!!  ProtectUefiImageCommon - Section Alignment(0x%x) is incorrect  !!!!!!!!\n",
-      SectionAlignment
-      ));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+      SectionAlignment));
+    if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_VERBOSE, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }
@@ -537,11 +536,9 @@ ProtectUefiImage (
     // of course).
     //
     DEBUG ((DEBUG_WARN, "!!!!!!!!  ProtectUefiImageCommon - CodeSegmentCount is 0  !!!!!!!!\n"));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+    if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }

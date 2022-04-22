@@ -22,6 +22,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "HeapGuard.h"
 #include "IndustryStandard/PeImage.h"
+#include "ProcessorBind.h"
 
 /**
   This function for GetMemoryMap() with properties table capability.
@@ -1284,6 +1285,7 @@ InsertImageRecord (
   IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
+  RETURN_STATUS                        PdbStatus;
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
   VOID                                 *ImageAddress;
   UINT32                                SectionAlignment;
@@ -1291,7 +1293,8 @@ InsertImageRecord (
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  //CHAR8                                 *PdbPointer;
+  CHAR8                                *PdbPointer;
+  UINT32                               PdbSize;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
 
   RuntimeImage = Image->RuntimeData;
@@ -1321,11 +1324,10 @@ InsertImageRecord (
 
   ImageAddress = RuntimeImage->ImageBase;
 
-  // FIXME:
-  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-  if (PdbPointer != NULL) {
+  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!EFI_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
-  }*/
+  }
 
   //
   // Get SectionAlignment
@@ -1337,14 +1339,10 @@ InsertImageRecord (
     DEBUG ((
       DEBUG_WARN,
       "!!!!!!!!  InsertImageRecord - Section Alignment(0x%x) is not %dK  !!!!!!!!\n",
-      SectionAlignment,
-      RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10
-      ));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+      SectionAlignment, RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10));
+    if (!EFI_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }
@@ -1403,11 +1401,9 @@ InsertImageRecord (
   if (ImageRecord->CodeSegmentCount == 0) {
     SetMemoryAttributesTableSectionAlignment (1);
     DEBUG ((DEBUG_ERROR, "!!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+    if (!EFI_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_ERROR, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }

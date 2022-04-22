@@ -11,7 +11,7 @@
 #define PE_COFF_INFO_H
 
 //
-// TODO: Provide annotations for optional features.
+// FIXME: Provide annotations for optional features.
 //
 
 UINT32

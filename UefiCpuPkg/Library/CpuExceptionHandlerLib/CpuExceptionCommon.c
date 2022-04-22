@@ -118,7 +118,7 @@ DumpModuleImageInfo (
   IN  UINTN  CurrentEip
   )
 {
-  // TODO:
+  // FIXME:
   #if 0
   //EFI_STATUS  Status;
   UINTN       Pe32Data;

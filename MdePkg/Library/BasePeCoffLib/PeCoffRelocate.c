@@ -209,7 +209,7 @@ ThumbMovwMovtImmediateFixup (
 }
 
 //
-// TODO: Prove Relocation Directory memory is not assigned.
+// FIXME: Prove Relocation Directory memory is not assigned.
 //
 /**
   Apply an Image Base Relocation.

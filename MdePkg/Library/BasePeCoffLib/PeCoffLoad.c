@@ -890,7 +890,7 @@ PeCoffLoadImage (
 */
 
 //
-// TODO: Provide a Runtime version of this API as well.
+// FIXME: Provide a Runtime version of this API as well.
 //
 VOID
 PeCoffDiscardSections (

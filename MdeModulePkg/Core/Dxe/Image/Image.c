@@ -1445,7 +1445,6 @@ CoreLoadImageCommon (
     goto Done;
   }
 
-  // FIXME:
   if (Image->HiiData != NULL) {
     Status = CoreInstallProtocolInterface (
                &Image->Handle,

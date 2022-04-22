@@ -250,110 +250,6 @@ GetSmramProfileContext (
 }
 
 /**
-  Retrieves and returns the Subsystem of a PE/COFF image that has been loaded into system memory.
-  If Pe32Data is NULL, then ASSERT().
-
-  @param Pe32Data   The pointer to the PE/COFF image that is loaded in system memory.
-
-  @return The Subsystem of the PE/COFF image.
-
-**/
-UINT16
-InternalPeCoffGetSubsystem (
-  IN VOID  *Pe32Data
-  )
-{
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION  Hdr;
-  EFI_IMAGE_DOS_HEADER                 *DosHdr;
-  UINT16                               Magic;
-
-  ASSERT (Pe32Data != NULL);
-
-  DosHdr = (EFI_IMAGE_DOS_HEADER *)Pe32Data;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    //
-    // DOS image header is present, so read the PE header after the DOS image header.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINTN)Pe32Data + (UINTN)((DosHdr->e_lfanew) & 0x0ffff));
-  } else {
-    //
-    // DOS image header is not present, so PE header is at the image base.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)Pe32Data;
-  }
-
-  if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-    return Hdr.Te->Subsystem;
-  } else if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
-    Magic = Hdr.Pe32->OptionalHeader.Magic;
-    if (Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-      return Hdr.Pe32->OptionalHeader.Subsystem;
-    } else if (Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-      return Hdr.Pe32Plus->OptionalHeader.Subsystem;
-    }
-  }
-
-  return 0x0000;
-}
-
-/**
-  Retrieves and returns a pointer to the entry point to a PE/COFF image that has been loaded
-  into system memory with the PE/COFF Loader Library functions.
-
-  Retrieves the entry point to the PE/COFF image specified by Pe32Data and returns this entry
-  point in EntryPoint.  If the entry point could not be retrieved from the PE/COFF image, then
-  return RETURN_INVALID_PARAMETER.  Otherwise return RETURN_SUCCESS.
-  If Pe32Data is NULL, then ASSERT().
-  If EntryPoint is NULL, then ASSERT().
-
-  @param  Pe32Data                  The pointer to the PE/COFF image that is loaded in system memory.
-  @param  EntryPoint                The pointer to entry point to the PE/COFF image to return.
-
-  @retval RETURN_SUCCESS            EntryPoint was returned.
-  @retval RETURN_INVALID_PARAMETER  The entry point could not be found in the PE/COFF image.
-
-**/
-RETURN_STATUS
-InternalPeCoffGetEntryPoint (
-  IN  VOID  *Pe32Data,
-  OUT VOID  **EntryPoint
-  )
-{
-  EFI_IMAGE_DOS_HEADER                 *DosHdr;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION  Hdr;
-
-  ASSERT (Pe32Data   != NULL);
-  ASSERT (EntryPoint != NULL);
-
-  DosHdr = (EFI_IMAGE_DOS_HEADER *)Pe32Data;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    //
-    // DOS image header is present, so read the PE header after the DOS image header.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINTN)Pe32Data + (UINTN)((DosHdr->e_lfanew) & 0x0ffff));
-  } else {
-    //
-    // DOS image header is not present, so PE header is at the image base.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)Pe32Data;
-  }
-
-  //
-  // Calculate the entry point relative to the start of the image.
-  // AddressOfEntryPoint is common for PE32 & PE32+
-  //
-  if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-    *EntryPoint = (VOID *)((UINTN)Pe32Data + (UINTN)(Hdr.Te->AddressOfEntryPoint & 0x0ffffffff) + sizeof (EFI_TE_IMAGE_HEADER) - Hdr.Te->StrippedSize);
-    return RETURN_SUCCESS;
-  } else if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
-    *EntryPoint = (VOID *)((UINTN)Pe32Data + (UINTN)(Hdr.Pe32->OptionalHeader.AddressOfEntryPoint & 0x0ffffffff));
-    return RETURN_SUCCESS;
-  }
-
-  return RETURN_UNSUPPORTED;
-}
-
-/**
   Build driver info.
 
   @param ContextData    Memory profile context.
@@ -371,10 +267,8 @@ MEMORY_PROFILE_DRIVER_INFO_DATA *
 BuildDriverInfo (
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
   IN EFI_GUID                     *FileName,
-  IN PHYSICAL_ADDRESS             ImageBase,
-  IN UINT64                       ImageSize,
-  IN PHYSICAL_ADDRESS             EntryPoint,
-  IN UINT16                       ImageSubsystem,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
+  IN EFI_PHYSICAL_ADDRESS           LoadAddress,
   IN EFI_FV_FILETYPE              FileType
   )
 {

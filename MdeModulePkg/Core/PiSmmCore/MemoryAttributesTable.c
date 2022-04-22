@@ -20,6 +20,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Guid/PiSmmMemoryAttributesTable.h>
 
 #include "PiSmmCore.h"
+#include "ProcessorBind.h"
 
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
@@ -1031,6 +1032,7 @@ SmmInsertImageRecord (
   PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext
   )
 {
+  RETURN_STATUS                        PdbStatus;
   PHYSICAL_ADDRESS                     ImageBuffer;
   UINTN                                NumberOfPage;
   VOID                                 *ImageAddress;
@@ -1039,7 +1041,8 @@ SmmInsertImageRecord (
   UINT8                                 *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  //CHAR8                                 *PdbPointer;
+  CHAR8                                *PdbPointer;
+  UINT32                               PdbSize;
   IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
 
   ImageBuffer  = (UINTN)LoadedImage->ImageBase;
@@ -1064,11 +1067,10 @@ SmmInsertImageRecord (
 
   ImageAddress = (VOID *)(UINTN)ImageBuffer;
 
-  // FIXME:
-  /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-  if (PdbPointer != NULL) {
+  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!RETURN_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
-  }*/
+  }
 
   //
   // Get SectionAlignment
@@ -1080,14 +1082,10 @@ SmmInsertImageRecord (
     DEBUG ((
       DEBUG_WARN,
       "SMM !!!!!!!!  InsertImageRecord - Section Alignment(0x%x) is not %dK  !!!!!!!!\n",
-      SectionAlignment,
-      RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10
-      ));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+      SectionAlignment, RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10));
+    if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_WARN, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }
@@ -1146,11 +1144,9 @@ SmmInsertImageRecord (
   if (ImageRecord->CodeSegmentCount == 0) {
     SetMemoryAttributesTableSectionAlignment (1);
     DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    // FIXME:
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+    if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }*/
+    }
 
     goto Finish;
   }

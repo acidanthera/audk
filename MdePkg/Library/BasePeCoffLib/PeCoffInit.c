@@ -34,7 +34,7 @@
 #include "PeCoffDebug.h"
 
 //
-// TODO: Provide an API to destruct the context.
+// FIXME: Provide an API to destruct the context.
 //
 
 /*@ ghost
@@ -529,7 +529,7 @@ InternalValidateRelocInfo (
     @           \let Sections      = image_context_get_sections (Context);
     @           image_reloc_dir_sane (Context->RelocDirRva, Context->RelocDirSize, Context->RelocsStripped, StartAddress, Context->SizeOfImage);
   */
-  // TODO: Prove new condition
+  // FIXME: Prove new condition
   if (!Context->RelocsStripped && Context->RelocDirSize) {
     //
     // Ensure the Relocation Directory is not empty.

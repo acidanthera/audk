@@ -651,7 +651,7 @@ SmmLoadImage (
   // Print the load address and the PDB file name if it is available
   //
 
-  // TODO:
+  // FIXME:
   /*DEBUG_CODE_BEGIN ();
 
   UINTN  Index;
@@ -876,7 +876,7 @@ SmmDispatcher (
       //
       if (DriverEntry->ImageHandle == NULL) {
         Status = SmmLoadImage (DriverEntry);
-
+        // FIXME: What in the fucking world is this...?
         //
         // Update the driver state to reflect that it's been loaded
         //

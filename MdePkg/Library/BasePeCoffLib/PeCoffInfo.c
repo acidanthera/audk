@@ -92,7 +92,7 @@ PeCoffGetSizeOfHeaders (
   return Context->SizeOfHeaders;
 }
 
-// TODO: CONST
+// FIXME: CONST
 UINT16
 PeCoffGetSections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
