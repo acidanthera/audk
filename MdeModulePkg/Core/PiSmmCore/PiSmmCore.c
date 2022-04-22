@@ -749,6 +749,17 @@ SmmEntryPoint (
 }
 
 /**
+  Insert image record.
+
+  @param[in]  DriverEntry    Driver information
+**/
+VOID
+SmmInsertImageRecord (
+  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
+  PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext
+  );
+
+/**
   Install LoadedImage protocol for SMM Core.
 **/
 VOID
@@ -826,6 +837,8 @@ SmmCoreInstallLoadedImage (
                                           &mSmmCoreDriverEntry->SmmLoadedImage
                                           );
   ASSERT_EFI_ERROR (Status);
+
+  SmmInsertImageRecord (&mSmmCoreDriverEntry->SmmLoadedImage, &gSmmCorePrivate->PiSmmCoreImageContext);
 
   return;
 }
