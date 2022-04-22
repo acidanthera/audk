@@ -2630,14 +2630,6 @@ LegacyBiosInstallRom (
       //
       gBS->SetMem ((VOID *)(InitAddress + *RuntimeImageLength), ImageSize - *RuntimeImageLength, 0xff);
     }
-  } else {
-    DEBUG ((DEBUG_INFO, "Conv X #1\n"));
-    Status = gDS->SetMemorySpaceAttributes (
-                    PhysicalAddress,
-                    EFI_SIZE_TO_PAGES (ImageSize),
-                    EFI_MEMORY_RO
-                    );
-    ASSERT_EFI_ERROR (Status);
   }
 
   ACCESS_PAGE0_CODE (

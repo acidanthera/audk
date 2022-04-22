@@ -519,7 +519,6 @@ SetGuardPage (
   //
   // Note: This might overwrite other attributes needed by other features,
   // such as NX memory protection.
-  // FIXME: Why not RO, XP?
   //
   Status = gCpu->SetMemoryAttributes (gCpu, BaseAddress, EFI_PAGE_SIZE, EFI_MEMORY_RP);
   ASSERT_EFI_ERROR (Status);
@@ -1521,7 +1520,7 @@ PromoteGuardedFreePages (
   OUT EFI_PHYSICAL_ADDRESS  *EndAddress
   )
 {
-  //EFI_STATUS              Status;
+  EFI_STATUS              Status;
   UINTN                 AvailablePages;
   UINT64                Bitmap;
   EFI_PHYSICAL_ADDRESS  Start;
@@ -1565,20 +1564,16 @@ PromoteGuardedFreePages (
     DEBUG ((DEBUG_INFO, "Promoted pages: %lX (%lx)\r\n", Start, (UINT64)AvailablePages));
     ClearGuardedMemoryBits (Start, AvailablePages);
 
-    // FIXME: Is this correct?
-    UnsetGuardPage (Start);
-
-    /*if (gCpu != NULL) {
+    if (gCpu != NULL) {
       //
       // Set flag to make sure allocating memory without GUARD for page table
       // operation; otherwise infinite loops could be caused.
       //
       mOnGuarding = TRUE;
-      
       Status      = gCpu->SetMemoryAttributes (gCpu, Start, EFI_PAGES_TO_SIZE (AvailablePages), 0);
       ASSERT_EFI_ERROR (Status);
       mOnGuarding = FALSE;
-    }*/
+    }
 
     mLastPromotedPage = Start;
     *StartAddress     = Start;

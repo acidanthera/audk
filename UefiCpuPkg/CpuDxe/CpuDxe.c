@@ -382,9 +382,6 @@ CpuSetMemoryAttributes (
   UINT64                    MemoryAttributes;
   MTRR_MEMORY_CACHE_TYPE    CurrentCacheType;
 
-  // FIXME: Is RP enough?
-  //ASSERT ((Attributes & (EFI_MEMORY_XP | EFI_MEMORY_RO | EFI_MEMORY_RP)) != 0);
-
   //
   // If this function is called because GCD SetMemorySpaceAttributes () is called
   // by RefreshGcdMemoryAttributes (), then we are just synchronizing GCD memory
