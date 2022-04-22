@@ -2610,8 +2610,10 @@ MemoryProfileInstallProtocol (
 **/
 EFI_STATUS
 RegisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry,
-  IN EFI_FV_FILETYPE            FileType
+  IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
+  IN EFI_FV_FILETYPE            FileType,
+  IN PE_COFF_IMAGE_CONTEXT      *ImageContext,
+  IN UINT64                     LoadAddress
   );
 
 /**
@@ -2627,7 +2629,8 @@ RegisterMemoryProfileImage (
 **/
 EFI_STATUS
 UnregisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry
+  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
+  IN EFI_PHYSICAL_ADDRESS  ImageAddress
   );
 
 /**

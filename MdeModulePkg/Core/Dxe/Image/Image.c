@@ -555,7 +555,7 @@ CoreLoadPeImage (
   IN BOOLEAN                    BootPolicy,
   IN VOID                       *Pe32Handle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN EFI_PHYSICAL_ADDRESS       DstBuffer    OPTIONAL,
+  IN EFI_PHYSICAL_ADDRESS        *DstBuffer    OPTIONAL,
   OUT EFI_PHYSICAL_ADDRESS      *EntryPoint  OPTIONAL,
   IN  UINT32                     Attribute,
   PE_COFF_IMAGE_CONTEXT          *ImageContext
@@ -630,7 +630,7 @@ CoreLoadPeImage (
   // Allocate memory of the correct memory type aligned on the required image boundary
   //
   DstBufAlocated = FALSE;
-  if (DstBuffer == 0) {
+  if (*DstBuffer == 0) {
     //
     // Allocate Destination Buffer as caller did not pass it in
     //
@@ -698,12 +698,13 @@ CoreLoadPeImage (
     }
 
     DstBufAlocated = TRUE;
+    *DstBuffer = LoadAddress;
   } else {
     //
     // Caller provided the destination buffer
     //
 
-    if (ImageContext->RelocsStripped && (LoadAddress != DstBuffer)) {
+    if (ImageContext->RelocsStripped && (LoadAddress != *DstBuffer)) {
       //
       // If the image relocations were stripped, and the caller provided a
       // destination buffer address that does not match the address that the
@@ -723,7 +724,7 @@ CoreLoadPeImage (
     }
 
     Image->NumberOfPages             = EFI_SIZE_TO_PAGES ((UINTN)ImageContext->SizeOfImage + ImageContext->SectionAlignment);
-    LoadAddress = DstBuffer;
+    LoadAddress = *DstBuffer;
   }
 
   Image->ImageBasePage = LoadAddress;
@@ -967,9 +968,7 @@ CoreUnloadAndCloseImage (
   HandleBuffer      = NULL;
   ProtocolGuidArray = NULL;
 
-  //if (Image->Started) {
-  //  UnregisterMemoryProfileImage (Image);
-  //}
+  UnregisterMemoryProfileImage (Image->Info.FilePath, Image->ImageBasePage);
 
   UnprotectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
 
@@ -1389,7 +1388,8 @@ CoreLoadImageCommon (
   //
   // Load the image.  If EntryPoint is Null, it will not be set.
   //
-  Status = CoreLoadPeImage (BootPolicy, &FHand, Image, DstBuffer, EntryPoint, Attribute, &ImageContext);
+  EFI_PHYSICAL_ADDRESS LoadAddress = DstBuffer;
+  Status = CoreLoadPeImage (BootPolicy, &FHand, Image, &LoadAddress, EntryPoint, Attribute, &ImageContext);
   if (EFI_ERROR (Status)) {
     if ((Status == EFI_BUFFER_TOO_SMALL) || (Status == EFI_OUT_OF_RESOURCES)) {
       if (NumberOfPages != NULL) {
@@ -1460,6 +1460,13 @@ CoreLoadImageCommon (
 
   Status = EFI_SUCCESS;
   ProtectUefiImage (Image, &ImageContext);
+
+  RegisterMemoryProfileImage (
+    Image->LoadedImageDevicePath,
+    (ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
+    &ImageContext,
+    LoadAddress
+    );
 
   //
   // Success.  Return the image handle
@@ -1697,7 +1704,6 @@ CoreStartImage (
   // Subsequent calls to LongJump() cause a non-zero value to be returned by SetJump().
   //
   if (SetJumpFlag == 0) {
-    //RegisterMemoryProfileImage (Image, (Image->ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER));
     //
     // Call the image's entry point
     //
