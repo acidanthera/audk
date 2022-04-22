@@ -258,7 +258,7 @@ InternalApplyRelocation (
              &RelocTarget
              );
   if (Result) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -268,7 +268,7 @@ InternalApplyRelocation (
              &RemRelocTargetSize
              );
   if (Result) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -289,7 +289,7 @@ InternalApplyRelocation (
   switch (RelocType) {
     case EFI_IMAGE_REL_BASED_HIGHLOW:
       if (sizeof (UINT32) > RemRelocTargetSize) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -297,7 +297,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT32) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -314,7 +314,7 @@ InternalApplyRelocation (
 
     case EFI_IMAGE_REL_BASED_DIR64:
       if (sizeof (UINT64) > RemRelocTargetSize) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -322,7 +322,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -339,18 +339,18 @@ InternalApplyRelocation (
 
     case EFI_IMAGE_REL_BASED_ARM_MOV32T:
       if (!PcdGetBool (PcdImageLoaderSupportArmThumb)) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
       if (sizeof (UINT64) > RemRelocTargetSize) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
       // FIXME: 32-bit
       if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT16))) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -358,7 +358,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -371,7 +371,7 @@ InternalApplyRelocation (
       break;
 
     default:
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
   }
 
@@ -433,7 +433,7 @@ PeCoffRelocateImage (
   TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
   if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
     if (!IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -466,19 +466,19 @@ PeCoffRelocateImage (
     // Ensure the block's size is padded to ensure proper alignment.
     //
     if (Result) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
     if (SizeOfRelocs > RelocMax - RelocOffset) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
     if (!PcdGetBool (PcdImageLoaderAllowUnalignedRelocationSizes)) {
       RelocBlockSize = RelocWalker->SizeOfBlock;
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     } else {
@@ -488,7 +488,7 @@ PeCoffRelocateImage (
                  &RelocBlockSize
                  );
       if (Result) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
     }
@@ -530,7 +530,7 @@ PeCoffRelocateImage (
                  WalkerFixupData
                  );
       if (Status != RETURN_SUCCESS) {
-        ASSERT (FALSE);
+        CRITIAL_ERROR (FALSE);
         return Status;
       }
     }
@@ -546,7 +546,7 @@ PeCoffRelocateImage (
                &TopOfRelocDir
                );
     if (Result) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
@@ -554,7 +554,7 @@ PeCoffRelocateImage (
   // Ensure the Relocation Directory size matches the contained data.
   //
   if (RelocOffset != TopOfRelocDir) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //

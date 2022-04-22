@@ -77,7 +77,7 @@ PeCoffGetHiiResourceSection (
 
   if (!IS_ALIGNED (DirectoryEntry->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
     DEBUG ((DEBUG_WARN, "%u, %u\n", DirectoryEntry->VirtualAddress, DirectoryEntry->Size));
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -87,7 +87,7 @@ PeCoffGetHiiResourceSection (
              &TopOffset
              );
   if (Result || TopOffset > Context->SizeOfImage) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -102,7 +102,7 @@ PeCoffGetHiiResourceSection (
   TopOffset = sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDirEntry) *
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
   if (TopOffset > DirectoryEntry->Size) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -120,13 +120,13 @@ PeCoffGetHiiResourceSection (
                &TopOffset
                );
     if (Result || TopOffset > DirectoryEntry->Size) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
     Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -156,13 +156,13 @@ PeCoffGetHiiResourceSection (
     // Move to next level - resource Name / Language
     //
     if (ResourceDirEntry->u2.s.OffsetToDirectory > DirectoryEntry->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
     Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -171,7 +171,7 @@ PeCoffGetHiiResourceSection (
                     );
 
     if ((UINT32) ResourceDir->NumberOfIdEntries + ResourceDir->NumberOfNamedEntries == 0) {
-      ASSERT (FALSE);
+      CRITIAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
 
@@ -181,7 +181,7 @@ PeCoffGetHiiResourceSection (
   // Now it ought to be resource Data
   //
   if (ResourceDirEntry->u2.s.DataIsDirectory != 0) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -190,13 +190,13 @@ PeCoffGetHiiResourceSection (
     "The following arithmetic may overflow."
     );
   if (ResourceDirEntry->u2.OffsetToData >= DirectoryEntry->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
   Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
   if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
@@ -210,7 +210,7 @@ PeCoffGetHiiResourceSection (
              MaxHiiSize
              );
   if (Result) {
-    ASSERT (FALSE);
+    CRITIAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 

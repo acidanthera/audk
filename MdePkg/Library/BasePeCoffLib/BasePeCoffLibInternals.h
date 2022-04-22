@@ -9,6 +9,7 @@
 #define BASE_PECOFF_LIB_INTERNALS_H_
 
 #define ALIGNOF           _Alignof
+#define CRITIAL_ERROR     ASSERT
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
 
