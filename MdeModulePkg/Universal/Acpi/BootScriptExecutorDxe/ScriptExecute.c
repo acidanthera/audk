@@ -332,25 +332,15 @@ ReadyToLockEventNotify (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&ImageContext, (VOID *)(UINTN)LoadAddress, Size);
+  Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  //
-  // Relocate the image in our new buffer
-  //
   LoadAddress = PeCoffLoaderGetDestinationAddress (&ImageContext);
-  Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
-  ASSERT_EFI_ERROR (Status);
 
   //
   // Free the buffer allocated by ReadSection since the image has been relocated in the new buffer
   //
   gBS->FreePool (Buffer);
-
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
 
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,

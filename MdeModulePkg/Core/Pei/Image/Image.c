@@ -342,7 +342,13 @@ LoadAndRelocatePeCoffImage (
     //
     // Load the image to our new buffer
     //
-    Status = PeCoffLoadImage (ImageContext, (VOID *) (UINTN) LoadAddress, AlignImageSize);
+    Status = PeCoffLoadImageForExecution (
+      ImageContext,
+      (VOID *) (UINTN) LoadAddress,
+      AlignImageSize,
+      NULL,
+      0
+      );
     if (EFI_ERROR (Status)) {
       // TODO: Fix?
       //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
@@ -351,19 +357,7 @@ LoadAndRelocatePeCoffImage (
       return Status;
     }
 
-    //
-    // Relocate the image in our new buffer
-    //
     LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
-    Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    //
-    // Flush the instruction cache so the image data is written before we execute it
-    //
-    InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (ImageContext));
   } else {
     Status = PeCoffLoadImageInplace (ImageContext);
     if (EFI_ERROR (Status)) {
@@ -409,26 +403,13 @@ LoadAndRelocatePeCoffImageInPlace (
   // Load the image in place
   //
   // FIXME: Destination size
-  Status = PeCoffLoadImage (&ImageContext, ImageAddress, 0xFFFFFFFF);
+  Status = PeCoffLoadImageForExecution (&ImageContext, ImageAddress, 0xFFFFFFFF, NULL, 0);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
   }
 
-  //
-  // Relocate the image in place
-  //
   ImageAddress = (VOID *) PeCoffLoaderGetDestinationAddress (&ImageContext);
-  Status = PeCoffRelocateImage (&ImageContext, (UINTN)ImageAddress, NULL, 0);
-  if (EFI_ERROR (Status)) {
-    ASSERT_EFI_ERROR (Status);
-    return Status;
-  }
-
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  InvalidateInstructionCacheRange (ImageAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
 
   return Status;
 }

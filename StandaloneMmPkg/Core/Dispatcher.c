@@ -206,6 +206,7 @@ MmLoadImage (
   UINTN                         PageCount;
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          DstBuffer;
+  UINTN                          ImageBase
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
@@ -237,27 +238,18 @@ MmLoadImage (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize);
+  Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize, NULL, 0);
   if (EFI_ERROR (Status)) {
     MmFreePages (DstBuffer, PageCount);
     return Status;
   }
 
-  //
-  // Relocate the image in our new buffer
-  //
   DstBuffer = PeCoffLoaderGetDestinationAddress (&ImageContext);
-  Status = PeCoffRelocateImage (&ImageContext, DstBuffer, NULL, 0);
-  if (EFI_ERROR (Status)) {
-    MmFreePages (DstBuffer, PageCount);
-    return Status;
-  }
 
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
   ImageSize = PeCoffGetSizeOfImage (&ImageContext);
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)DstBuffer, ImageSize);
 
   //
   // Save Image EntryPoint in DriverEntry
@@ -273,6 +265,7 @@ MmLoadImage (
                                               (VOID **)&DriverEntry->LoadedImage
                                               );
     if (EFI_ERROR (Status)) {
+      // FIXME: Check buffer vs image start usage *everywhere*
       MmFreePages (DstBuffer, PageCount);
       return Status;
     }

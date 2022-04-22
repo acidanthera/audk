@@ -1097,34 +1097,23 @@ ExecuteSmmCoreFromSmram (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize);
+  Status = PeCoffLoadImageForExecution (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize, NULL, 0);
   if (!EFI_ERROR (Status)) {
     LoadAddress = PeCoffLoaderGetDestinationAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
     //
-    // Relocate the image in our new buffer
+    // Print debug message showing SMM Core entry point address.
     //
-    Status = PeCoffRelocateImage (&gSmmCorePrivate->PiSmmCoreImageContext, LoadAddress, NULL, 0);
-    if (!EFI_ERROR (Status)) {
-      //
-      // Flush the instruction cache so the image data are written before we execute it
-      //
-      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext));
+    DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
 
-      //
-      // Print debug message showing SMM Core entry point address.
-      //
-      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
+    gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
+    DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
+    DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
 
-      gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
-
-      //
-      // Execute image
-      //
-      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
-      Status     = EntryPoint ((EFI_HANDLE)Context, gST);
-    }
+    //
+    // Execute image
+    //
+    EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
+    Status = EntryPoint ((EFI_HANDLE)Context, gST);
   }
 
   //

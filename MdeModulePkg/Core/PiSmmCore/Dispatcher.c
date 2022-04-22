@@ -506,10 +506,12 @@ SmmLoadImage (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (
+  Status = PeCoffLoadImageForExecution (
     ImageContext,
     (VOID *) (UINTN) DstBuffer,
-    DstBufferSize
+    DstBufferSize,
+    NULL,
+    0
     );
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
@@ -520,25 +522,7 @@ SmmLoadImage (
     return Status;
   }
 
-  //
-  // Relocate the image in our new buffer
-  // FIXME: Support 0-value to do this internally?
-  //
   LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
-  Status = PeCoffRelocateImage (ImageContext, LoadAddress, NULL, 0);
-  if (EFI_ERROR (Status)) {
-    if (Buffer != NULL) {
-      gBS->FreePool (Buffer);
-    }
-
-    SmmFreePages (DstBuffer, PageCount);
-    return Status;
-  }
-
-  //
-  // Flush the instruction cache so the image data are written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN) PeCoffGetSizeOfImage (ImageContext));
 
   //
   // Save Image EntryPoint in DriverEntry

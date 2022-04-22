@@ -729,27 +729,19 @@ CoreLoadPeImage (
   //
   // Load the image from the file into the allocated memory
   //
-  Status = PeCoffLoadImage (ImageContext, (VOID *)(UINTN)LoadAddress, Size);
+  Status = PeCoffLoadImageForExecution (
+    ImageContext,
+    (VOID *)(UINTN)LoadAddress,
+    Size,
+    RelocationData,
+    RelocDataSize
+    );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     goto Done;
   }
 
   LoadAddress = PeCoffLoaderGetDestinationAddress (ImageContext);
-
-  //
-  // Relocate the image in memory
-  //
-  Status = PeCoffRelocateImage (ImageContext, LoadAddress, RelocationData, RelocDataSize);
-  if (EFI_ERROR (Status)) {
-    ASSERT (FALSE);
-    goto Done;
-  }
-
-  //
-  // Flush the Instruction Cache
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (ImageContext));
 
   //
   // Copy the machine type from the context to the image private data.
