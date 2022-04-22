@@ -37,6 +37,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   UINT32                                DebugDirSectionOffset;
   UINT32                                DebugDirSectionRawTop;
   UINT32                                DebugEntryTopOffset;
+  UINT32                                DebugEntryRvaTop;
   CONST EFI_IMAGE_SECTION_HEADER        *Sections;
   UINT16                                SectIndex;
 
@@ -158,15 +159,32 @@ PeCoffLoaderRetrieveCodeViewInfo (
     return;
   }
 
-  CodeViewEntry        = &DebugEntries[DebugIndex];
-  Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
-  ASSERT (Context->CodeViewRva >= Sections[SectIndex].VirtualAddress);
-  ASSERT (Context->CodeViewRva <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize);
-  //
-  // If the Image does not load the Debug information into memory on its own,
-  // request reserved space for it to force-load it.
-  //
-  if (CodeViewEntry->RVA == 0) {
+  CodeViewEntry = &DebugEntries[DebugIndex];
+
+  if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
+    ASSERT (FALSE);
+    return;
+  }
+
+  if (CodeViewEntry->RVA != 0) {
+    Result = BaseOverflowAddU32 (
+               CodeViewEntry->RVA,
+               CodeViewEntry->SizeOfData,
+               &DebugEntryRvaTop
+               );
+    if (Result || DebugEntryRvaTop > Context->SizeOfImage
+     || !IS_ALIGNED (CodeViewEntry->RVA, OC_ALIGNOF (UINT32))) {
+      ASSERT (FALSE);
+      return;
+    }
+  } else {
+    if (!PcdGetBool (PcdImageLoaderForceLoadDebug)) {
+      return;
+    }
+    //
+    // If the Image does not load the Debug information into memory on its own,
+    // request reserved space for it to force-load it.
+    //
     Result = BaseOverflowSubU32 (
               CodeViewEntry->FileOffset,
               Context->TeStrippedOffset,
@@ -218,7 +236,12 @@ PeCoffLoaderRetrieveCodeViewInfo (
     }
 
     Context->SizeOfImageDebugAdd = DebugSizeOfImage - Context->SizeOfImage;
+    ASSERT (Context->SizeOfImageDebugAdd > 0);
   }
+
+  Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
+  ASSERT (Context->CodeViewRva >= Sections[SectIndex].VirtualAddress);
+  ASSERT (Context->CodeViewRva <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize);
 }
 
 VOID
@@ -226,10 +249,41 @@ PeCoffLoaderLoadCodeView (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  BOOLEAN                         Result;
-
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
-  UINT32                          DebugEntryRvaTop;
+
+  ASSERT (Context != NULL);
+
+  if (Context->CodeViewRva == 0) {
+    return;
+  }
+
+  CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
+                    (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
+                    );
+  //
+  // Load the Codeview information if present
+  //
+  if (CodeViewEntry->RVA == 0) {
+    ASSERT (Context->SizeOfImageDebugAdd > 0);
+
+    CodeViewEntry->RVA = ALIGN_VALUE (Context->SizeOfImage, OC_ALIGNOF (UINT32));
+
+    ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
+
+    CopyMem (
+      (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA,
+      (CONST CHAR8 *) Context->FileBuffer + (CodeViewEntry->FileOffset - Context->TeStrippedOffset),
+      CodeViewEntry->SizeOfData
+      );
+  }
+}
+
+VOID
+PeCoffLoaderLoadCodeViewInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
 
   ASSERT (Context != NULL);
 
@@ -244,38 +298,15 @@ PeCoffLoaderLoadCodeView (
   // Load the Codeview information if present
   //
   if (CodeViewEntry->RVA != 0) {
-    Result = BaseOverflowAddU32 (
-               CodeViewEntry->RVA,
-               CodeViewEntry->SizeOfData,
-               &DebugEntryRvaTop
-               );
-    if (Result || DebugEntryRvaTop > Context->SizeOfImage
-     || !IS_ALIGNED (CodeViewEntry->RVA, OC_ALIGNOF (UINT32))) {
+    if (CodeViewEntry->RVA != CodeViewEntry->FileOffset) {
       ASSERT (FALSE);
       Context->CodeViewRva = 0;
       return;
     }
   } else {
-    if (!PcdGetBool (PcdImageLoaderForceLoadDebug)
-     || Context->SizeOfImageDebugAdd == 0) {
-      Context->CodeViewRva = 0;
-      return;
-    }
+    ASSERT (Context->SizeOfImageDebugAdd > 0);
 
-    CodeViewEntry->RVA = ALIGN_VALUE (Context->SizeOfImage, OC_ALIGNOF (UINT32));
-
-    ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
-
-    CopyMem (
-      (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA,
-      (CONST CHAR8 *) Context->FileBuffer + (CodeViewEntry->FileOffset - Context->TeStrippedOffset),
-      CodeViewEntry->SizeOfData
-      );
-  }
-
-  if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
-    ASSERT (FALSE);
-    Context->CodeViewRva = 0;
+    CodeViewEntry->RVA = CodeViewEntry->FileOffset;
   }
 }
 

@@ -865,6 +865,37 @@ PeCoffLoadImage (
   return RETURN_SUCCESS;
 }
 
+RETURN_STATUS
+PeCoffLoadImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  CONST EFI_IMAGE_SECTION_HEADER *Sections;
+  UINT32                         AlignedSize;
+  UINT16                         Index;
+
+  Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
+               (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
+               );
+
+  for (Index = 0; Index < Context->NumberOfSections; ++Index) {
+    AlignedSize = ALIGN_VALUE (Sections[Index].VirtualSize, Context->SectionAlignment);
+    if (Sections[Index].PointerToRawData != Sections[Index].VirtualAddress
+     || Sections[Index].SizeOfRawData != AlignedSize) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  Context->ImageBuffer = (VOID *) Context->FileBuffer;
+
+  if (PcdGetBool (PcdImageLoaderSupportDebug)) {
+    PeCoffLoaderLoadCodeViewInplace (Context);
+  }
+
+  return RETURN_SUCCESS;
+}
+
 /*@ ghost
   @/@ assigns *(EFI_IMAGE_BASE_RELOCATION_BLOCK *) ((char *) Image + RelocDirRva);
   @ @

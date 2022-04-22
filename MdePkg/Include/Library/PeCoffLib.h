@@ -201,6 +201,11 @@ PeCoffLoadImage (
   IN     UINT32                 DestinationSize
   );
 
+RETURN_STATUS
+PeCoffLoadImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 /**
   Discards optional Image Sections to disguise sensitive data.
 
@@ -296,6 +301,11 @@ PeCoffLoaderRetrieveCodeViewInfo (
 **/
 VOID
 PeCoffLoaderLoadCodeView (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+VOID
+PeCoffLoaderLoadCodeViewInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
