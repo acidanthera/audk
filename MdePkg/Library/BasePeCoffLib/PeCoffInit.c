@@ -63,9 +63,12 @@ InternalVerifySections (
   ASSERT (Context != NULL);
   ASSERT (Context->SizeOfHeaders >= Context->TeStrippedOffset);
   ASSERT (IS_POW2 (Context->SectionAlignment));
-  ASSERT (Context->NumberOfSections > 0);
   ASSERT (StartAddress != NULL);
   ASSERT (EndAddress != NULL);
+
+  if (Context->NumberOfSections == 0) {
+    return RETURN_UNSUPPORTED;
+  }
 
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
@@ -286,7 +289,7 @@ InternalInitializeTe (
   Context->ImageType = PeCoffLoaderTypeTe;
 
   TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
-            (CONST CHAR8 *) Context->FileBuffer + 0
+            (CONST CHAR8 *) Context->FileBuffer
             );
 
   Result = BaseOverflowSubU16 (
@@ -295,10 +298,6 @@ InternalInitializeTe (
              &Context->TeStrippedOffset
              );
   if (Result) {
-    return RETURN_UNSUPPORTED;
-  }
-
-  if (TeHdr->NumberOfSections == 0) {
     return RETURN_UNSUPPORTED;
   }
 
@@ -489,11 +488,6 @@ InternalInitializePe (
   // Do not load images with unknown directories.
   //
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
-    CRITICAL_ERROR (FALSE);
-    return RETURN_UNSUPPORTED;
-  }
-
-  if (PeCommon->FileHeader.NumberOfSections == 0) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
