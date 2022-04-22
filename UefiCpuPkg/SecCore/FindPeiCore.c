@@ -179,7 +179,7 @@ FindAndReportEntryPoints (
   // FIXME:
   //ImageContext.ImageAddress = PeiCoreImageBase;
   //ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-  /PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  //PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
   Status = PeCoffInitializeContext (&ImageContext, (VOID*)(UINTN)PeiCoreImageBase, 0xFFFFFFFF);
   ASSERT_EFI_ERROR (Status);
@@ -187,7 +187,7 @@ FindAndReportEntryPoints (
   //
   // Find PEI Core entry point
   //
-  *PeiCoreEntryPoint = ImageContext.DestAddress + ImageContext.AddressOfEntryPoint;
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT) (UINTN) (ImageContext.ImageBase + ImageContext.AddressOfEntryPoint);
 
   return;
 }

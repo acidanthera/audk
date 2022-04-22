@@ -190,7 +190,8 @@ DumpModuleInfoByIp (
   IN  UINTN  CallerIpAddress
   )
 {
-  UINTN  Pe32Data;
+  // FIXME:
+  /*UINTN                                Pe32Data;
   VOID   *PdbPointer;
 
   //
@@ -199,11 +200,11 @@ DumpModuleInfoByIp (
   Pe32Data = PeCoffSearchImageBase (CallerIpAddress);
   if (Pe32Data != 0) {
     DEBUG ((DEBUG_ERROR, "It is invoked from the instruction before IP(0x%p)", (VOID *)CallerIpAddress));
-    /*PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)Pe32Data);
+    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)Pe32Data);
     if (PdbPointer != NULL) {
       DEBUG ((DEBUG_ERROR, " in module (%a)\n", PdbPointer));
-    }*/
-  }
+    }
+  }*/
 }
 
 /**
