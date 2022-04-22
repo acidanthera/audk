@@ -1524,16 +1524,16 @@ DxeImageVerificationHandler (
     goto Failed;
   }
 
-  if (RETURN_ERROR (HashStatus)) {
-    goto Failed;
-  }
-
   //
   // Verify the signature of the image, multiple signatures are allowed as per PE/COFF Section 4.7
   // "Attribute Certificate Table".
   // The first certificate starts at offset (SecDataDir->VirtualAddress) from the start of the file.
   //
-  do
+  for (
+    ;
+    !RETURN_ERROR (HashStatus);
+    HashStatus = PeCoffGetNextCertificate (ImageContext, &WinCertificate)
+    )
   {
     // FIXME: sizes
     //
@@ -1552,9 +1552,6 @@ DxeImageVerificationHandler (
       AuthData     = PkcsCertData->CertData;
       AuthDataSize = PkcsCertData->Hdr.dwLength - sizeof (PkcsCertData->Hdr);
     } else if (WinCertificate->wCertificateType == WIN_CERT_TYPE_EFI_GUID) {
-      if (WinCertUefiGuid->Hdr.dwLength <= OFFSET_OF(WIN_CERTIFICATE_UEFI_GUID, CertData)) {
-        break;
-      }
       //
       // The certificate is formatted as WIN_CERTIFICATE_UEFI_GUID which is described in UEFI Spec.
       //
@@ -1564,12 +1561,12 @@ DxeImageVerificationHandler (
         continue;
       }
 
+      if (WinCertUefiGuid->Hdr.dwLength <= OFFSET_OF(WIN_CERTIFICATE_UEFI_GUID, CertData)) {
+        break;
+      }
       AuthData     = WinCertUefiGuid->CertData;
       AuthDataSize = WinCertUefiGuid->Hdr.dwLength - OFFSET_OF (WIN_CERTIFICATE_UEFI_GUID, CertData);
     } else {
-      if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
-        break;
-      }
 
       continue;
     }
@@ -1585,7 +1582,6 @@ DxeImageVerificationHandler (
     if (IsForbiddenByDbx (AuthData, AuthDataSize, ImageDigest, ImageDigestSize)) {
       Action     = EFI_IMAGE_EXECUTION_AUTH_SIG_FAILED;
       IsVerified = FALSE;
-      break;
     }
 
     //
@@ -1628,14 +1624,11 @@ DxeImageVerificationHandler (
         DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Image is signed but signature is not allowed by DB and hash of image is not found in DB/DBX.\n"));
       }
     }
-
-    HashStatus = PeCoffGetNextCertificate (ImageContext, &WinCertificate);
-  } while (!RETURN_ERROR (HashStatus));
-
-  if (HashStatus == RETURN_NOT_FOUND) {
-    return EFI_SUCCESS;
   }
 
+  if (IsVerified) {
+    return EFI_SUCCESS;
+  }
   if ((Action == EFI_IMAGE_EXECUTION_AUTH_SIG_FAILED) || (Action == EFI_IMAGE_EXECUTION_AUTH_SIG_FOUND)) {
     //
     // Get image hash value as signature of executable.

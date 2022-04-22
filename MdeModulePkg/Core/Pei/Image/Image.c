@@ -138,7 +138,6 @@ GetPeCoffImageFixLoadingAssignedAddress (
       // else, these 2 fields should be set to Zero
        //
        ValueInSectionHeader = ReadUnaligned64((UINT64*)&Sections[Index].PointerToRelocations);
-       // FIXME: Don't access context
        if (ValueInSectionHeader != 0) {
          //
          // Found first section header that doesn't point to code section.
