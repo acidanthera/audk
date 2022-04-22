@@ -604,8 +604,14 @@ InternalInitializePe (
       return RETURN_UNSUPPORTED;
     }
 
-    if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)
-     || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
+    if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)) {
+      CRITICAL_ERROR (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+
+    if (Context->SecDirSize != 0
+     && (!IS_ALIGNED (Context->SecDirSize, IMAGE_CERTIFICATE_ALIGN)
+      || Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }

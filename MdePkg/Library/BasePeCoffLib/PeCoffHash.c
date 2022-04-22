@@ -382,26 +382,17 @@ PeCoffGetNextCertificate (
 
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     CertSize = WinCertificate->dwLength;
-    if (!IS_ALIGNED (CertSize, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITICAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
   } else {
-    Overflow = BaseOverflowAlignUpU32 (
-                 WinCertificate->dwLength,
-                 IMAGE_CERTIFICATE_ALIGN,
-                 &CertSize
-                 );
-    if (Overflow) {
-      CRITICAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
+    CertSize = ALIGN_VALUE (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN);
   }
 
   CertOffset += CertSize;
   if (CertOffset == Context->SecDirSize) {
     return RETURN_NOT_FOUND;
   }
+
+  ASSERT (CertOffset < Context->SecDirSize);
+
   if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
