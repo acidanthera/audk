@@ -268,7 +268,7 @@ ReadyToLockEventNotify (
   EFI_HANDLE                       NewImageHandle;
   UINTN                            Pages;
   EFI_PHYSICAL_ADDRESS             FfsBuffer;
-  PE_COFF_IMAGE_CONTEXT     ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT                  ImageContext;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 

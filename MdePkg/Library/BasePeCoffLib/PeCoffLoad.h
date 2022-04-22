@@ -166,7 +166,7 @@
 */
 RETURN_STATUS
 PeCoffLoadImage (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    VOID                   *Destination,
   IN     UINT32                 DestinationSize
   );
@@ -213,7 +213,7 @@ PeCoffLoadImage (
 */
 VOID
 PeCoffDiscardSections (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 #endif // PE_COFF_LOAD_H_

@@ -126,7 +126,7 @@
   @     (image_reloc_type (BaseReloc->Relocations[RelocIndex]) == EFI_IMAGE_REL_BASED_ARM_MOV32T ==>
   @       is_aligned_32 ((UINT32) RelocTarget, AV_ALIGNOF (UINT16)));
   @
-  @   predicate image_context_reloc_sane (PE_COFF_IMAGE_CONTEXT *Context, EFI_IMAGE_BASE_RELOCATION_BLOCK *RelocWalker, integer RelocIndex) =
+  @   predicate image_context_reloc_sane (PE_COFF_LOADER_IMAGE_CONTEXT *Context, EFI_IMAGE_BASE_RELOCATION_BLOCK *RelocWalker, integer RelocIndex) =
   @     image_reloc_sane (RelocWalker, RelocIndex, Context->RelocDirRva, Context->RelocDirSize, Context->SizeOfImage);
   @
   @   predicate image_reloc_correct (char *Image, integer RelocOffset, UINT32 SizeOfImage, UINT32 RelocDirRva, UINT32 RelocDirSize) =
@@ -229,7 +229,7 @@ STATIC_ASSERT (
 */
 RETURN_STATUS
 PeCoffRelocationDataSize (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                       *Size
   );
 
@@ -317,7 +317,7 @@ PeCoffRelocationDataSize (
 */
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINTN                        BaseAddress,
   OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
   IN  UINT32                       RelocationDataSize

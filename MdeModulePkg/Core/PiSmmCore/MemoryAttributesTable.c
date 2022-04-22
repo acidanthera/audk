@@ -1028,7 +1028,7 @@ DumpImageRecord (
 VOID
 SmmInsertImageRecord (
   IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  PE_COFF_IMAGE_CONTEXT   *ImageContext
+  PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext
   )
 {
   PHYSICAL_ADDRESS                     ImageBuffer;

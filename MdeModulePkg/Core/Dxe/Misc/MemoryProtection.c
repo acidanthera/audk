@@ -391,7 +391,7 @@ FreeImageRecord (
 VOID
 ProtectUefiImage (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  PE_COFF_IMAGE_CONTEXT *ImageContext
+  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage;

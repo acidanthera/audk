@@ -191,7 +191,7 @@ CoreInitializeImageServices (
   UINT64                     DxeCoreImageLength;
   VOID                       *DxeCoreEntryPoint;
   EFI_PEI_HOB_POINTERS       DxeCoreHob;
-  PE_COFF_IMAGE_CONTEXT ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
   //
   // Searching for image hob
@@ -432,7 +432,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
   OUT    EFI_PHYSICAL_ADDRESS   *LoadAddress
   )
 {
@@ -500,7 +500,7 @@ STATIC
 BOOLEAN
 CoreIsImageTypeSupported (
   IN OUT LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN CONST PE_COFF_IMAGE_CONTEXT *ImageContext
+  IN CONST PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   LIST_ENTRY      *Link;
@@ -559,7 +559,7 @@ CoreLoadPeImage (
   IN EFI_PHYSICAL_ADDRESS        *DstBuffer    OPTIONAL,
   OUT EFI_PHYSICAL_ADDRESS      *EntryPoint  OPTIONAL,
   IN  UINT32                     Attribute,
-  PE_COFF_IMAGE_CONTEXT          *ImageContext
+  PE_COFF_LOADER_IMAGE_CONTEXT          *ImageContext
   )
 {
   EFI_STATUS  Status;
@@ -1172,7 +1172,7 @@ CoreLoadImageCommon (
   UINTN                      FilePathSize;
   BOOLEAN                    ImageIsFromFv;
   BOOLEAN                    ImageIsFromLoadFile;
-  PE_COFF_IMAGE_CONTEXT      ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT      ImageContext;
 
   SecurityStatus = EFI_SUCCESS;
 

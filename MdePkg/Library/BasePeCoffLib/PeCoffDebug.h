@@ -23,7 +23,7 @@
 //@ assigns \nothing;
 VOID
 PeCoffLoaderRetrieveCodeViewInfo (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     UINT32                 FileSize
   );
 
@@ -36,7 +36,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
 //@ assigns \nothing;
 VOID
 PeCoffLoaderLoadCodeView (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
@@ -56,7 +56,7 @@ PeCoffLoaderLoadCodeView (
 */
 RETURN_STATUS
 PeCoffGetPdbPath (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT CHAR8                        **PdbPath,
   OUT UINT32                       *PdbPathSize
   );

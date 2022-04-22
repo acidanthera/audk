@@ -25,7 +25,7 @@
 VOID
 EFIAPI
 PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
@@ -41,7 +41,7 @@ PeCoffLoaderRelocateImageExtraAction (
 VOID
 EFIAPI
 PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 #endif

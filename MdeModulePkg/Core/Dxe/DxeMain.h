@@ -2612,7 +2612,7 @@ EFI_STATUS
 RegisterMemoryProfileImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
   IN EFI_FV_FILETYPE            FileType,
-  IN PE_COFF_IMAGE_CONTEXT      *ImageContext,
+  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext,
   IN UINT64                     LoadAddress
   );
 
@@ -2718,7 +2718,7 @@ InstallMemoryAttributesTableOnMemoryAllocation (
 VOID
 InsertImageRecord (
   IN LOADED_IMAGE_PRIVATE_DATA   *Image,
-  IN PE_COFF_IMAGE_CONTEXT *ImageContext
+  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2740,7 +2740,7 @@ RemoveImageRecord (
 VOID
 ProtectUefiImage (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  PE_COFF_IMAGE_CONTEXT *ImageContext
+  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

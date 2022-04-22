@@ -1090,7 +1090,7 @@ ConvertPeiCorePpiPointers (
   VOID                  *PeiCoreImageBase;
   //VOID                  *PeiCoreEntryPoint;
   EFI_STATUS            Status;
-  PE_COFF_IMAGE_CONTEXT ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
   PeiCoreFileHandle = NULL;
 

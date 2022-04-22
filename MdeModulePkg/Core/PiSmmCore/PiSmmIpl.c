@@ -915,7 +915,7 @@ SmmIplSetVirtualAddressNotify (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
   EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
@@ -1000,7 +1000,7 @@ ExecuteSmmCoreFromSmram (
   EFI_STATUS                    Status;
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
-  PE_COFF_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
   EFI_PHYSICAL_ADDRESS          LoadAddress;

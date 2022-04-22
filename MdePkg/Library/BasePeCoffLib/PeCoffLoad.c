@@ -36,7 +36,7 @@
   @  @ assigns \nothing;
   @  @ ensures image_reloc_dir_mem_valid ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
   @  @/
-  @ VOID AvFlagImage (CONST PE_COFF_IMAGE_CONTEXT *Context);
+  @ VOID AvFlagImage (CONST PE_COFF_LOADER_IMAGE_CONTEXT *Context);
 */
 
 /**
@@ -95,7 +95,7 @@
 STATIC
 VOID
 InternalLoadSections (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT32                       LoadedHeaderSize,
   OUT VOID                         *Destination,
   IN  UINT32                       DestinationSize
@@ -627,7 +627,7 @@ InternalLoadSections (
 
 RETURN_STATUS
 PeCoffLoadImage (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    VOID                   *Destination,
   IN     UINT32                 DestinationSize
   )
@@ -894,7 +894,7 @@ PeCoffLoadImage (
 //
 VOID
 PeCoffDiscardSections (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;

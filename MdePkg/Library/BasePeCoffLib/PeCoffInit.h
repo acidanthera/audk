@@ -239,7 +239,7 @@
 */
 RETURN_STATUS
 PeCoffInitializeContext (
-  OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID             *FileBuffer,
   IN  UINT32                 FileSize
   );

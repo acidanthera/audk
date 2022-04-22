@@ -23,7 +23,7 @@
 
 UINT32
 PeCoffGetEntryPoint (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -34,7 +34,7 @@ PeCoffGetEntryPoint (
 
 UINT16
 PeCoffGetMachineType (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -44,7 +44,7 @@ PeCoffGetMachineType (
 
 UINT16
 PeCoffGetSubsystem (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -54,7 +54,7 @@ PeCoffGetSubsystem (
 
 UINT32
 PeCoffGetSectionAlignment (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -64,7 +64,7 @@ PeCoffGetSectionAlignment (
 
 UINT32
 PeCoffGetSizeOfImage (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -74,7 +74,7 @@ PeCoffGetSizeOfImage (
 
 UINT64
 PeCoffGetImageBase (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -84,7 +84,7 @@ PeCoffGetImageBase (
 
 UINT32
 PeCoffGetSizeOfHeaders (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -95,7 +95,7 @@ PeCoffGetSizeOfHeaders (
 // TODO: CONST
 UINT16
 PeCoffGetSections (
-  IN OUT PE_COFF_IMAGE_CONTEXT    *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
   OUT    EFI_IMAGE_SECTION_HEADER **Sections
   )
 {

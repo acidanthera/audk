@@ -1281,7 +1281,7 @@ SortImageRecord (
 VOID
 InsertImageRecord (
   IN LOADED_IMAGE_PRIVATE_DATA   *Image,
-  IN PE_COFF_IMAGE_CONTEXT *ImageContext
+  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;

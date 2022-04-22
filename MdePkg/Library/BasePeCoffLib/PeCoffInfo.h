@@ -16,37 +16,37 @@
 
 UINT32
 PeCoffGetEntryPoint (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT16
 PeCoffGetMachineType (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT16
 PeCoffGetSubsystem (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT32
 PeCoffGetSectionAlignment (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT32
 PeCoffGetSizeOfImage (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT64
 PeCoffGetImageBase (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT32
 PeCoffGetSizeOfHeaders (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 #endif // PE_COFF_INFO_H

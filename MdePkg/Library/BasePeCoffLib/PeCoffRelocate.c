@@ -318,7 +318,7 @@ ThumbMovwMovtImmediateFixup (
 STATIC
 RETURN_STATUS
 InternalApplyRelocation (
-  IN  CONST PE_COFF_IMAGE_CONTEXT            *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT            *Context,
   IN  CONST EFI_IMAGE_BASE_RELOCATION_BLOCK  *RelocBlock,
   IN  UINT32                                 RelocIndex,
   IN  UINT64                                 Adjust,
@@ -658,7 +658,7 @@ InternalApplyRelocation (
 
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT64                       BaseAddress,
   OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
   IN  UINT32                       RelocationDataSize
@@ -1354,7 +1354,7 @@ InternalApplyRelocationRuntime (
 
 RETURN_STATUS
 PeCoffRelocationDataSize (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                       *Size
   )
 {

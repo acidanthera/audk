@@ -108,7 +108,7 @@ typedef struct {
   /// The RVA of the CodeView debug information.
   ///
   UINT32     CodeViewRva;
-} PE_COFF_IMAGE_CONTEXT;
+} PE_COFF_LOADER_IMAGE_CONTEXT;
 
 ///
 /// Runtime Image context used to relocate the Image into virtual addressing.
@@ -160,7 +160,7 @@ BOOLEAN
 **/
 RETURN_STATUS
 PeCoffInitializeContext (
-  OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID             *FileBuffer,
   IN  UINT32                 FileSize
   );
@@ -186,7 +186,7 @@ PeCoffInitializeContext (
 **/
 RETURN_STATUS
 PeCoffLoadImage (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    VOID                   *Destination,
   IN     UINT32                 DestinationSize
   );
@@ -199,7 +199,7 @@ PeCoffLoadImage (
 **/
 VOID
 PeCoffDiscardSections (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
@@ -216,7 +216,7 @@ PeCoffDiscardSections (
 **/
 RETURN_STATUS
 PeCoffRelocationDataSize (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                       *Size
   );
 
@@ -236,7 +236,7 @@ PeCoffRelocationDataSize (
 **/
 RETURN_STATUS
 PeCoffRelocateImage (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT64                       BaseAddress,
   OUT PE_COFF_RUNTIME_CONTEXT      *RelocationData OPTIONAL,
   IN  UINT32                       RelocationDataSize
@@ -274,7 +274,7 @@ PeCoffRelocateImageForRuntime (
 **/
 VOID
 PeCoffLoaderRetrieveCodeViewInfo (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     UINT32                 FileSize
   );
 
@@ -286,7 +286,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
 **/
 VOID
 PeCoffLoaderLoadCodeView (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *Context
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
@@ -303,7 +303,7 @@ PeCoffLoaderLoadCodeView (
 **/
 RETURN_STATUS
 PeCoffGetPdbPath (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT CHAR8                        **PdbPath,
   OUT UINT32                       *PdbPathSize
   );
@@ -321,20 +321,20 @@ PeCoffGetPdbPath (
 **/
 BOOLEAN
 PeCoffHashImage (
-  IN     CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
   IN OUT VOID                         *HashContext
   );
 
 UINT16
 PeCoffGetSections (
-  IN OUT PE_COFF_IMAGE_CONTEXT    *Context,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
   OUT    EFI_IMAGE_SECTION_HEADER **Sections
   );
 
 RETURN_STATUS
 PeCoffLoaderGetHiiResourceSection (
-  IN  CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT UINT32                              *HiiOffset,
   OUT UINT32                              *MaxHiiSize
   );

@@ -215,7 +215,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
   EFI_PHYSICAL_ADDRESS *LoadAddress
   )
 {
@@ -279,7 +279,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
 VOID
 SmmInsertImageRecord (
   IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  PE_COFF_IMAGE_CONTEXT   *ImageContext
+  PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext
   );
 
 /**
@@ -310,7 +310,7 @@ SmmLoadImage (
   EFI_DEVICE_PATH_PROTOCOL       *OriginalFilePath;
   EFI_DEVICE_PATH_PROTOCOL       *HandleFilePath;
   EFI_FIRMWARE_VOLUME2_PROTOCOL  *Fv;
-  PE_COFF_IMAGE_CONTEXT   ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT   ImageContext;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 
   PERF_LOAD_IMAGE_BEGIN (DriverEntry->ImageHandle);

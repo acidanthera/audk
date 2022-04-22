@@ -254,7 +254,6 @@ GetSmmLoadedImage (
   CHAR16                     *PathStr;
   EFI_SMM_DRIVER_ENTRY       *LoadedImagePrivate;
   PHYSICAL_ADDRESS           EntryPoint;
-  VOID                       *EntryPointInImage;
   EFI_GUID                   Guid;
   CHAR8                      *PdbString;
   PHYSICAL_ADDRESS           RealImageBase;

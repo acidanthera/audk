@@ -1236,7 +1236,7 @@ BmIsLoadOptionPeHeaderValid (
   )
 {
   EFI_STATUS                        Status;
-  PE_COFF_IMAGE_CONTEXT             ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT             ImageContext;
 
   if ((FileBuffer == NULL) || (FileSize == 0)) {
     return FALSE;

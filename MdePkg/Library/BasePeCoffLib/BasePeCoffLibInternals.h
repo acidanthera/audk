@@ -326,12 +326,12 @@
 */
 
 /*@ axiomatic ImageLoaderContextValidity {
-  @   predicate image_context_type_valid (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_type_valid (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     Context->ImageType == ImageTypeTe ||
   @     Context->ImageType == ImageTypePe32 ||
   @     Context->ImageType == ImageTypePe32Plus;
   @
-  @   predicate image_context_hdr_valid (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_hdr_valid (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ==>
   @       \let TeHdr = image_te_get_hdr ((char *) Context->FileBuffer);
   @       \valid(TeHdr)) &&
@@ -342,7 +342,7 @@
   @       \let Pe32PlusHdr = image_pe32plus_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @       \valid(Pe32PlusHdr));
   @
-  @   logic integer image_context_get_sections_offset (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic integer image_context_get_sections_offset (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ?
   @       image_te_get_sections_offset ((char *) Context->FileBuffer) :
   @     (Context->ImageType == ImageTypePe32 ?
@@ -353,10 +353,10 @@
   @       image_pecommon_get_sections_offset (&Pe32PlusHdr->CommonHeader, Context->ExeHdrOffset) :
   @     0)));
   @
-  @   logic EFI_IMAGE_SECTION_HEADER *image_context_get_sections (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic EFI_IMAGE_SECTION_HEADER *image_context_get_sections (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (EFI_IMAGE_SECTION_HEADER *) ((char *) Context->FileBuffer + Context->SectionsOffset);
   @
-  @   logic UINT16 image_context_get_sections_num (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic UINT16 image_context_get_sections_num (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ?
   @       \let TeHdr = image_te_get_hdr ((char *) Context->FileBuffer);
   @       (UINT16) TeHdr->NumberOfSections :
@@ -368,7 +368,7 @@
   @       Pe32PlusHdr->CommonHeader.FileHeader.NumberOfSections :
   @     0)));
   @
-  @   predicate image_context_sects_sane (PE_COFF_IMAGE_CONTEXT *Context, UINT32 FileSize) =
+  @   predicate image_context_sects_sane (PE_COFF_LOADER_IMAGE_CONTEXT *Context, UINT32 FileSize) =
   @     image_sects_sane (
   @       image_context_get_sections (Context),
   @       Context->NumberOfSections,
@@ -379,13 +379,13 @@
   @       Context->ImageType
   @       );
   @
-  @   predicate image_sects_in_image (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_sects_in_image (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Sections         = image_context_get_sections (Context);
   @     \let NumberOfSections = Context->NumberOfSections;
   @     \forall integer i; 0 <= i < NumberOfSections ==>
   @       image_sect_top (Sections + i) <= Context->SizeOfImage;
   @
-  @   predicate image_datadirs_in_hdr (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_datadirs_in_hdr (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypePe32 ==>
   @       \let Pe32Hdr = image_pe32_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @       Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS32) + Pe32Hdr->NumberOfRvaAndSizes * sizeof (EFI_IMAGE_DATA_DIRECTORY) <= Context->SizeOfHeaders) &&
@@ -393,17 +393,17 @@
   @       \let Pe32PlusHdr = image_pe32plus_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @       Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS64) + Pe32PlusHdr->NumberOfRvaAndSizes * sizeof (EFI_IMAGE_DATA_DIRECTORY) <= Context->SizeOfHeaders);
   @
-  @   logic integer image_context_get_loaded_hdr_raw_size (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic integer image_context_get_loaded_hdr_raw_size (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Sections = image_context_get_sections (Context);
   @     Sections[0].VirtualAddress != 0 && PcdGetBool (PcdImageLoaderLoadHeader) ?
   @       image_hdr_raw_size (Context->SizeOfHeaders, Context->TeStrippedOffset) :
   @       0;
   @
-  @   logic integer image_context_get_loaded_hdr_virtual_size (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic integer image_context_get_loaded_hdr_virtual_size (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Sections = image_context_get_sections (Context);
   @     image_loaded_hdr_virtual_size (Sections, Context->SizeOfHeaders, Context->SectionAlignment);
   @
-  @   predicate image_context_hdr_datadirs_valid (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_hdr_datadirs_valid (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ==>
   @       image_te_datadirs_valid ((char *) Context->FileBuffer)) &&
   @     (Context->ImageType == ImageTypePe32 ==>
@@ -411,7 +411,7 @@
   @     (Context->ImageType == ImageTypePe32Plus ==>
   @       image_pe32plus_datadirs_valid ((char *) Context->FileBuffer, Context->ExeHdrOffset));
   @
-  @   predicate image_context_reloc_dir_exists (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_reloc_dir_exists (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ==>
   @       image_te_reloc_dir_exists ((char *) Context->FileBuffer)) &&
   @     (Context->ImageType == ImageTypePe32 ==>
@@ -419,7 +419,7 @@
   @     (Context->ImageType == ImageTypePe32Plus ==>
   @       image_pe32plus_reloc_dir_exists ((char *) Context->FileBuffer, Context->ExeHdrOffset));
   @
-  @   logic EFI_IMAGE_DATA_DIRECTORY *image_context_get_reloc_dir (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic EFI_IMAGE_DATA_DIRECTORY *image_context_get_reloc_dir (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     Context->ImageType == ImageTypeTe ?
   @       image_te_get_reloc_dir ((char *) Context->FileBuffer) :
   @     (Context->ImageType == ImageTypePe32 ?
@@ -442,7 +442,7 @@
   @     (!RelocsStripped ==>
   @       image_reloc_dir_sane (RelocDirRva, RelocDirSize, RelocsStripped, StartAddress, SizeOfImage));
   @
-  @   predicate image_context_reloc_info_sane (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_reloc_info_sane (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Sections     = image_context_get_sections (Context);
   @     \let StartAddress = image_loaded_hdr_virtual_size (Sections, Context->SizeOfHeaders, Context->SectionAlignment);
   @     image_reloc_info_sane (
@@ -457,7 +457,7 @@
   @       Context->Subsystem
   @       );
   @
-  @   predicate image_context_debug_dir_exists (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_debug_dir_exists (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     (Context->ImageType == ImageTypeTe ==>
   @       image_te_debug_dir_exists ((char *) Context->FileBuffer)) &&
   @     (Context->ImageType == ImageTypePe32 ==>
@@ -465,7 +465,7 @@
   @     (Context->ImageType == ImageTypePe32Plus ==>
   @       image_pe32plus_debug_dir_exists ((char *) Context->FileBuffer, Context->ExeHdrOffset));
   @
-  @   logic EFI_IMAGE_DATA_DIRECTORY *image_context_get_debug_dir (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic EFI_IMAGE_DATA_DIRECTORY *image_context_get_debug_dir (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     Context->ImageType == ImageTypeTe ?
   @       image_te_get_debug_dir ((char *) Context->FileBuffer) :
   @     (Context->ImageType == ImageTypePe32 ?
@@ -477,7 +477,7 @@
   @   predicate image_pe_common_relocs_stripped (EFI_IMAGE_NT_HEADERS_COMMON_HDR *PeCommonHdr) =
   @     (PeCommonHdr->FileHeader.Characteristics & EFI_IMAGE_FILE_RELOCS_STRIPPED) != 0;
   @
-  @   predicate image_context_fields_correct_pe_common (PE_COFF_IMAGE_CONTEXT *Context, EFI_IMAGE_NT_HEADERS_COMMON_HDR *PeCommonHdr) =
+  @   predicate image_context_fields_correct_pe_common (PE_COFF_LOADER_IMAGE_CONTEXT *Context, EFI_IMAGE_NT_HEADERS_COMMON_HDR *PeCommonHdr) =
   @     \let RelocDir       = image_context_get_reloc_dir (Context);
   @     \let RelocsStripped = (BOOLEAN) (image_pe_common_relocs_stripped (PeCommonHdr) ? TRUE : FALSE);
   @     Context->TeStrippedOffset == 0 &&
@@ -488,7 +488,7 @@
   @     Context->RelocDirRva      == (image_context_reloc_dir_exists (Context) ? RelocDir->VirtualAddress : 0) &&
   @     Context->RelocDirSize     == (image_context_reloc_dir_exists (Context) ? RelocDir->Size : 0);
   @
-  @   predicate image_context_fields_correct_pe32_opt (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_fields_correct_pe32_opt (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Pe32Hdr  = image_pe32_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     \let Sections = image_pe32_get_sections ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     Context->AddressOfEntryPoint == Pe32Hdr->AddressOfEntryPoint &&
@@ -498,7 +498,7 @@
   @     Context->SizeOfHeaders       == Pe32Hdr->SizeOfHeaders &&
   @     Context->SizeOfImage         == Pe32Hdr->SizeOfImage;
   @
-  @   predicate image_context_fields_correct_pe32plus_opt (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_fields_correct_pe32plus_opt (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Pe32PlusHdr = image_pe32plus_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     \let Sections    = image_pe32plus_get_sections ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     Context->AddressOfEntryPoint == Pe32PlusHdr->AddressOfEntryPoint &&
@@ -508,17 +508,17 @@
   @     Context->SizeOfHeaders       == Pe32PlusHdr->SizeOfHeaders &&
   @     Context->SizeOfImage         == Pe32PlusHdr->SizeOfImage;
   @
-  @   predicate image_context_fields_correct_pe32 (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_fields_correct_pe32 (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Pe32Hdr = image_pe32_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     image_context_fields_correct_pe_common (Context, &Pe32Hdr->CommonHeader) &&
   @     image_context_fields_correct_pe32_opt (Context);
   @
-  @   predicate image_context_fields_correct_pe32plus (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_fields_correct_pe32plus (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Pe32PlusHdr = image_pe32plus_get_hdr ((char *) Context->FileBuffer, Context->ExeHdrOffset);
   @     image_context_fields_correct_pe_common (Context, &Pe32PlusHdr->CommonHeader) &&
   @     image_context_fields_correct_pe32plus_opt (Context);
   @
-  @   predicate image_context_fields_correct (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_fields_correct (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     image_context_type_valid (Context) &&
   @     (Context->ImageType == ImageTypeTe ==>
   @       \let TeHdr            = image_te_get_hdr ((char *) Context->FileBuffer);
@@ -546,25 +546,25 @@
   @     (Context->ImageType == ImageTypePe32Plus ==>
   @       image_context_fields_correct_pe32plus (Context));
   @
-  @   predicate image_context_FileBuffer_sane (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_FileBuffer_sane (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \typeof (Context->FileBuffer) <: \type (char *) &&
   @     pointer_max_aligned (Context->FileBuffer);
   @
-  @   predicate image_context_ImageBuffer_sane (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_ImageBuffer_sane (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \typeof (Context->ImageBuffer) <: \type (char *) &&
   @     pointer_max_aligned (Context->ImageBuffer);
   @
-  @   predicate image_context_file_char_valid (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   predicate image_context_file_char_valid (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     \let Sections         = image_context_get_sections (Context);
   @     \let NumberOfSections = Context->NumberOfSections;
   @     \valid ((char *) Context->FileBuffer + (0 .. image_hdr_raw_size (Context->SizeOfHeaders, Context->TeStrippedOffset) - 1)) &&
   @     (\forall integer i; 0 <= i < NumberOfSections ==>
   @       \valid ((char *) Context->FileBuffer + ((Sections[i].PointerToRawData - Context->TeStrippedOffset) .. (Sections[i].PointerToRawData - Context->TeStrippedOffset) + Sections[i].SizeOfRawData - 1)));
   @
-  @   logic integer image_context_runtime_fixup_num (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic integer image_context_runtime_fixup_num (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     Context->RelocDirSize / sizeof (UINT16);
   @
-  @   logic integer image_context_runtime_fixup_size (PE_COFF_IMAGE_CONTEXT *Context) =
+  @   logic integer image_context_runtime_fixup_size (PE_COFF_LOADER_IMAGE_CONTEXT *Context) =
   @     sizeof (PE_COFF_RUNTIME_CONTEXT) + Context->RelocDirSize * sizeof (UINT64) / sizeof (UINT16);
   @ }
 */

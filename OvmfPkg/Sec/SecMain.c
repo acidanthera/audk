@@ -689,7 +689,7 @@ FindAndReportEntryPoints (
   EFI_STATUS                    Status;
   //EFI_PHYSICAL_ADDRESS          SecCoreImageBase;
   EFI_PHYSICAL_ADDRESS          PeiCoreImageBase;
-  PE_COFF_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
 
   //
   // Find SEC Core and PEI Core image base

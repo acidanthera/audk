@@ -406,7 +406,7 @@ EbcRegisterImage (
   )
 {
   DEBUG_CODE_BEGIN ();
-  PE_COFF_IMAGE_CONTEXT  ImageContext;
+    PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   EFI_STATUS                    Status;
 
   ZeroMem (&ImageContext, sizeof (ImageContext));

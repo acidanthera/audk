@@ -138,7 +138,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_IMAGE_CONTEXT  *ImageContext,
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN     PEI_CORE_INSTANCE             *Private,
   EFI_PHYSICAL_ADDRESS *LoadAddress
   )
@@ -237,7 +237,7 @@ LoadAndRelocatePeCoffImage (
   )
 {
   EFI_STATUS                    Status;
-  PE_COFF_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
   PEI_CORE_INSTANCE             *Private;
   UINT64                        AlignImageSize;
   BOOLEAN                       IsXipImage;
@@ -446,7 +446,7 @@ LoadAndRelocatePeCoffImageInPlace (
   )
 {
   EFI_STATUS                    Status;
-  PE_COFF_IMAGE_CONTEXT  ImageContext;
+  PE_COFF_LOADER_IMAGE_CONTEXT    ImageContext;
 
   // FIXME: File size?
   Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);

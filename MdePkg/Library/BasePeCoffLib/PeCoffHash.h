@@ -68,7 +68,7 @@ BOOLEAN
 */
 BOOLEAN
 PeCoffHashImage (
-  IN     CONST PE_COFF_IMAGE_CONTEXT  *Context,
+  IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
 #ifdef PRODUCTION
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
 #endif

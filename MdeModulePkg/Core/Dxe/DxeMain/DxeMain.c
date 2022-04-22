@@ -237,7 +237,7 @@ DxeMain (
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          MemoryBaseAddress;
   UINT64                        MemoryLength;
-  //PE_COFF_IMAGE_CONTEXT  ImageContext;
+  //PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   UINTN                         Index;
   EFI_HOB_GUID_TYPE             *GuidHob;
   EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
