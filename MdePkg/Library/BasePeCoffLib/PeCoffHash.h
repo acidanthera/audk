@@ -20,11 +20,6 @@
 
   @returns  Whether hashing has been successful.
 **/
-/*@ requires HashContext != \null;
-  @ requires \valid((char *) Data + (0 .. DataSize - 1));
-  @
-  @ assigns \nothing;
-*/
 typedef
 BOOLEAN
 (EFIAPI *PE_COFF_HASH_UPDATE)(
@@ -44,28 +39,6 @@ BOOLEAN
 
   @returns  Whether hashing has been successful.
 **/
-/*@ requires \valid(Context);
-  @ requires \typeof(Context->FileBuffer) <: \type(char *);
-  @ requires \valid((char *) Context->FileBuffer + (0 .. image_hdr_raw_size (Context->SizeOfHeaders, Context->TeStrippedOffset) - 1));
-  @ requires Context->ImageType != ImageTypeTe ==>
-  @            Context->TeStrippedOffset == 0;
-  @
-  @ requires image_context_type_valid (Context);
-  @ requires image_context_hdr_valid (Context);
-  @ requires image_datadirs_in_hdr (Context);
-  @ requires 0 < Context->NumberOfSections;
-  @ requires \let s = image_context_get_sections (Context);
-  @          \let n = Context->NumberOfSections;
-  @          \valid(s + (0 .. n - 1)) &&
-  @          (\forall integer i; 0 <= i < n ==>
-  @            s[i].SizeOfRawData > 0 ==>
-  @              s[i].PointerToRawData + s[i].SizeOfRawData <= MAX_UINT32 &&
-  @              \valid((char *) Context->FileBuffer + ((s[i].PointerToRawData - Context->TeStrippedOffset) .. (s[i].PointerToRawData - Context->TeStrippedOffset) + s[i].SizeOfRawData - 1)));
-  @
-  @ requires HashContext != \null;
-  @
-  @ assigns \nothing;
-*/
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,

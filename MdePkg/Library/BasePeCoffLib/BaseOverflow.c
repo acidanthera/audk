@@ -22,19 +22,9 @@ BaseOverflowAddU32 (
 #else
   UINT32 Temp;
 
-  /*@ assigns Temp;
-    @ ensures Temp == A +% B;
-  */
-  Temp = A +/*@%*/ B;
-
-  /*@ assigns *Result;
-    @ ensures *Result == A +% B;
-  */
+  Temp = A + B;
   *Result = Temp;
 
-  /*@ assigns \nothing;
-    @ ensures A + B <= MAX_UINT32;
-  */
   if (Temp < A) {
     return TRUE;
   }
@@ -53,14 +43,8 @@ BaseOverflowSubU32 (
 #ifdef PRODUCTION
   return __builtin_sub_overflow(A, B, Result);
 #else
-  /*@ assigns *Result;
-    @ ensures *Result == A -% B;
-  */
-  *Result = A -/*@%*/ B;
+  *Result = A - B;
 
-  /*@ assigns \nothing;
-    @ ensures 0 <= A - B;
-  */
   if (B > A) {
     return TRUE;
   }
@@ -79,14 +63,8 @@ BaseOverflowSubU16 (
 #ifdef PRODUCTION
   return __builtin_sub_overflow(A, B, Result);
 #else
-  /*@ assigns *Result;
-    @ ensures *Result == A -% B;
-  */
-  *Result = (UINT16)/*@%*/ (A -/*@%*/ B);
+  *Result = (UINT16) (A - B);
 
-  /*@ assigns \nothing;
-    @ ensures 0 <= A - B;
-  */
   if (B > A) {
     return TRUE;
   }
@@ -105,21 +83,11 @@ BaseOverflowMulU32 (
 #ifdef PRODUCTION
   return __builtin_mul_overflow(A, B, Result);
 #else
-  UINT64  Temp;
+  UINT64 Temp;
 
-  /*@ assigns Temp;
-    @ ensures Temp == A * B;
-  */
   Temp = (UINT64) A * B;
+  *Result = (UINT32) Temp;
 
-  /*@ assigns *Result;
-    @ ensures *Result == A *% B;
-  */
-  *Result = (UINT32)/*@%*/ Temp;
-
-  /*@ assigns \nothing;
-    @ ensures A * B <= MAX_UINT32;
-  */
   if (Temp > MAX_UINT32) {
     return TRUE;
   }
@@ -137,17 +105,7 @@ BaseOverflowAlignUpU32 (
 {
   BOOLEAN Status;
 
-  /*@ assigns Status, *Result;
-    @ ensures *Result == Value +% (Alignment -% 1);
-    @ ensures !Status <==> *Result == Value + (Alignment - 1);
-    @ ensures !Status <==> align_safe_32 (Value, Alignment);
-  */
-  Status = BaseOverflowAddU32 (Value, Alignment -/*@%*/ 1U, Result);
-
-  /*@ assigns *Result;
-    @ ensures *Result == ((Value +% (Alignment -% 1)) & ~(Alignment -% 1));
-    @ ensures !Status <==> *Result == align_up (Value, Alignment);
-  */
+  Status = BaseOverflowAddU32 (Value, Alignment - 1U, Result);
   *Result &= ~(Alignment - 1U);
 
   return Status;

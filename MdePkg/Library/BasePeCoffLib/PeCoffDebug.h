@@ -20,7 +20,6 @@
                             initialised by PeCoffInitializeContext().
   @param[in]      FileSize  The size, in bytes, of Context->FileBuffer.
 **/
-//@ assigns \nothing;
 VOID
 PeCoffLoaderRetrieveCodeViewInfo (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
@@ -33,7 +32,6 @@ PeCoffLoaderRetrieveCodeViewInfo (
   @param[in,out]  Context   The context describing the Image. Must have been
                             updated by PeCoffLoaderRetrieveCodeViewInfo().
 **/
-//@ assigns \nothing;
 VOID
 PeCoffLoaderLoadCodeView (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
@@ -51,9 +49,6 @@ PeCoffLoaderLoadCodeView (
   @retval other           The Image PDB path could not be retrieved
                           successfully.
 **/
-/*@ assigns *PdbPathSize;
-  @ ensures *PdbPathSize == 0;
-*/
 RETURN_STATUS
 PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,

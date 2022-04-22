@@ -10,9 +10,6 @@
 #ifndef PE_COFF_HII_H
 #define PE_COFF_HII_H
 
-/*@ assigns *MaxHiiSize;
-  @ ensures *MaxHiiSize == 0;
-*/
 RETURN_STATUS
 PeCoffLoaderGetHiiResourceSection (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
