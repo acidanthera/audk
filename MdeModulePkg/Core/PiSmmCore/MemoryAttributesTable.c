@@ -828,7 +828,7 @@ SmmInsertImageRecord (
   CONST UINT8                          *Name;
   UINTN                                 Index;
   IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  CHAR8                                *PdbPointer;
+  CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
   IMAGE_PROPERTIES_RECORD_SECTION      *ImageRecordCodeSection;
   UINT16                               NumberOfSections;

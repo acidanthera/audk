@@ -1009,8 +1009,8 @@ MigratePeim (
   EFI_FFS_FILE_HEADER  *FileHeader;
   VOID                 *Pe32Data;
   VOID                 *ImageAddress;
-  CHAR8                     *AsciiString;
-  UINTN                     Index;
+  CONST CHAR8               *AsciiString;
+  UINT32                    Index;
   UINT32                    AsciiStringSize;
   PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
@@ -1024,18 +1024,34 @@ MigratePeim (
   if (ImageAddress != NULL) {
     // FIXME (size, overwriting PDB data):
     DEBUG_CODE_BEGIN ();
+    CHAR8       EfiFileName[256];
+    UINT32      StartIndex;
     Status = PeCoffInitializeContext (&ImageContext, (CONST VOID *) ImageAddress, 0xFFFFFFFF);
     ASSERT_EFI_ERROR (Status);
     Status = PeCoffGetPdbPath (&ImageContext, &AsciiString, &AsciiStringSize);
     if (!EFI_ERROR (Status)) {
+      StartIndex = 0;
       for (Index = 0; AsciiString[Index] != 0; Index++) {
         if ((AsciiString[Index] == '\\') || (AsciiString[Index] == '/')) {
-          AsciiString = AsciiString + Index + 1;
-          Index       = 0;
-        } else if (AsciiString[Index] == '.') {
-          AsciiString[Index] = 0;
+          StartIndex = Index + 1;
         }
       }
+      //
+      // Copy the PDB file name to our temporary string, and remove .pdb
+      // The PDB file name is limited in the range of 0~255.
+      // If the length is bigger than 255, trim the redudant characters to avoid overflow in array boundary.
+      //
+      for (Index = 0; Index < sizeof (EfiFileName) - 1; Index++) {
+        EfiFileName[Index] = AsciiString[Index + StartIndex];
+        if (EfiFileName[Index] == 0) {
+          break;
+        }
+        if (EfiFileName[Index] == '.') {
+          EfiFileName[Index] = 0;
+          break;
+        }
+      }
+      EfiFileName[Index] = 0;
       DEBUG ((DEBUG_INFO, "%a", AsciiString));
     }
     DEBUG_CODE_END ();

@@ -319,7 +319,7 @@ PeCoffLoaderLoadCodeViewInplace (
 RETURN_STATUS
 PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CHAR8                         **PdbPath,
+  OUT    CONST CHAR8                   **PdbPath,
   OUT    UINT32                        *PdbPathSize
   )
 {
@@ -328,7 +328,7 @@ PeCoffGetPdbPath (
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
   CONST CHAR8                     *CodeView;
   UINT32                          PdbOffset;
-  CHAR8                           *PdbName;
+  CONST CHAR8                     *PdbName;
   UINT32                          PdbNameSize;
 
   ASSERT (Context != NULL);

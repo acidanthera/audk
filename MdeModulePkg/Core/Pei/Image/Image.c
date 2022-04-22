@@ -588,7 +588,7 @@ PeiLoadImageLoadImage (
   }
 
   DEBUG_CODE_BEGIN ();
-    CHAR8                              *AsciiString;
+    CONST CHAR8                        *AsciiString;
     UINT32                             PdbSize;
     CHAR8                              EfiFileName[512];
     INT32                              Index;

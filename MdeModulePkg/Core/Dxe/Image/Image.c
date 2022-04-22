@@ -804,11 +804,11 @@ CoreLoadPeImage (
 
   DEBUG_CODE_BEGIN ();
 
-  CHAR8  *PdbPath;
-    UINT32 PdbSize;
-    UINTN  Index;
-  UINTN  StartIndex;
-  CHAR8  EfiFileName[256];
+  CONST CHAR8 *PdbPath;
+    UINT32      PdbSize;
+    UINTN       Index;
+  UINTN       StartIndex;
+  CHAR8       EfiFileName[256];
 
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading driver at 0x%11p EntryPoint=0x%11p \n",

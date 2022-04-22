@@ -632,11 +632,11 @@ SmmLoadImage (
 
   DEBUG_CODE_BEGIN ();
 
-    UINTN  Index;
-    UINTN  StartIndex;
-    CHAR8  *PdbPath;
-    UINT32 PdbSize;
-    CHAR8  EfiFileName[256];
+    UINTN       Index;
+    UINTN       StartIndex;
+    CONST CHAR8 *PdbPath;
+    UINT32      PdbSize;
+    CHAR8       EfiFileName[256];
 
     DEBUG ((DEBUG_INFO | DEBUG_LOAD,
            "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",

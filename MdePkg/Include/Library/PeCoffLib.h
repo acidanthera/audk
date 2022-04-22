@@ -312,7 +312,7 @@ PeCoffRelocateImageForRuntime (
 RETURN_STATUS
 PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CHAR8                         **PdbPath,
+  OUT    CONST CHAR8                   **PdbPath,
   OUT    UINT32                        *PdbPathSize
   );
 

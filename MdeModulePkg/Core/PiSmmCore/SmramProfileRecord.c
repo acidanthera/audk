@@ -275,7 +275,7 @@ BuildDriverInfo (
   EFI_STATUS                       Status;
   MEMORY_PROFILE_DRIVER_INFO       *DriverInfo;
   MEMORY_PROFILE_DRIVER_INFO_DATA   *DriverInfoData;
-  CHAR8                             *PdbString;
+  CONST CHAR8                       *PdbString;
   UINT32                            PdbSize;
   UINTN                             PdbOccupiedSize;
 
