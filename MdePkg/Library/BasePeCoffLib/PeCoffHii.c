@@ -76,7 +76,6 @@ PeCoffGetHiiResourceSection (
   }
 
   if (!IS_ALIGNED (DirectoryEntry->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-    DEBUG ((DEBUG_WARN, "%u, %u\n", DirectoryEntry->VirtualAddress, DirectoryEntry->Size));
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }

@@ -101,9 +101,7 @@ InternalVerifySections (
   //
   // Ensure all Image Sections are valid.
   //
-  DEBUG ((DEBUG_INFO, "Align: %u\n", Context->SectionAlignment));
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
-    DEBUG ((DEBUG_INFO, "%a: %x || [%x, %x)", Sections[SectIndex].Name, NextSectRva, Sections[SectIndex].VirtualAddress, Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize));
     //
     // Ensure the Image Section are disjunct (relaxed) or adjacent (strict).
     //
@@ -150,8 +148,6 @@ InternalVerifySections (
               Sections[SectIndex].VirtualSize,
               &NextSectRva
               );
-    DEBUG ((DEBUG_INFO, "- %u\n", NextSectRva));
-
     if (Result) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
@@ -633,12 +629,10 @@ InternalInitializePe (
     CRITICAL_ERROR (FALSE);
     return Status;
   }
-
   //
   // Ensure SizeOfImage is equal to the top of the image's virtual space.
   //
   if (MinSizeOfImage > Context->SizeOfImage) {
-    DEBUG ((DEBUG_WARN, "SOI %u vs %u\n", MinSizeOfImage, Context->SizeOfImage));
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
