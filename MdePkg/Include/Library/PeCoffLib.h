@@ -15,6 +15,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <IndustryStandard/PeImage.h>
 
+#include <Guid/WinCertificate.h>
+
 ///
 /// Image type enumeration for Image format identification from the context.
 ///
@@ -104,6 +106,14 @@ typedef struct {
   /// The size, in bytes, of the Relocation Directory.
   ///
   UINT32     RelocDirSize;
+  ///
+  /// The RVA of the Security Directory.
+  ///
+  UINT32     SecDirRva;
+  ///
+  /// The size, in bytes, of the Security Directory.
+  ///
+  UINT32     SecDirSize;
   ///
   /// The RVA of the CodeView debug information.
   ///
@@ -324,6 +334,18 @@ PeCoffHashImage (
   IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     PE_COFF_HASH_UPDATE          HashUpdate,
   IN OUT VOID                         *HashContext
+  );
+
+RETURN_STATUS
+PeCoffGetFirstCertificate (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST WIN_CERTIFICATE         **Certificate
+  );
+
+RETURN_STATUS
+PeCoffGetNextCertificate (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST WIN_CERTIFICATE         **Certificate
   );
 
 UINT16

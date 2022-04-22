@@ -402,14 +402,26 @@ SmmLoadImage (
   }
 
   //
+  // Get information about the image being loaded
+  //
+  Status = PeCoffInitializeContext (ImageContext, Buffer, (UINT32) Size);
+  if (EFI_ERROR (Status)) {
+    if (Buffer != NULL) {
+      gBS->FreePool (Buffer);
+    }
+    return Status;
+  }
+
+  // FIXME: Context?
+  //
   // Verify File Authentication through the Security2 Architectural Protocol
   //
   if (mSecurity2 != NULL) {
     SecurityStatus = mSecurity2->FileAuthentication (
                                    mSecurity2,
                                    OriginalFilePath,
-                                   Buffer,
-                                   Size,
+                                  ImageContext,
+                                  sizeof (*ImageContext),
                                    FALSE
                                    );
   }
@@ -429,18 +441,6 @@ SmmLoadImage (
 
   if (EFI_ERROR (SecurityStatus) && (SecurityStatus != EFI_SECURITY_VIOLATION)) {
     Status = SecurityStatus;
-    return Status;
-  }
-
-  //
-  // Get information about the image being loaded
-  //
-  Status = PeCoffInitializeContext (ImageContext, Buffer, (UINT32) Size);
-  if (EFI_ERROR (Status)) {
-    if (Buffer != NULL) {
-      gBS->FreePool (Buffer);
-    }
-
     return Status;
   }
 

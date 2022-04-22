@@ -535,7 +535,6 @@ CoreIsImageTypeSupported (
                                   from the boot manager, and that the boot
                                   manager is attempting to load FilePath as a
                                   boot selection.
-  @param  Pe32Handle              The handle of PE32 image
   @param  Image                   PE image to be loaded
   @param  DstBuffer               The buffer to store the image
   @param  EntryPoint              A pointer to the entry point
@@ -552,7 +551,6 @@ CoreIsImageTypeSupported (
 EFI_STATUS
 CoreLoadPeImage (
   IN BOOLEAN                    BootPolicy,
-  IN VOID                       *Pe32Handle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
   IN EFI_PHYSICAL_ADDRESS        *DstBuffer    OPTIONAL,
   OUT EFI_PHYSICAL_ADDRESS      *EntryPoint  OPTIONAL,
@@ -566,19 +564,9 @@ CoreLoadPeImage (
   EFI_MEMORY_TYPE ImageCodeMemoryType;
   EFI_MEMORY_TYPE ImageDataMemoryType;
   PE_COFF_RUNTIME_CONTEXT      *RelocationData;
-  IMAGE_FILE_HANDLE  *FileHandle = Pe32Handle;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 
   RelocationData = NULL;
-
-  //
-  // Get information about the image being loaded
-  //
-  Status = PeCoffInitializeContext (ImageContext, FileHandle->Source, (UINT32) FileHandle->SourceSize);
-  if (EFI_ERROR (Status)) {
-    ASSERT (FALSE);
-    return Status;
-  }
 
   if (!CoreIsImageTypeSupported (Image, ImageContext)) {
     //
@@ -1278,6 +1266,16 @@ CoreLoadImageCommon (
     goto Done;
   }
 
+  //
+  // Get information about the image being loaded
+  //
+  Status = PeCoffInitializeContext (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
+  if (EFI_ERROR (Status)) {
+    ASSERT (FALSE);
+    return Status;
+  }
+
+  // FIXME: Context
   if (gSecurity2 != NULL) {
     //
     // Verify File Authentication through the Security2 Architectural Protocol
@@ -1285,8 +1283,8 @@ CoreLoadImageCommon (
     SecurityStatus = gSecurity2->FileAuthentication (
                                    gSecurity2,
                                    OriginalFilePath,
-                                   FHand.Source,
-                                   FHand.SourceSize,
+                                  &ImageContext,
+                                  sizeof (ImageContext),
                                    BootPolicy
                                    );
     if (!EFI_ERROR (SecurityStatus) && ImageIsFromFv) {
@@ -1389,7 +1387,7 @@ CoreLoadImageCommon (
   // Load the image.  If EntryPoint is Null, it will not be set.
   //
   EFI_PHYSICAL_ADDRESS LoadAddress = DstBuffer;
-  Status = CoreLoadPeImage (BootPolicy, &FHand, Image, &LoadAddress, EntryPoint, Attribute, &ImageContext);
+  Status = CoreLoadPeImage (BootPolicy, Image, &LoadAddress, EntryPoint, Attribute, &ImageContext);
   if (EFI_ERROR (Status)) {
     if ((Status == EFI_BUFFER_TOO_SMALL) || (Status == EFI_OUT_OF_RESOURCES)) {
       if (NumberOfPages != NULL) {

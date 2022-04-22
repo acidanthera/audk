@@ -9,9 +9,11 @@
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
+#include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
 #include "PeCoffHash.h"
+#include "ProcessorBind.h"
 
 #include <Library/MemoryAllocationLib.h>
 
@@ -638,4 +640,69 @@ PeCoffHashImage (
   // This step must be performed by the caller after this routine succeeded.
   // 15. Finalize the hash algorithm context.
   //
+}
+
+// FIXME: optimise
+
+RETURN_STATUS
+PeCoffGetFirstCertificate (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST WIN_CERTIFICATE         **Certificate
+  )
+{
+  CONST WIN_CERTIFICATE *WinCertificate;
+
+  if (Context->SecDirSize == 0) {
+    return RETURN_NOT_FOUND;
+  }
+
+  WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
+    (CONST UINT8 *) Context->FileBuffer + Context->SecDirRva
+    );
+  if (WinCertificate->dwLength > Context->SecDirSize
+   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+    return RETURN_UNSUPPORTED;
+  }
+
+  *Certificate = WinCertificate;
+  return RETURN_SUCCESS;
+}
+
+RETURN_STATUS
+PeCoffGetNextCertificate (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST WIN_CERTIFICATE         **Certificate
+  )
+{
+  BOOLEAN               Result;
+  UINT32                CertOffset;
+  UINT32                CertEnd;
+  CONST WIN_CERTIFICATE *WinCertificate;
+
+  WinCertificate = *Certificate;
+  CertOffset  = (UINT32) ((UINTN) WinCertificate - Context->SecDirRva);
+  CertOffset += WinCertificate->dwLength;
+  if (CertOffset == Context->SecDirSize) {
+    return RETURN_NOT_FOUND;
+  }
+  if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
+    return RETURN_UNSUPPORTED;
+  }
+
+  WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
+    (CONST UINT8 *) Context->FileBuffer + CertOffset
+    );
+
+  Result = BaseOverflowAddU32 (
+    CertOffset,
+    WinCertificate->dwLength,
+    &CertEnd
+    );
+  if (Result || CertEnd > Context->SecDirSize
+   || !IS_ALIGNED (WinCertificate->dwLength, OC_ALIGNOF (WIN_CERTIFICATE))) {
+    return RETURN_UNSUPPORTED;
+  }
+
+  *Certificate = WinCertificate;
+  return RETURN_SUCCESS;
 }

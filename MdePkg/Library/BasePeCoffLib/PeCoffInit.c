@@ -186,7 +186,7 @@ InternalVerifySections (
         @ ensures Result  <==> align_up (Context->SizeOfHeaders, Context->SectionAlignment) > MAX_UINT32;
       */
       Result = BaseOverflowAlignUpU32 (
-                Context->SizeOfHeaders,
+                Sections[0].VirtualAddress,
                 Context->SectionAlignment,
                 &NextSectRva
                 );
@@ -246,7 +246,9 @@ InternalVerifySections (
     @
     @ loop variant Context->NumberOfSections - SectIndex;
   */
+  DEBUG ((DEBUG_INFO, "Align: %u\n", Context->SectionAlignment));
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
+    DEBUG ((DEBUG_INFO, "%a: %x || [%x, %x)", Sections[SectIndex].Name, NextSectRva, Sections[SectIndex].VirtualAddress, Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize));
     //
     // Ensure the Image Section are disjunct (relaxed) or adjacent (strict).
     //
@@ -378,6 +380,7 @@ InternalVerifySections (
               Sections[SectIndex].VirtualSize,
               &NextSectRva
               );
+    DEBUG ((DEBUG_INFO, "- %u\n", NextSectRva));
 
     /*@ assigns \nothing;
       @ ensures NextSectRva == image_sect_top (Sections + SectIndex);
@@ -1043,8 +1046,10 @@ InternalInitializePe (
   UINT32                                MinSizeOfOptionalHeader;
   UINT32                                MinSizeOfHeaders;
   CONST EFI_IMAGE_DATA_DIRECTORY        *RelocDir;
+  CONST EFI_IMAGE_DATA_DIRECTORY        *SecDir;
+  UINT32                                SecDirEnd;
   UINT32                                NumberOfRvaAndSizes;
-  RETURN_STATUS                          Status;
+  RETURN_STATUS                         Status;
   UINT32                                StartAddress;
   UINT32                                MinSizeOfImage;
 
@@ -1181,6 +1186,8 @@ InternalInitializePe (
       */
       RelocDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
 
+      SecDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
+
       /*@ assigns Context->SizeOfImage;
         @ ensures Context->SizeOfImage == Pe32->SizeOfImage;
       */
@@ -1273,6 +1280,8 @@ InternalInitializePe (
       */
       RelocDir = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
       //@ assert RelocDir == image_context_get_reloc_dir (Context);
+
+      SecDir = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
 
       /*@ assigns Context->SizeOfImage;
         @ ensures Context->SizeOfImage == Pe32Plus->SizeOfImage;
@@ -1613,6 +1622,29 @@ InternalInitializePe (
     }
   }
 
+  if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
+    Context->SecDirRva  = SecDir->VirtualAddress;
+    Context->SecDirSize = SecDir->Size;
+
+    Result = BaseOverflowAddU32 (
+      Context->SecDirRva,
+      Context->SecDirSize,
+      &SecDirEnd
+      );
+    if (Result || SecDirEnd > FileSize) {
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+
+    if (!IS_ALIGNED (Context->SecDirRva, OC_ALIGNOF (WIN_CERTIFICATE))
+     || (Context->SecDirSize != 0 && Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
+       ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+  } else {
+    ASSERT (Context->SecDirRva == 0 && Context->SecDirSize == 0);
+  }
+
   /*@ assigns StartAddress, MinSizeOfImage;
     @ ensures \let Sections = (EFI_IMAGE_SECTION_HEADER *) ((char *) Context->FileBuffer + Context->SectionsOffset);
     @         Status == RETURN_SUCCESS <==>
@@ -1678,6 +1710,7 @@ InternalInitializePe (
     @ ensures image_sects_in_image (Context);
   */
   if (MinSizeOfImage > Context->SizeOfImage) {
+    DEBUG ((DEBUG_WARN, "SOI %u vs %u\n", MinSizeOfImage, Context->SizeOfImage));
     /*@ assert \let Sections = (EFI_IMAGE_SECTION_HEADER *) ((char *) Context->FileBuffer + Context->SectionsOffset);
       @        (Context->ImageType == ImageTypePe32 ==>
       @          !(image_pe32_get_min_SizeOfImage ((char *) Context->FileBuffer, Context->ExeHdrOffset) <= Pe32->SizeOfImage)) &&

@@ -35,6 +35,10 @@
 
 !include OvmfPkg/OvmfTpmDefines.dsc.inc
 
+  DEFINE TPM_CONFIG_ENABLE       = FALSE
+
+  DEFINE DEBUG_ON_SERIAL_PORT = TRUE
+
   #
   # Network definition
   #

@@ -21,40 +21,6 @@ EFI_PEI_PPI_DESCRIPTOR  gPpiLoadFilePpiList = {
 };
 
 /**
-
-  Support routine for the PE/COFF Loader that reads a buffer from a PE/COFF file.
-  The function is used for XIP code to have optimized memory copy.
-
-  @param FileHandle      - The handle to the PE/COFF file
-  @param FileOffset      - The offset, in bytes, into the file to read
-  @param ReadSize        - The number of bytes to read from the file starting at FileOffset
-  @param Buffer          - A pointer to the buffer to read the data into.
-
-  @return EFI_SUCCESS - ReadSize bytes of data were read into Buffer from the PE/COFF file starting at FileOffset
-
-**/
-EFI_STATUS
-EFIAPI
-PeiImageRead (
-  IN     VOID   *FileHandle,
-  IN     UINTN  FileOffset,
-  IN     UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  )
-{
-  CHAR8  *Destination8;
-  CHAR8  *Source8;
-
-  Destination8 = Buffer;
-  Source8      = (CHAR8 *)((UINTN)FileHandle + FileOffset);
-  if (Destination8 != Source8) {
-    CopyMem (Destination8, Source8, *ReadSize);
-  }
-
-  return EFI_SUCCESS;
-}
-
-/**
   To check memory usage bit map array to figure out if the memory range the image will be loaded in is available or not. If
   memory range is available, the function will mark the corresponding bits to 1 which indicates the memory range is used.
   The function is only invoked when load modules at fixed address feature is enabled.

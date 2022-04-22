@@ -934,6 +934,7 @@ PeCoffRelocateImage (
       */
       //@ assert !\exists UINT32 NumRelocs; NumRelocs == image_base_reloc_num ((char *) Context->ImageBuffer, Context->RelocDirRva, Context->RelocDirSize);
       //@ assert !image_reloc_dir_correct ((char *) Context->ImageBuffer, Context->SizeOfImage, Context->RelocDirRva, Context->RelocDirSize);
+      DEBUG ((DEBUG_INFO, "RelocSize %u\n", RelocWalker->SizeOfBlock));
       ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
     }
