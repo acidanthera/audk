@@ -87,7 +87,7 @@ InternalVerifySections (
   } else {
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
-                   Sections[0].VirtualAddress,
+                   Context->SizeOfHeaders,
                    Context->SectionAlignment,
                    &NextSectRva
                    );
