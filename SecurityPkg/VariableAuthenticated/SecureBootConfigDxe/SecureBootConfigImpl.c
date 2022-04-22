@@ -1908,7 +1908,7 @@ EnrollImageSignatureToSigDB (
         goto ON_EXIT;
       }
     } else if (Certificate->wCertificateType == WIN_CERT_TYPE_PKCS_SIGNED_DATA) {
-      PkcsCertData = (CONST WIN_CERTIFICATE_EFI_PKCS *) (ImageBase + mSecDataDir->Offset);
+      PkcsCertData = (CONST WIN_CERTIFICATE_EFI_PKCS *) Certificate;
 
       Status = HashPeImageByType (&ImageContext, PkcsCertData->CertData, PkcsCertData->Hdr.dwLength - sizeof(PkcsCertData->Hdr), ImageDigest, &ImageDigestSize, &CertType);
       if (EFI_ERROR (Status)) {

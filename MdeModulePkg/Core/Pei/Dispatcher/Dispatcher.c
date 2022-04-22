@@ -1022,7 +1022,7 @@ MigratePeim (
   ImageAddress = NULL;
   PeiGetPe32Data (MigratedFileHandle, &ImageAddress);
   if (ImageAddress != NULL) {
-    // FIXME (size, overwiriting PDB data):
+    // FIXME (size, overwriting PDB data):
     DEBUG_CODE_BEGIN ();
     Status = PeCoffInitializeContext (&ImageContext, (CONST VOID *) ImageAddress, 0xFFFFFFFF);
     ASSERT_EFI_ERROR (Status);
