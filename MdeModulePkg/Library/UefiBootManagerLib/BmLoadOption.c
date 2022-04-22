@@ -1244,7 +1244,15 @@ BmIsLoadOptionPeHeaderValid (
 
   // FIXME: What?
   Status = PeCoffInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
-  return !EFI_ERROR (Status);
+  if (EFI_ERROR (Status)) {
+    return FALSE;
+  }
+  // FIXME: What about emu?
+  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (PeCoffGetMachineType (&ImageContext))) {
+    return FALSE;
+  }
+
+  return TRUE;
 }
 
 /**
