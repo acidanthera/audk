@@ -670,6 +670,7 @@ PeCoffLoaderGetRuntimeContextSize (
   )
 {
   BOOLEAN Result;
+  UINT32  FixupDataSize;
 
   ASSERT (Context != NULL);
   ASSERT (Size != NULL);
@@ -687,14 +688,14 @@ PeCoffLoaderGetRuntimeContextSize (
   Result = BaseOverflowMulU32 (
              Context->RelocDirSize,
              sizeof (UINT64) / sizeof (UINT16),
-             Size
+             &FixupDataSize
              );
   if (Result) {
     return RETURN_UNSUPPORTED;
   }
 
   Result = BaseOverflowAddU32 (
-             *Size,
+             FixupDataSize,
              sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT),
              Size
              );
