@@ -570,8 +570,6 @@ CoreLoadPeImage (
   IMAGE_FILE_HANDLE  *FileHandle = Pe32Handle;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 
-  DEBUG ((DEBUG_WARN, "Loading image...\n"));
-
   RelocationData = NULL;
 
   //

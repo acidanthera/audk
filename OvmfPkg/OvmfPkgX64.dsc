@@ -472,6 +472,14 @@
 !endif
 
 [PcdsFixedAtBuild]
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch|FALSE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportArmThumb|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderForceLoadDebug|FALSE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderTolerantLoad|TRUE
+  gOpenCorePkgTokenSpaceGuid.PcdImageLoaderSupportDebug|FALSE
+
   gEfiMdeModulePkgTokenSpaceGuid.PcdStatusCodeMemorySize|1
 !if $(SMM_REQUIRE) == FALSE
   gEfiMdeModulePkgTokenSpaceGuid.PcdResetOnMemoryTypeInformationChange|FALSE

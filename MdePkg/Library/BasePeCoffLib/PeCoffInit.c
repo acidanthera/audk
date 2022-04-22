@@ -164,6 +164,7 @@ InternalVerifySections (
       @           Sections[0].VirtualAddress != 0;
     */
     if (Context->ImageType == ImageTypeTe) {
+      ASSERT (FALSE);
       /*@ assert !(Context->ImageType == ImageTypeTe ==>
         @          Sections[0].VirtualAddress != 0);
       */
@@ -194,6 +195,7 @@ InternalVerifySections (
         @ ensures NextSectRva == image_sect_correct_address (Sections, 0, Context->SizeOfHeaders, Context->SectionAlignment);
       */
       if (Result) {
+        ASSERT (FALSE);
         //@ assert align_up (Context->SizeOfHeaders, Context->SectionAlignment) > MAX_UINT32;
         /*@ assert 0 < Context->NumberOfSections &&
           @        Sections[0].VirtualAddress != image_context_get_loaded_hdr_virtual_size (Context);
@@ -261,6 +263,7 @@ InternalVerifySections (
       @           image_sect_disjunct_sorted (Sections, SectIndex);
     */
     if (!PcdGetBool (PcdImageLoaderTolerantLoad) && Sections[SectIndex].VirtualAddress != NextSectRva) {
+      ASSERT (FALSE);
       //@ assert !image_sects_correct_addresses (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment);
       //@ assert !image_sects_sane (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment, Context->TeStrippedOffset, FileSize, Context->ImageType);
       return RETURN_UNSUPPORTED;
@@ -275,6 +278,7 @@ InternalVerifySections (
       @           NextSectRva <= Sections[SectIndex].VirtualAddress;
     */
     if (PcdGetBool (PcdImageLoaderTolerantLoad) && Sections[SectIndex].VirtualAddress < NextSectRva) {
+      ASSERT (FALSE);
       //@ assert !image_sects_disjunct_sorted (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment);
       //@ assert !image_sects_sane (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment, Context->TeStrippedOffset, FileSize, Context->ImageType);
       return RETURN_UNSUPPORTED;
@@ -315,6 +319,7 @@ InternalVerifySections (
         @ ensures Context->TeStrippedOffset <= Sections[SectIndex].PointerToRawData;
       */
       if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
+        ASSERT (FALSE);
         //@ assert !image_sects_in_file_bounds (Sections, Context->NumberOfSections, Context->TeStrippedOffset, FileSize);
         //@ assert !image_sects_sane (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment, Context->TeStrippedOffset, FileSize, Context->ImageType);
         return RETURN_UNSUPPORTED;
@@ -334,6 +339,7 @@ InternalVerifySections (
         @ ensures SectRawEnd == Sections[SectIndex].PointerToRawData + Sections[SectIndex].SizeOfRawData;
       */
       if (Result) {
+        ASSERT (FALSE);
         //@ assert Sections[SectIndex].SizeOfRawData > 0;
         /*@ assert \exists integer i; 0 <= i < Context->NumberOfSections &&
           @          (0 < Sections[i].SizeOfRawData ==>
@@ -353,6 +359,7 @@ InternalVerifySections (
         @ ensures (Sections[SectIndex].PointerToRawData - Context->TeStrippedOffset) + Sections[SectIndex].SizeOfRawData <= FileSize;
       */
       if ((SectRawEnd - Context->TeStrippedOffset) > FileSize) {
+        ASSERT (FALSE);
         //@ assert !image_sects_in_file_bounds (Sections, Context->NumberOfSections, Context->TeStrippedOffset, FileSize);
         //@ assert !image_sects_sane (Sections, Context->NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment, Context->TeStrippedOffset, FileSize, Context->ImageType);
         return RETURN_UNSUPPORTED;
@@ -377,6 +384,7 @@ InternalVerifySections (
       @ ensures image_loaded_hdr_virtual_size (Sections, Context->SizeOfHeaders, Context->SectionAlignment) <= \old(NextSectRva) <= NextSectRva;
     */
     if (Result) {
+      ASSERT (FALSE);
       //@ assert image_sect_top (Sections + SectIndex) > MAX_UINT32;
       //@ assert align_up (image_sect_top (Sections + SectIndex), Context->SectionAlignment) > MAX_UINT32;
       /*@ assert SectIndex < Context->NumberOfSections - 1 ==>
@@ -419,6 +427,7 @@ InternalVerifySections (
         @ ensures image_loaded_hdr_virtual_size (Sections, Context->SizeOfHeaders, Context->SectionAlignment) <= \old(NextSectRva) <= NextSectRva;
       */
       if (Result) {
+        ASSERT (FALSE);
         //@ assert align_up (image_sect_top (Sections + SectIndex), Context->SectionAlignment) > MAX_UINT32;
         /*@ assert SectIndex < Context->NumberOfSections - 1 ==>
           @          image_sect_correct_address (Sections, SectIndex + 1, Context->SizeOfHeaders, Context->SectionAlignment) > MAX_UINT32;
@@ -1649,6 +1658,7 @@ InternalInitializePe (
     @           image_sect_top (Sections + i) <= MinSizeOfImage;
   */
   if (Status != RETURN_SUCCESS) {
+    ASSERT_EFI_ERROR (Status);
     /*@ assert \let Sections = (EFI_IMAGE_SECTION_HEADER *) ((char *) Context->FileBuffer + Context->SectionsOffset);
       @        !image_sects_sane (Sections, PeCommon->FileHeader.NumberOfSections, Context->SizeOfHeaders, Context->SectionAlignment, 0, FileSize, Context->ImageType);
     */

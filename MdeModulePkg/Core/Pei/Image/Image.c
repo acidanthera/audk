@@ -386,28 +386,33 @@ LoadAndRelocatePeCoffImage (
     }
   }
 
-  if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
-    //
-    // Load the image to our new buffer
-    //
-    // FIXME: Fix casts
-    Status = PeCoffLoadImage (&ImageContext, (VOID *) (UINTN) LoadAddress, (UINT32) AlignImageSize);
-    if (EFI_ERROR (Status)) {
-      // TODO: Fix?
-      //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
-        //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, ImageContext.SectionAlignment));
-      //}
-      return Status;
-    }
-
-    //
-    // Relocate the image in our new buffer
-    //
-    Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
+  if (LoadAddress == (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
+    AlignImageSize = ImageContext.SizeOfImage;
   }
+
+  // TODO: Why load XIP image?
+  //if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
+  //
+  // Load the image to our new buffer
+  //
+  // FIXME: Fix casts
+  Status = PeCoffLoadImage (&ImageContext, (VOID *) (UINTN) LoadAddress, (UINT32) AlignImageSize);
+  if (EFI_ERROR (Status)) {
+    // TODO: Fix?
+    //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
+      //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, ImageContext.SectionAlignment));
+    //}
+    return Status;
+  }
+
+  //
+  // Relocate the image in our new buffer
+  //
+  Status = PeCoffRelocateImage (&ImageContext, LoadAddress, NULL, 0);
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+  //}
 
   //
   // Flush the instruction cache so the image data is written before we execute it
