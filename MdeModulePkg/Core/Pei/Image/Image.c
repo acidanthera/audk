@@ -395,6 +395,9 @@ LoadAndRelocatePeCoffImageInPlace (
   EFI_STATUS                    Status;
   PE_COFF_LOADER_IMAGE_CONTEXT    ImageContext;
 
+  // FIXME: Seems to hold, but verify!
+  ASSERT (Pe32Data != ImageAddress);
+
   // FIXME: File size
   Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
   if (EFI_ERROR (Status)) {
@@ -415,6 +418,7 @@ LoadAndRelocatePeCoffImageInPlace (
   //
   // Relocate the image in place
   //
+  ImageAddress = (VOID *) PeCoffLoaderGetDestinationAddress (&ImageContext);
   Status = PeCoffRelocateImage (&ImageContext, (UINTN)ImageAddress, NULL, 0);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
@@ -424,9 +428,7 @@ LoadAndRelocatePeCoffImageInPlace (
   //
   // Flush the instruction cache so the image data is written before we execute it
   //
-  if (ImageAddress !=Pe32Data) {
-    InvalidateInstructionCacheRange (ImageAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
-  }
+  InvalidateInstructionCacheRange (ImageAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
 
   return Status;
 }
