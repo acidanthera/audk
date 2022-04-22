@@ -1105,7 +1105,7 @@ ExecuteSmmCoreFromSmram (
   //
   Status = PeCoffLoadImageForExecution (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize, NULL, 0);
   if (!EFI_ERROR (Status)) {
-    LoadAddress = PeCoffLoaderGetImageBuffer (&gSmmCorePrivate->PiSmmCoreImageContext);
+    LoadAddress = PeCoffLoaderGetImageAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
     //
     // Print debug message showing SMM Core entry point address.
     //

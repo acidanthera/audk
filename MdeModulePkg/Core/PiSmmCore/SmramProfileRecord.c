@@ -282,7 +282,7 @@ BuildDriverInfo (
   PdbOccupiedSize = 0;
 
   // FIXME: This used to be allowed?
-  ASSERT (PeCoffLoaderGetImageBuffer (ImageContext) != 0);
+  ASSERT (PeCoffLoaderGetImageAddress (ImageContext) != 0);
 
   PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
@@ -680,7 +680,7 @@ RegisterSmramProfileImage (
                      ContextData,
                      FileName,
                      ImageContext,
-                     PeCoffLoaderGetImageBuffer (ImageContext),
+                     PeCoffLoaderGetImageAddress (ImageContext),
                      EFI_FV_FILETYPE_SMM
                      );
   if (DriverInfoData == NULL) {

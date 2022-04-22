@@ -150,7 +150,7 @@ PeCoffGetRelocsStripped (
 
 // FIXME: How to handle TE XIP?
 UINTN
-PeCoffLoaderGetImageBuffer (
+PeCoffLoaderGetImageAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {

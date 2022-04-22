@@ -531,7 +531,7 @@ SmmLoadImage (
     return Status;
   }
 
-  LoadAddress = PeCoffLoaderGetImageBuffer (ImageContext);
+  LoadAddress = PeCoffLoaderGetImageAddress (ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry

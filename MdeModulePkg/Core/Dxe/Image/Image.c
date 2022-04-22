@@ -751,7 +751,7 @@ CoreLoadPeImage (
     goto Done;
   }
 
-  LoadAddress = PeCoffLoaderGetImageBuffer (ImageContext);
+  LoadAddress = PeCoffLoaderGetImageAddress (ImageContext);
 
   //
   // Copy the machine type from the context to the image private data.

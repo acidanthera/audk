@@ -248,7 +248,7 @@ MmLoadImage (
     return Status;
   }
 
-  ImageBase = PeCoffLoaderGetImageBuffer (&ImageContext);
+  ImageBase = PeCoffLoaderGetImageAddress (&ImageContext);
 
   //
   // Flush the instruction cache so the image data are written before we execute it

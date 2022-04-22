@@ -336,7 +336,7 @@ ReadyToLockEventNotify (
   Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  LoadAddress = PeCoffLoaderGetImageBuffer (&ImageContext);
+  LoadAddress = PeCoffLoaderGetImageAddress (&ImageContext);
 
   //
   // Free the buffer allocated by ReadSection since the image has been relocated in the new buffer

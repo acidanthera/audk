@@ -30,7 +30,7 @@ PeCoffLoadImageForExecution (
     return Status;
   }
 
-  BaseAddress = PeCoffLoaderGetImageBuffer (Context);
+  BaseAddress = PeCoffLoaderGetImageAddress (Context);
   Status = PeCoffRelocateImage (
     Context,
     BaseAddress,
