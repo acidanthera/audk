@@ -304,7 +304,7 @@ INF MdeModulePkg/Logo/LogoDxe.inf
     SECTION PE32 = Intel3.5/EFIX64/E3522X2.EFI
   }
 !endif
-!include NetworkPkg/Network.fdf.inc
+#!include NetworkPkg/Network.fdf.inc
   INF  OvmfPkg/VirtioNetDxe/VirtioNet.inf
 
 #

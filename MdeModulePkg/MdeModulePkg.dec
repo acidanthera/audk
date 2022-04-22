@@ -976,7 +976,7 @@
   #              exception caused by legacy memory (0-4095) access after EndOfDxe,
   #              such as Windows 7 boot on Qemu.<BR>
   # @Prompt Enable NULL address detection.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask|0x0|UINT8|0x30001050
+  gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask|0x43|UINT8|0x30001050
 
   ## Init Value in Temp Stack to be shared between SEC and PEI_CORE
   # SEC fills the full temp stack with this values. When switch stack, PeiCore can check
@@ -1013,7 +1013,7 @@
   #  OS Reserved                       0x8000000000000000<BR>
   # e.g. LoaderCode+LoaderData+BootServicesCode+BootServicesData are needed, 0x1E should be used.<BR>
   # @Prompt The memory type mask for Page Guard.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPageType|0x0|UINT64|0x30001052
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPageType|0xFFFFFFFFFFFFFFFF|UINT64|0x30001052
 
   ## Indicates which type allocation need guard page.
   #
@@ -1044,7 +1044,7 @@
   #  OS Reserved                       0x8000000000000000<BR>
   # e.g. LoaderCode+LoaderData+BootServicesCode+BootServicesData are needed, 0x1E should be used.<BR>
   # @Prompt The memory type mask for Pool Guard.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPoolType|0x0|UINT64|0x30001053
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPoolType|0xFFFFFFFFFFFFFFFF|UINT64|0x30001053
 
   ## This mask is to control Heap Guard behavior.
   #
@@ -1068,14 +1068,14 @@
   #          0 - The returned pool is near the tail guard page.<BR>
   #          1 - The returned pool is near the head guard page.<BR>
   # @Prompt The Heap Guard feature mask
-  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask|0x0|UINT8|0x30001054
+  gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask|0x4F|UINT8|0x30001054
 
   ## Indicates if UEFI Stack Guard will be enabled.
   #  If enabled, stack overflow in UEFI can be caught, preventing chaotic consequences.<BR><BR>
   #   TRUE  - UEFI Stack Guard will be enabled.<BR>
   #   FALSE - UEFI Stack Guard will be disabled.<BR>
   # @Prompt Enable UEFI Stack Guard.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|FALSE|BOOLEAN|0x30001055
+  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE|BOOLEAN|0x30001055
 
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
@@ -1975,7 +1975,7 @@
   #  EfiBootServicesData.<BR>
   #  <BR>
   # @Prompt Set NX for stack.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|FALSE|BOOLEAN|0x0001006f
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack|TRUE|BOOLEAN|0x0001006f
 
   ## This PCD specifies the PCI-based SD/MMC host controller mmio base address.
   # Define the mmio base address of the pci-based SD/MMC host controller. If there are multiple SD/MMC

@@ -2166,7 +2166,7 @@
   #   BIT0 - SMM CET Shadow Stack is enabled.<BR>
   #   Other - reserved
   # @Prompt Enable control flow enforcement.
-  gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x0|UINT32|0x30001017
+  gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x1|UINT32|0x30001017
 
   ## Indicates the type of instruction sequence to use for a speculation
   #  barrier.  The default instruction sequence is LFENCE.<BR><BR>
