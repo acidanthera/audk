@@ -1049,7 +1049,7 @@ ExecuteSmmCoreFromSmram (
       // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
       // specified by SmramRange
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
 
       ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
       ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1070,7 +1070,7 @@ ExecuteSmmCoreFromSmram (
     // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
     // specified by SmramRange
     //
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
 
     ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
     ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1087,8 +1087,8 @@ ExecuteSmmCoreFromSmram (
     LoadAddress = SmramRangeSmmCore->CpuStart;
   }
 
-  LoadAddress += gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment - 1);
+  LoadAddress += PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext) - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext) - 1);
 
   //
   // Print debug message showing SMM Core load address.
@@ -1098,7 +1098,7 @@ ExecuteSmmCoreFromSmram (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage + gSmmCorePrivate->PiSmmCoreImageContext.SectionAlignment);
+  Status = PeCoffLoadImage (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext) + PeCoffGetSectionAlignment (&gSmmCorePrivate->PiSmmCoreImageContext));
   if (!EFI_ERROR (Status)) {
     //
     // Relocate the image in our new buffer
@@ -1108,21 +1108,21 @@ ExecuteSmmCoreFromSmram (
       //
       // Flush the instruction cache so the image data are written before we execute it
       //
-      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage);
+      InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext));
 
       //
       // Print debug message showing SMM Core entry point address.
       //
-      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + gSmmCorePrivate->PiSmmCoreImageContext.AddressOfEntryPoint)));
+      DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
 
       gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
       DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage));
+      DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
 
       //
       // Execute image
       //
-      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + gSmmCorePrivate->PiSmmCoreImageContext.AddressOfEntryPoint);
+      EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
       Status     = EntryPoint ((EFI_HANDLE)Context, gST);
     }
   }

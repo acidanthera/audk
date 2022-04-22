@@ -1462,7 +1462,7 @@ CoreLoadImageCommon (
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
-    (ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
+    (PeCoffGetSubsystem (&ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
     &ImageContext,
     LoadAddress
     );

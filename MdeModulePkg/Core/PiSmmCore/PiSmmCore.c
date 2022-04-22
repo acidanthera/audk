@@ -786,7 +786,7 @@ SmmCoreInstallLoadedImage (
   mSmmCoreLoadedImage->SystemTable  = gST;
 
   mSmmCoreLoadedImage->ImageBase     = (VOID *)(UINTN)gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreLoadedImage->ImageSize     = gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage;
+  mSmmCoreLoadedImage->ImageSize     = PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreLoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   mSmmCoreLoadedImage->ImageDataType = EfiRuntimeServicesData;
 
@@ -818,13 +818,13 @@ SmmCoreInstallLoadedImage (
   mSmmCoreDriverEntry->SmmLoadedImage.SystemTable  = gST;
 
   mSmmCoreDriverEntry->SmmLoadedImage.ImageBase     = (VOID *)(UINTN)gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreDriverEntry->SmmLoadedImage.ImageSize     = gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage;
+  mSmmCoreDriverEntry->SmmLoadedImage.ImageSize     = PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreDriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   mSmmCoreDriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
-  mSmmCoreDriverEntry->ImageEntryPoint = gSmmCorePrivate->PiSmmCoreImageBase + gSmmCorePrivate->PiSmmCoreImageContext.AddressOfEntryPoint;
+  mSmmCoreDriverEntry->ImageEntryPoint = gSmmCorePrivate->PiSmmCoreImageBase + PeCoffGetEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreDriverEntry->ImageBuffer     = gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreDriverEntry->NumberOfPage    = EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage);
+  mSmmCoreDriverEntry->NumberOfPage    = EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext));
 
   //
   // Create a new image handle in the SMM handle database for the SMM Driver

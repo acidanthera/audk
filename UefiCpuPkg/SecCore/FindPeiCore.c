@@ -187,7 +187,7 @@ FindAndReportEntryPoints (
   //
   // Find PEI Core entry point
   //
-  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT) (UINTN) (ImageContext.ImageBase + ImageContext.AddressOfEntryPoint);
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT) (UINTN) (PeCoffGetImageBase (&ImageContext) + PeCoffGetEntryPoint (&ImageContext));
 
   return;
 }

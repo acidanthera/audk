@@ -90,8 +90,8 @@ RelocateImageUnder4GIfNeeded (
   //
   Status = PeCoffLoaderGetImageInfo (&ImageContext);
   ASSERT_EFI_ERROR (Status);
-  if (ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + ImageContext.SectionAlignment));
+  if (PeCoffGetSectionAlignment (&ImageContext) > EFI_PAGE_SIZE) {
+    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + PeCoffGetSectionAlignment (&ImageContext)));
   } else {
     Pages = EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize);
   }
@@ -108,8 +108,8 @@ RelocateImageUnder4GIfNeeded (
   //
   // Align buffer on section boundary
   //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  ImageContext.ImageAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
+  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&ImageContext) - 1);
   //
   // Load the image to our new buffer
   //

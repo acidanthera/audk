@@ -731,7 +731,7 @@ SecPeCoffGetEntryPoint (
   // Allocate space in NT (not emulator) memory with ReadWrite and Execute attribute.
   // Extra space is for alignment
   //
-  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)VirtualAlloc (NULL, (SIZE_T)(ImageContext.ImageSize + (ImageContext.SectionAlignment * 2)), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)VirtualAlloc (NULL, (SIZE_T)(ImageContext.ImageSize + (PeCoffGetSectionAlignment (&ImageContext) * 2)), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
   if (ImageContext.ImageAddress == 0) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -739,8 +739,8 @@ SecPeCoffGetEntryPoint (
   //
   // Align buffer on section boundary
   //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  ImageContext.ImageAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
+  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&ImageContext) - 1);
 
   Status = PeCoffLoaderLoadImage (&ImageContext);
   if (EFI_ERROR (Status)) {

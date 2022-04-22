@@ -544,7 +544,7 @@ SmramProfileInit (
   RegisterImageToDxe (
     &gEfiCallerIdGuid,
     gSmmCorePrivate->PiSmmCoreImageBase,
-    gSmmCorePrivate->PiSmmCoreImageContext.SizeOfImage,
+    PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext),
     EFI_FV_FILETYPE_SMM_CORE
     );
 

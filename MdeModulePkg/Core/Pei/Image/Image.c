@@ -364,7 +364,7 @@ LoadAndRelocatePeCoffImage (
   if (EFI_ERROR (Status)) {
     // TODO: Fix?
     //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
-      //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, ImageContext.SectionAlignment));
+      //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, PeCoffGetSectionAlignment (&ImageContext)));
     //}
     return Status;
   }
@@ -439,7 +439,7 @@ LoadAndRelocatePeCoffImageInPlace (
   // Flush the instruction cache so the image data is written before we execute it
   //
   if (ImageAddress !=Pe32Data) {
-    InvalidateInstructionCacheRange (ImageAddress, (UINTN)ImageContext.SizeOfImage);
+    InvalidateInstructionCacheRange (ImageAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
   }
 
   return Status;
@@ -603,9 +603,9 @@ PeiLoadImageLoadImage (
   // Got the entry point from the loaded Pe32Data
   //
   Pe32Data    = (VOID *)((UINTN)ImageAddress);
-  *EntryPoint = ImageAddress + ImageContext.AddressOfEntryPoint;
+  *EntryPoint = ImageAddress + PeCoffGetEntryPoint (&ImageContext);
 
-  Machine = ImageContext.Machine;
+  Machine = PeCoffGetMachineType (&ImageContext);
 
   if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (Machine)) {
     if (!EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (Machine)) {
@@ -618,7 +618,7 @@ PeiLoadImageLoadImage (
   }
 
   if (ImageSizeArg != NULL) {
-    *ImageSizeArg = ImageContext.SizeOfImage;
+    *ImageSizeArg =PeCoffGetSizeOfImage (&ImageContext);
   }
 
   DEBUG_CODE_BEGIN ();

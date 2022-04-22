@@ -323,7 +323,7 @@ MmLoadImage (
     return Status;
   }
 
-  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
+  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize + PeCoffGetSectionAlignment (&ImageContext));
   DstBuffer = (UINTN)(-1);
 
   Status = MmAllocatePages (
@@ -341,8 +341,8 @@ MmLoadImage (
   //
   // Align buffer on section boundary
   //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)(ImageContext.SectionAlignment - 1));
+  ImageContext.ImageAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
+  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)(PeCoffGetSectionAlignment (&ImageContext) - 1));
 
   //
   // Load the image to our new buffer

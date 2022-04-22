@@ -937,8 +937,7 @@ DxeTpmMeasureBootHandler (
   // Measure drivers and applications if Application flag is not set
   //
   if ((!ApplicationRequired) ||
-      (ApplicationRequired && (ImageContext.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)))
-  {
+        (ApplicationRequired && PeCoffGetSubsystem (&ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) {
     //
     // Print the image path to be measured.
     //
@@ -964,7 +963,7 @@ DxeTpmMeasureBootHandler (
                (EFI_PHYSICAL_ADDRESS)(UINTN)FileBuffer,
                FileSize,
                (UINTN)ImageContext.ImageAddress,
-               ImageContext.Subsystem,
+               PeCoffGetSubsystem (&ImageContext),
                DevicePathNode
                );
   }

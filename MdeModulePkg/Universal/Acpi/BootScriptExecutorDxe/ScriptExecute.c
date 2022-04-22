@@ -306,10 +306,10 @@ ReadyToLockEventNotify (
   Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
   UINT32 Size;
-  if (ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-    Size = ImageContext.SizeOfImage + ImageContext.SectionAlignment;
+  if (PeCoffGetSectionAlignment (&ImageContext) > EFI_PAGE_SIZE) {
+    Size =PeCoffGetSizeOfImage (&ImageContext) + PeCoffGetSectionAlignment (&ImageContext);
   } else {
-    Size = ImageContext.SizeOfImage;
+    Size =PeCoffGetSizeOfImage (&ImageContext);
   }
   Pages = EFI_SIZE_TO_PAGES (Size);
   FfsBuffer = 0xFFFFFFFF;
@@ -337,8 +337,8 @@ ReadyToLockEventNotify (
   //
   // Align buffer on section boundary
   //
-  LoadAddress += ImageContext.SectionAlignment - 1;
-  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
+  LoadAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
+  LoadAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&ImageContext) - 1);
   //
   // Load the image to our new buffer
   //
@@ -359,16 +359,16 @@ ReadyToLockEventNotify (
   //
   // Flush the instruction cache so the image data is written before we execute it
   //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)ImageContext.SizeOfImage);
+  InvalidateInstructionCacheRange ((VOID *)(UINTN)LoadAddress, (UINTN)PeCoffGetSizeOfImage (&ImageContext));
 
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,
     LoadAddress,
-    ImageContext.SizeOfImage,
+   PeCoffGetSizeOfImage (&ImageContext),
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + ImageContext.AddressOfEntryPoint))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetEntryPoint (&ImageContext)))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -378,7 +378,7 @@ ReadyToLockEventNotify (
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
              (VOID *)(UINTN)LoadAddress,
-             (UINTN)ImageContext.SizeOfImage
+             (UINTN)PeCoffGetSizeOfImage (&ImageContext)
              );
   ASSERT_EFI_ERROR (Status);
 
