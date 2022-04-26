@@ -255,12 +255,13 @@ DpGetNameFromHandle (
   }
 
   if (!EFI_ERROR (Status)) {
-    PdbFileName = PeCoffLoaderGetPdbPointer (Image->ImageBase);
+    // FIXME:
+    /*PdbFileName = PeCoffLoaderGetPdbPointer (Image->ImageBase);
 
     if (PdbFileName != NULL) {
       DpGetShortPdbFileName (PdbFileName, mGaugeString);
       return;
-    }
+    }*/
   }
 
   //
