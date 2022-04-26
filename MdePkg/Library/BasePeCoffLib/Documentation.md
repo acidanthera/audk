@@ -1,6 +1,6 @@
 # EDK II Image Loader documentation
 
-**Please note that this is an early WIP. Correctness and completeness are not guaranteed.**
+**Please note that this is an early work-in-progress. Correctness and completeness are not guaranteed.**
 
 ## 1. Image Section Table well-formedness
 An Image Section Table is considered well-formed if and only if:

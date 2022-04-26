@@ -12,12 +12,14 @@ Unfortunately, over the years, the current EDK II Image Loader has been subject 
 
 The usage of formal methods to design the new solution greatly helped restore the state of a truly sound solution, resolving many issues regarding inter-API guarantees and Image format validation. Many new abstractions have been introduced, external code has been centralized, and the overall flexibility has been improved, to hopefully aid developers to extend the codebase more easily in the future. Beyond that, the formal model ensures a high level of confidence that security-wise there have been no regressions, and there might even be potential improvements.
 
-Please also refer to the WIP EDK II Image Loader Documentation available at [MdePkg/Library/BasePeCoffLib/Documentation.md](MdePkg/Library/BasePeCoffLib/Documentation.md)
+Please also refer to the work-in-progress EDK II Image Loader documentation available at [MdePkg/Library/BasePeCoffLib/Documentation.md](MdePkg/Library/BasePeCoffLib/Documentation.md)
 
 ## Issues of the current solution
 * High level of maintenance cost due to convoluted function contracts
 * Error-prone design promoting the introduction of code bugs
 * Multiple real-world bugs affecting reliability, some unaddressed for years
+* A lot of duplicate caller-side code that decreases the flexibility of porting and integration (e.g. Image permissions in PEI)
+* Dependency on Image re-parsing for production code
 
 ## Benefits of the new solution
 * Fixes all known reported BZs on Image Loader reliability
@@ -43,21 +45,20 @@ Please also refer to the WIP EDK II Image Loader Documentation available at [Mde
 ## Current progress, future goals, and further notes
 * OVMF boots to Shell with SMM and Secure Boot enabled
 * Extended support for Image protection has been implemented
-* Not all packages build or have been fully ported
-* Not all features have been implemented, e.g. debug support and RISC-V
-* Not all security requirements are met, i.e. due to insufficient APIs
-* Not all problematic coding conventions have been fully resolved
+* FFS and DebugTable enhancements have been implemented
+* Not all features have been implemented, e.g. RISC-V support
 * There are unrelated changes present to help testing and validation
+* Some validation is still absent
 * Build compatibility for out-of-tree packages is still absent
-* We intend to provide thorough design documentation
 
 ## BZs fixed by integrating the new Image Loader
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1999
-* https://bugzilla.tianocore.org/show_bug.cgi?id=3329
 * https://bugzilla.tianocore.org/show_bug.cgi?id=1860
+* https://bugzilla.tianocore.org/show_bug.cgi?id=1999
 * https://bugzilla.tianocore.org/show_bug.cgi?id=2120
+* https://bugzilla.tianocore.org/show_bug.cgi?id=3329
 * More to be added shortly...
 
 ## BZs easier to address by integrating the new Image Loader
 * https://bugzilla.tianocore.org/show_bug.cgi?id=3326
 * https://bugzilla.tianocore.org/show_bug.cgi?id=3331
+* More to be added shortly...
