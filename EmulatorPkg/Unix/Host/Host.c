@@ -740,10 +740,7 @@ SecPeCoffGetEntryPoint (
   }
 
   // FIXME: Why cannot the Image be in-place already?
-  Status = PeCoffRelocateImageInplaceForExecution (
-             &ImageContext,
-             (UINTN) Pe32Data
-             );
+  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
   if (EFI_ERROR (Status)) {
     return Status;
   }

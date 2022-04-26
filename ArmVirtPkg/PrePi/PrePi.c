@@ -165,5 +165,5 @@ RelocatePeCoffImage (
   Status = PeCoffInitializeContext (&ImageContext, SectionData, SectionSize);
   ASSERT_RETURN_ERROR (Status);
 
-  PeCoffRelocateImageInplaceForExecution (&ImageContext, (UINTN) SectionData);
+  PeCoffRelocateImageInplaceForExecution (&ImageContext);
 }

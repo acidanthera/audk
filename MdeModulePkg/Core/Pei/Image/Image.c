@@ -240,6 +240,7 @@ LoadAndRelocatePeCoffImage (
   //
   // XIP image that ImageAddress is same to Image handle.
   //
+  // FIXME: PE lib function
   if (PeCoffGetImageBase (ImageContext) == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
     IsXipImage = TRUE;
   }
@@ -406,10 +407,7 @@ LoadAndRelocatePeCoffImageInPlace (
   //
   // Load the image in place
   //
-  Status = PeCoffRelocateImageInplaceForExecution (
-             &ImageContext,
-             (UINTN) ImageAddress
-             );
+  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;

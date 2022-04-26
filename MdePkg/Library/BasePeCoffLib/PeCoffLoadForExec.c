@@ -62,12 +62,12 @@ PeCoffLoadImageForExecution (
 
 RETURN_STATUS
 PeCoffRelocateImageInplaceForExecution (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT64                        BaseAddress
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   RETURN_STATUS Status;
   UINT64        ImageBase;
+  UINTN         NewBase;
   UINTN         SizeOfImage;
 
   Status = PeCoffLoadImageInplaceNoBase (Context);
@@ -77,16 +77,11 @@ PeCoffRelocateImageInplaceForExecution (
   }
 
   ImageBase = PeCoffGetImageBase (Context);
-
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    BaseAddress -= Context->TeStrippedOffset;
-  } else {
-    ASSERT (Context->TeStrippedOffset == 0);
-  }
+  NewBase   = PeCoffLoaderGetImageAddress (Context);
 
   // FIXME: Generally push this check to the callers?
-  if (ImageBase != BaseAddress) {
-    Status = PeCoffRelocateImage (Context, BaseAddress, NULL, 0);
+  if (ImageBase != NewBase) {
+    Status = PeCoffRelocateImage (Context, NewBase, NULL, 0);
     if (RETURN_ERROR (Status)) {
       DEBUG_RAISE ();
       return Status;

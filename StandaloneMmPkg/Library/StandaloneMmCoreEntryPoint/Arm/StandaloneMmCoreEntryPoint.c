@@ -390,10 +390,7 @@ _ModuleEntryPoint (
   }
 
   // FIXME: Should relocation not be performed with all of the Image writable?
-  Status = PeCoffRelocateImageInplaceForExecution (
-             &ImageContext,
-             (UINTN) TeData
-             );
+  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
   ASSERT_EFI_ERROR (Status);
 
   //
