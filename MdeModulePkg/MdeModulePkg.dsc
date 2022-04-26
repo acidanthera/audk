@@ -442,9 +442,9 @@
 
 [Components.IA32, Components.X64, Components.AARCH64]
   # FIXME:
-  #MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
-  #MdeModulePkg/Universal/EbcDxe/EbcDebugger.inf
-  #MdeModulePkg/Universal/EbcDxe/EbcDebuggerConfig.inf
+  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
+  MdeModulePkg/Universal/EbcDxe/EbcDebugger.inf
+  MdeModulePkg/Universal/EbcDxe/EbcDebuggerConfig.inf
 
 [Components.IA32, Components.X64, Components.ARM, Components.AARCH64]
   MdeModulePkg/Library/BrotliCustomDecompressLib/BrotliCustomDecompressLib.inf

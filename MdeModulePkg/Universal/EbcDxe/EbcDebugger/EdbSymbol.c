@@ -774,6 +774,8 @@ GetPdbPath (
   VOID  *ImageBase
   )
 {
+  // FIXME: Pass PDB by the debug image table?
+  #if 0
   CHAR8                            *PdbPath;
   UINT32                           DirCount;
   EFI_IMAGE_DOS_HEADER             *DosHdr;
@@ -858,6 +860,8 @@ GetPdbPath (
   // Done successfully
   //
   return PdbPath;
+  #endif
+  return NULL;
 }
 
 /**
