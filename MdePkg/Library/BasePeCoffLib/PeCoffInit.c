@@ -120,6 +120,16 @@ InternalVerifySections (
   //
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
+    // Verify the Image section adheres to the W^X principle, if the policy
+    // demands it.
+    //
+    if (PcdGetBool (PcdImageLoaderWXorX)) {
+      if ((Sections[SectIndex].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) {
+        DEBUG_RAISE ();
+        return RETURN_UNSUPPORTED;
+      }
+    }
+    //
     // Verify the Image section are disjoint (relaxed) or adjacent (strict)
     // depending on whether unaligned Image sections may be loaded or not.
     // Unaligned Image sections have been observed with iPXE Option ROMs and old

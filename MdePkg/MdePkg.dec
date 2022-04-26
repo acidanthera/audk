@@ -2181,8 +2181,9 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE|BOOLEAN|0x40001019
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE|BOOLEAN|0x4000101A
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRelocTypePolicy|0xFFFFFFFF|UINT32|0x4000101B
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport|2|UINT32|0x4000101C
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy|0xFFFFFFFF|UINT32|0x4000101D
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderWXorX|TRUE|BOOLEAN|0x4000101C
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport|2|UINT32|0x4000101D
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy|0xFFFFFFFF|UINT32|0x4000101E
 
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following
