@@ -36,6 +36,7 @@
   CacheMaintenanceLib
   DebugLib
   MemoryAllocationLib
+  PeCoffExtraActionLib
 
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch

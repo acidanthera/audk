@@ -19,6 +19,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
+#include <Library/PeCoffExtraActionLib.h>
 #include <Library/PeCoffLib.h>
 
 #include "BaseOverflow.h"
@@ -257,6 +258,7 @@ InternalApplyRelocation (
       FixupData[RelocIndex] = 0;
     }
 
+    PeCoffLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
@@ -450,6 +452,7 @@ PeCoffRelocateImage (
   // Verify the Relocation Directory is not empty.
   //
   if (Context->RelocDirSize == 0) {
+    PeCoffLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
@@ -465,6 +468,7 @@ PeCoffRelocateImage (
   // prefered location.
   //
   if (RuntimeContext == NULL && Adjust == 0) {
+    PeCoffLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
