@@ -234,10 +234,10 @@ CoreInitializeImageServices (
   Image = &mCorePrivateImage;
 
   Status = PeCoffInitializeContext (
-    ImageContext,
-    (VOID *) (UINTN) DxeCoreImageBaseAddress,
-    (UINT32) DxeCoreImageLength
-    );
+             ImageContext,
+             (VOID *) (UINTN) DxeCoreImageBaseAddress,
+             (UINT32) DxeCoreImageLength
+             );
   ASSERT_EFI_ERROR (Status);
   ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + PeCoffGetAddressOfEntryPoint (ImageContext));
 
