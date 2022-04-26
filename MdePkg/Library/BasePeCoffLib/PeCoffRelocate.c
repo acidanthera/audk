@@ -538,7 +538,7 @@ PeCoffRelocateImage (
       }
     } else {
       //
-      // This arithmetics cannot overflow because we know
+      // This arithmetic cannot overflow because we know
       //   1) RelocBlock->SizeOfBlock <= RelocMax <= TopOfRelocDir
       //   2) IS_ALIGNED (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)).
       //
@@ -555,7 +555,7 @@ PeCoffRelocateImage (
     if (RuntimeContext != NULL) {
       CurrentFixupData = &RuntimeContext->FixupData[FixupDataIndex];
       //
-      // This arithmetics cannot overflow because The number of Image Base
+      // This arithmetic cannot overflow because The number of Image Base
       // Relocations cannot exceed the size of their Image Relocation Block, and
       // latter has been verified to be in bounds of the Image buffer. The Image
       // buffer size and RelocDataIndex are both bound by MAX_UINT32.
@@ -593,7 +593,7 @@ PeCoffRelocateImage (
       }
     }
     //
-    // This arithmetics cannot overflow because it has been checked that the
+    // This arithmetic cannot overflow because it has been checked that the
     // Image Base Relocation Block is in bounds of the Image buffer.
     //
     RelocBlockOffset    += RelocBlockSize;
@@ -611,7 +611,7 @@ PeCoffRelocateImage (
   //
   if (RuntimeContext != NULL) {
     //
-    // This arithmetics cannot overflow due to the guarantee given by
+    // This arithmetic cannot overflow due to the guarantee given by
     // PeCoffLoaderGetRuntimeContextSize().
     //
     ZeroMem (

@@ -111,7 +111,7 @@ PeCoffGetHiiDataRva (
   //
   STATIC_ASSERT (
     sizeof (*ResourceDirEntry) * MAX_UINT16 <= ((UINT64) MAX_UINT32 + 1U) / 2 - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY),
-    "The following arithmetics may overflow."
+    "The following arithmetic may overflow."
     );
   TopOffset = sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDirEntry) *
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
@@ -238,7 +238,7 @@ PeCoffGetHiiDataRva (
   //
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY) <= sizeof (EFI_IMAGE_RESOURCE_DIRECTORY),
-    "The following arithmetics may overflow."
+    "The following arithmetic may overflow."
     );
   if (ResourceDirEntry->u2.OffsetToData > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
     DEBUG_RAISE ();

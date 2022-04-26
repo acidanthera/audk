@@ -144,7 +144,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // Verify the Debug Directory data is in bounds of the Image section.
   //
-  // This arithmetics cannot overflow because we know
+  // This arithmetic cannot overflow because we know
   //   1) DebugDir->VirtualAddress + DebugDir->Size <= MAX_UINT32
   //   2) Sections[SectIndex].VirtualAddress <= DebugDir->VirtualAddress.
   //
@@ -320,7 +320,7 @@ PeCoffLoaderLoadCodeView (
     ASSERT (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD);
     ASSERT (Context->SizeOfImageDebugAdd > 0);
     //
-    // This arithmetics cannot overflow because it has been verified during the
+    // This arithmetic cannot overflow because it has been verified during the
     // calculation of SizeOfImageDebugAdd.
     //
     CodeViewEntry->RVA = ALIGN_VALUE (Context->SizeOfImage, ALIGNOF (UINT32));

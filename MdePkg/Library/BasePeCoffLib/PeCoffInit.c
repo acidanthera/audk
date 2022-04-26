@@ -316,7 +316,7 @@ InternalInitializeTe (
 
   STATIC_ASSERT (
     MAX_UINT8 * sizeof (EFI_IMAGE_SECTION_HEADER) <= MAX_UINT32 - MAX_UINT16,
-    "The following arithmetics may overflow."
+    "The following arithmetic may overflow."
     );
   //
   // Calculate SizeOfHeaders in a way that is equivalent to what the size would
@@ -551,7 +551,7 @@ InternalInitializePe (
 
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_DATA_DIRECTORY) <= MAX_UINT32 / EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES,
-    "The following arithmetics may overflow."
+    "The following arithmetic may overflow."
     );
   //
   // Calculate the offset of the Image sections.
@@ -577,7 +577,7 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // This arithmetics cannot overflow because all values are sufficiently
+  // This arithmetic cannot overflow because all values are sufficiently
   // bounded.
   //
   MinSizeOfOptionalHeader = HdrSizeWithoutDataDir +
@@ -587,7 +587,7 @@ InternalInitializePe (
 
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_SECTION_HEADER) <= (MAX_UINT32 + 1ULL) / (MAX_UINT16 + 1ULL),
-    "The following arithmetics may overflow."
+    "The following arithmetic may overflow."
     );
   //
   // Calculate the minimum size of the Image Headers.
