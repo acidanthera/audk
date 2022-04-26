@@ -32,6 +32,7 @@
 #include <Guid/MmramMemoryReserve.h>
 
 #include <Library/StandaloneMmCoreEntryPoint.h>
+#include <Library/StandaloneMmProtectionLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/PeCoffLib.h>

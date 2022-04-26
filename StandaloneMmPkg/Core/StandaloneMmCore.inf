@@ -51,6 +51,7 @@
   MemLib
   PeCoffLib
   ReportStatusCodeLib
+  StandaloneMmProtectionLib
   StandaloneMmCoreEntryPoint
 
 [Protocols]

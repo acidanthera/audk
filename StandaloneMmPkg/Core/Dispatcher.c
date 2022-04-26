@@ -187,6 +187,72 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   return EFI_SUCCESS;
 }
 
+STATIC
+RETURN_STATUS
+InternalProtectMmImage (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  )
+{
+  PE_COFF_IMAGE_RECORD *ImageRecord;
+  UINT32               SectionIndex;
+
+  if (PeCoffGetSectionAlignment (ImageContext) < EFI_PAGE_SIZE) {
+    // FIXME: PCD to abort loading?
+    //
+    // The sections need to be at least 4 KB aligned, since that is the
+    // granularity at which we can tighten permissions. So just clear the
+    // noexec permissions on the entire region.
+    //
+    DEBUG ((DEBUG_WARN,
+      "%a: Image at 0x%lx has SectionAlignment < 4 KB (%lu)\n",
+      __FUNCTION__, PeCoffLoaderGetImageAddress (ImageContext), PeCoffGetSectionAlignment (ImageContext)));
+
+    ASSERT ((PeCoffLoaderGetImageAddress (ImageContext) & (EFI_PAGE_SIZE - 1)) == 0);
+
+    ClearMemoryRegionNoExec (
+      PeCoffLoaderGetImageAddress (ImageContext),
+      ALIGN_VALUE (PeCoffGetSizeOfImage (ImageContext), EFI_PAGE_SIZE)
+      );
+
+    return RETURN_SUCCESS;
+  }
+
+  ImageRecord = PeCoffLoaderGetImageRecord (ImageContext);
+  if (ImageRecord == NULL) {
+    return RETURN_OUT_OF_RESOURCES;
+  }
+  //
+  // Images are loaded into RW memory, thus only +X and -W need to be handled.
+  //
+  for (SectionIndex = 0; SectionIndex < ImageRecord->NumberOfSections; ++ SectionIndex) {
+    DEBUG ((DEBUG_INFO,
+      "%a: Mapping segment of image at 0x%lx with %s-%s permissions and size 0x%x\n",
+      __FUNCTION__, ImageRecord->Sections[SectionIndex].Address,
+      (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0 ? "RO" : "RW",
+      (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) != 0 ? "XN" : "X",
+      ImageRecord->Sections[SectionIndex].Size));
+
+    // FIXME: What about their return values?
+    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0) {
+      SetMemoryRegionReadOnly (
+        ImageRecord->Sections[SectionIndex].Address,
+        ImageRecord->Sections[SectionIndex].Size
+        );
+    }
+
+    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) == 0) {
+      ClearMemoryRegionNoExec (
+        ImageRecord->Sections[SectionIndex].Address,
+        ImageRecord->Sections[SectionIndex].Size
+        );
+    }
+  }
+
+  FreePool (ImageRecord);
+
+  return RETURN_SUCCESS;
+}
+
 /**
   Loads an EFI image into SMRAM.
 
@@ -300,6 +366,8 @@ MmLoadImage (
                                                                 NULL
                                                                 );
   }
+
+  InternalProtectMmImage (&ImageContext);
 
   //
   // Print the load address and the PDB file name if it is available
