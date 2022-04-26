@@ -48,7 +48,7 @@ InternalHashSections (
 
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   CONST EFI_IMAGE_SECTION_HEADER **SortedSections;
-  UINT16                         SectIndex;
+  UINT16                         SectionIndex;
   UINT16                         SectionPos;
   UINT32                         SectionTop;
   UINT32                         CurHashSize;
@@ -78,15 +78,15 @@ InternalHashSections (
   //
   // Perform Insertion Sort to order the Sections by their raw file offset.
   //
-  for (SectIndex = 1; SectIndex < Context->NumberOfSections; ++SectIndex) {
-    for (SectionPos = SectIndex;
+  for (SectionIndex = 1; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
+    for (SectionPos = SectionIndex;
      0 < SectionPos
-     && SortedSections[SectionPos - 1]->PointerToRawData > Sections[SectIndex].PointerToRawData;
+     && SortedSections[SectionPos - 1]->PointerToRawData > Sections[SectionIndex].PointerToRawData;
      --SectionPos) {
       SortedSections[SectionPos] = SortedSections[SectionPos - 1];
     }
 
-    SortedSections[SectionPos] = Sections + SectIndex;
+    SortedSections[SectionPos] = Sections + SectionIndex;
   }
 
   Result      = TRUE;
@@ -96,7 +96,7 @@ InternalHashSections (
   // 13. Repeat steps 11 and 12 for all of the sections in the sorted table.
   //
   ASSERT (Context->TeStrippedOffset == 0);
-  for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
     //
     // Verify the Image section does not overlap with the previous one if the
     // policy demands it. Overlapping Sections could dramatically increase the
@@ -104,17 +104,17 @@ InternalHashSections (
     // FIXME: Move to init, along with a trailing data policy.
     //
     if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
-      if (SectionTop > SortedSections[SectIndex]->PointerToRawData) {
+      if (SectionTop > SortedSections[SectionIndex]->PointerToRawData) {
         Result = FALSE;
         break;
       }
 
-      SectionTop = SortedSections[SectIndex]->PointerToRawData + SortedSections[SectIndex]->SizeOfRawData;
+      SectionTop = SortedSections[SectionIndex]->PointerToRawData + SortedSections[SectionIndex]->SizeOfRawData;
     }
     //
     // Skip Sections that contain no data.
     //
-    if (SortedSections[SectIndex]->SizeOfRawData > 0) {
+    if (SortedSections[SectionIndex]->SizeOfRawData > 0) {
       //
       // 11. Walk through the sorted table, load the corresponding section into
       //     memory, and hash the entire section. Use the SizeOfRawData field in the
@@ -122,8 +122,8 @@ InternalHashSections (
       //
       Result = HashUpdate (
                  HashContext,
-                 (CONST CHAR8 *) Context->FileBuffer + SortedSections[SectIndex]->PointerToRawData,
-                 SortedSections[SectIndex]->SizeOfRawData
+                 (CONST CHAR8 *) Context->FileBuffer + SortedSections[SectionIndex]->PointerToRawData,
+                 SortedSections[SectionIndex]->SizeOfRawData
                  );
       if (!Result) {
         break;
@@ -135,14 +135,14 @@ InternalHashSections (
       // most MAX_UINT32 in sum because the file size is at most MAX_UINT32.
       //
       if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
-        CurHashSize += SortedSections[SectIndex]->SizeOfRawData;
+        CurHashSize += SortedSections[SectionIndex]->SizeOfRawData;
       } else {
         //
         // Verify the hash size does not overflow.
         //
         Overflow = BaseOverflowAddU32 (
                      CurHashSize,
-                     SortedSections[SectIndex]->SizeOfRawData,
+                     SortedSections[SectionIndex]->SizeOfRawData,
                      &CurHashSize
                      );
         if (Overflow) {

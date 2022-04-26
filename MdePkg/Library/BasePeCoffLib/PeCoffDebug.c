@@ -49,7 +49,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   UINT32                                DebugEntryTopOffset;
   UINT32                                DebugEntryRvaTop;
   CONST EFI_IMAGE_SECTION_HEADER        *Sections;
-  UINT16                                SectIndex;
+  UINT16                                SectionIndex;
 
   UINT32                                DebugSizeOfImage;
 
@@ -128,16 +128,16 @@ PeCoffLoaderRetrieveCodeViewInfo (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
 
-  for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
-    if (DebugDir->VirtualAddress >= Sections[SectIndex].VirtualAddress
-     && DebugDirTop <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
+    if (DebugDir->VirtualAddress >= Sections[SectionIndex].VirtualAddress
+     && DebugDirTop <= Sections[SectionIndex].VirtualAddress + Sections[SectionIndex].VirtualSize) {
        break;
      }
   }
   //
   // Verify the Debug Directory was found among the Image sections.
   //
-  if (SectIndex == Context->NumberOfSections) {
+  if (SectionIndex == Context->NumberOfSections) {
     DEBUG_RAISE ();
     return;
   }
@@ -146,18 +146,18 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // This arithmetic cannot overflow because we know
   //   1) DebugDir->VirtualAddress + DebugDir->Size <= MAX_UINT32
-  //   2) Sections[SectIndex].VirtualAddress <= DebugDir->VirtualAddress.
+  //   2) Sections[SectionIndex].VirtualAddress <= DebugDir->VirtualAddress.
   //
-  DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectIndex].VirtualAddress;
+  DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectionIndex].VirtualAddress;
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
-  if (DebugDirSectionRawTop > Sections[SectIndex].SizeOfRawData) {
+  if (DebugDirSectionRawTop > Sections[SectionIndex].SizeOfRawData) {
     DEBUG_RAISE ();
     return;
   }
   //
   // Verify the Debug Directory raw file offset is sufficiently aligned.
   //
-  DebugDirFileOffset = (Sections[SectIndex].PointerToRawData - Context->TeStrippedOffset) + DebugDirSectionOffset;
+  DebugDirFileOffset = (Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset) + DebugDirSectionOffset;
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
@@ -291,9 +291,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // Cache the CodeView RVA.
   //
-  Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
-  ASSERT (Context->CodeViewRva >= Sections[SectIndex].VirtualAddress);
-  ASSERT (Context->CodeViewRva <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize);
+  Context->CodeViewRva = Sections[SectionIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
+  ASSERT (Context->CodeViewRva >= Sections[SectionIndex].VirtualAddress);
+  ASSERT (Context->CodeViewRva <= Sections[SectionIndex].VirtualAddress + Sections[SectionIndex].VirtualSize);
 }
 
 VOID

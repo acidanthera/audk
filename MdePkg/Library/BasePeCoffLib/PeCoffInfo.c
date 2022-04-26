@@ -274,7 +274,7 @@ PeCoffLoaderGetImageRecord (
   UINT32                         SectionAlignment;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT16                         NumberOfSections;
-  UINT16                         SectIndex;
+  UINT16                         SectionIndex;
   CONST EFI_IMAGE_SECTION_HEADER *Section;
   UINTN                          SectionAddress;
   UINT32                         SectionSize;
@@ -344,8 +344,8 @@ PeCoffLoaderGetImageRecord (
   // as read-only data.
   //
   NumberOfRecordSections = 0;
-  for (SectIndex = 0; SectIndex < NumberOfSections; ++SectIndex) {
-    Section = Sections + SectIndex;
+  for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
+    Section = Sections + SectionIndex;
     //
     // Skip empty Image sections to avoid unnecessary splitting.
     //

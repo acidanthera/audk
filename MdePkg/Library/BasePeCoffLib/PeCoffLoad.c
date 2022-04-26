@@ -50,7 +50,7 @@ InternalLoadSections (
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
-  UINT16                         Index;
+  UINT16                         SectionIndex;
   UINT32                         DataSize;
   UINT32                         PreviousTopRva;
 
@@ -63,32 +63,32 @@ InternalLoadSections (
   //
   PreviousTopRva = LoadedHeaderSize;
 
-  for (Index = 0; Index < Context->NumberOfSections; ++Index) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
     //
     // Zero from the end of the previous section to the start of this section.
     //
     ZeroMem (
       (CHAR8 *) Destination + PreviousTopRva,
-      Sections[Index].VirtualAddress - PreviousTopRva
+      Sections[SectionIndex].VirtualAddress - PreviousTopRva
       );
     //
     // Copy the maximum amount of data that fits both sizes.
     //
-    if (Sections[Index].SizeOfRawData <= Sections[Index].VirtualSize) {
-      DataSize = Sections[Index].SizeOfRawData;
+    if (Sections[SectionIndex].SizeOfRawData <= Sections[SectionIndex].VirtualSize) {
+      DataSize = Sections[SectionIndex].SizeOfRawData;
     } else {
-      DataSize = Sections[Index].VirtualSize;
+      DataSize = Sections[SectionIndex].VirtualSize;
     }
     //
     // Load the current Image section into the memory space.
     //
     CopyMem (
-      (CHAR8 *) Destination + Sections[Index].VirtualAddress,
-      (CONST CHAR8 *) Context->FileBuffer + (Sections[Index].PointerToRawData - Context->TeStrippedOffset),
+      (CHAR8 *) Destination + Sections[SectionIndex].VirtualAddress,
+      (CONST CHAR8 *) Context->FileBuffer + (Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset),
       DataSize
       );
 
-    PreviousTopRva = Sections[Index].VirtualAddress + DataSize;
+    PreviousTopRva = Sections[SectionIndex].VirtualAddress + DataSize;
   }
   //
   // Zero the trailing data after the last Image section.
@@ -185,7 +185,7 @@ PeCoffLoadImageInplace (
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT32                         AlignedSize;
-  UINT16                         Index;
+  UINT16                         SectionIndex;
 
   ASSERT (Context != NULL);
   //
@@ -201,13 +201,13 @@ PeCoffLoadImageInplace (
   //
   // Verify all RVAs and raw file offsets are identical for XIP Images.
   //
-  for (Index = 0; Index < Context->NumberOfSections; ++Index) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
     AlignedSize = ALIGN_VALUE (
-                    Sections[Index].VirtualSize,
+                    Sections[SectionIndex].VirtualSize,
                     Context->SectionAlignment
                     );
-    if (Sections[Index].PointerToRawData != Sections[Index].VirtualAddress
-     || Sections[Index].SizeOfRawData != AlignedSize) {
+    if (Sections[SectionIndex].PointerToRawData != Sections[SectionIndex].VirtualAddress
+     || Sections[SectionIndex].SizeOfRawData != AlignedSize) {
       DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
@@ -233,7 +233,7 @@ PeCoffDiscardSections (
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
-  UINT32                         SectIndex;
+  UINT32                         SectionIndex;
 
   ASSERT (Context != NULL);
   //
@@ -248,11 +248,11 @@ PeCoffDiscardSections (
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
-  for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
-    if ((Sections[SectIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
+    if ((Sections[SectionIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0) {
       ZeroMem (
-        (CHAR8 *) Context->ImageBuffer + Sections[SectIndex].VirtualAddress,
-        Sections[SectIndex].VirtualSize
+        (CHAR8 *) Context->ImageBuffer + Sections[SectionIndex].VirtualAddress,
+        Sections[SectionIndex].VirtualSize
         );
     }
   }

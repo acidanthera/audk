@@ -60,7 +60,7 @@ InternalVerifySections (
   BOOLEAN                        Overflow;
   UINT32                         NextSectRva;
   UINT32                         SectRawEnd;
-  UINT16                         SectIndex;
+  UINT16                         SectionIndex;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
 
   ASSERT (Context != NULL);
@@ -118,13 +118,13 @@ InternalVerifySections (
   //
   // Verify all Image sections are valid.
   //
-  for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
+  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
     //
     // Verify the Image section adheres to the W^X principle, if the policy
     // demands it.
     //
     if (PcdGetBool (PcdImageLoaderWXorX)) {
-      if ((Sections[SectIndex].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) {
+      if ((Sections[SectionIndex].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
@@ -136,12 +136,12 @@ InternalVerifySections (
     // Apple Mac OS X bootloaders.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
-      if (Sections[SectIndex].VirtualAddress != NextSectRva) {
+      if (Sections[SectionIndex].VirtualAddress != NextSectRva) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     } else {
-      if (Sections[SectIndex].VirtualAddress < NextSectRva) {
+      if (Sections[SectionIndex].VirtualAddress < NextSectRva) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
@@ -151,16 +151,16 @@ InternalVerifySections (
       // possible, to ensure the Image can have memory protection applied.
       // Otherwise, report no alignment for the Image.
       //
-      if (!IS_ALIGNED (Sections[SectIndex].VirtualAddress, Context->SectionAlignment)) {
+      if (!IS_ALIGNED (Sections[SectionIndex].VirtualAddress, Context->SectionAlignment)) {
         STATIC_ASSERT (
           DEFAULT_PAGE_ALLOCATION_GRANULARITY <= RUNTIME_PAGE_ALLOCATION_GRANULARITY,
           "This code must be adapted to consider the reversed order."
           );
 
-        if (IS_ALIGNED (Sections[SectIndex].VirtualAddress, RUNTIME_PAGE_ALLOCATION_GRANULARITY)) {
+        if (IS_ALIGNED (Sections[SectionIndex].VirtualAddress, RUNTIME_PAGE_ALLOCATION_GRANULARITY)) {
           Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
         } else if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
-         && IS_ALIGNED (Sections[SectIndex].VirtualAddress, DEFAULT_PAGE_ALLOCATION_GRANULARITY)) {
+         && IS_ALIGNED (Sections[SectionIndex].VirtualAddress, DEFAULT_PAGE_ALLOCATION_GRANULARITY)) {
           Context->SectionAlignment = DEFAULT_PAGE_ALLOCATION_GRANULARITY;
         } else {
           Context->SectionAlignment = 1;
@@ -170,15 +170,15 @@ InternalVerifySections (
     //
     // Verify the Image sections with data are in bounds of the file buffer.
     //
-    if (Sections[SectIndex].SizeOfRawData > 0) {
-      if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
+    if (Sections[SectionIndex].SizeOfRawData > 0) {
+      if (Context->TeStrippedOffset > Sections[SectionIndex].PointerToRawData) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
 
       Overflow = BaseOverflowAddU32 (
-                   Sections[SectIndex].PointerToRawData,
-                   Sections[SectIndex].SizeOfRawData,
+                   Sections[SectionIndex].PointerToRawData,
+                   Sections[SectionIndex].SizeOfRawData,
                    &SectRawEnd
                    );
       if (Overflow) {
@@ -195,8 +195,8 @@ InternalVerifySections (
     // Determine the end of the current Image section.
     //
     Overflow = BaseOverflowAddU32 (
-                 Sections[SectIndex].VirtualAddress,
-                 Sections[SectIndex].VirtualSize,
+                 Sections[SectionIndex].VirtualAddress,
+                 Sections[SectionIndex].VirtualSize,
                  &NextSectRva
                  );
     if (Overflow) {
