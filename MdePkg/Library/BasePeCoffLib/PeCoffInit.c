@@ -635,7 +635,8 @@ InternalInitializePe (
     Context->RelocDirRva  = RelocDir->VirtualAddress;
     Context->RelocDirSize = RelocDir->Size;
   } else {
-    ASSERT (Context->RelocDirRva == 0 && Context->RelocDirSize == 0);
+    ASSERT (Context->RelocDirRva == 0);
+    ASSERT (Context->RelocDirSize == 0);
   }
 
   if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
