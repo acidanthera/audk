@@ -283,7 +283,7 @@ HashPeImage (
     goto Done;
   }
 
-  Status = PeCoffHashImage (ImageContext, mHash[HashAlg].HashUpdate, HashCtx);
+  Status = PeCoffHashImageAuthenticode (ImageContext, mHash[HashAlg].HashUpdate, HashCtx);
 
   if (!Status) {
     DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image using %s.\n", mHash[HashAlg].Name));
