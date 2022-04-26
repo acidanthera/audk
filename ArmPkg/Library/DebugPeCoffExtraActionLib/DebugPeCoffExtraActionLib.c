@@ -25,11 +25,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   @param  Name  Path to convert if needed
 
 **/
-CHAR8 *
+CONST CHAR8 *
 DeCygwinPathIfNeeded (
-  IN  CHAR8  *Name,
-  IN  CHAR8  *Temp,
-  IN  UINTN  Size
+  IN  CONST CHAR8   *Name,
+  IN  CHAR8         *Temp,
+  IN  UINTN         Size
   )
 {
   CHAR8  *Ptr;
@@ -71,27 +71,32 @@ PeCoffLoaderRelocateImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
- #if defined (__CC_ARM) || defined (__GNUC__)
-  CHAR8  Temp[512];
- #endif
+  RETURN_STATUS Status;
+  CONST CHAR8   *PdbPath;
+  UINT32        PdbPathSize;
+#if !defined(MDEPKG_NDEBUG)
+  CHAR8         Temp[512];
+#endif
 
-  if (ImageContext->PdbPointer) {
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (!RETURN_ERROR (Status)) {
  #ifdef __CC_ARM
  #if (__ARMCC_VERSION < 500000)
     // Print out the command for the RVD debugger to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
     // Print out the command for the DS-5 to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))));
  #endif
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)ImageContext->ImageAddress, FUNCTION_ENTRY_POINT (ImageContext->EntryPoint)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext))));
  #endif
   } else {
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)ImageContext->ImageAddress, FUNCTION_ENTRY_POINT (ImageContext->EntryPoint)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext))));
   }
 }
 
@@ -111,21 +116,26 @@ PeCoffLoaderUnloadImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
- #if defined (__CC_ARM) || defined (__GNUC__)
-  CHAR8  Temp[512];
- #endif
+  RETURN_STATUS Status;
+  CONST CHAR8   *PdbPath;
+  UINT32        PdbPathSize;
+#if !defined(MDEPKG_NDEBUG)
+  CHAR8         Temp[512];
+#endif
 
-  if (ImageContext->PdbPointer) {
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (!RETURN_ERROR (Status)) {
  #ifdef __CC_ARM
     // Print out the command for the RVD debugger to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "unload symbols_only %a\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "unload symbols_only %a\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp))));
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading %a\n", ImageContext->PdbPointer));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading %a\n", PdbPath));
  #endif
   } else {
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading driver at 0x%11p\n", (VOID *)(UINTN)ImageContext->ImageAddress));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading driver at 0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext)));
   }
 }

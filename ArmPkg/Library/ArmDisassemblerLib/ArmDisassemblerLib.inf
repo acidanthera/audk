@@ -32,4 +32,4 @@
   BaseLib
   PrintLib
   DebugLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib

@@ -110,12 +110,20 @@ PeCoffLoaderRelocateImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  CHAR8  Buffer[256];
+  RETURN_STATUS Status;
+  CONST CHAR8   *PdbPath;
+  UINT32        PdbPathSize;
+  CHAR8         Buffer[256];
 
- #if (__ARMCC_VERSION < 500000)
-  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", ImageContext->PdbPointer, (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext)));
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  if (RETURN_ERROR (Status)) {
+    return;
+  }
+
+#if (__ARMCC_VERSION < 500000)
+  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)));
  #else
-  AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a 0x%08x\n", ImageContext->PdbPointer, (UINTN)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext)));
+  AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a 0x%08x\n", PdbPath, (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)));
  #endif
   DeCygwinPathIfNeeded (&Buffer[16]);
 
@@ -138,9 +146,17 @@ PeCoffLoaderUnloadImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  CHAR8  Buffer[256];
+  RETURN_STATUS Status;
+  CONST CHAR8   *PdbPath;
+  UINT32        PdbPathSize;
+  CHAR8         Buffer[256];
 
-  AsciiSPrint (Buffer, sizeof (Buffer), "unload symbols_only \"%a\"\n", ImageContext->PdbPointer);
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  if (RETURN_ERROR (Status)) {
+    return;
+  }
+
+  AsciiSPrint (Buffer, sizeof (Buffer), "unload symbols_only \"%a\"\n", PdbPath);
   DeCygwinPathIfNeeded (Buffer);
 
   WriteStringToFile (Buffer, AsciiStrSize (Buffer));
