@@ -27,7 +27,7 @@ EFI_STATUS
 MmAddToDriverList (
   IN EFI_FIRMWARE_VOLUME_HEADER  *FwVolHeader,
   IN VOID                        *Pe32Data,
-  IN UINTN                       Pe32DataSize,
+  IN UINT32                     Pe32DataSize,
   IN VOID                        *Depex,
   IN UINTN                       DepexSize,
   IN EFI_GUID                    *DriverName

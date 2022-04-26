@@ -282,7 +282,7 @@ MmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, DriverEntry->Pe32Data, (UINT32) DriverEntry->Pe32DataSize);
+  Status = PeCoffInitializeContext (&ImageContext, DriverEntry->Pe32Data, DriverEntry->Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -793,7 +793,7 @@ EFI_STATUS
 MmAddToDriverList (
   IN EFI_FIRMWARE_VOLUME_HEADER  *FwVolHeader,
   IN VOID                        *Pe32Data,
-  IN UINTN                       Pe32DataSize,
+  IN UINT32                     Pe32DataSize,
   IN VOID                        *Depex,
   IN UINTN                       DepexSize,
   IN EFI_GUID                    *DriverName

@@ -71,7 +71,7 @@ typedef struct {
   EFI_FIRMWARE_VOLUME_HEADER    *FwVolHeader;
   EFI_GUID                      FileName;
   VOID                          *Pe32Data;
-  UINTN                         Pe32DataSize;
+  UINT32                          Pe32DataSize;
 
   VOID                          *Depex;
   UINTN                         DepexSize;
