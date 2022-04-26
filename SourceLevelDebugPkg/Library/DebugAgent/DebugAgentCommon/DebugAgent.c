@@ -184,31 +184,6 @@ IsDebugAgentInitialzed (
 }
 
 /**
-  Find and report module image info to HOST.
-
-  @param[in] AlignSize      Image aligned size.
-
-**/
-VOID
-FindAndReportModuleImageInfo (
-  IN UINTN  AlignSize
-  )
-{
-  UINTN                         Pe32Data;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-
-  //
-  // Find Image Base
-  //
-  Pe32Data = PeCoffSearchImageBase ((UINTN)mErrorMsgVersionAlert);
-  if (Pe32Data != 0) {
-    ImageContext.ImageAddress = Pe32Data;
-    ImageContext.PdbPointer   = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-    PeCoffLoaderRelocateImageExtraAction (&ImageContext);
-  }
-}
-
-/**
   Trigger one software interrupt to debug agent to handle it.
 
   @param[in] Signature       Software interrupt signature.

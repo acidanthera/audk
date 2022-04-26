@@ -314,17 +314,6 @@ MultiProcessorDebugSupport (
   );
 
 /**
-  Find and report module image info to HOST.
-
-  @param[in] AlignSize      Image aligned size.
-
-**/
-VOID
-FindAndReportModuleImageInfo (
-  IN UINTN  AlignSize
-  );
-
-/**
   Read IDT entry to check if IDT entries are setup by Debug Agent.
 
   @retval  TRUE     IDT entries were setup by Debug Agent.
