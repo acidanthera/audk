@@ -739,31 +739,13 @@ SecPeCoffGetEntryPoint (
     return Status;
   }
 
-  if (ImageContext.ImageBase != (UINTN)Pe32Data) {
-    UINT64 OldBase;
-    OldBase = ImageContext.ImageBase;
-    //
-    // Relocate image to match the address where it resides
-    // FIXME: Why cannot the Image be in-place already?
-    // PeCoffLoadImageInplace checks for correct address
-    //
-    ImageContext.ImageBase = (UINTN)Pe32Data;
-    Status                    = PeCoffLoadImageInplace (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    ImageContext.ImageBase = OldBase;
-
-    Status = PeCoffRelocateImage (&ImageContext, (UINTN)Pe32Data, NULL, 0);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-  } else {
-    Status                  = PeCoffLoadImageInplace (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
+  // FIXME: Why cannot the Image be in-place already?
+  Status = PeCoffRelocateImageInplaceForExecution (
+             &ImageContext,
+             (UINTN) Pe32Data
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
   }
 
   *EntryPoint = (VOID *) ((UINTN)Pe32Data + PeCoffGetAddressOfEntryPoint (&ImageContext));

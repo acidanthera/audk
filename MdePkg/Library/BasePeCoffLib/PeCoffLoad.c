@@ -187,7 +187,7 @@ PeCoffLoadImage (
 }
 
 RETURN_STATUS
-PeCoffLoadImageInplace (
+PeCoffLoadImageInplaceNoBase (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -196,12 +196,6 @@ PeCoffLoadImageInplace (
   UINT16                         SectionIndex;
 
   ASSERT (Context != NULL);
-  //
-  // Verify the Image is located at its preferred load address.
-  //
-  if ((UINTN) Context->FileBuffer != Context->ImageBase) {
-    return RETURN_UNSUPPORTED;
-  }
 
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
@@ -230,6 +224,22 @@ PeCoffLoadImageInplace (
   }
 
   return RETURN_SUCCESS;
+}
+
+RETURN_STATUS
+PeCoffLoadImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  ASSERT (Context != NULL);
+  //
+  // Verify the Image is located at its preferred load address.
+  //
+  if (Context->ImageBase != (UINTN) Context->FileBuffer) {
+    return RETURN_UNSUPPORTED;
+  }
+
+  return PeCoffLoadImageInplaceNoBase (Context);
 }
 
 //

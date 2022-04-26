@@ -126,4 +126,10 @@ PeCoffLoaderLoadCodeViewInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+// FIXME:
+RETURN_STATUS
+PeCoffLoadImageInplaceNoBase (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 #endif // BASE_PE_COFF_LIB_INTERNALS_H_

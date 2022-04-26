@@ -162,14 +162,9 @@ RelocatePeCoffImage (
 
   ASSERT_EFI_ERROR (Status);
 
-  ZeroMem (&ImageContext, sizeof ImageContext);
+  // FIXME: file size
+  Status = PeCoffInitializeContext (&ImageContext, SectionData, MAX_UINT32);
+  ASSERT_RETURN_ERROR (Status);
 
-  ImageContext.Handle    = (EFI_HANDLE)SectionData;
-  ImageContext.ImageRead = ImageRead;
-  PeCoffLoaderGetImageInfo (&ImageContext);
-
-  if (ImageContext.ImageAddress != (UINTN)SectionData) {
-    ImageContext.ImageAddress = (UINTN)SectionData;
-    PeCoffLoaderRelocateImage (&ImageContext);
-  }
+  PeCoffRelocateImageInplaceForExecution (&ImageContext, (UINTN) SectionData);
 }

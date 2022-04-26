@@ -324,6 +324,13 @@ PeCoffLoadImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+// FIXME:
+RETURN_STATUS
+PeCoffRelocateImageInplaceForExecution (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT64                        BaseAddress
+  );
+
 /**
   Retrieves the size required to bookkeep Image runtime relocation information.
 

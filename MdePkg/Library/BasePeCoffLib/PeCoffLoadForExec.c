@@ -13,6 +13,8 @@
 #include <Library/PeCoffLib.h>
 #include <Library/CacheMaintenanceLib.h>
 
+#include "BasePeCoffLibInternals.h"
+
 // FIXME: Check Machine / Subsystem here?
 RETURN_STATUS
 PeCoffLoadImageForExecution (
@@ -38,11 +40,11 @@ PeCoffLoadImageForExecution (
   //
   BaseAddress = PeCoffLoaderGetImageAddress (Context);
   Status = PeCoffRelocateImage (
-    Context,
-    BaseAddress,
-    RuntimeContext,
-    RuntimeContextSize
-    );
+             Context,
+             BaseAddress,
+             RuntimeContext,
+             RuntimeContextSize
+             );
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -52,6 +54,41 @@ PeCoffLoadImageForExecution (
   // Flush the instruction cache so the image data is written before execution.
   //
   InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
+
+  return RETURN_SUCCESS;
+}
+
+RETURN_STATUS
+PeCoffRelocateImageInplaceForExecution (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT64                        BaseAddress
+  )
+{
+  RETURN_STATUS Status;
+  UINT64        ImageBase;
+  UINTN         SizeOfImage;
+
+  Status = PeCoffLoadImageInplaceNoBase (Context);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+
+  ImageBase = PeCoffGetImageBase (Context);
+
+  // FIXME: Generally push this check to the callers?
+  if (ImageBase != BaseAddress) {
+    Status = PeCoffRelocateImage (Context, BaseAddress, NULL, 0);
+    if (RETURN_ERROR (Status)) {
+      return Status;
+    }
+
+    SizeOfImage = PeCoffGetSizeOfImage (Context);
+    //
+    // Flush the instruction cache so the image data is written before
+    // execution.
+    //
+    InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
+  }
 
   return RETURN_SUCCESS;
 }
