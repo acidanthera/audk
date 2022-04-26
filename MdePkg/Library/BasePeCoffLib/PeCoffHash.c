@@ -166,6 +166,7 @@ PeCoffHashImageAuthenticode (
   )
 {
   BOOLEAN                      Result;
+  BOOLEAN                      Overflow;
   UINT32                       NumberOfRvaAndSizes;
   UINT32                       ChecksumOffset;
   UINT32                       SecurityDirOffset;
@@ -310,12 +311,12 @@ PeCoffHashImageAuthenticode (
   //    signature. Set this counter to the SizeOfHeaders field, as specified in
   //    Optional Header Windows-Specific Field.
   //
-  Result = !BaseOverflowAddU32 (
-              SumBytesHashed,
-              Context->SizeOfHeaders,
-              &SumBytesHashed
-              );
-  if (!Result) {
+  Overflow = BaseOverflowAddU32 (
+               SumBytesHashed,
+               Context->SizeOfHeaders,
+               &SumBytesHashed
+               );
+  if (Overflow) {
     DEBUG_RAISE ();
     return FALSE;
   }
