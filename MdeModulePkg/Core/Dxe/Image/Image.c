@@ -228,6 +228,9 @@ CoreInitializeImageServices (
   ASSERT_EFI_ERROR (Status);
   ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + PeCoffGetAddressOfEntryPoint (ImageContext));
 
+  // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
+  ImageContext->ImageBuffer = (VOID *) ImageContext->FileBuffer;
+
   Image->EntryPoint       = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage    = DxeCoreImageBaseAddress;
   Image->NumberOfPages    = (UINTN)(EFI_SIZE_TO_PAGES ((UINTN)(DxeCoreImageLength)));

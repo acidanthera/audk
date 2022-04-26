@@ -314,20 +314,9 @@ DxeMain (
 
   //
   // Report DXE Core image information to the PE/COFF Extra Action Library
+  // FIXME: This is done by DxeIpl, why is this needed here? Difference PEI/DXE?
   //
-  // FIXME:
-  /*ZeroMem (&ImageContext, sizeof (ImageContext));
-  ImageContext.ImageAddress  = (EFI_PHYSICAL_ADDRESS)(UINTN)gDxeCoreLoadedImage->ImageBase;
-  ImageContext.PdbPointer    = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageContext.ImageAddress);
-  PeCoffGetSizeOfHeaders (&ImageContext) = PeCoffGetSizeOfHeaders ((VOID *)(UINTN)ImageContext.ImageAddress);
-  Status                     = PeCoffLoaderGetEntryPoint ((VOID *)(UINTN)ImageContext.ImageAddress, &EntryPoint);
-  if (Status == EFI_SUCCESS) {
-    ImageContext.EntryPoint = (EFI_PHYSICAL_ADDRESS)(UINTN)EntryPoint;
-  }
-
-  ImageContext.Handle    = (VOID *)(UINTN)gDxeCoreLoadedImage->ImageBase;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);*/
+  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
   //
   // Install the DXE Services Table into the EFI System Tables's Configuration Table
