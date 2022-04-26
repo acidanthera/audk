@@ -10,8 +10,10 @@
 
 #include <Base.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/DebugLib.h>
 #include <Library/CacheMaintenanceLib.h>
+#include <Library/PcdLib.h>
+#include <Library/PeCoffLib.h>
 
 #include "BasePeCoffLibInternals.h"
 
@@ -70,24 +72,42 @@ PeCoffRelocateImageInplaceForExecution (
 
   Status = PeCoffLoadImageInplaceNoBase (Context);
   if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
     return Status;
   }
 
   ImageBase = PeCoffGetImageBase (Context);
 
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    BaseAddress -= Context->TeStrippedOffset;
+  } else {
+    ASSERT (Context->TeStrippedOffset == 0);
+  }
+
   // FIXME: Generally push this check to the callers?
   if (ImageBase != BaseAddress) {
     Status = PeCoffRelocateImage (Context, BaseAddress, NULL, 0);
     if (RETURN_ERROR (Status)) {
+      DEBUG_RAISE ();
       return Status;
     }
 
     SizeOfImage = PeCoffGetSizeOfImage (Context);
+
+    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+      ASSERT (Context->TeStrippedOffset < SizeOfImage);
+      SizeOfImage -= Context->TeStrippedOffset;
+    } else {
+      ASSERT (Context->TeStrippedOffset == 0);
+    }
     //
     // Flush the instruction cache so the image data is written before
     // execution.
     //
-    InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
+    InvalidateInstructionCacheRange (
+      (VOID *) Context->ImageBuffer,
+      SizeOfImage
+      );
   }
 
   return RETURN_SUCCESS;
