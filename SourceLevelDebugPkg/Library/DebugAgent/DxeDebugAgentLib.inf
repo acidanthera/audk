@@ -69,7 +69,7 @@
   LocalApicLib
   TimerLib
   PrintLib
-  PeCoffGetEntryPointLib
+  #PeCoffGetEntryPointLib
   PeCoffExtraActionLib
   MemoryAllocationLib
 

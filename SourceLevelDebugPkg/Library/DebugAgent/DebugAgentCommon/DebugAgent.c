@@ -183,6 +183,8 @@ IsDebugAgentInitialzed (
   }
 }
 
+// FIXME: PeCoffRelocExtra functio removed, done by *Core?
+
 /**
   Trigger one software interrupt to debug agent to handle it.
 

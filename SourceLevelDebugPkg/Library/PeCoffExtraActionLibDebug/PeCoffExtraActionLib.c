@@ -6,6 +6,8 @@
 
 **/
 
+#include "Library/PeCoffLib.h"
+#include "ProcessorBind.h"
 #include <PeCoffExtraActionLib.h>
 
 /**
@@ -60,11 +62,15 @@ PeCoffLoaderExtraActionCommon (
   IA32_IDT_GATE_DESCRIPTOR  OriginalIdtEntry;
   BOOLEAN                   IdtEntryHooked;
   UINT32                    RegEdx;
+  RETURN_STATUS              Status;
+  CONST CHAR8                *PdbPath;
+  UINT32                     PdbPathSize;
 
   ASSERT (ImageContext != NULL);
 
-  if (ImageContext->PdbPointer != NULL) {
-    DEBUG ((DEBUG_ERROR, "    PDB = %a\n", ImageContext->PdbPointer));
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  if (!RETURN_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "    PDB = %a\n", PdbPath));
   }
 
   //
@@ -123,7 +129,7 @@ PeCoffLoaderExtraActionCommon (
   //
   AsmWriteDr7 (BIT10);
   AsmWriteDr0 (Signature);
-  AsmWriteDr1 ((UINTN)ImageContext->PdbPointer);
+  AsmWriteDr1 ((UINTN)PdbPath);
   AsmWriteDr2 ((UINTN)ImageContext);
   AsmWriteDr3 (IO_PORT_BREAKPOINT_ADDRESS);
 
@@ -158,7 +164,7 @@ PeCoffLoaderExtraActionCommon (
     AsmWriteDr0 (Dr0);
   }
 
-  if (!IsDrxEnabled (1, NewDr7) && (AsmReadDr1 () == (UINTN)ImageContext->PdbPointer)) {
+  if (!IsDrxEnabled (1, NewDr7) && (AsmReadDr1 () == (UINTN)PdbPath)) {
     AsmWriteDr1 (Dr1);
   }
 
