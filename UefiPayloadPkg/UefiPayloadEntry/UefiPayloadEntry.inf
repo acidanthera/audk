@@ -24,7 +24,6 @@
 [Sources]
   UefiPayloadEntry.c
   LoadDxeCore.c
-  MemoryAllocation.c
   AcpiTable.c
 
 [Sources.Ia32]
@@ -55,6 +54,7 @@
   PeCoffLib
   PlatformSupportLib
   UefiCpuLib
+  MemoryAllocationLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid
