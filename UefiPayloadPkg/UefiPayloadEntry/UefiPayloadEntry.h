@@ -180,7 +180,8 @@ EFI_STATUS
 FileFindSection (
   IN EFI_FFS_FILE_HEADER  *FileHeader,
   IN EFI_SECTION_TYPE     SectionType,
-  OUT VOID                **SectionData
+  OUT VOID                      **SectionData,
+  OUT UINT32                    *SectionSize
   );
 
 /**
