@@ -833,59 +833,25 @@ CoreLoadPeImage (
 
   DEBUG_CODE_BEGIN ();
 
-  CONST CHAR8 *PdbPath;
-    UINT32      PdbSize;
-    UINTN       Index;
-  UINTN       StartIndex;
-  CHAR8       EfiFileName[256];
+  CHAR8 EfiFileName[256];
 
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD,
-           "Loading driver at 0x%11p EntryPoint=0x%11p \n",
-           (VOID *)(UINTN)LoadAddress,
-           FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext))));
+  DEBUG ((DEBUG_INFO | DEBUG_LOAD,
+         "Loading driver at 0x%11p EntryPoint=0x%11p \n",
+         (VOID *)(UINTN)LoadAddress,
+         FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext))));
 
-    Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbSize);
+  Status = PeCoffGetModuleNameFromPdb (
+             ImageContext,
+             EfiFileName,
+             sizeof (EfiFileName)
+             );
 
-    //
-    // FIXME: Can this be removed entirely?
-    // Print Module Name by Pdb file path.
-  // Windows and Unix style file path are all trimmed correctly.
+  //
+  // Print Module Name by Pdb file path.
   //
   if (!EFI_ERROR (Status)) {
-    StartIndex = 0;
-    for (Index = 0; PdbPath[Index] != 0; Index++) {
-      if ((PdbPath[Index] == '\\') || (PdbPath[Index] == '/')) {
-        StartIndex = Index + 1;
-      }
-    }
-
-    //
-    // Copy the PDB file name to our temporary string, and replace .pdb with .efi
-    // The PDB file name is limited in the range of 0~255.
-    // If the length is bigger than 255, trim the redudant characters to avoid overflow in array boundary.
-    //
-    for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-        EfiFileName[Index] = PdbPath[Index + StartIndex];
-      if (EfiFileName[Index] == 0) {
-        EfiFileName[Index] = '.';
-      }
-
-      if (EfiFileName[Index] == '.') {
-        EfiFileName[Index + 1] = 'e';
-        EfiFileName[Index + 2] = 'f';
-        EfiFileName[Index + 3] = 'i';
-        EfiFileName[Index + 4] = 0;
-        break;
-      }
-    }
-
-    if (Index == sizeof (EfiFileName) - 4) {
-      EfiFileName[Index] = 0;
-    }
-
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));   // &ImageContext->PdbPointer[StartIndex]));
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
   }
-
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "\n"));
 
   DEBUG_CODE_END ();

@@ -221,7 +221,7 @@ MmLoadImage (
     return Status;
   }
 
-  Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
+  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &DestinationSize);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -307,10 +307,6 @@ MmLoadImage (
   //
   DEBUG_CODE_BEGIN ();
 
-  CHAR8  *PdbPath;
-  UINT32 PdbSize;
-  UINTN  Index;
-  UINTN  StartIndex;
   CHAR8  EfiFileName[256];
 
   DEBUG ((
@@ -320,44 +316,16 @@ MmLoadImage (
     FUNCTION_ENTRY_POINT (DstBuffer + PeCoffGetAddressOfEntryPoint (&ImageContext))
     ));
 
-  Status = PeCoffGetPdbPath (&ImageContext, &PdbPath, &PdbSize);
+  Status = PeCoffGetModuleNameFromPdb (
+             &ImageContext,
+             EfiFileName,
+             sizeof (EfiFileName)
+             );
 
   //
   // Print Module Name by Pdb file path.
-  // Windows and Unix style file path are all trimmed correctly.
   //
   if (!EFI_ERROR (Status)) {
-    StartIndex = 0;
-    for (Index = 0; PdbPath[Index] != 0; Index++) {
-      if ((PdbPath[Index] == '\\') || (PdbPath[Index] == '/')) {
-        StartIndex = Index + 1;
-      }
-    }
-
-    //
-    // Copy the PDB file name to our temporary string, and replace .pdb with .efi
-    // The PDB file name is limited in the range of 0~255.
-    // If the length is bigger than 255, trim the redundant characters to avoid overflow in array boundary.
-    //
-    for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-      EfiFileName[Index] = PdbPath[Index + StartIndex];
-      if (EfiFileName[Index] == 0) {
-        EfiFileName[Index] = '.';
-      }
-
-      if (EfiFileName[Index] == '.') {
-        EfiFileName[Index + 1] = 'e';
-        EfiFileName[Index + 2] = 'f';
-        EfiFileName[Index + 3] = 'i';
-        EfiFileName[Index + 4] = 0;
-        break;
-      }
-    }
-
-    if (Index == sizeof (EfiFileName) - 4) {
-      EfiFileName[Index] = 0;
-    }
-
     DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
   }
 
