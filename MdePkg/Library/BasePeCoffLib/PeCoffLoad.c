@@ -1,12 +1,13 @@
 /** @file
   Implements APIs to load PE/COFF Images.
 
-  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
-  Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
   Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
+  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
+  Portions copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
@@ -224,7 +225,7 @@ PeCoffLoadImageInplace (
 }
 
 //
-// FIXME: Provide a Runtime version of this API as well.
+// FIXME: Provide a runtime version of this API as well.
 //
 VOID
 PeCoffDiscardSections (
@@ -241,13 +242,12 @@ PeCoffDiscardSections (
   //
   Context->RelocDirRva  = 0;
   Context->RelocDirSize = 0;
-
-  Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
-               (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
-               );
   //
   // Zero all Image sections that are flagged as discardable.
   //
+  Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
+               (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
+               );
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     if ((Sections[SectIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0) {
       ZeroMem (

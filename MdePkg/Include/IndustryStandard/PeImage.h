@@ -6,17 +6,18 @@
   Common Object File Format Specification, Revision 8.3 - February 6, 2013.
   This file also includes some definitions in PI Specification, Revision 1.0.
 
-  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
-  Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
   Copyright (c) 2020, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
+  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
+  Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef PE_COFF_IMAGE_H
-#define PE_COFF_IMAGE_H
+#ifndef PE_COFF_IMAGE_H_
+#define PE_COFF_IMAGE_H_
 //
 // PE32+ Subsystem type for EFI images
 //
@@ -712,4 +713,4 @@ typedef union {
   EFI_TE_IMAGE_HEADER             Te;
 } EFI_IMAGE_OPTIONAL_HEADER_UNION;
 
-#endif // PE_COFF_IMAGE_H
+#endif // PE_COFF_IMAGE_H_

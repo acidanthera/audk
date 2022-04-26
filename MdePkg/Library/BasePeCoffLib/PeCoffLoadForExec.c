@@ -4,6 +4,7 @@
   Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
@@ -65,7 +66,7 @@ PeCoffRelocateImageForRuntimeExecution (
 {
   RETURN_STATUS Status;
   //
-  // Relocate the Image to the new Runtime address.
+  // Relocate the Image to the new address.
   //
   Status = PeCoffRelocateImageForRuntime (
              Image,

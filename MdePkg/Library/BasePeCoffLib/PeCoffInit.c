@@ -1,12 +1,13 @@
 /** @file
   Implements APIs to verify PE/COFF Images for further processing.
 
-  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
-  Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
   Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
+  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
+  Portions copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
@@ -82,6 +83,7 @@ InternalVerifySections (
   // adjacent to the Image Headers.
   //
   if (Sections[0].VirtualAddress == 0) {
+    // FIXME: Add PCD to disallow.
     //
     // TE Images cannot support loading the Image Headers as part of the first
     // Image section due to its StrippedSize sematics.
@@ -327,6 +329,7 @@ InternalInitializeTe (
   // Verify that the Image Headers are in bounds of the file buffer.
   //
   if (Context->SizeOfHeaders - Context->TeStrippedOffset > FileSize) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -362,6 +365,7 @@ InternalInitializeTe (
   // Verify the Image entry point is in bounds of the Image buffer.
   //
   if (TeHdr->AddressOfEntryPoint >= SizeOfImage) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -766,7 +770,7 @@ PeCoffInitializeContext (
         PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
       }
 
-      return Status;
+      return RETURN_SUCCESS;
     }
   }
   //
@@ -810,5 +814,5 @@ PeCoffInitializeContext (
     PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
   }
 
-  return Status;
+  return RETURN_SUCCESS;
 }

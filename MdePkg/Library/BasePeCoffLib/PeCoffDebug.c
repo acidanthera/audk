@@ -1,12 +1,13 @@
 /** @file
-  Implements APIs to load PE/COFF Debug information.
+  Implements APIs to load PE/COFF debug information.
 
-  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
-  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
-  Portions Copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
   Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
+  Portions copyright (c) 2006 - 2019, Intel Corporation. All rights reserved.<BR>
+  Portions copyright (c) 2008 - 2010, Apple Inc. All rights reserved.<BR>
+  Portions copyright (c) 2020, Hewlett Packard Enterprise Development LP. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
@@ -56,7 +57,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   ASSERT (Context->SizeOfImageDebugAdd == 0);
   ASSERT (Context->CodeViewRva == 0);
   //
-  // Retrieve the Debug Directory Directory of the Image.
+  // Retrieve the Debug Directory of the Image.
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
@@ -218,7 +219,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
       return;
     }
     //
-    // If the Image does not load the Debug information into memory on its own,
+    // If the Image does not load the debug information into memory on its own,
     // request reserved space for it to force-load it.
     //
     Overflow = BaseOverflowSubU32 (
