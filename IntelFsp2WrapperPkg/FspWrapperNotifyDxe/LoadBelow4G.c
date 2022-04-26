@@ -37,6 +37,7 @@ RelocateImageUnder4GIfNeeded (
   UINT8                         *Buffer;
   UINTN                         BufferSize;
   EFI_HANDLE                    NewImageHandle;
+  UINT32                                        DestinationSize;
   UINTN                         Pages;
   EFI_PHYSICAL_ADDRESS          FfsBuffer;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
@@ -83,18 +84,14 @@ RelocateImageUnder4GIfNeeded (
              &BufferSize
              );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.Handle    = Buffer;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
-  if (PeCoffGetSectionAlignment (&ImageContext) > EFI_PAGE_SIZE) {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + PeCoffGetSectionAlignment (&ImageContext)));
-  } else {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize);
-  }
+  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &DestinationSize);
+  ASSERT_EFI_ERROR (Status);
+  Pages = EFI_SIZE_TO_PAGES (DestinationSize);
 
   FfsBuffer = 0xFFFFFFFF;
   Status    = gBS->AllocatePages (
@@ -104,22 +101,16 @@ RelocateImageUnder4GIfNeeded (
                      &FfsBuffer
                      );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.ImageAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
-  // Align buffer on section boundary
+  // Load and relocate the image to our new buffer
   //
-  ImageContext.ImageAddress += PeCoffGetSectionAlignment (&ImageContext) - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)PeCoffGetSectionAlignment (&ImageContext) - 1);
-  //
-  // Load the image to our new buffer
-  //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
-  ASSERT_EFI_ERROR (Status);
-
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
+  Status = PeCoffLoadImageForExecution (
+             &ImageContext,
+             (VOID *) (UINTN) FfsBuffer,
+             DestinationSize,
+             NULL,
+             0
+             );
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -127,15 +118,10 @@ RelocateImageUnder4GIfNeeded (
   //
   gBS->FreePool (Buffer);
 
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
-
-  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", (UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.EntryPoint));
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.EntryPoint))(NewImageHandle, gST);
+  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", PeCoffLoaderGetImageAddress (&ImageContext), PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext)));
+  Status = ((EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext)))(NewImageHandle, gST);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", ImageContext.ImageAddress, Status));
+    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", PeCoffLoaderGetImageAddress (&ImageContext), Status));
     gBS->FreePages (FfsBuffer, Pages);
   }
 
