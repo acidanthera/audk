@@ -48,7 +48,7 @@
   SerialPortLib
   PrintLib
   LocalApicLib
-  #PeCoffGetEntryPointLib
+  PeCoffLib
   HobLib
   MemoryAllocationLib
   SynchronizationLib
