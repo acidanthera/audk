@@ -162,7 +162,8 @@ SecLoadFromCore (
   IN  UINTN  LargestRegion,
   IN  UINTN  LargestRegionSize,
   IN  UINTN  BootFirmwareVolumeBase,
-  IN  VOID   *PeiCoreFile
+  IN  VOID    *PeiCoreFile,
+  IN  UINT32  PeiCorePe32Size
   );
 
 EFI_STATUS
@@ -191,6 +192,14 @@ SecFfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
   IN OUT VOID             **SectionData
+  );
+
+EFI_STATUS
+SecFfsFindSectionData2 (
+  IN EFI_SECTION_TYPE      SectionType,
+  IN EFI_FFS_FILE_HEADER   *FfsFileHeader,
+  IN OUT VOID              **SectionData,
+  OUT UINT32               *SectionDataSize
   );
 
 EFI_STATUS
@@ -275,6 +284,7 @@ RETURN_STATUS
 EFIAPI
 SecPeCoffGetEntryPoint (
   IN     VOID  *Pe32Data,
+  IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint
   );
 

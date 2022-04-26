@@ -62,6 +62,7 @@ RETURN_STATUS
 EFIAPI
 SecPeCoffGetEntryPoint (
   IN     VOID  *Pe32Data,
+  IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint
   );
 
@@ -71,7 +72,8 @@ SecLoadSecCore (
   IN  UINTN  TemporaryRamSize,
   IN  VOID   *BootFirmwareVolumeBase,
   IN  UINTN  BootFirmwareVolumeSize,
-  IN  VOID   *SecCorePe32File
+  IN  VOID   *SecCorePe32File,
+  IN  UINT32  SecCorePe32Size
   )
 
 /*++

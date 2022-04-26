@@ -87,8 +87,9 @@ BOOLEAN
 typedef
 EFI_STATUS
 (EFIAPI *EMU_PE_COFF_GET_ENTRY_POINT)(
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+  IN     VOID   *Pe32Data,
+  IN     UINT32 Pe32Size,
+  IN OUT VOID   **EntryPoint
   );
 
 typedef

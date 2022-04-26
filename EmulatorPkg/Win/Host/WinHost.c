@@ -391,11 +391,13 @@ Returns:
   BOOLEAN              Done;
   EFI_PEI_FILE_HANDLE  FileHandle;
   VOID                 *SecFile;
+  UINT32                SecFileSize;
   CHAR16               *MemorySizeStr;
   CHAR16               *FirmwareVolumesStr;
   UINTN                ProcessAffinityMask;
   UINTN                SystemAffinityMask;
   INT32                LowBit;
+  UINT32                AuthenticationStatus;
 
   //
   // Enable the privilege so that RTC driver can successfully run SetTime()
@@ -565,7 +567,14 @@ Returns:
                      &FileHandle
                      );
       if (!EFI_ERROR (Status)) {
-        Status = PeiServicesFfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SecFile);
+        Status = PeiServicesFfsFindSectionData4 (
+                   EFI_SECTION_PE32,
+                   0,
+                   FileHandle,
+                   &SecFile,
+                   &SecFileSize,
+                   &AuthenticationStatus
+                   );
         if (!EFI_ERROR (Status)) {
           SecPrint (" contains SEC Core");
         }
@@ -604,7 +613,7 @@ Returns:
   //
   // Hand off to SEC Core
   //
-  SecLoadSecCore ((UINTN)TemporaryRam, TemporaryRamSize, gFdInfo[0].Address, gFdInfo[0].Size, SecFile);
+  SecLoadSecCore ((UINTN)TemporaryRam, TemporaryRamSize, gFdInfo[0].Address, gFdInfo[0].Size, SecFile, SecFileSize);
 
   //
   // If we get here, then the SEC Core returned. This is an error as SEC should
@@ -620,7 +629,8 @@ SecLoadSecCore (
   IN  UINTN  TemporaryRamSize,
   IN  VOID   *BootFirmwareVolumeBase,
   IN  UINTN  BootFirmwareVolumeSize,
-  IN  VOID   *SecCorePe32File
+  IN  VOID   *SecCorePe32File,
+  IN  UINT32  SecCorePe32Size
   )
 
 /*++
@@ -686,6 +696,7 @@ Returns:
   //
   Status = SecPeCoffGetEntryPoint (
              SecCorePe32File,
+            SecCorePe32Size,
              &SecCoreEntryPoint
              );
   if (EFI_ERROR (Status)) {
@@ -710,8 +721,9 @@ Returns:
 RETURN_STATUS
 EFIAPI
 SecPeCoffGetEntryPoint (
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+  IN     VOID   *Pe32Data,
+  IN     UINT32 Pe32Size,
+  IN OUT VOID   **EntryPoint
   )
 {
   EFI_STATUS                    Status;
@@ -719,7 +731,7 @@ SecPeCoffGetEntryPoint (
   VOID                                  *Dest;
   UINT32                                DestSize;
 
-  Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
+  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }

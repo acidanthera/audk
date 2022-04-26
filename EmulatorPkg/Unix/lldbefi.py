@@ -361,7 +361,7 @@ def LoadEmulatorEfiSymbols(frame, bp_loc , internal_dict):
     #
     # VOID
     # SecGdbScriptBreak (
-    #   char                *FileName,
+    #   const char          *FileName,
     #   int                 FileNameLength,
     #   long unsigned int   LoadAddress,
     #   int                 AddSymbolFlag

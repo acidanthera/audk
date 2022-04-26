@@ -98,10 +98,12 @@ main (
   BOOLEAN               Done;
   EFI_PEI_FILE_HANDLE   FileHandle;
   VOID                  *SecFile;
+  UINT32                SecFileSize;
   CHAR16                *MemorySizeStr;
   CHAR16                *FirmwareVolumesStr;
   UINTN                 *StackPointer;
   FILE                  *GdbTempFile;
+  UINT32                AuthenticationStatus;
 
   //
   // Xcode does not support sourcing gdb scripts directly, so the Xcode XML
@@ -272,7 +274,14 @@ main (
                      &FileHandle
                      );
       if (!EFI_ERROR (Status)) {
-        Status = PeiServicesFfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SecFile);
+        Status = PeiServicesFfsFindSectionData4 (
+                   EFI_SECTION_PE32,
+                   0,
+                   FileHandle,
+                   &SecFile,
+                   &SecFileSize,
+                   &AuthenticationStatus
+                   );
         if (!EFI_ERROR (Status)) {
           PeiIndex = Index;
           printf (" contains SEC Core");
@@ -318,7 +327,7 @@ main (
   //
   // Hand off to SEC
   //
-  SecLoadFromCore ((UINTN)InitialStackMemory, (UINTN)InitialStackMemorySize, (UINTN)gFdInfo[0].Address, SecFile);
+  SecLoadFromCore ((UINTN)InitialStackMemory, (UINTN)InitialStackMemorySize, (UINTN)gFdInfo[0].Address, SecFile, SecFileSize);
 
   //
   // If we get here, then the SEC Core returned. This is an error as SEC should
@@ -534,7 +543,8 @@ SecLoadFromCore (
   IN  UINTN  LargestRegion,
   IN  UINTN  LargestRegionSize,
   IN  UINTN  BootFirmwareVolumeBase,
-  IN  VOID   *PeiCorePe32File
+  IN  VOID    *PeiCorePe32File,
+  IN  UINT32  PeiCorePe32Size
   )
 {
   EFI_STATUS            Status;
@@ -585,7 +595,7 @@ SecLoadFromCore (
   //
   // Find the SEC Core Entry Point
   //
-  Status = SecPeCoffGetEntryPoint (PeiCorePe32File, (VOID **)&PeiCoreEntryPoint);
+  Status = SecPeCoffGetEntryPoint (PeiCorePe32File, PeiCorePe32Size, (VOID **)&PeiCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -727,14 +737,15 @@ SecPeCoffRelocateImageExtraAction2 (
 RETURN_STATUS
 EFIAPI
 SecPeCoffGetEntryPoint (
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+  IN     VOID   *Pe32Data,
+  IN     UINT32 Pe32Size,
+  IN OUT VOID   **EntryPoint
   )
 {
   EFI_STATUS                    Status;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
 
-  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
+  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -1111,7 +1122,7 @@ __attribute__ ((noinline))
 #endif
 VOID
 SecGdbScriptBreak (
-  char               *FileName,
+  const char          *FileName,
   int                FileNameLength,
   long unsigned int  LoadAddress,
   int                AddSymbolFlag

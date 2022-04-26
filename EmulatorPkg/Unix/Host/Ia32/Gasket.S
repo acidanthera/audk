@@ -317,8 +317,10 @@ ASM_GLOBAL ASM_PFX(GasketSecPeCoffGetEntryPoint)
 ASM_PFX(GasketSecPeCoffGetEntryPoint):
   pushl %ebp
   movl  %esp, %ebp
-  subl  $24, %esp      // sub extra 16 from the stack for alignment
+  subl  $40, %esp      // sub extra 16 from the stack for alignment
   and   $-16, %esp    // stack needs to end in 0xFFFFFFF0 before call
+  movl  16(%ebp), %eax
+  movl  %eax, 8(%esp)
   movl  12(%ebp), %eax
   movl  %eax, 4(%esp)
   movl  8(%ebp), %eax

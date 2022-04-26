@@ -69,6 +69,7 @@ RETURN_STATUS
 EFIAPI
 GasketSecPeCoffGetEntryPoint (
   IN     VOID  *Pe32Data,
+  IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint
   );
 

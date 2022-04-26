@@ -368,6 +368,7 @@ ASM_PFX(GasketSecPeCoffGetEntryPoint):
 
   movq    %rcx, %rdi    // Swizzle args
   movq    %rdx, %rsi
+  movq    %r8,  %rdx
 
   call    ASM_PFX(SecPeCoffGetEntryPoint)
 
