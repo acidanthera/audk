@@ -354,7 +354,7 @@ LoadAndRelocatePeCoffImage (
                0
                );
     if (EFI_ERROR (Status)) {
-      // TODO: Fix?
+      // FIXME: Fix?
       //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
         //DEBUG ((DEBUG_ERROR, "PEIM Image Address 0x%11p doesn't meet with section alignment 0x%x.\n", (VOID *)(UINTN)ImageContext.ImageAddress, PeCoffGetSectionAlignment (&ImageContext)));
       //}
