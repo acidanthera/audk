@@ -741,4 +741,11 @@ PeCoffLoaderGetImageRecord (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+// FIXME: Docs
+RETURN_STATUS
+PeCoffDebugLocateImage (
+  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN  UINTN                         Address
+  );
+
 #endif // PE_COFF_LIB_H_
