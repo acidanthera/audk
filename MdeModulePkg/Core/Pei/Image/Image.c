@@ -394,6 +394,11 @@ LoadAndRelocatePeCoffImageInPlace (
 
   ASSERT (Pe32Data != ImageAddress);
 
+  //
+  // FIXME: Copy image 1:1 and relocate in-place (loading may consume more
+  //        memory and change offsets)
+  //
+
   // FIXME: File size
   Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
   if (EFI_ERROR (Status)) {
