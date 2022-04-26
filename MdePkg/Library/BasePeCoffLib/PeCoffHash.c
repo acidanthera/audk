@@ -197,6 +197,10 @@ PeCoffHashImageAuthenticode (
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
+      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
+        ASSERT (FALSE);
+        return FALSE;
+      }
       //
       // Authenticode does not define a hashing algorithm for TE Images.
       //

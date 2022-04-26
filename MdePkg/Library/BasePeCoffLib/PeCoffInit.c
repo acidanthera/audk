@@ -89,9 +89,13 @@ InternalVerifySections (
     // TE Images cannot support loading the Image Headers as part of the first
     // Image section due to its StrippedSize sematics.
     //
-    if (Context->ImageType == PeCoffLoaderTypeTe) {
-      DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+      if (Context->ImageType == PeCoffLoaderTypeTe) {
+        DEBUG_RAISE ();
+        return RETURN_UNSUPPORTED;
+      }
+    } else {
+      ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
     }
 
     NextSectRva = 0;
