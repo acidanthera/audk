@@ -24,5 +24,8 @@ x86_64-unknown-windows-gnu
 -IMdeModulePkg/Core/Dxe
 -IMdeModulePkg/Core/Pei
 -ISecurityPkg/Include
+-IArmPkg/Include
+-IArmPlatformPkg/Include
+-IStandaloneMmPkg/Include
 -ICryptoPkg/Include
 -includeUefi.h

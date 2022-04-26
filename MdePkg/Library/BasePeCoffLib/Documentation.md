@@ -19,7 +19,7 @@ Additionally, based on PCD policy values, the following constraints may be added
 
 ### 1.2. Rationales
 
-|| Source | Rationale | Known violations |
+|| Origin | Rationale | Known violations |
 |---|---|---|---|
 |1 | PE | Allows for efficient verification of constraint 2. | None |
 |2 | PE | Mitigates accidental Image corruption and ensures the same deterministic Image memory space contents invariant of Image section load order. | None |
