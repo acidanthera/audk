@@ -95,7 +95,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED MACHINE_TYPE_INFO  mMachineTypeInfo[] = {
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"X64";
 #elif defined (MDE_CPU_ARM)
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"ARM";
-#elif defined (MDE_CPU_ARM)
+#elif defined (MDE_CPU_AARCH64)
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"AARCH64";
 #else
   #error Unkown CPU architecture
