@@ -23,7 +23,8 @@ EFIAPI
 FindImageBase (
   IN  EFI_FIRMWARE_VOLUME_HEADER  *FirmwareVolumePtr,
   IN  EFI_FV_FILETYPE             FileType,
-  OUT EFI_PHYSICAL_ADDRESS        *CoreImageBase
+  OUT EFI_PHYSICAL_ADDRESS             *CoreImageBase,
+  OUT UINT32                           *CoreImageSize
   )
 {
   EFI_PHYSICAL_ADDRESS       CurrentAddress;
@@ -110,8 +111,10 @@ FindImageBase (
         if (File->Type == FileType) {
           if (IS_SECTION2 (Section)) {
             *CoreImageBase = (PHYSICAL_ADDRESS)(UINTN)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER2));
+            *CoreImageSize = Size - sizeof (EFI_COMMON_SECTION_HEADER2);
           } else {
             *CoreImageBase = (PHYSICAL_ADDRESS)(UINTN)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER));
+            *CoreImageSize = Size - sizeof (EFI_COMMON_SECTION_HEADER);
           }
         }
 
@@ -149,17 +152,28 @@ FindAndReportEntryPoints (
 {
   EFI_STATUS                    Status;
   EFI_PHYSICAL_ADDRESS          SecCoreImageBase;
+  UINT32                           SecCoreImageSize;
   EFI_PHYSICAL_ADDRESS          PeiCoreImageBase;
+  UINT32                           PeiCoreImageSize;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
 
   //
   // Find SEC Core image base
   //
-  Status = FindImageBase (SecCoreFirmwareVolumePtr, EFI_FV_FILETYPE_SECURITY_CORE, &SecCoreImageBase);
+  Status = FindImageBase (
+             SecCoreFirmwareVolumePtr,
+             EFI_FV_FILETYPE_SECURITY_CORE,
+             &SecCoreImageBase,
+             &SecCoreImageSize
+             );
   ASSERT_EFI_ERROR (Status);
 
-  // FIXME: DEBUG-only, file size
-  Status = PeCoffInitializeContext (&ImageContext, (VOID*)(UINTN)SecCoreImageBase, 0xFFFFFFFF);
+  // FIXME: DEBUG-only
+  Status = PeCoffInitializeContext (
+             &ImageContext,
+             (VOID*) (UINTN) SecCoreImageBase,
+             SecCoreImageSize
+             );
   ASSERT_EFI_ERROR (Status);
 
   Status = PeCoffLoadImageInplace (&ImageContext);
@@ -173,10 +187,19 @@ FindAndReportEntryPoints (
   //
   // Find PEI Core image base
   //
-  Status = FindImageBase (PeiCoreFirmwareVolumePtr, EFI_FV_FILETYPE_PEI_CORE, &PeiCoreImageBase);
+  Status = FindImageBase (
+             PeiCoreFirmwareVolumePtr,
+             EFI_FV_FILETYPE_PEI_CORE,
+             &PeiCoreImageBase,
+             &PeiCoreImageSize
+             );
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeCoffInitializeContext (&ImageContext, (VOID*)(UINTN)PeiCoreImageBase, 0xFFFFFFFF);
+  Status = PeCoffInitializeContext (
+             &ImageContext,
+             (VOID*)(UINTN)PeiCoreImageBase,
+             PeiCoreImageSize
+             );
   ASSERT_EFI_ERROR (Status);
 
   Status = PeCoffLoadImageInplace (&ImageContext);
