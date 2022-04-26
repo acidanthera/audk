@@ -16,6 +16,7 @@
 #include <IndustryStandard/PeImage.h>
 
 #include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
 #include <Library/PeCoffLib.h>
 
 #include "BaseOverflow.h"
@@ -50,6 +51,10 @@ PeCoffGetHiiDataRva (
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
+      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
+        ASSERT (FALSE);
+        return RETURN_UNSUPPORTED;
+      }
       //
       // TE Images do not contain a Resource Directory Table.
       //
@@ -76,6 +81,10 @@ PeCoffGetHiiDataRva (
 
       ResDirTable = &Pe32PlusHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
       break;
+
+    default:
+      ASSERT (FALSE);
+      return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Resource Directory Table contains at least one entry.

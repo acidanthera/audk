@@ -60,6 +60,7 @@ InternalVerifySections (
   BOOLEAN                        Overflow;
   UINT32                         NextSectRva;
   UINT32                         SectRawEnd;
+  UINT32                         EffectiveSectRawEnd;
   UINT16                         SectionIndex;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
 
@@ -171,9 +172,13 @@ InternalVerifySections (
     // Verify the Image sections with data are in bounds of the file buffer.
     //
     if (Sections[SectionIndex].SizeOfRawData > 0) {
-      if (Context->TeStrippedOffset > Sections[SectionIndex].PointerToRawData) {
-        DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+      if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+        if (Context->TeStrippedOffset > Sections[SectionIndex].PointerToRawData) {
+          DEBUG_RAISE ();
+          return RETURN_UNSUPPORTED;
+        }
+      } else {
+        ASSERT (Context->TeStrippedOffset == 0);
       }
 
       Overflow = BaseOverflowAddU32 (
@@ -186,7 +191,14 @@ InternalVerifySections (
         return RETURN_UNSUPPORTED;
       }
 
-      if (SectRawEnd - Context->TeStrippedOffset > FileSize) {
+      if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+        EffectiveSectRawEnd = SectRawEnd - Context->TeStrippedOffset;
+      } else {
+        ASSERT (Context->TeStrippedOffset == 0);
+        EffectiveSectRawEnd = SectRawEnd;
+      }
+
+      if (EffectiveSectRawEnd > FileSize) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
@@ -361,6 +373,11 @@ InternalInitializeTe (
   ASSERT (Context != NULL);
   ASSERT (Context->ExeHdrOffset == 0);
   ASSERT (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize);
+
+  if (PcdGetBool (PcdImageLoaderProhibitTe)) {
+    ASSERT (FALSE);
+    return RETURN_UNSUPPORTED;
+  }
 
   TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
             (CONST CHAR8 *) Context->FileBuffer
@@ -816,7 +833,7 @@ PeCoffInitializeContext (
     }
 
     Context->ExeHdrOffset = DosHdr->e_lfanew;
-  } else {
+  } else if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
     //
     // Assume the Image starts with the Executable Header, determine whether it
     // is a TE Image.

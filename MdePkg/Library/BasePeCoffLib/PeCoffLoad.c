@@ -51,6 +51,7 @@ InternalLoadSections (
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT16                         SectionIndex;
+  UINT32                         EffectivePointerToRawData;
   UINT32                         DataSize;
   UINT32                         PreviousTopRva;
 
@@ -82,9 +83,16 @@ InternalLoadSections (
     //
     // Load the current Image section into the memory space.
     //
+    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+      EffectivePointerToRawData = Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset;
+    } else {
+      ASSERT (Context->TeStrippedOffset == 0);
+      EffectivePointerToRawData = Sections[SectionIndex].PointerToRawData;
+    }
+
     CopyMem (
       (CHAR8 *) Destination + Sections[SectionIndex].VirtualAddress,
-      (CONST CHAR8 *) Context->FileBuffer + (Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset),
+      (CONST CHAR8 *) Context->FileBuffer + EffectivePointerToRawData,
       DataSize
       );
 

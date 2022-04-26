@@ -61,6 +61,11 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
+      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
+        ASSERT (FALSE);
+        return;
+      }
+
       TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
                 (CONST CHAR8 *) Context->FileBuffer
                 );
@@ -157,7 +162,14 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // Verify the Debug Directory raw file offset is sufficiently aligned.
   //
-  DebugDirFileOffset = (Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset) + DebugDirSectionOffset;
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    DebugDirFileOffset = Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset;
+  } else {
+    ASSERT (Context->TeStrippedOffset == 0);
+    DebugDirFileOffset = Sections[SectionIndex].PointerToRawData;
+  }
+
+  DebugDirFileOffset += DebugDirSectionOffset;
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
@@ -222,14 +234,19 @@ PeCoffLoaderRetrieveCodeViewInfo (
     // If the Image does not load the debug information into memory on its own,
     // request reserved space for it to force-load it.
     //
-    Overflow = BaseOverflowSubU32 (
-                 CodeViewEntry->FileOffset,
-                 Context->TeStrippedOffset,
-                 &DebugEntryTopOffset
-                 );
-    if (Overflow) {
-      DEBUG_RAISE ();
-      return;
+    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+      Overflow = BaseOverflowSubU32 (
+                   CodeViewEntry->FileOffset,
+                   Context->TeStrippedOffset,
+                   &DebugEntryTopOffset
+                   );
+      if (Overflow) {
+        DEBUG_RAISE ();
+        return;
+      }
+    } else {
+      ASSERT (Context->TeStrippedOffset == 0);
+      DebugEntryTopOffset = CodeViewEntry->FileOffset;
     }
 
     Overflow = BaseOverflowAddU32 (
@@ -302,6 +319,7 @@ PeCoffLoaderLoadCodeView (
   )
 {
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
+  UINT32                          CodeViewOffset;
 
   ASSERT (Context != NULL);
   //
@@ -327,9 +345,17 @@ PeCoffLoaderLoadCodeView (
 
     ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
 
+    
+    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+      CodeViewOffset = CodeViewEntry->FileOffset - Context->TeStrippedOffset;
+    } else {
+      ASSERT (Context->TeStrippedOffset == 0);
+      CodeViewOffset = CodeViewEntry->FileOffset;
+    }
+
     CopyMem (
       (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA,
-      (CONST CHAR8 *) Context->FileBuffer + (CodeViewEntry->FileOffset - Context->TeStrippedOffset),
+      (CONST CHAR8 *) Context->FileBuffer + CodeViewOffset,
       CodeViewEntry->SizeOfData
       );
   }

@@ -46,6 +46,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderWXorX
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -DPRODUCTION
