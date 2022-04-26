@@ -1589,7 +1589,7 @@ ON_EXIT:
   Calculate hash of Pe/Coff image based on the authenticode image hashing in
   PE/COFF Specification 8.0 Appendix A
 
-  Notes: PE/COFF image has been checked by BasePeCoffLib PeCoffLoaderGetImageInfo() in
+  Notes: PE/COFF image has been checked by BasePeCoffLib PeCoffInitializeContext() in
   the function LoadPeImage ().
 
   @param[in]    HashAlg   Hash algorithm type.
