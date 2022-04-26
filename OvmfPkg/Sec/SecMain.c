@@ -497,7 +497,7 @@ FindPeiCoreImageBaseInFv (
 
   *PeiCoreImageBase = (EFI_PHYSICAL_ADDRESS)(UINTN)(Section + 1);
   // FIXME: Size check, common API?
-  *PeiCoreImageSize = SECTION_SIZE (Section);
+  *PeiCoreImageSize = SECTION_SIZE (Section) - sizeof (*Section);
   return EFI_SUCCESS;
 }
 
