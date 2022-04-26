@@ -406,8 +406,10 @@ LoadAndRelocatePeCoffImageInPlace (
   //
   // Load the image in place
   //
-  // FIXME: Destination size
-  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext, (UINTN) ImageAddress);
+  Status = PeCoffRelocateImageInplaceForExecution (
+             &ImageContext,
+             (UINTN) ImageAddress
+             );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
