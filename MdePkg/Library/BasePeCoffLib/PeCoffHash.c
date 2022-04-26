@@ -100,6 +100,7 @@ InternalHashSections (
     // Verify the Section does not overlap with the previous one if the policy
     // demands it. Overlapping Sections could dramatically increase the hashing
     // time.
+    // FIXME: Move to init, along with a trailing data policy.
     //
     if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
       if (SectionTop > SortedSections[SectIndex]->PointerToRawData) {

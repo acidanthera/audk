@@ -129,7 +129,9 @@ InternalVerifySections (
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
     // Verify the Image Section are disjoint (relaxed) or adjacent (strict)
-    // depending on whether unaligned Sections may be loaded or not.
+    // depending on whether unaligned Sections may be loaded or not. Unaligned
+    // Sections have been observed with iPXE Option ROMs and old Apple OS X
+    // bootloaders.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       if (Sections[SectIndex].VirtualAddress != NextSectRva) {
