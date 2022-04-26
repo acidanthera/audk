@@ -66,44 +66,30 @@ LoadPeCoffImage (
   RETURN_STATUS                 Status;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   VOID                          *Buffer;
+  UINT32                         BufferSize;
 
-  ZeroMem (&ImageContext, sizeof (ImageContext));
+  // FIXME: File size
+  Status = PeCoffInitializeContext (&ImageContext, PeCoffImage, MAX_UINT32);
+  ASSERT_EFI_ERROR (Status);
 
-  ImageContext.Handle    = PeCoffImage;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &BufferSize);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Allocate Memory for the image
   //
-  Buffer = AllocateCodePages (EFI_SIZE_TO_PAGES ((UINT32)ImageContext.ImageSize));
+  Buffer = AllocateCodePages (EFI_SIZE_TO_PAGES (BufferSize));
   ASSERT (Buffer != 0);
 
-  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Buffer;
-
   //
-  // Load the image to our new buffer
+  // Load and relocate the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
+  Status = PeCoffLoadImageForExecution (&ImageContext, Buffer, BufferSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
-  ASSERT_EFI_ERROR (Status);
-
-  *ImageAddress = ImageContext.ImageAddress;
-  *ImageSize    = ImageContext.ImageSize;
-  *EntryPoint   = ImageContext.EntryPoint;
-
-  //
-  // Flush not needed for all architectures. We could have a processor specific
-  // function in this library that does the no-op if needed.
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)*ImageAddress, (UINTN)*ImageSize);
+  *ImageAddress = (UINTN) Buffer;
+  *ImageSize    = PeCoffGetSizeOfImage (&ImageContext);
+  *EntryPoint   = (UINTN) Buffer + PeCoffGetAddressOfEntryPoint (&ImageContext);
 
   return Status;
 }
