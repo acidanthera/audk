@@ -67,20 +67,24 @@ PeCoffGetSizeOfImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
+  UINT32 SizeOfImage;
+
   ASSERT (Context != NULL);
+
+  SizeOfImage = Context->SizeOfImage;
   //
   // Transparently reserve the force-load space for debug information, if the
   // policy demands it.
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
-    ASSERT (Context->SizeOfImage + Context->SizeOfImageDebugAdd >= Context->SizeOfImage);
+    ASSERT (SizeOfImage + Context->SizeOfImageDebugAdd >= SizeOfImage);
 
-    return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
+    SizeOfImage += Context->SizeOfImageDebugAdd;
+  } else {
+    ASSERT (Context->SizeOfImageDebugAdd == 0);
   }
 
-  ASSERT (Context->SizeOfImageDebugAdd == 0);
-
-  return Context->SizeOfImage;
+  return SizeOfImage;
 }
 
 RETURN_STATUS
