@@ -24,13 +24,13 @@ RETURN_STATUS
 PeCoffGetHiiResourceSection (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT32                        *HiiRva,
-  OUT    UINT32                        *MaxHiiSize
+  OUT    UINT32                        *HiiSize
   )
 {
   UINT16                                    Index;
   CONST EFI_IMAGE_NT_HEADERS32              *Pe32Hdr;
   CONST EFI_IMAGE_NT_HEADERS64              *Pe32PlusHdr;
-  CONST EFI_IMAGE_DATA_DIRECTORY            *DirectoryEntry;
+  CONST EFI_IMAGE_DATA_DIRECTORY            *ResDirTable;
   CONST EFI_IMAGE_RESOURCE_DIRECTORY        *ResourceDir;
   CONST EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *ResourceDirEntry;
   CONST EFI_IMAGE_RESOURCE_DIRECTORY_STRING *ResourceDirString;
@@ -39,11 +39,19 @@ PeCoffGetHiiResourceSection (
   UINT32                                    Offset;
   UINT32                                    TopOffset;
   UINT8                                     ResourceLevel;
+  UINT32                                    HiiRvaEnd;
+
+  ASSERT (Context != NULL);
+  ASSERT (HiiRva != NULL);
+  ASSERT (HiiSize != NULL);
   //
-  // Get Image's HII resource section
+  // Retrieve the Image's Resource Directory Table.
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
+      //
+      // TE Images do not contain a Resource Directory Table.
+      //
       return RETURN_NOT_FOUND;
 
     case PeCoffLoaderTypePe32:
@@ -54,7 +62,7 @@ PeCoffGetHiiResourceSection (
         return RETURN_NOT_FOUND;
       }
 
-      DirectoryEntry = &Pe32Hdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
+      ResDirTable = &Pe32Hdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
       break;
 
     case PeCoffLoaderTypePe32Plus:
@@ -65,24 +73,28 @@ PeCoffGetHiiResourceSection (
         return RETURN_NOT_FOUND;
       }
 
-      DirectoryEntry = &Pe32PlusHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
+      ResDirTable = &Pe32PlusHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE];
       break;
   }
   //
-  // If we do not at least have one entry, we are lost anyway.
+  // Verify the Resource Directory Table contains at least one entry.
   //
-  if (DirectoryEntry->Size < sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
+  if (ResDirTable->Size < sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
     return RETURN_NOT_FOUND;
   }
-
-  if (!IS_ALIGNED (DirectoryEntry->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
+  //
+  // Verify the start of the Resource Directory Table is sufficiently aligned.
+  //
+  if (!IS_ALIGNED (ResDirTable->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the Resource Directory Table is in bounds of the Image buffer.
+  //
   Overflow = BaseOverflowAddU32 (
-               DirectoryEntry->VirtualAddress,
-               DirectoryEntry->Size,
+               ResDirTable->VirtualAddress,
+               ResDirTable->Size,
                &TopOffset
                );
   if (Overflow || TopOffset > Context->SizeOfImage) {
@@ -91,39 +103,49 @@ PeCoffGetHiiResourceSection (
   }
 
   ResourceDir = (CONST EFI_IMAGE_RESOURCE_DIRECTORY *) (CONST VOID *) (
-                  (CONST CHAR8 *) Context->ImageBuffer + DirectoryEntry->VirtualAddress
+                  (CONST CHAR8 *) Context->ImageBuffer + ResDirTable->VirtualAddress
                   );
-
+  //
+  // Verify the Resource Directory Table can hold all of its entries.
+  //
   STATIC_ASSERT (
     sizeof (*ResourceDirEntry) * MAX_UINT16 <= ((UINT64) MAX_UINT32 + 1U) / 2 - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY),
-    "The following arithmetic may overflow."
+    "The following arithmetics may overflow."
     );
   TopOffset = sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDirEntry) *
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
-  if (TopOffset > DirectoryEntry->Size) {
+  if (TopOffset > ResDirTable->Size) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Try to locate the "HII" Resource entry.
+  //
   for (Index = 0; Index < ResourceDir->NumberOfNamedEntries; ++Index) {
     ResourceDirEntry = &ResourceDir->Entries[Index];
+    //
+    // Filter entries with a non-Unicode name entry.
+    //
     if (ResourceDirEntry->u1.s.NameIsString == 0) {
       continue;
     }
     //
-    // Check the ResourceDirEntry->u1.s.NameOffset before use it.
+    // Verify the Resource Directory String header is in bounds of the Resource
+    // Directory Table.
     //
     Overflow = BaseOverflowAddU32 (
                  ResourceDirEntry->u1.s.NameOffset,
-                 sizeof (*ResourceDirString) + 3 * sizeof (CHAR16),
+                 sizeof (*ResourceDirString),
                  &TopOffset
                  );
-    if (Overflow || TopOffset > DirectoryEntry->Size) {
+    if (Overflow || TopOffset > ResDirTable->Size) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
-    Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
+    //
+    // Verify the Resource Directory String offset is sufficiently aligned.
+    //
+    Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
@@ -132,7 +154,22 @@ PeCoffGetHiiResourceSection (
     ResourceDirString = (CONST EFI_IMAGE_RESOURCE_DIRECTORY_STRING *) (CONST VOID *) (
                           (CONST CHAR8 *) Context->ImageBuffer + Offset
                           );
-
+    //
+    // Verify the Resource Directory String is in bounds of the Resource
+    // Directory Table.
+    //
+    Overflow = BaseOverflowAddU32 (
+                 TopOffset,
+                 (UINT32) ResourceDirString->Length * sizeof (CHAR16),
+                 &TopOffset
+                 );
+    if (Overflow || TopOffset > ResDirTable->Size) {
+      CRITICAL_ERROR (FALSE);
+      return RETURN_UNSUPPORTED;
+    }
+    //
+    // Verify the type name matches "HII".
+    //
     if (ResourceDirString->Length == 3
      && ResourceDirString->String[0] == L'H'
      && ResourceDirString->String[1] == L'I'
@@ -140,60 +177,76 @@ PeCoffGetHiiResourceSection (
       break;
     }
   }
-
+  //
+  // Verify the "HII" Type Resource Directory Entry exists.
+  //
   if (Index == ResourceDir->NumberOfNamedEntries) {
     return RETURN_NOT_FOUND;
   }
   //
-  // Resource Type "HII" found
+  // Walk down the conventional "Name" and "Language" levels to reach the
+  // data directory.
   //
   for (ResourceLevel = 0; ResourceLevel < 2; ++ResourceLevel) {
+    //
+    // Succeed early if one of the levels is omitted.
+    //
     if (ResourceDirEntry->u2.s.DataIsDirectory == 0) {
       break;
     }
     //
-    // Move to next level - resource Name / Language
+    // Verify the Resource Directory Table fits at least the Resource Directory
+    // with and one Relocation Directory Entry.
     //
-    if (ResourceDirEntry->u2.s.OffsetToDirectory > DirectoryEntry->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
+    if (ResourceDirEntry->u2.s.OffsetToDirectory > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
-    Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
+    //
+    // Verify the next Relocation Directory offset is sufficiently aligned.
+    //
+    Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Verify the Resource Directory has at least one entry.
+    //
     ResourceDir = (CONST EFI_IMAGE_RESOURCE_DIRECTORY *) (CONST VOID *) (
                     (CONST CHAR8 *) Context->ImageBuffer + Offset
                     );
-
     if ((UINT32) ResourceDir->NumberOfIdEntries + ResourceDir->NumberOfNamedEntries == 0) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Always take the first entry for simplicity.
+    //
     ResourceDirEntry = &ResourceDir->Entries[0];
   }
   //
-  // Now it ought to be resource Data
+  // Verify the final Resource Directory Entry is of a data type.
   //
   if (ResourceDirEntry->u2.s.DataIsDirectory != 0) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the Resource Directory Table fits at least the Resource Directory.
+  //
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY) <= sizeof (EFI_IMAGE_RESOURCE_DIRECTORY),
-    "The following arithmetic may overflow."
+    "The following arithmetics may overflow."
     );
-  if (ResourceDirEntry->u2.OffsetToData >= DirectoryEntry->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
+  if (ResourceDirEntry->u2.OffsetToData > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
-  Offset = DirectoryEntry->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
+  //
+  // Verify the Relocation Directory Entry offset is sufficiently aligned.
+  //
+  Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
   if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
@@ -202,17 +255,21 @@ PeCoffGetHiiResourceSection (
   ResourceDataEntry = (CONST EFI_IMAGE_RESOURCE_DATA_ENTRY *) (CONST VOID *) (
                         (CONST CHAR8 *) Context->ImageBuffer + Offset
                         );
-
-  Overflow = BaseOverflowSubU32 (
-               Context->SizeOfImage,
+//
+  // Verify the "HII" data is in bounds of the Image buffer.
+  //
+  Overflow = BaseOverflowAddU32 (
                ResourceDataEntry->OffsetToData,
-               MaxHiiSize
+               ResourceDataEntry->Size,
+               &HiiRvaEnd
                );
-  if (Overflow) {
+  if (Overflow || HiiRvaEnd > Context->SizeOfImage) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
 
-  *HiiRva = ResourceDataEntry->OffsetToData;
+  *HiiRva  = ResourceDataEntry->OffsetToData;
+  *HiiSize = ResourceDataEntry->Size;
+
   return RETURN_SUCCESS;
 }

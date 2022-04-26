@@ -24,7 +24,7 @@
 #include "BasePeCoffLibInternals.h"
 
 /**
-  Hashes the Image Section data in ascending order of raw file apprearance.
+  Hashes the Image Section data in ascending order of raw file appearance.
 
   @param[in]     Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
@@ -36,10 +36,10 @@
 STATIC
 BOOLEAN
 InternalHashSections (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
-  IN OUT VOID                          *HashContext,
-  IN OUT UINT32                        *SumBytesHashed
+  IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN     PE_COFF_LOADER_HASH_UPDATE          HashUpdate,
+  IN OUT VOID                                *HashContext,
+  IN OUT UINT32                              *SumBytesHashed
   )
 {
   BOOLEAN                        Result;
@@ -60,7 +60,6 @@ InternalHashSections (
   SortedSections = AllocatePool (
                      (UINT32) Context->NumberOfSections * sizeof (*SortedSections)
                      );
-
   if (SortedSections == NULL) {
     return FALSE;
   }
@@ -76,7 +75,7 @@ InternalHashSections (
   //
   SortedSections[0] = Sections;
   //
-  // Perform Insertion Sort.
+  // Perform Insertion Sort to order the Sections by their raw file offset.
   //
   for (SectIndex = 1; SectIndex < Context->NumberOfSections; ++SectIndex) {
     for (SectionPos = SectIndex;
@@ -97,6 +96,11 @@ InternalHashSections (
   //
   ASSERT (Context->TeStrippedOffset == 0);
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
+    //
+    // Verify the Section does not overlap with the previous one if the policy
+    // demands it. Overlapping Sections could dramatically increase the hashing
+    // time.
+    //
     if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
       if (SectionTop > SortedSections[SectIndex]->PointerToRawData) {
         Result = FALSE;
@@ -105,7 +109,9 @@ InternalHashSections (
 
       SectionTop = SortedSections[SectIndex]->PointerToRawData + SortedSections[SectIndex]->SizeOfRawData;
     }
-
+    //
+    // Skip Sections that contain no data.
+    //
     if (SortedSections[SectIndex]->SizeOfRawData > 0) {
       //
       // 11. Walk through the sorted table, load the corresponding section into
@@ -117,22 +123,26 @@ InternalHashSections (
                  (CONST CHAR8 *) Context->FileBuffer + SortedSections[SectIndex]->PointerToRawData,
                  SortedSections[SectIndex]->SizeOfRawData
                  );
-
       if (!Result) {
         break;
       }
       //
       // 12. Add the section’s SizeOfRawData value to SUM_OF_BYTES_HASHED.
       //
+      // If and only if the Sections do not overlap, we know their sizes are at
+      // most MAX_UINT32 in sum because the file size is at most MAX_UINT32.
+      //
       if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
         CurHashSize += SortedSections[SectIndex]->SizeOfRawData;
       } else {
+        //
+        // Verify the hash size does not overflow.
+        //
         Overflow = BaseOverflowAddU32 (
                      CurHashSize,
                      SortedSections[SectIndex]->SizeOfRawData,
                      &CurHashSize
                      );
-
         if (Overflow) {
           Result = FALSE;
           break;
@@ -150,8 +160,8 @@ InternalHashSections (
 BOOLEAN
 PeCoffHashImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_LOADER_HASH_UPDATE          HashUpdate,
-  IN OUT VOID                         *HashContext
+  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
+  IN OUT VOID                          *HashContext
   )
 {
   BOOLEAN                      Result;
@@ -167,7 +177,8 @@ PeCoffHashImage (
   UINT32                       FileSize;
 
   //
-  // Preconditions:
+  // These conditions must be met by the caller prior to calling this function.
+  //
   // 1. Load the image header into memory.
   // 2. Initialize a hash algorithm context.
   //
@@ -179,11 +190,12 @@ PeCoffHashImage (
   //    Certificate Table entry. For details, see section 5.7 of the PE/COFF
   //    specification.
   //
+  // Additionally, retrieve important offsets for later steps.
+  //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
       //
-      // TE images are not to be signed, as they are supposed to only be part of
-      // Firmware Volumes, which may be signed as a whole.
+      // Authenticode does not define a hashing algorithm for TE Images.
       //
       CRITICAL_ERROR (FALSE);
       return FALSE;
@@ -192,10 +204,12 @@ PeCoffHashImage (
       Pe32 = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                );
-      ChecksumOffset = Context->ExeHdrOffset + OFFSET_OF (EFI_IMAGE_NT_HEADERS32, CheckSum);
-      SecurityDirOffset = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS32, DataDirectory) + (UINT32) (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY * sizeof (EFI_IMAGE_DATA_DIRECTORY));
+      ChecksumOffset      = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS32, CheckSum);
+      SecurityDirOffset   = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS32, DataDirectory) + (UINT32) (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY * sizeof (EFI_IMAGE_DATA_DIRECTORY));
       NumberOfRvaAndSizes = Pe32->NumberOfRvaAndSizes;
-
+      //
+      // Retrieve the Security Directory size depending on existence.
+      //
       if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
         SecurityDirSize = Pe32->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_SECURITY].Size;
       } else {
@@ -208,11 +222,12 @@ PeCoffHashImage (
       Pe32Plus = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                    );
-
-      ChecksumOffset = Context->ExeHdrOffset + OFFSET_OF (EFI_IMAGE_NT_HEADERS64, CheckSum);
-      SecurityDirOffset = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS64, DataDirectory) + (UINT32) (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY * sizeof (EFI_IMAGE_DATA_DIRECTORY));
+      ChecksumOffset      = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS64, CheckSum);
+      SecurityDirOffset   = Context->ExeHdrOffset + (UINT32) OFFSET_OF (EFI_IMAGE_NT_HEADERS64, DataDirectory) + (UINT32) (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY * sizeof (EFI_IMAGE_DATA_DIRECTORY));
       NumberOfRvaAndSizes = Pe32Plus->NumberOfRvaAndSizes;
-
+      //
+      // Retrieve the Security Directory size depending on existence.
+      //
       if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
         SecurityDirSize = Pe32Plus->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_SECURITY].Size;
       } else {
@@ -231,7 +246,6 @@ PeCoffHashImage (
   //    Fields.
   //
   Result = HashUpdate (HashContext, Context->FileBuffer, ChecksumOffset);
-
   if (!Result) {
     CRITICAL_ERROR (FALSE);
     return FALSE;
@@ -257,8 +271,7 @@ PeCoffHashImage (
       return FALSE;
     }
     //
-    // Skip over the security directory. If no further directory exists, this
-    // will point to the top of the directory.
+    // Skip over the Security Directory.
     //
     CurrentOffset = SecurityDirOffset + sizeof (EFI_IMAGE_DATA_DIRECTORY);
   }
@@ -278,7 +291,9 @@ PeCoffHashImage (
     CRITICAL_ERROR (FALSE);
     return FALSE;
   }
-
+//
+  // Perform the Section-related steps of the algorithm.
+  //
   Result = InternalHashSections (
              Context,
              HashUpdate,
@@ -309,14 +324,13 @@ PeCoffHashImage (
   //     file system. If FILE_SIZE is greater than SUM_OF_BYTES_HASHED, the file
   //     contains extra data that must be added to the hash. This data begins at
   //     the SUM_OF_BYTES_HASHED file offset, and its length is:
-  //     (File Size) – ((Size of AttributeCertificateTable) + SUM_OF_BYTES_HASHED)
+  //     (File Size) - ((Size of AttributeCertificateTable) + SUM_OF_BYTES_HASHED)
   //
   //     Note: The size of Attribute Certificate Table is specified in the
   //     second ULONG value in the Certificate Table entry (32 bit: offset 132,
   //     64 bit: offset 148) in Optional Header Data Directories.
   //
   FileSize = Context->FileSize - SecurityDirSize;
-
   if (SumBytesHashed < FileSize) {
     Result = HashUpdate (
                HashContext,
@@ -325,7 +339,8 @@ PeCoffHashImage (
                );
   }
   //
-  // This step must be performed by the caller after this routine succeeded.
+  // This step must be performed by the caller after this function succeeded.
+  //
   // 15. Finalize the hash algorithm context.
   //
   return Result;
@@ -338,21 +353,34 @@ PeCoffGetFirstCertificate (
   )
 {
   CONST WIN_CERTIFICATE *WinCertificate;
-
+  //
+  // These conditions are verified by PeCoffInitializeContext().
+  //
+  ASSERT (Context->SecDirOffset % ALIGNOF (WIN_CERTIFICATE));
+  ASSERT (Context->SecDirSize == 0 || sizeof (WIN_CERTIFICATE) <= Context->SecDirSize);
+  //
+  // Verify the Security Directory is not empty.
+  //
   if (Context->SecDirSize == 0) {
     return RETURN_NOT_FOUND;
   }
-
+  //
+  // Verify the certificate size is well-formed and that it is in bounds of the
+  // Security Directory.
+  //
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
                      (CONST UINT8 *) Context->FileBuffer + Context->SecDirOffset
                      );
-
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
    || WinCertificate->dwLength > Context->SecDirSize) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the certificate size is sufficiently aligned, if the policy demands
+  // it. This has been observed to not be the case with images signed with
+  // pesign, such as GRUB.
+  //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
       CRITICAL_ERROR (FALSE);
@@ -376,10 +404,18 @@ PeCoffGetNextCertificate (
   UINT32                CertSize;
   UINT32                CertEnd;
   CONST WIN_CERTIFICATE *WinCertificate;
-
+  //
+  // This condition is verified by PeCoffInitializeContext().
+  //
+  ASSERT (IS_ALIGNED (Context->SecDirSize, IMAGE_CERTIFICATE_ALIGN));
+  //
+  // Retrieve the current certificate.
+  //
   WinCertificate = *Certificate;
-  CertOffset  = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirOffset));
-
+  CertOffset     = (UINT32) ((UINTN) WinCertificate - ((UINTN) Context->FileBuffer + Context->SecDirOffset));
+  //
+  // Retrieve the offset of the next certificate.
+  //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     CertSize = WinCertificate->dwLength;
   } else {
@@ -387,33 +423,47 @@ PeCoffGetNextCertificate (
   }
 
   CertOffset += CertSize;
+  //
+  // This invariant is ensured by the certificate iteration functions.
+  //
+  ASSERT (CertOffset <= Context->SecDirSize);
+  //
+  // If the next offset is the end of the Directory, signal it's the end of
+  // the certificate list.
+  //
   if (CertOffset == Context->SecDirSize) {
     return RETURN_NOT_FOUND;
   }
-
-  ASSERT (CertOffset < Context->SecDirSize);
-
+  //
+  // Verify the Directory fits another certificate.
+  //
   if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the certificate has a well-formed size.
+  //
   WinCertificate = (CONST WIN_CERTIFICATE *) (CONST VOID *) (
                      (CONST UINT8 *) Context->FileBuffer + Context->SecDirOffset + CertOffset
                      );
-
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the certificate size is sufficiently aligned, if the policy demands
+  // it.
+  //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
   }
-
+  //
+  // Verify the certificate is in bounds of the Security Directory.
+  //
   Overflow = BaseOverflowAddU32 (
                CertOffset,
                WinCertificate->dwLength,

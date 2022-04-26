@@ -27,7 +27,7 @@
 //
 // The PE specification guarantees an 8 Byte alignment for certificate sizes.
 // This is larger than the alignment requirement for WIN_CERTIFICATE implied by
-// the UEFI ABI. ASSERT this is holds.
+// the UEFI ABI. ASSERT this holds.
 //
 STATIC_ASSERT (
   ALIGNOF (WIN_CERTIFICATE) <= IMAGE_CERTIFICATE_ALIGN,

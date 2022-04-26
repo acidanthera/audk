@@ -11,6 +11,7 @@
 **/
 
 #include <Base.h>
+#include <Uefi/UefiBaseType.h>
 
 #include <IndustryStandard/PeImage.h>
 
@@ -24,34 +25,45 @@
 #include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
+// FIXME: Use?
+/**
+  Returns whether the Image targets the UEFI Subsystem.
+
+  @param[in] Subsystem  The Subsystem value from the Image Headers.
+**/
+#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
+  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
+   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
+
 //
-// FIXME: Provide an API to destruct the context.
+// FIXME: Provide an API to destruct the context?
 //
 
 /**
   Verify the Image Section Headers.
 
-  The first section must be the beginning of the virtual address space or be
+  The first Section must be the beginning of the virtual address space, or be
   contiguous to the aligned Image Headers.
-  Sections must be disjunct and, in strict mode, contiguous in virtual space.
+  Sections must be disjoint and, depending on the policy, contiguous in virtual
+  space.
   Section data must be in file bounds.
 
   @param[in]  Context       The context describing the Image. Must have been
                             initialised by PeCoffInitializeContext().
   @param[in]  FileSize      The size, in Bytes, of Context->FileBuffer.
   @param[out] StartAddress  On output, the RVA of the first Image Section.
-  @param[out] EndAddress    On output, the size of the virtual address space.
+  @param[out] EndAddress    On output, the end RVA of the last Image Section.
 
-  @retval RETURN_SUCCESS  The Image Section Headers are correct.
-  @retval other           The Image section Headers are malformed.
+  @retval RETURN_SUCCESS  The Image Section Headers are well-formed.
+  @retval other           The Image Section Headers are malformed.
 **/
 STATIC
 RETURN_STATUS
 InternalVerifySections (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        FileSize,
-  OUT    UINT32                        *StartAddress,
-  OUT    UINT32                        *EndAddress
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN  UINT32                              FileSize,
+  OUT UINT32                              *StartAddress,
+  OUT UINT32                              *EndAddress
   )
 {
   BOOLEAN                        Overflow;
@@ -65,7 +77,9 @@ InternalVerifySections (
   ASSERT (IS_POW2 (Context->SectionAlignment));
   ASSERT (StartAddress != NULL);
   ASSERT (EndAddress != NULL);
-
+  //
+  // Images without Sections have no usable data, disallow them.
+  //
   if (Context->NumberOfSections == 0) {
     return RETURN_UNSUPPORTED;
   }
@@ -78,6 +92,10 @@ InternalVerifySections (
   // adjacent to the Image Headers.
   //
   if (Sections[0].VirtualAddress == 0) {
+    //
+    // TE Images cannot support loading the Image Headers as part of the first
+    // Section due to its StrippedSize sematics.
+    //
     if (Context->ImageType == PeCoffLoaderTypeTe) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
@@ -85,6 +103,10 @@ InternalVerifySections (
 
     NextSectRva = 0;
   } else {
+    //
+    // Choose the raw or aligned Image Headers' size depending on whether
+    // loading unaligned Sections is allowed.
+    //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
                    Context->SizeOfHeaders,
@@ -102,11 +124,12 @@ InternalVerifySections (
 
   *StartAddress = NextSectRva;
   //
-  // Ensure all Image Sections are valid.
+  // Verify all Image Sections are valid.
   //
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
-    // Ensure the Image Section are disjunct (relaxed) or adjacent (strict).
+    // Verify the Image Section are disjoint (relaxed) or adjacent (strict)
+    // depending on whether unaligned Sections may be loaded or not.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       if (Sections[SectIndex].VirtualAddress != NextSectRva) {
@@ -120,7 +143,7 @@ InternalVerifySections (
       }
     }
     //
-    // Ensure Image Sections with data are in bounds.
+    // Verify the Image Sections with data are in bounds of the file buffer.
     //
     if (Sections[SectIndex].SizeOfRawData > 0) {
       if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
@@ -156,7 +179,7 @@ InternalVerifySections (
       return RETURN_UNSUPPORTED;
     }
     //
-    // SectionSize does not need to be aligned, so align the result.
+    // VirtualSize does not need to be aligned, so align the result if needed.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
@@ -181,20 +204,20 @@ InternalVerifySections (
 
   The preferred Image load address must be aligned by the Section Alignment.
   The Relocation Directory must be contained within the Image Section memory.
-  The Relocation Directory must be correctly aligned in memory.
+  The Relocation Directory must be sufficiently aligned in memory.
 
-  @param[in]  Context       The context describing the Image. Must have been
-                            initialised by PeCoffInitializeContext().
-  @param[out] StartAddress  The RVA of the first Image Section.
+  @param[in] Context       The context describing the Image. Must have been
+                           initialised by PeCoffInitializeContext().
+  @param[in] StartAddress  The RVA of the first Image Section.
 
-  @retval RETURN_SUCCESS  The basic Image Relocation information is correct.
+  @retval RETURN_SUCCESS  The basic Image Relocation information is well-formed.
   @retval other           The basic Image Relocation information is malformed.
 **/
 STATIC
 RETURN_STATUS
 InternalValidateRelocInfo (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        StartAddress
+  IN CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN UINT32                              StartAddress
   )
 {
   BOOLEAN Overflow;
@@ -204,41 +227,35 @@ InternalValidateRelocInfo (
   //
   // If the Base Relocations have not been stripped, verify their Directory.
   //
-  // FIXME: Prove new condition
-  if (!Context->RelocsStripped && Context->RelocDirSize) {
+  if (!Context->RelocsStripped && Context->RelocDirSize != 0) {
     //
-    // Ensure the Relocation Directory is not empty.
+    // Verify the Relocation Directory is not empty.
     //
     if (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) > Context->RelocDirSize) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
-    Overflow = BaseOverflowAddU32 (
-                 Context->RelocDirRva,
-                 Context->RelocDirSize,
-                 &SectRvaEnd
-                 );
-    if (Overflow) {
-      CRITICAL_ERROR (FALSE);
-      return RETURN_UNSUPPORTED;
-    }
     //
-    // Ensure the Relocation Directory does not overlap with the Image Header.
+    // Verify the Relocation Directory does not overlap with the Image Headers.
     //
     if (StartAddress > Context->RelocDirRva) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
-    // Ensure the Relocation Directory is contained in the Image memory space.
+    // Verify the Relocation Directory is contained in the Image memory space.
     //
-    if (SectRvaEnd > Context->SizeOfImage) {
+    Overflow = BaseOverflowAddU32 (
+                 Context->RelocDirRva,
+                 Context->RelocDirSize,
+                 &SectRvaEnd
+                 );
+    if (Overflow || SectRvaEnd > Context->SizeOfImage) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
     //
-    // Ensure the Relocation Directory start is correctly aligned.
+    // Verify the Relocation Directory start is sufficiently aligned.
     //
     if (!IS_ALIGNED (Context->RelocDirRva, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
       CRITICAL_ERROR (FALSE);
@@ -246,7 +263,7 @@ InternalValidateRelocInfo (
     }
   }
   //
-  // Ensure the preferred load address is correctly aligned.
+  // Verify the preferred Image load address is sufficiently aligned.
   //
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
     CRITICAL_ERROR (FALSE);
@@ -260,13 +277,13 @@ InternalValidateRelocInfo (
   Verify the TE Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be correct.
+  Image Section Headers and basic Relocation information must be well-formed.
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
   @param[in]     FileSize  The size, in Bytes, of Context->FileBuffer.
 
-  @retval RETURN_SUCCESS  The TE Image is correct.
+  @retval RETURN_SUCCESS  The TE Image is well-formed.
   @retval other           The TE Image is malformed.
 **/
 STATIC
@@ -283,15 +300,17 @@ InternalInitializeTe (
   UINT32                    SizeOfImage;
 
   ASSERT (Context != NULL);
+  ASSERT (Context->ExeHdrOffset == 0);
   ASSERT (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize);
-  ASSERT (FileSize >= sizeof (EFI_TE_IMAGE_HEADER));
-
-  Context->ImageType = PeCoffLoaderTypeTe;
 
   TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
             (CONST CHAR8 *) Context->FileBuffer
             );
 
+  Context->ImageType = PeCoffLoaderTypeTe;
+  //
+  // Calculate the size, in Bytes, stripped from the Image Headers.
+  //
   Overflow = BaseOverflowSubU16 (
                TeHdr->StrippedSize,
                sizeof (*TeHdr),
@@ -302,30 +321,36 @@ InternalInitializeTe (
   }
 
   STATIC_ASSERT (
-    IS_ALIGNED (sizeof (*TeHdr), ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
-    "The section alignment requirements are violated."
-    );
-  //
-  // Assign SizeOfHeaders in a way that is equivalent to what the size would
-  // be if this was the original (unstripped) PE32 binary. As the TE image
-  // creation fixes no fields up, tests work the same way as for PE32.
-  // when referencing raw data however, the offset must be subracted.
-  //
-  STATIC_ASSERT (
     MAX_UINT8 * sizeof (EFI_IMAGE_SECTION_HEADER) <= MAX_UINT32 - MAX_UINT16,
-    "The following arithmetic may overflow."
+    "The following arithmetics may overflow."
     );
-
+  //
+  // Calculate SizeOfHeaders in a way that is equivalent to what the size would
+  // be if this was the original (unstripped) PE32 binary. As the TE image
+  // creation doesn't fix fields up, values work the same way as for PE32.
+  // When referencing raw data however, the TE stripped size must be subracted.
+  //
   Context->SizeOfHeaders = (UINT32) TeHdr->StrippedSize + (UINT32) TeHdr->NumberOfSections * sizeof (EFI_IMAGE_SECTION_HEADER);
   //
-  // Ensure that all headers are in bounds of the file buffer.
+  // Verify that the Image Headers are in bounds of the file buffer.
   //
-  if ((Context->SizeOfHeaders - Context->TeStrippedOffset) > FileSize) {
+  if (Context->SizeOfHeaders - Context->TeStrippedOffset > FileSize) {
     return RETURN_UNSUPPORTED;
   }
 
+  STATIC_ASSERT (
+    IS_ALIGNED (sizeof (*TeHdr), ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
+    "The Section alignment requirements are violated."
+    );
+  //
+  // TE Sections start right after the Image Headers.
+  //
   Context->SectionsOffset = sizeof (EFI_TE_IMAGE_HEADER);
-  Context->SectionAlignment = BASE_4KB;
+  //
+  // TE Images do not store their Section alignment. Assume the UEFI Page size
+  // by default, as it is the minimum to guarantee memory permission support.
+  //
+  Context->SectionAlignment = EFI_PAGE_SIZE;
   Context->NumberOfSections = TeHdr->NumberOfSections;
   //
   // Validate the sections.
@@ -341,7 +366,9 @@ InternalInitializeTe (
   if (Status != RETURN_SUCCESS) {
     return Status;
   }
-
+  //
+  // Verify the Image Entry Point is in bounds of the Image buffer.
+  //
   if (TeHdr->AddressOfEntryPoint >= SizeOfImage) {
     return RETURN_UNSUPPORTED;
   }
@@ -350,27 +377,32 @@ InternalInitializeTe (
   Context->Machine             = TeHdr->Machine;
   Context->Subsystem           = TeHdr->Subsystem;
   Context->ImageBase           = TeHdr->ImageBase;
-  Context->RelocsStripped      = TeHdr->DataDirectory[0].Size > 0;
   Context->AddressOfEntryPoint = TeHdr->AddressOfEntryPoint;
   Context->RelocDirRva         = TeHdr->DataDirectory[0].VirtualAddress;
   Context->RelocDirSize        = TeHdr->DataDirectory[0].Size;
-
-  Status = InternalValidateRelocInfo (Context, StartAddress);
-
-  return Status;
+  //
+  // TE Images do not explicitly store whether their Relocations have been
+  // stripped. Assume that if there are no Relocations, they have been stripped
+  // to prevent loading into non-preferred memory locations.
+  //
+  Context->RelocsStripped = TeHdr->DataDirectory[0].Size > 0;
+  //
+  // Verify basic sanity of the Relocation Directory.
+  //
+  return InternalValidateRelocInfo (Context, StartAddress);
 }
 
 /**
   Verify the PE32 or PE32+ Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be correct.
+  Image Section Headers and basic Relocation information must be Well-formed.
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
   @param[in]     FileSize  The size, in Bytes, of Context->FileBuffer.
 
-  @retval RETURN_SUCCESS  The PE Image is correct.
+  @retval RETURN_SUCCESS  The PE Image is Well-formed.
   @retval other           The PE Image is malformed.
 **/
 STATIC
@@ -397,8 +429,11 @@ InternalInitializePe (
   UINT32                                MinSizeOfImage;
 
   ASSERT (Context != NULL);
+  ASSERT (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16) <= FileSize - Context->ExeHdrOffset);
   ASSERT (IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR)));
-
+  //
+  // Locate the PE Optional Header.
+  //
   OptHdrPtr = (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset;
   OptHdrPtr += sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
 
@@ -412,91 +447,107 @@ InternalInitializePe (
   //
   switch (*(CONST UINT16 *) (CONST VOID *) OptHdrPtr) {
     case EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
+      //
+      // Verify the PE32 header is in bounds of the file buffer.
+      //
       if (sizeof (*Pe32) > FileSize - Context->ExeHdrOffset) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
+      //
+      // The PE32 header offset is always sufficiently aligned.
+      //
       STATIC_ASSERT (
-        ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR) == ALIGNOF (EFI_IMAGE_NT_HEADERS32),
+        ALIGNOF (EFI_IMAGE_NT_HEADERS32) <= ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR),
         "The following operations may be unaligned."
         );
-
-      Context->ImageType = PeCoffLoaderTypePe32;
-
+      //
+      // Populate the common data with information from the Optional Header.
+      //
       Pe32 = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                );
 
-      Context->Subsystem    = Pe32->Subsystem;
-
-      RelocDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
-      SecDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
-
+      Context->ImageType           = PeCoffLoaderTypePe32;
+      Context->Subsystem           = Pe32->Subsystem;
       Context->SizeOfImage         = Pe32->SizeOfImage;
       Context->SizeOfHeaders       = Pe32->SizeOfHeaders;
       Context->ImageBase           = Pe32->ImageBase;
       Context->AddressOfEntryPoint = Pe32->AddressOfEntryPoint;
       Context->SectionAlignment    = Pe32->SectionAlignment;
+
+      RelocDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
+      SecDir   = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
       
-      PeCommon = &Pe32->CommonHeader;
+      PeCommon              = &Pe32->CommonHeader;
       NumberOfRvaAndSizes   = Pe32->NumberOfRvaAndSizes;
       HdrSizeWithoutDataDir = sizeof (EFI_IMAGE_NT_HEADERS32) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
       
       break;
 
     case EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC:
+      //
+      // Verify the PE32+ header is in bounds of the file buffer.
+      //
       if (sizeof (*Pe32Plus) > FileSize - Context->ExeHdrOffset) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
+      //
+      // Verify the PE32+ header offset is sufficiently aligned.
+      //
       if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
-      Context->ImageType = PeCoffLoaderTypePe32Plus;
-
+      //
+      // Populate the common data with information from the Optional Header.
+      //
       Pe32Plus = (CONST EFI_IMAGE_NT_HEADERS64 *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
                    );
 
-
+      Context->ImageType           = PeCoffLoaderTypePe32Plus;
       Context->Subsystem           = Pe32Plus->Subsystem;
-
-      RelocDir = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
-      SecDir = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
-
       Context->SizeOfImage         = Pe32Plus->SizeOfImage;
       Context->SizeOfHeaders       = Pe32Plus->SizeOfHeaders;
       Context->ImageBase           = Pe32Plus->ImageBase;
       Context->AddressOfEntryPoint = Pe32Plus->AddressOfEntryPoint;
       Context->SectionAlignment    = Pe32Plus->SectionAlignment;
 
-      PeCommon = &Pe32Plus->CommonHeader;
+      RelocDir = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
+      SecDir   = Pe32Plus->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
+
+      PeCommon              = &Pe32Plus->CommonHeader;
       NumberOfRvaAndSizes   = Pe32Plus->NumberOfRvaAndSizes;
       HdrSizeWithoutDataDir = sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
       
       break;
 
     default:
+      //
+      // Disallow Images with unknown PE Optional Header signatures.
+      //
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
   }
   //
-  // Do not load images with unknown directories.
+  // Disallow Images with unknown directories.
   //
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the Entry Point is in bounds of the Image buffer.
+  //
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the Image alignment is a power of 2.
+  //
   if (!IS_POW2 (Context->SectionAlignment)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
@@ -504,8 +555,10 @@ InternalInitializePe (
 
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_DATA_DIRECTORY) <= MAX_UINT32 / EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES,
-    "The following arithmetic may overflow."
+    "The following arithmetics may overflow."
     );
+  //
+  // Calculate the offset of the Image Sections.
   //
   // Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) cannot overflow because
   //   * ExeFileSize > sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) and
@@ -521,15 +574,15 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // Ensure the section headers offset is properly aligned.
+  // Verify the Section Headers offset is sufficiently aligned.
   //
   if (!IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
   //
-  // MinSizeOfOptionalHeader cannot overflow because NumberOfRvaAndSizes has
-  // been verified and the other two components are validated constants.
+  // This arithmetics cannot overflow because all values are sufficiently
+  // bounded.
   //
   MinSizeOfOptionalHeader = HdrSizeWithoutDataDir +
                               NumberOfRvaAndSizes * sizeof (EFI_IMAGE_DATA_DIRECTORY);
@@ -538,9 +591,11 @@ InternalInitializePe (
 
   STATIC_ASSERT (
     sizeof (EFI_IMAGE_SECTION_HEADER) <= (MAX_UINT32 + 1ULL) / (MAX_UINT16 + 1ULL),
-    "The following arithmetic may overflow."
+    "The following arithmetics may overflow."
     );
-
+  //
+  // Calculate the minimum size of the Image Headers.
+  //
   Overflow = BaseOverflowAddU32 (
                Context->SectionsOffset,
                (UINT32) PeCommon->FileHeader.NumberOfSections * sizeof (EFI_IMAGE_SECTION_HEADER),
@@ -551,7 +606,7 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // Ensure the header sizes are sane. SizeOfHeaders contains all header
+  // Verify the Image Header sizes are sane. SizeOfHeaders contains all header
   // components (DOS, PE Common and Optional Header).
   //
   if (MinSizeOfOptionalHeader > PeCommon->FileHeader.SizeOfOptionalHeader) {
@@ -564,24 +619,21 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // Ensure that all headers are in bounds of the file buffer.
+  // Verify the Image Headers are in bounds of the file buffer.
   //
   if (Context->SizeOfHeaders > FileSize) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Populate the Image Context with information from the Common Header.
+  //
   Context->NumberOfSections = PeCommon->FileHeader.NumberOfSections;
-  //
-  // If there are no Relocations, then make sure it's not a runtime driver.
-  //
-  Context->RelocsStripped =
+  Context->Machine          = PeCommon->FileHeader.Machine;
+  Context->RelocsStripped   =
     (
       PeCommon->FileHeader.Characteristics & EFI_IMAGE_FILE_RELOCS_STRIPPED
     ) != 0;
-  Context->Machine = PeCommon->FileHeader.Machine;
-
-  ASSERT (Context->TeStrippedOffset == 0);
 
   if (EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC < NumberOfRvaAndSizes) {
     Context->RelocDirRva  = RelocDir->VirtualAddress;
@@ -591,9 +643,11 @@ InternalInitializePe (
   }
 
   if (EFI_IMAGE_DIRECTORY_ENTRY_SECURITY < NumberOfRvaAndSizes) {
-    Context->SecDirOffset  = SecDir->VirtualAddress;
-    Context->SecDirSize = SecDir->Size;
-
+    Context->SecDirOffset = SecDir->VirtualAddress;
+    Context->SecDirSize   = SecDir->Size;
+    //
+    // Verify the Security Direction is in bounds of the Image buffer.
+    //
     Overflow = BaseOverflowAddU32 (
                  Context->SecDirOffset,
                  Context->SecDirSize,
@@ -603,12 +657,17 @@ InternalInitializePe (
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Verify the Security Directory is sufficiently aligned.
+    //
     if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Verify the Security Directory size is sufficiently aligned, and that if
+    // it is not empty, it can fit at least one certificate.
+    //
     if (Context->SecDirSize != 0
      && (!IS_ALIGNED (Context->SecDirSize, IMAGE_CERTIFICATE_ALIGN)
       || Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
@@ -616,9 +675,17 @@ InternalInitializePe (
       return RETURN_UNSUPPORTED;
     }
   } else {
-    ASSERT (Context->SecDirOffset == 0 && Context->SecDirSize == 0);
+    //
+    // The Loader Context is zero'd on allocation.
+    //
+    ASSERT (Context->SecDirOffset == 0);
+    ASSERT (Context->SecDirSize == 0);
   }
 
+  ASSERT (Context->TeStrippedOffset == 0);
+  //
+  // Verify the Image Sections are Well-formed.
+  //
   Status = InternalVerifySections (
              Context,
              FileSize,
@@ -630,13 +697,15 @@ InternalInitializePe (
     return Status;
   }
   //
-  // Ensure SizeOfImage is equal to the top of the image's virtual space.
+  // Verify SizeOfImage fits all Image Sections.
   //
   if (MinSizeOfImage > Context->SizeOfImage) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the basic Relocation information is well-formed.
+  //
   Status = InternalValidateRelocInfo (Context, StartAddress);
   if (Status != RETURN_SUCCESS) {
     CRITICAL_ERROR (FALSE);
@@ -657,7 +726,9 @@ PeCoffInitializeContext (
 
   ASSERT (Context != NULL);
   ASSERT (FileBuffer != NULL || FileSize == 0);
-
+  //
+  // Initialise the Image Context with 0-values.
+  //
   ZeroMem (Context, sizeof (*Context));
 
   Context->FileBuffer = FileBuffer;
@@ -665,14 +736,14 @@ PeCoffInitializeContext (
   //
   // Check whether the DOS Image Header is present.
   //
-  if (FileSize >= sizeof (*DosHdr)
+  if (sizeof (*DosHdr) <= FileSize
    && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_IMAGE_DOS_SIGNATURE) {
     DosHdr = (CONST EFI_IMAGE_DOS_HEADER *) (CONST VOID *) (
-               (CONST CHAR8 *) FileBuffer + 0
+               (CONST CHAR8 *) FileBuffer
                );
     //
-    // When the DOS Image Header is present, verify the offset and
-    // retrieve the size of the executable image.
+    // Verify the DOS Image Header and the Executable Header are in bounds of
+    // the file buffer, and that they are disjoint.
     //
     if (sizeof (EFI_IMAGE_DOS_HEADER) > DosHdr->e_lfanew
      || DosHdr->e_lfanew > FileSize) {
@@ -683,18 +754,21 @@ PeCoffInitializeContext (
     Context->ExeHdrOffset = DosHdr->e_lfanew;
   } else {
     //
-    // If the DOS Image Header is not present, assume the Image starts with the
-    // Executable Header.
+    // Assume the Image starts with the Executable Header, determine whether it
+    // is a TE Image.
     //
-    if (FileSize >= sizeof (EFI_TE_IMAGE_HEADER)
+    if (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize
      && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_TE_IMAGE_HEADER_SIGNATURE) {
+      //
+      // Verify the TE Image Header is well-formed.
+      //
       Status = InternalInitializeTe (Context, FileSize);
       if (Status != RETURN_SUCCESS) {
         CRITICAL_ERROR (FALSE);
         return Status;
       }
       //
-      // If debugging is enabled, retrieve information on the debug data.
+      // If debugging is enabled, index the debug information.
       //
       if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
         PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
@@ -704,13 +778,15 @@ PeCoffInitializeContext (
     }
   }
   //
-  // Use Signature to determine and handle the image format (PE32(+) / TE).
+  // Verify the file buffer can hold a PE Common Header.
   //
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the Execution Header offset is sufficiently aligned.
+  //
   if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
@@ -721,20 +797,22 @@ PeCoffInitializeContext (
     "The following access may be performed unaligned"
     );
   //
-  // Ensure the Image Executable Header has a PE signature.
+  // Verify the Image Executable Header has a PE signature.
   //
   if (*(CONST UINT32 *) (CONST VOID *) ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the PE Image Header is well-formed.
+  //
   Status = InternalInitializePe (Context, FileSize);
   if (Status != RETURN_SUCCESS) {
     CRITICAL_ERROR (FALSE);
     return Status;
   }
   //
-  // If debugging is enabled, retrieve information on the debug data.
+  // If debugging is enabled, index the debug information.
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
     PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);

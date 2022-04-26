@@ -56,7 +56,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   ASSERT (Context->SizeOfImageDebugAdd == 0);
   ASSERT (Context->CodeViewRva == 0);
   //
-  // Retrieve the Debug Directory information of the Image.
+  // Retrieve the Debug Directory Directory of the Image.
   //
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
@@ -95,11 +95,22 @@ PeCoffLoaderRetrieveCodeViewInfo (
       ASSERT (FALSE);
       return;
   }
-
+  //
+  // Verify the Debug Directory is not empty.
+  //
   if (DebugDir->Size == 0) {
     return;
   }
-
+  //
+  // Verify the Debug Directory has a well-formed size.
+  //
+  if (DebugDir->Size % sizeof (*DebugEntries) != 0) {
+    CRITICAL_ERROR (FALSE);
+    return;
+  }
+  //
+  // Verify the Debug Directory is in bounds of the Image buffer.
+  //
   Overflow = BaseOverflowAddU32 (
                DebugDir->VirtualAddress,
                DebugDir->Size,
@@ -109,11 +120,8 @@ PeCoffLoaderRetrieveCodeViewInfo (
     CRITICAL_ERROR (FALSE);
     return;
   }
-
   //
-  // Determine the file offset of the debug directory...  This means we walk
-  // the sections to find which section contains the RVA of the debug
-  // directory
+  // Determine the raw file offset of the Debug Directory.
   //
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
@@ -125,55 +133,73 @@ PeCoffLoaderRetrieveCodeViewInfo (
        break;
      }
   }
-
+  //
+  // Verify the Debug Directory was found among the Sections.
+  //
   if (SectIndex == Context->NumberOfSections) {
     CRITICAL_ERROR (FALSE);
     return;
   }
-
+  //
+  // Verify the Debug Directory data is in bounds of the Section.
+  //
+  // This arithmetics cannot overflow because we know
+  //   1) DebugDir->VirtualAddress + DebugDir->Size <= MAX_UINT32
+  //   2) Sections[SectIndex].VirtualAddress <= DebugDir->VirtualAddress.
+  //
   DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectIndex].VirtualAddress;
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
   if (DebugDirSectionRawTop > Sections[SectIndex].SizeOfRawData) {
     CRITICAL_ERROR (FALSE);
     return;
   }
-
+  //
+  // Verify the Debug Directory raw file offset is sufficiently aligned.
+  //
   DebugDirFileOffset = (Sections[SectIndex].PointerToRawData - Context->TeStrippedOffset) + DebugDirSectionOffset;
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     CRITICAL_ERROR (FALSE);
     return;
   }
-
+  //
+  // Locate the CodeView entry in the Debug Directory.
+  //
   DebugEntries = (CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + DebugDirFileOffset
                    );
 
   NumDebugEntries = DebugDir->Size / sizeof (*DebugEntries);
 
-  if (DebugDir->Size % sizeof (*DebugEntries) != 0) {
-    CRITICAL_ERROR (FALSE);
-    return;
-  }
-
   for (DebugIndex = 0; DebugIndex < NumDebugEntries; ++DebugIndex) {
     if (DebugEntries[DebugIndex].Type == EFI_IMAGE_DEBUG_TYPE_CODEVIEW) {
       break;
     }
   }
-
+  //
+  // Verify the CodeView entry has been found in the Debug Directory.
+  //
   if (DebugIndex == NumDebugEntries) {
     return;
   }
-
+  //
+  // Verify the CodeView entry has sufficient space for the signature.
+  //
   CodeViewEntry = &DebugEntries[DebugIndex];
 
   if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
     CRITICAL_ERROR (FALSE);
     return;
   }
-
+  //
+  // Verify the CodeView entry RVA is sane, or force-load, if permitted, if it
+  // is not mapped by a section.
+  //
   if (CodeViewEntry->RVA != 0) {
+    //
+    // Verify the CodeView entry is in bounds of the Image buffer, and the
+    // CodeView entry RVA is sufficiently aligned.
+    //
     Overflow = BaseOverflowAddU32 (
                  CodeViewEntry->RVA,
                  CodeViewEntry->SizeOfData,
@@ -185,6 +211,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
       return;
     }
   } else {
+    //
+    // Force-load the CodeView entry if it is not mapped by a Section.
+    //
     if (PcdGet32 (PcdImageLoaderDebugSupport) < PCD_DEBUG_SUPPORT_FORCE_LOAD) {
       return;
     }
@@ -211,7 +240,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
       CRITICAL_ERROR (FALSE);
       return;
     }
-
+    //
+    // The CodeView data must start on a 32-bit boundary.
+    //
     Overflow = BaseOverflowAlignUpU32 (
                  Context->SizeOfImage,
                  ALIGNOF (UINT32),
@@ -231,7 +262,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
       CRITICAL_ERROR (FALSE);
       return;
     }
-
+    //
+    // Align the CodeView size by the Image alignment.
+    //
     Overflow = BaseOverflowAlignUpU32 (
                  DebugSizeOfImage,
                  Context->SectionAlignment,
@@ -254,7 +287,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
     Context->SizeOfImageDebugAdd = DebugSizeOfImage - Context->SizeOfImage;
     ASSERT (Context->SizeOfImageDebugAdd > 0);
   }
-
+  //
+  // Cache the CodeView RVA.
+  //
   Context->CodeViewRva = Sections[SectIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
   ASSERT (Context->CodeViewRva >= Sections[SectIndex].VirtualAddress);
   ASSERT (Context->CodeViewRva <= Sections[SectIndex].VirtualAddress + Sections[SectIndex].VirtualSize);
@@ -268,20 +303,25 @@ PeCoffLoaderLoadCodeView (
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
 
   ASSERT (Context != NULL);
-
+  //
+  // Verify the CodeView entry is present and well-formed.
+  //
   if (Context->CodeViewRva == 0) {
     return;
   }
-
+  //
+  // Force-load the CodeView entry if it is not mapped by a Section.
+  //
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
                     (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
                     );
-  //
-  // Load the Codeview information if present
-  //
   if (CodeViewEntry->RVA == 0) {
+    ASSERT (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD);
     ASSERT (Context->SizeOfImageDebugAdd > 0);
-
+    //
+    // This arithmetics cannot overflow because it has been verified during the
+    // calculation of SizeOfImageDebugAdd.
+    //
     CodeViewEntry->RVA = ALIGN_VALUE (Context->SizeOfImage, ALIGNOF (UINT32));
 
     ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
@@ -302,26 +342,35 @@ PeCoffLoaderLoadCodeViewInplace (
   EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
 
   ASSERT (Context != NULL);
-
+  //
+  // Verify the CodeView entry is present and well-formed.
+  //
   if (Context->CodeViewRva == 0) {
     return;
   }
-
+  //
+  // Force-load the CodeView entry if it is not mapped by a Section.
+  //
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
                     (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
                     );
-  //
-  // Load the Codeview information if present
-  //
   if (CodeViewEntry->RVA != 0) {
+    //
+    // If the CodeView entry is reported to be part of a Section, its RVA must
+    // be equal to the raw file offset as the Image was loaded in-place.
+    //
     if (CodeViewEntry->RVA != CodeViewEntry->FileOffset) {
       CRITICAL_ERROR (FALSE);
       Context->CodeViewRva = 0;
       return;
     }
   } else {
+    ASSERT (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD);
     ASSERT (Context->SizeOfImageDebugAdd > 0);
-
+    //
+    // The CodeView entry is always in the Image memory for inplace-loading.
+    // Update the RVA to the raw file offset.
+    //
     CodeViewEntry->RVA = CodeViewEntry->FileOffset;
   }
 }
@@ -344,17 +393,25 @@ PeCoffGetPdbPath (
   ASSERT (Context != NULL);
   ASSERT (PdbPath != NULL);
   ASSERT (PdbPathSize != NULL);
-
+  //
+  // Verify the CodeView entry is present and well-formed.
+  //
   if (Context->CodeViewRva == 0) {
     return RETURN_NOT_FOUND;
   }
-
+  //
+  // Retrieve the PDB path offset.
+  //
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
                     (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
                     );
 
   CodeView = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA;
-
+  //
+  // This memory access is safe because we know that
+  //   1) IS_ALIGNED (CodeViewEntry->RVA, ALIGNOF (UINT32))
+  //   2) sizeof (UINT32) <= CodeViewEntry->SizeOfData.
+  //
   switch (*(CONST UINT32 *) (CONST VOID *) CodeView) {
     case CODEVIEW_SIGNATURE_NB10:
       PdbOffset = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY);
@@ -387,7 +444,9 @@ PeCoffGetPdbPath (
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the PDB path exists and is in bounds of the Image buffer.
+  //
   Overflow = BaseOverflowSubU32 (
                CodeViewEntry->SizeOfData,
                PdbOffset,
@@ -397,9 +456,10 @@ PeCoffGetPdbPath (
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;
   }
-
+  //
+  // Verify the PDB path is correctly terminated.
+  //
   PdbName = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
-
   if (PdbName[PdbNameSize - 1] != 0) {
     CRITICAL_ERROR (FALSE);
     return RETURN_UNSUPPORTED;

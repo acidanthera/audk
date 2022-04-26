@@ -42,10 +42,10 @@
 STATIC
 VOID
 InternalLoadSections (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        LoadedHeaderSize,
-  OUT    VOID                          *Destination,
-  IN     UINT32                        DestinationSize
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN  UINT32                              LoadedHeaderSize,
+  OUT VOID                                *Destination,
+  IN  UINT32                              DestinationSize
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
@@ -109,9 +109,9 @@ PeCoffLoadImage (
 
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
-  ASSERT (DestinationSize >= Context->SectionAlignment);
+  ASSERT (Context->SectionAlignment <= DestinationSize);
   //
-  // Correctly align the Image data in memory.
+  // Sufficiently align the Image data in memory.
   //
   if (Context->SectionAlignment <= EFI_PAGE_SIZE) {
     //
@@ -125,30 +125,30 @@ PeCoffLoadImage (
     Address        = (UINTN) Destination;
     AlignedAddress = ALIGN_VALUE (Address, (UINTN) Context->SectionAlignment);
     AlignOffset    = (UINT32) (AlignedAddress - Address);
+    AlignedDest    = (CHAR8 *) Destination + AlignOffset;
     AlignedSize    = DestinationSize - AlignOffset;
 
     ASSERT (Context->SizeOfImage <= AlignedSize);
-
-    AlignedDest = (CHAR8 *) Destination + AlignOffset;
 
     ZeroMem (Destination, AlignOffset);
   }
 
   ASSERT (AlignedSize >= Context->SizeOfImage);
-
+  //
+  // Load the Image Headers into the memory space, if the policy demands it.
+  //
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
-  //
-  // If configured, load the Image Headers into the memory space.
-  //
   if (PcdGetBool (PcdImageLoaderLoadHeader) && Sections[0].VirtualAddress != 0) {
     LoadedHeaderSize = (Context->SizeOfHeaders - Context->TeStrippedOffset);
     CopyMem (AlignedDest, Context->FileBuffer, LoadedHeaderSize);
   } else {
     LoadedHeaderSize = 0;
   }
-
+  //
+  // Load all Image Sections into the memory space.
+  //
   InternalLoadSections (
     Context,
     LoadedHeaderSize,
@@ -158,7 +158,7 @@ PeCoffLoadImage (
 
   Context->ImageBuffer = AlignedDest;
   //
-  // If debugging is enabled, force-load its contents into the memory space.
+  // Force-load its contents into the memory space, if the policy demands it.
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     PeCoffLoaderLoadCodeView (Context);
@@ -176,10 +176,14 @@ PeCoffLoadImageInplace (
   UINT32                         AlignedSize;
   UINT16                         Index;
 
+  ASSERT (Context != NULL);
+
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
-
+  //
+  // Verify all RVAs and raw file offsets are identical for XIP Images.
+  //
   for (Index = 0; Index < Context->NumberOfSections; ++Index) {
     AlignedSize = ALIGN_VALUE (Sections[Index].VirtualSize, Context->SectionAlignment);
     if (Sections[Index].PointerToRawData != Sections[Index].VirtualAddress
@@ -191,7 +195,7 @@ PeCoffLoadImageInplace (
 
   Context->ImageBuffer = (VOID *) Context->FileBuffer;
   //
-  // If debugging is enabled, force-load its contents into the memory space.
+  // Force-load its contents into the memory space, if the policy demands it.
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     PeCoffLoaderLoadCodeViewInplace (Context);
@@ -210,7 +214,6 @@ PeCoffDiscardSections (
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT32                         SectIndex;
-  BOOLEAN                        Discardable;
 
   ASSERT (Context != NULL);
   //
@@ -224,11 +227,10 @@ PeCoffDiscardSections (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   //
-  // Discard all Image Sections that are flagged as optional.
+  // Zero all Image Sections that are flagged as discardable.
   //
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
-    Discardable = (Sections[SectIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0;
-    if (Discardable) {
+    if ((Sections[SectIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0) {
       ZeroMem (
         (CHAR8 *) Context->ImageBuffer + Sections[SectIndex].VirtualAddress,
         Sections[SectIndex].VirtualSize

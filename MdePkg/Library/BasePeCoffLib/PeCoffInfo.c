@@ -63,7 +63,10 @@ PeCoffGetSizeOfImage (
   )
 {
   ASSERT (Context != NULL);
-
+  //
+  // Transparents reserve the force-load space for debug information, if the
+  // policy demands it.
+  //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     ASSERT (Context->SizeOfImage + Context->SizeOfImageDebugAdd >= Context->SizeOfImage);
     return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
@@ -87,7 +90,11 @@ PeCoffLoaderGetDestinationSize (
   ASSERT (Size != NULL);
 
   TotalSize = PeCoffGetSizeOfImage (Context);
-
+  //
+  // If the Image Section alignment is larger than the UEFI Page Size,
+  // sufficient alignment cannot be guaranteed by the allocater. Allodate an
+  // additional Image page to be able to manually align within the buffer.
+  //
   if (PeCoffGetSectionAlignment (Context) > EFI_PAGE_SIZE) {
     Overflow = BaseOverflowAddU32 (
                  TotalSize,

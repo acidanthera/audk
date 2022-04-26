@@ -37,26 +37,26 @@
 **/
 #define IMAGE_RELOC_OFFSET(Relocation)  ((Relocation) & 0x0FFFU)
 
+
+// FIXME: Add RISC-V support.
 /**
-  Returns whether the Image targets the UEFI Subsystem.
+  Returns whether the Base Relocation type is supported by this loader.
 
-  @param[in] Subsystem  The Subsystem value from the Image Header.
+  @param[in] Type  The type of the Base Relocation.
 **/
-#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
-  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
-   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
-
 #define IMAGE_RELOC_TYPE_SUPPORTED(Type) \
   (((Type) == EFI_IMAGE_REL_BASED_ABSOLUTE) || \
   ((Type) == EFI_IMAGE_REL_BASED_HIGHLOW) || \
   ((Type) == EFI_IMAGE_REL_BASED_DIR64) || \
   ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) != 0 && (Type) == EFI_IMAGE_REL_BASED_ARM_MOV32T))
 
-#define IMAGE_RELOC_SUPPORTED(Reloc) \
-  IMAGE_RELOC_TYPE_SUPPORTED (IMAGE_RELOC_TYPE (Reloc))
+/**
+  Returns whether the Base Relocation is supported by this loader.
 
-#define COMPOSE_32(High, Low)  \
-  ((UINT32) ((UINT32) (Low) + ((UINT32) (High) * 65536U)))
+  @param[in] Relocation  The composite Base Relocation value.
+**/
+#define IMAGE_RELOC_SUPPORTED(Relocation) \
+  IMAGE_RELOC_TYPE_SUPPORTED (IMAGE_RELOC_TYPE (Reloc))
 
 /**
   Retrieve the immediate data encoded in an ARM MOVT or MOVW immediate
@@ -82,7 +82,7 @@ ThumbMovtImmediateAddress (
   //
   Movt1 = *(CONST UINT16 *) (CONST VOID *) Instruction;
   Movt2 = *(CONST UINT16 *) (CONST VOID *) ((CONST CHAR8 *) Instruction + sizeof (UINT16));
-  Movt  = COMPOSE_32 (Movt1, Movt2);
+  Movt  = ((UINT32) Movt1 << 16U) | (UINT32) Movt2;
   //
   // imm16 = imm4:i:imm3:imm8
   //         imm4 -> Bit19:Bit16
@@ -151,7 +151,9 @@ ThumbMovwMovtImmediateAddress (
 {
   CONST CHAR8 *Word;
   CONST CHAR8 *Top;
-
+  //
+  // Calculate the encoded address of the instruction pair.
+  //
   Word = Instructions;                                        // MOVW
   Top  = (CONST CHAR8 *) Instructions + 2 * sizeof (UINT16);  // MOVT
 
@@ -173,7 +175,9 @@ ThumbMovwMovtImmediatePatch (
 {
   CHAR8 *Word;
   CHAR8 *Top;
-
+  //
+  // Patch the instruction pair's encoded address.
+  //
   Word = Instructions;                                  // MOVW
   Top  = (CHAR8 *) Instructions + 2 * sizeof (UINT16);  // MOVT
 
@@ -195,7 +199,9 @@ ThumbMovwMovtImmediateFixup (
   )
 {
   UINT32 Fixup32;
-
+  //
+  // Relocate the instruction pair.
+  //
   Fixup32 = ThumbMovwMovtImmediateAddress (Fixup) + (UINT32) Adjust;
   ThumbMovwMovtImmediatePatch (Fixup, Fixup32);
 }
@@ -221,11 +227,11 @@ ThumbMovwMovtImmediateFixup (
 STATIC
 RETURN_STATUS
 InternalApplyRelocation (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT           *Context,
-  IN     CONST EFI_IMAGE_BASE_RELOCATION_BLOCK  *RelocBlock,
-  IN     UINT32                                 RelocIndex,
-  IN     UINT64                                 Adjust,
-  OUT    UINT64                                 *FixupData OPTIONAL
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT     *Context,
+  IN  CONST EFI_IMAGE_BASE_RELOCATION_BLOCK  *RelocBlock,
+  IN  UINT32                                 RelocIndex,
+  IN  UINT64                                 Adjust,
+  OUT UINT64                                 *FixupData OPTIONAL
   )
 {
   UINT16  RelocType;
@@ -238,7 +244,7 @@ InternalApplyRelocation (
   CHAR8   *Fixup;
 
   RelocType = IMAGE_RELOC_TYPE (RelocBlock->Relocations[RelocIndex]);
-  RelocOff = IMAGE_RELOC_OFFSET (RelocBlock->Relocations[RelocIndex]);
+  RelocOff  = IMAGE_RELOC_OFFSET (RelocBlock->Relocations[RelocIndex]);
   //
   // Absolute Base Relocations are used for padding any must be skipped.
   //
@@ -250,7 +256,7 @@ InternalApplyRelocation (
     return RETURN_SUCCESS;
   }
   //
-  // Determine the Base Relocation target address.
+  // Verify the Base Relocation target address is in bounds of the Image buffer.
   //
   Overflow = BaseOverflowAddU32 (
                RelocBlock->VirtualAddress,
@@ -288,24 +294,30 @@ InternalApplyRelocation (
   //
   switch (RelocType) {
     case EFI_IMAGE_REL_BASED_HIGHLOW:
+      //
+      // Verify the Base Relocation target is in bounds of the Image buffer.
+      //
       if (sizeof (UINT32) > RemRelocTargetSize) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
-      // Ensure the Base Relocation does not target the Relocation Directory.
+      // Verify the Base Relocation does not target the Relocation Directory.
       //
       if (RelocTarget + sizeof (UINT32) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
-      Fixup32 = ReadUnaligned32 ((CONST VOID *) Fixup);
+      //
+      // Relocate the instruction.
+      //
+      Fixup32  = ReadUnaligned32 ((CONST VOID *) Fixup);
       Fixup32 += (UINT32) Adjust;
-
       WriteUnaligned32 ((VOID *) Fixup, Fixup32);
-
+      //
+      // Record the relocated value for Runtime Relocation.
+      //
       if (FixupData != NULL) {
         FixupData[RelocIndex] = Fixup32;
       }
@@ -313,24 +325,30 @@ InternalApplyRelocation (
       break;
 
     case EFI_IMAGE_REL_BASED_DIR64:
+      //
+      // Verify the Base Relocation target is in bounds of the Image buffer.
+      //
       if (sizeof (UINT64) > RemRelocTargetSize) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
-      // Ensure the Base Relocation does not target the Relocation Directory.
+      // Verify the Base Relocation does not target the Relocation Directory.
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
-      Fixup64 = ReadUnaligned64 ((CONST VOID *) Fixup);
+      //
+      // Relocate the instruction.
+      //
+      Fixup64  = ReadUnaligned64 ((CONST VOID *) Fixup);
       Fixup64 += Adjust;
-
       WriteUnaligned64 ((VOID *) Fixup, Fixup64);
-
+      //
+      // Record the relocated value for Runtime Relocation.
+      //
       if (FixupData != NULL) {
         FixupData[RelocIndex] = Fixup64;
       }
@@ -338,31 +356,43 @@ InternalApplyRelocation (
       break;
 
     case EFI_IMAGE_REL_BASED_ARM_MOV32T:
+      //
+      // Verify ARM Thumb mode Base Relocations are supported.
+      //
       if ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) == 0) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
+      //
+      // Verify the Base Relocation target is in bounds of the Image buffer.
+      //
       if (sizeof (UINT64) > RemRelocTargetSize) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
+      //
+      // Verify the Base Relocation target is sufficiently aligned.
+      // The ARM THunb instruction pait must start on a 32-bit boundary.
+      //
       if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT32))) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
-      // Ensure the Base Relocation does not target the Relocation Directory.
+      // Verify the Base Relocation does not target the Relocation Directory.
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
       }
-
+      //
+      // Relocate the instruction.
+      //
       ThumbMovwMovtImmediateFixup (Fixup, Adjust);
-
+      //
+      // Record the relocated value for Runtime Relocation.
+      //
       if (FixupData != NULL) {
         FixupData[RelocIndex] = ReadUnaligned64 ((CONST VOID *) Fixup);
       }
@@ -370,6 +400,9 @@ InternalApplyRelocation (
       break;
 
     default:
+      //
+      // The Base Relocation type cannot be recognised, disallow the Image.
+      //
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
   }
@@ -409,7 +442,9 @@ PeCoffRelocateImage (
   ASSERT (!Context->RelocsStripped);
   ASSERT (RuntimeContext != NULL || RuntimeContextSize == 0);
   ASSERT (RuntimeContext == NULL || RuntimeContextSize >= sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
-
+//
+  // Verify the Relocation Directory is not empty.
+  //
   if (Context->RelocDirSize == 0) {
     return RETURN_SUCCESS;
   }
@@ -428,9 +463,9 @@ PeCoffRelocateImage (
   if (RuntimeContext == NULL && Adjust == 0) {
     return RETURN_SUCCESS;
   }
-
-  TopOfRelocDir = Context->RelocDirRva + Context->RelocDirSize;
-
+  //
+  // Initialise the Runtime Context header.
+  //
   if (RuntimeContext != NULL) {
     RuntimeContext->RelocDirRva  = Context->RelocDirRva;
     RuntimeContext->RelocDirSize = Context->RelocDirSize;
@@ -438,8 +473,9 @@ PeCoffRelocateImage (
   //
   // Apply Base Relocation fixups to the image.
   //
-  RelocOffset = Context->RelocDirRva;
-  RelocMax = TopOfRelocDir - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
+  RelocOffset    = Context->RelocDirRva;
+  TopOfRelocDir  = Context->RelocDirRva + Context->RelocDirSize;
+  RelocMax       = TopOfRelocDir - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
   RelocDataIndex = 0;
   //
   // Align TopOfRelocDir because, if the policy does not demand Relocation Block
@@ -459,34 +495,41 @@ PeCoffRelocateImage (
     }
   }
   //
-  // Process all Base Relocation Blocks.
+  // Apply all Base Relocations of the Image.
   //
   while (RelocOffset <= RelocMax) {
     RelocWalker = (CONST EFI_IMAGE_BASE_RELOCATION_BLOCK *) (CONST VOID *) (
                     (CONST CHAR8 *) Context->ImageBuffer + RelocOffset
                     );
-
+    //
+    // Verify the Base Relocation Block size is well-formed.
+    //
     Overflow = BaseOverflowSubU32 (
                  RelocWalker->SizeOfBlock,
                  sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK),
                  &SizeOfRelocs
                  );
-    //
-    // Ensure there is at least one entry.
-    // Ensure the block's size is padded to ensure proper alignment.
-    //
     if (Overflow) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Verify the Base Relocation Block is in bounds of the Relocation
+    // Directory.
+    //
     if (SizeOfRelocs > RelocMax - RelocOffset) {
       CRITICAL_ERROR (FALSE);
       return RETURN_UNSUPPORTED;
     }
-
+    //
+    // Advance to the next Base Relocation Block offset based on the alignment
+    // policy.
+    //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) == 0) {
       RelocBlockSize = RelocWalker->SizeOfBlock;
+      //
+      // Verify the next Base Relocation Block offset is sufficiently aligned.
+      //
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
         CRITICAL_ERROR (FALSE);
         return RETURN_UNSUPPORTED;
@@ -502,14 +545,11 @@ PeCoffRelocateImage (
                          ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
                          );
     }
-
     //
     // This division is safe due to the guarantee made above.
     //
     NumRelocs = SizeOfRelocs / sizeof (*RelocWalker->Relocations);
-    //
-    // Apply all Base Relocation fixups of the current block.
-    //
+
     if (RuntimeContext != NULL) {
       WalkerFixupData = &RuntimeContext->FixupData[RelocDataIndex];
     } else {
@@ -546,10 +586,10 @@ PeCoffRelocateImage (
     }
 
     RelocDataIndex += NumRelocs;
-    RelocOffset += RelocBlockSize;
+    RelocOffset    += RelocBlockSize;
   }
   //
-  // Ensure the Relocation Directory size matches the contained data.
+  // Verify the Relocation Directory size matches the contained data.
   //
   if (RelocOffset != TopOfRelocDir) {
     CRITICAL_ERROR (FALSE);
@@ -571,7 +611,7 @@ PeCoffRelocateImage (
 /**
   Apply an Image Base Relocation for Runtime Relocation.
 
-  Correctness has been ensured by PeCoffRelocateImage() previously.
+  Well-formedness has been verified by PeCoffRelocateImage() previously.
   Fails if the Relocation target value has changed since PeCoffRelocateImage().
 
   @param[in]  Image       The Image destination memory. Must have been relocated
@@ -593,13 +633,21 @@ InternalApplyRelocationRuntime (
   IN     UINT64  FixupData
   )
 {
-  UINT32       Fixup32;
-  UINT64       Fixup64;
+  UINT32 Fixup32;
+  UINT64 Fixup64;
 
   ASSERT (Fixup != NULL);
   ASSERT (IMAGE_RELOC_TYPE_SUPPORTED (RelocType)
        && RelocType != EFI_IMAGE_REL_BASED_ABSOLUTE);
 
+  //
+  // This function assumes the image has previously been validated by
+  // PeCoffInitializeContext().
+  //
+
+  //
+  // Apply the Base Relocation fixup per type.
+  //
   switch (RelocType) {
     case EFI_IMAGE_REL_BASED_HIGHLOW:
       Fixup32 = ReadUnaligned32 ((CONST VOID *) Fixup);
@@ -613,7 +661,6 @@ InternalApplyRelocationRuntime (
       }
 
       Fixup32 += (UINT32) Adjust;
-
       WriteUnaligned32 (Fixup, Fixup32);
 
       break;
@@ -630,7 +677,6 @@ InternalApplyRelocationRuntime (
       }
 
       Fixup64 += Adjust;
-
       WriteUnaligned64 (Fixup, Fixup64);
 
       break;
@@ -653,6 +699,10 @@ InternalApplyRelocationRuntime (
       break;
 
     default:
+      //
+      // Invalid Base Relocation types would have caused the Image to not be
+      // loaded relocated successfully earlier.
+      //
       ASSERT (FALSE);
   }
 
@@ -669,7 +719,9 @@ PeCoffLoaderGetRuntimeContextSize (
   UINT32  FixupDataSize;
 
   ASSERT (Context != NULL);
+  ASSERT (!Context->RelocsStripped);
   ASSERT (Size != NULL);
+
   //
   // Because Base Relocations have not been stripped, PeCoffInitializeContext()
   // has verified the Relocation Directory exists and is valid.
@@ -722,27 +774,36 @@ PeCoffRelocateImageForRuntime (
   UINT32                                RelocIndex;
   UINT32                                RelocTarget;
   UINT32                                RelocSuboffset;
+  UINT32                                RelocBlockSize;
 
   (VOID) ImageSize;
 
   ASSERT (Image != NULL);
   ASSERT (BaseAddress != 0);
   ASSERT (RuntimeContext != NULL);
+
   //
   // This function assumes the image has previously been validated by
-  // PeCoffInitializeContext().
+  // PeCoffInitializeContext(). The arithmetics in this function generally
+  // cannot overflow because they follow those of PeCoffRelocateImage().
   //
-  ImageAddress = (UINTN) Image;
-  Adjust = BaseAddress - ImageAddress;
 
+  ImageAddress = (UINTN) Image;
+  Adjust       = BaseAddress - ImageAddress;
+  //
+  // If the Image remains at the current address, skip relocation.
+  //
   if (Adjust == 0) {
     return RETURN_SUCCESS;
   }
-
+  //
+  // Apply all Base Relocations of the Image.
+  //
   FixupDataIndex = 0;
-  RelocOffset = RuntimeContext->RelocDirRva;
-
+  RelocOffset    = RuntimeContext->RelocDirRva;
   while (RelocOffset < RuntimeContext->RelocDirRva + RuntimeContext->RelocDirSize) {
+    ASSERT (IS_ALIGNED (RelocOffset, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)));
+
     RelocWalker = (CONST EFI_IMAGE_BASE_RELOCATION_BLOCK *) (CONST VOID *) (
                     (CONST CHAR8 *) Image + RelocOffset
                     );
@@ -752,19 +813,19 @@ PeCoffRelocateImageForRuntime (
       "The following accesses must be performed unaligned."
       );
 
-    ASSERT (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) <= MAX_UINT32 - RelocWalker->SizeOfBlock);
-
+    ASSERT (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) <= RelocWalker->SizeOfBlock);
+    //
+    // Determine the number of Base Relocations in this Block.
+    //
     SizeOfRelocs = RelocWalker->SizeOfBlock - sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK);
-
-    ASSERT (IS_ALIGNED (RelocWalker->SizeOfBlock, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)));
-    //
-    // This division is safe due to the guarantee made above.
-    //
-    NumRelocs = SizeOfRelocs / sizeof (*RelocWalker->Relocations);
+    NumRelocs    = SizeOfRelocs / sizeof (*RelocWalker->Relocations);
     //
     // Apply all Base Relocation fixups of the current block.
     //
     for (RelocIndex = 0; RelocIndex < NumRelocs; ++RelocIndex) {
+      //
+      // Skip Absolute Base Relocations.
+      //
       if (IMAGE_RELOC_TYPE (RelocWalker->Relocations[RelocIndex]) == EFI_IMAGE_REL_BASED_ABSOLUTE) {
         continue;
       }
@@ -773,25 +834,42 @@ PeCoffRelocateImageForRuntime (
       //
       RelocSuboffset = IMAGE_RELOC_OFFSET (RelocWalker->Relocations[RelocIndex]);
       ASSERT (RelocSuboffset <= MAX_UINT32 - RelocWalker->VirtualAddress);
-
+      //
+      // Apply the Base Relocation.
+      //
       RelocTarget = RelocWalker->VirtualAddress + RelocSuboffset;
-
       Status = InternalApplyRelocationRuntime (
                  (CHAR8 *) Image + RelocTarget,
                  IMAGE_RELOC_TYPE (RelocWalker->Relocations[RelocIndex]),
                  Adjust,
                  RuntimeContext->FixupData[FixupDataIndex]
                  );
-
-      if (!PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)
-       && Status != RETURN_SUCCESS) {
-        return Status;
+      //
+      // If the original Relocation target value mismatches the expected value,
+      // and the policy demands it, report an error.
+      //
+      if (!PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+        if (Status != RETURN_SUCCESS) {
+          return Status;
+        }
       }
 
       ++FixupDataIndex;
     }
+    //
+    // Advance to the next Base Relocation Block based on the alignment policy.
+    //
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) == 0) {
+      RelocBlockSize = RelocWalker->SizeOfBlock;
+      ASSERT (IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)));
+    } else {
+      RelocBlockSize = ALIGN_VALUE (
+                         RelocWalker->SizeOfBlock,
+                         ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
+                         );
+    }
 
-    RelocOffset += RelocWalker->SizeOfBlock;
+    RelocOffset += RelocBlockSize;
   }
 
   ASSERT (RelocOffset == RuntimeContext->RelocDirRva + RuntimeContext->RelocDirSize);

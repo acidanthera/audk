@@ -24,12 +24,16 @@ PeCoffLoadImageForExecution (
   RETURN_STATUS Status;
   UINTN         BaseAddress;
   UINTN         SizeOfImage;
-
+  //
+  // Load the Image into the memory space.
+  //
   Status = PeCoffLoadImage (Context, Destination, DestinationSize);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
-
+  //
+  // Relocate the Image to the address it has been loaded to.
+  //
   BaseAddress = PeCoffLoaderGetImageAddress (Context);
   Status = PeCoffRelocateImage (
     Context,
@@ -43,8 +47,7 @@ PeCoffLoadImageForExecution (
 
   SizeOfImage = PeCoffGetSizeOfImage (Context);
   //
-  // Flush the instruction cache so the image data is written before we execute
-  // it.
+  // Flush the instruction cache so the image data is written before execution.
   //
   InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
 
@@ -60,7 +63,9 @@ PeCoffRelocateImageForRuntimeExecution (
   )
 {
   RETURN_STATUS Status;
-
+  //
+  // Relocate the Image to the new Runtime address.
+  //
   Status = PeCoffRelocateImageForRuntime (
              Image,
              ImageSize,
@@ -71,8 +76,7 @@ PeCoffRelocateImageForRuntimeExecution (
     return Status;
   }
   //
-  // Flush the instruction cache so the image data is written before we execute
-  // it.
+  // Flush the instruction cache so the image data is written before execution.
   //
   InvalidateInstructionCacheRange (Image, ImageSize);
 
