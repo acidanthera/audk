@@ -330,8 +330,8 @@ PeCoffGetPdbPath (
 BOOLEAN
 PeCoffHashImageAuthenticode (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
-  IN OUT VOID                          *HashContext
+  IN OUT VOID                          *HashContext,
+  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate
   );
 
 RETURN_STATUS

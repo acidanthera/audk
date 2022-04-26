@@ -37,8 +37,8 @@ STATIC
 BOOLEAN
 InternalHashSections (
   IN     CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_LOADER_HASH_UPDATE          HashUpdate,
   IN OUT VOID                                *HashContext,
+  IN     PE_COFF_LOADER_HASH_UPDATE          HashUpdate,
   IN OUT UINT32                              *SumBytesHashed
   )
 {
@@ -161,8 +161,8 @@ InternalHashSections (
 BOOLEAN
 PeCoffHashImageAuthenticode (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate,
-  IN OUT VOID                          *HashContext
+  IN OUT VOID                          *HashContext,
+  IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate
   )
 {
   BOOLEAN                      Result;
@@ -297,8 +297,8 @@ PeCoffHashImageAuthenticode (
   //
   Result = InternalHashSections (
              Context,
-             HashUpdate,
              HashContext,
+             HashUpdate,
              &SumBytesHashed
              );
   if (!Result) {
