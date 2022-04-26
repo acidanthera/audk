@@ -760,12 +760,12 @@ CoreLoadPeImage (
   // Load the image from the file into the allocated memory
   //
   Status = PeCoffLoadImageForExecution (
-    ImageContext,
-    (VOID *)(UINTN)BufferAddress,
-    Size,
-    RelocationData,
-    RelocDataSize
-    );
+             ImageContext,
+             (VOID *)(UINTN)BufferAddress,
+             Size,
+             RelocationData,
+             RelocDataSize
+             );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     goto Done;
@@ -781,7 +781,7 @@ CoreLoadPeImage (
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)((UINTN)(LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext)));
+  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol

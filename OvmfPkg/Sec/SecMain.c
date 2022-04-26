@@ -734,7 +734,7 @@ FindAndReportEntryPoints (
   //
   PeCoffLoaderRelocateImageExtraAction (&ImageContext);
 
-  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(PeCoffGetImageBase (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
 
   return;
 }

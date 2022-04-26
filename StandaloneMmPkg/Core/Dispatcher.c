@@ -379,8 +379,8 @@ MmLoadImage (
   DEBUG ((
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)DstBuffer,
-    FUNCTION_ENTRY_POINT (DstBuffer + PeCoffGetAddressOfEntryPoint (&ImageContext))
+    (VOID *)(UINTN)ImageBase,
+    FUNCTION_ENTRY_POINT (ImageBase + PeCoffGetAddressOfEntryPoint (&ImageContext))
     ));
 
   Status = PeCoffGetModuleNameFromPdb (

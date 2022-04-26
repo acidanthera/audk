@@ -360,8 +360,6 @@ LoadAndRelocatePeCoffImage (
       //}
       return Status;
     }
-
-    LoadAddress = PeCoffLoaderGetImageAddress (ImageContext);
   } else {
     Status = PeCoffLoadImageInplace (ImageContext);
     if (EFI_ERROR (Status)) {
@@ -369,7 +367,7 @@ LoadAndRelocatePeCoffImage (
     }
   }
 
-  *ImageAddress = LoadAddress;
+  *ImageAddress = PeCoffLoaderGetImageAddress (ImageContext);
 
   return ReturnStatus;
 }

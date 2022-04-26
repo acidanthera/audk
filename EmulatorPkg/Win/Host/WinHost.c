@@ -748,7 +748,7 @@ SecPeCoffGetEntryPoint (
     return Status;
   }
 
-  *EntryPoint = (VOID *) ((UINTN) Dest + PeCoffGetAddressOfEntryPoint (&ImageContext));
+  *EntryPoint   = (VOID *) (PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
 
   return EFI_SUCCESS;
 }

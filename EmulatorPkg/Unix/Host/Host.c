@@ -745,7 +745,7 @@ SecPeCoffGetEntryPoint (
     return Status;
   }
 
-  *EntryPoint = (VOID *) ((UINTN)Pe32Data + PeCoffGetAddressOfEntryPoint (&ImageContext));
+  *EntryPoint = (VOID *) (PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
 
   // On Unix a dlopen is done that will change the entry point
   SecPeCoffRelocateImageExtraAction2 (&ImageContext, EntryPoint);

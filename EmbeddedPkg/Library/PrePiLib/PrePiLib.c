@@ -88,9 +88,9 @@ LoadPeCoffImage (
   Status = PeCoffLoadImageForExecution (&ImageContext, Buffer, BufferSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  *ImageAddress = (UINTN) Buffer;
+  *ImageAddress = (UINTN) PeCoffLoaderGetImageAddress (&ImageContext);
   *ImageSize    = PeCoffGetSizeOfImage (&ImageContext);
-  *EntryPoint   = (UINTN) Buffer + PeCoffGetAddressOfEntryPoint (&ImageContext);
+  *EntryPoint   = (UINTN) PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext);
 
   return Status;
 }
