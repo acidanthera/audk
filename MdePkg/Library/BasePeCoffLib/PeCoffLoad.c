@@ -177,6 +177,12 @@ PeCoffLoadImageInplace (
   UINT16                         Index;
 
   ASSERT (Context != NULL);
+  //
+  // Verify the Image is located at its preferred load address.
+  //
+  if ((UINTN) Context->FileBuffer != Context->ImageBase) {
+    return RETURN_UNSUPPORTED;
+  }
 
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
