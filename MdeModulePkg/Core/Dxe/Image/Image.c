@@ -86,7 +86,20 @@ GLOBAL_REMOVE_IF_UNREFERENCED MACHINE_TYPE_INFO  mMachineTypeInfo[] = {
   { EFI_IMAGE_MACHINE_AARCH64,        L"AARCH64" }
 };
 
-UINT16  mDxeCoreImageMachineType = 0;
+//  FIXME: RISC-V, IA64
+#if defined (MDE_CPU_IA32)
+  CONST CHAR16 *mDxeCoreImageMachineTypeName = L"IA32";
+#elif defined (MDE_CPU_IA64)
+  CONST CHAR16 *mDxeCoreImageMachineTypeName = L"IA64";
+#elif defined (MDE_CPU_X64)
+  CONST CHAR16 *mDxeCoreImageMachineTypeName = L"X64";
+#elif defined (MDE_CPU_ARM)
+  CONST CHAR16 *mDxeCoreImageMachineTypeName = L"ARM";
+#elif defined (MDE_CPU_ARM)
+  CONST CHAR16 *mDxeCoreImageMachineTypeName = L"AARCH64";
+#else
+  #error Unkown CPU architecture
+#endif
 
 /**
  Return machine type name.
@@ -255,7 +268,6 @@ CoreInitializeImageServices (
   //
   // Fill in DXE globals
   //
-  mDxeCoreImageMachineType = PeCoffGetMachine (ImageContext);
   gDxeCoreImageHandle      = Image->Handle;
   gDxeCoreLoadedImage      = &Image->Info;
 
@@ -586,9 +598,9 @@ CoreLoadPeImage (
     //
     DEBUG ((
       DEBUG_ERROR,
-      "Image type %s can't be loaded on UEFI system.\n",
+      "Image type %s can't be loaded on %s UEFI system.\n",
       GetMachineTypeName (PeCoffGetMachine (ImageContext)),
-      GetMachineTypeName (mDxeCoreImageMachineType)
+      mDxeCoreImageMachineTypeName
       ));
     ASSERT (FALSE);
     return EFI_UNSUPPORTED;
@@ -1640,8 +1652,8 @@ CoreStartImage (
     // Do not ASSERT here, because image might be loaded via EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED
     // But it can not be started.
     //
-    DEBUG ((DEBUG_ERROR, "Image type %s can't be started ", GetMachineTypeName (Image->Machine)));
-    DEBUG ((DEBUG_ERROR, "on %s UEFI system.\n", GetMachineTypeName (mDxeCoreImageMachineType)));
+    DEBUG ((EFI_D_ERROR, "Image type %s can't be started ", GetMachineTypeName(Image->Machine)));
+    DEBUG ((EFI_D_ERROR, "on %s UEFI system.\n", mDxeCoreImageMachineTypeName));
     return EFI_UNSUPPORTED;
   }
 
