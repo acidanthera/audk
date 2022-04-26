@@ -89,7 +89,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED MACHINE_TYPE_INFO  mMachineTypeInfo[] = {
 //  FIXME: RISC-V, IA64
 #if defined (MDE_CPU_IA32)
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"IA32";
-#elif defined (MDE_CPU_IA64)
+#elif defined (MDE_CPU_IPF)
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"IA64";
 #elif defined (MDE_CPU_X64)
   CONST CHAR16 *mDxeCoreImageMachineTypeName = L"X64";
