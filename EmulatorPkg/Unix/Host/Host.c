@@ -717,6 +717,13 @@ SecEmuThunkAddress (
   return &gEmuThunkProtocol;
 }
 
+VOID
+EFIAPI
+SecPeCoffRelocateImageExtraAction2 (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT         *ImageContext,
+  OUT    VOID                                 **EntryPoint
+  );
+
 RETURN_STATUS
 EFIAPI
 SecPeCoffGetEntryPoint (
@@ -727,45 +734,42 @@ SecPeCoffGetEntryPoint (
   EFI_STATUS                    Status;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
 
-  ZeroMem (&ImageContext, sizeof (ImageContext));
-  ImageContext.Handle    = Pe32Data;
-  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)SecImageRead;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  if (ImageContext.ImageAddress != (UINTN)Pe32Data) {
+  if (ImageContext.ImageBase != (UINTN)Pe32Data) {
+    UINT64 OldBase;
+    OldBase = ImageContext.ImageBase;
     //
     // Relocate image to match the address where it resides
+    // FIXME: Why cannot the Image be in-place already?
+    // PeCoffLoadImageInplace checks for correct address
     //
-    ImageContext.ImageAddress = (UINTN)Pe32Data;
-    Status                    = PeCoffLoaderLoadImage (&ImageContext);
+    ImageContext.ImageBase = (UINTN)Pe32Data;
+    Status                    = PeCoffLoadImageInplace (&ImageContext);
     if (EFI_ERROR (Status)) {
       return Status;
     }
 
-    Status = PeCoffLoaderRelocateImage (&ImageContext);
+    ImageContext.ImageBase = OldBase;
+
+    Status = PeCoffRelocateImage (&ImageContext, (UINTN)Pe32Data, NULL, 0);
     if (EFI_ERROR (Status)) {
       return Status;
     }
   } else {
-    //
-    // Or just return image entry point
-    //
-    ImageContext.PdbPointer = PeCoffLoaderGetPdbPointer (Pe32Data);
-    Status                  = PeCoffLoaderGetEntryPoint (Pe32Data, EntryPoint);
+    Status                  = PeCoffLoadImageInplace (&ImageContext);
     if (EFI_ERROR (Status)) {
       return Status;
     }
-
-    ImageContext.EntryPoint = (UINTN)*EntryPoint;
   }
 
+  *EntryPoint = (VOID *) ((UINTN)Pe32Data + PeCoffGetAddressOfEntryPoint (&ImageContext));
+
   // On Unix a dlopen is done that will change the entry point
-  SecPeCoffRelocateImageExtraAction (&ImageContext);
-  *EntryPoint = (VOID *)(UINTN)ImageContext.EntryPoint;
+  SecPeCoffRelocateImageExtraAction2 (&ImageContext, EntryPoint);
 
   return Status;
 }
@@ -971,8 +975,13 @@ RemoveHandle (
 {
   UINTN                        Index;
   IMAGE_CONTEXT_TO_MOD_HANDLE  *Array;
+  EFI_STATUS                   Status;
+  CONST CHAR8                  *PdbPath;
+  UINT32                       PdbPathSize;
 
-  if (ImageContext->PdbPointer == NULL) {
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (EFI_ERROR (Status)) {
     //
     // If no PDB pointer there is no ModHandle so return NULL
     //
@@ -995,7 +1004,7 @@ RemoveHandle (
 
 BOOLEAN
 IsPdbFile (
-  IN  CHAR8  *PdbFileName
+  IN  CONST CHAR8   *PdbFileName
   )
 {
   UINTN  Len;
@@ -1026,20 +1035,26 @@ PrintLoadAddress (
   IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  if (ImageContext->PdbPointer == NULL) {
+  EFI_STATUS                   Status;
+  CONST CHAR8                  *PdbPath;
+  UINT32                       PdbPathSize;
+
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (EFI_ERROR (Status)) {
     fprintf (
       stderr,
       "0x%08lx Loading NO DEBUG with entry point 0x%08lx\n",
-      (unsigned long)(ImageContext->ImageAddress),
-      (unsigned long)ImageContext->EntryPoint
+      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
+      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
       );
   } else {
     fprintf (
       stderr,
       "0x%08lx Loading %s with entry point 0x%08lx\n",
-      (unsigned long)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext)),
-      ImageContext->PdbPointer,
-      (unsigned long)ImageContext->EntryPoint
+      (unsigned long)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)),
+      PdbPath,
+      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
       );
   }
 
@@ -1059,7 +1074,8 @@ PrintLoadAddress (
 **/
 BOOLEAN
 DlLoadImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  OUT    VOID                                 **EntryPoint
   )
 {
  #ifdef __APPLE__
@@ -1070,24 +1086,29 @@ DlLoadImage (
 
   void  *Handle = NULL;
   void  *Entry  = NULL;
+  EFI_STATUS  Status;
+  CONST CHAR8 *PdbPath;
+  UINT32      PdbPathSize;
 
-  if (ImageContext->PdbPointer == NULL) {
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (EFI_ERROR (Status)) {
     return FALSE;
   }
 
-  if (!IsPdbFile (ImageContext->PdbPointer)) {
+  if (!IsPdbFile (PdbPath)) {
     return FALSE;
   }
 
   fprintf (
     stderr,
     "Loading %s 0x%08lx - entry point 0x%08lx\n",
-    ImageContext->PdbPointer,
-    (unsigned long)ImageContext->ImageAddress,
-    (unsigned long)ImageContext->EntryPoint
+     PdbPath,
+      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
+      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
     );
 
-  Handle = dlopen (ImageContext->PdbPointer, RTLD_NOW);
+  Handle = dlopen (PdbPath, RTLD_NOW);
   if (Handle != NULL) {
     Entry = dlsym (Handle, "_ModuleEntryPoint");
     AddHandle (ImageContext, Handle);
@@ -1096,8 +1117,8 @@ DlLoadImage (
   }
 
   if (Entry != NULL) {
-    ImageContext->EntryPoint = (UINTN)Entry;
-    printf ("Change %s Entrypoint to :0x%08lx\n", ImageContext->PdbPointer, (unsigned long)Entry);
+    *EntryPoint = Entry;
+    printf ("Change %s Entrypoint to :0x%08lx\n", PdbPath, (unsigned long)Entry);
     return TRUE;
   } else {
     return FALSE;
@@ -1132,25 +1153,34 @@ GdbScriptAddImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
+  EFI_STATUS  Status;
+  CONST CHAR8 *PdbPath;
+  UINT32      PdbPathSize;
+
   PrintLoadAddress (ImageContext);
 
-  if ((ImageContext->PdbPointer != NULL) && !IsPdbFile (ImageContext->PdbPointer)) {
+  Status = PeCoffGetPdbPath ((ImageContext, &PdbPath,) &PdbPathSize);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  if (!IsPdbFile (PdbPath)) {
     FILE  *GdbTempFile;
     if (FeaturePcdGet (PcdEmulatorLazyLoadSymbols)) {
       GdbTempFile = fopen (gGdbWorkingFileName, "a");
       if (GdbTempFile != NULL) {
-        long unsigned int SymbolsAddr = (long unsigned int)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext));
+        long unsigned int SymbolsAddr = (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext));
         mScriptSymbolChangesCount++;
         fprintf (
           GdbTempFile,
           "AddFirmwareSymbolFile 0x%x %s 0x%08lx\n",
           mScriptSymbolChangesCount,
-          ImageContext->PdbPointer,
+          PdbPath,
           SymbolsAddr
           );
         fclose (GdbTempFile);
         // This is for the lldb breakpoint only
-        SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, (long unsigned int)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext)), 1);
+        SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1160,8 +1190,8 @@ GdbScriptAddImage (
         fprintf (
           GdbTempFile,
           "add-symbol-file %s 0x%08lx\n",
-          ImageContext->PdbPointer,
-          (long unsigned int)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext))
+          PdbPath,
+          (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))
           );
         fclose (GdbTempFile);
 
@@ -1171,7 +1201,7 @@ GdbScriptAddImage (
         // Also used for the lldb breakpoint script. The lldb breakpoint script does
         // not use the file, it uses the arguments.
         //
-        SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, (long unsigned int)(ImageContext->ImageAddress + PeCoffGetSizeOfHeaders (ImageContext)), 1);
+        SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1181,11 +1211,24 @@ GdbScriptAddImage (
 
 VOID
 EFIAPI
+SecPeCoffRelocateImageExtraAction2 (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT         *ImageContext,
+  OUT    VOID                                 **EntryPoint
+  )
+{
+  if (!DlLoadImage (ImageContext, EntryPoint)) {
+    GdbScriptAddImage (ImageContext);
+  }
+}
+
+VOID
+EFIAPI
 SecPeCoffRelocateImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  if (!DlLoadImage (ImageContext)) {
+  VOID *EntryPoint;
+  if (!DlLoadImage (ImageContext, &EntryPoint)) {
     GdbScriptAddImage (ImageContext);
   }
 }
@@ -1202,12 +1245,20 @@ GdbScriptRemoveImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  FILE  *GdbTempFile;
+  FILE        *GdbTempFile;
+  EFI_STATUS  Status;
+  CONST CHAR8 *PdbPath;
+  UINT32      PdbPathSize;
+
+  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
 
   //
   // Need to skip .PDB files created from VC++
   //
-  if (IsPdbFile (ImageContext->PdbPointer)) {
+  if (IsPdbFile (PdbPath)) {
     return;
   }
 
@@ -1222,24 +1273,24 @@ GdbScriptRemoveImage (
         GdbTempFile,
         "RemoveFirmwareSymbolFile 0x%x %s\n",
         mScriptSymbolChangesCount,
-        ImageContext->PdbPointer
+        PdbPath
         );
       fclose (GdbTempFile);
-      SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, 0, 0);
     } else {
       ASSERT (FALSE);
     }
   } else {
     GdbTempFile = fopen (gGdbWorkingFileName, "w");
     if (GdbTempFile != NULL) {
-      fprintf (GdbTempFile, "remove-symbol-file %s\n", ImageContext->PdbPointer);
+      fprintf (GdbTempFile, "remove-symbol-file %s\n", PdbPath);
       fclose (GdbTempFile);
 
       //
       // Target for gdb breakpoint in a script that uses gGdbWorkingFileName to set a breakpoint.
       // Hey what can you say scripting in gdb is not that great....
       //
-      SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, 0, 0);
     } else {
       ASSERT (FALSE);
     }
