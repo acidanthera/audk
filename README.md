@@ -1,6 +1,6 @@
 # Verified EDK II image loader
 
-This branch demonstrates the integration of a new, formally verified image loader into the EDK II infrastructure.
+This branch demonstrates the integration of a new image loader designed with the help of formal methods into the EDK II infrastructure.
 
 ## Introduction
 
@@ -8,16 +8,18 @@ The image loader is one of the central components of the firmware core and the t
 
 ![image](LoaderFlow.png)
 
-As even images from untrusted user media are loaded into the UEFI execution environment with no fewer permissions than the trusted platform drivers (ex. SMM), the previously mentioned technologies are absolutely crucial to guarantee the security of the platform. Unfortunately, over the years, the current EDK II image loader has been subject to many bug reports affecting reliability and security, which have been unresolved to date. Please refer to the TianoCore BugZilla and "Further reading" for further information.
+Unfortunately, over the years, the current EDK II image loader has been subject to many bug reports affecting platform reliability, which have been unresolved to date. Please refer to the TianoCore BugZilla and especially discussion on the edk2-devel mailing list for further reading. Due to the incremental changes to the existing solution over the years, the state of a sound solution has been lost, and it has become a maintenance burden that is hard to fix incrementally. At the same time, the demand on not only tested but proven security has become more important in the recent times.
+
+As even images from untrusted user media are loaded into the UEFI execution environment with no fewer permissions than the trusted platform drivers (excl. MM), the previously mentioned technologies are absolutely crucial to guarantee the security of the platform. The usage of formal methods to design the new solution helps guarantee there are not only no regressions, but even potential improvements in this area.
 
 ## Issues of the current solution
-* High level of maintenance debt due to convoluted function contracts
-* Error-prone design promoting the introduction of vulnerabilities such as TOC/TOU
-* Multiple real-world bugs affecting reliability and security, unaddressed for years
+* High level of maintenance cost due to convoluted function contracts
+* Error-prone design promoting the introduction of code bugs
+* Multiple real-world bugs affecting reliability, unaddressed for years
 
 ## Benefits of the new solution
-* Fixes all known reported BZs on image loader reliability and security
-* Formal methods guarantee a high level of reliability
+* Fixes all known reported BZs on image loader reliability
+* Formal methods guarantee a high level of reliability and security
 * Improved design eases future maintenance and extension
 * Architecture-independent image processing (e.g. for emulation)
 * Possibility for more granular section permissions (e.g. read-only)
@@ -40,24 +42,11 @@ As even images from untrusted user media are loaded into the UEFI execution envi
 * Build compatibility for out-of-tree packages is still absent
 
 ## BZs fixed by integrating the new loader
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1957
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1990
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1993
 * https://bugzilla.tianocore.org/show_bug.cgi?id=1999
-* https://bugzilla.tianocore.org/show_bug.cgi?id=3328
 * https://bugzilla.tianocore.org/show_bug.cgi?id=3329
+* https://bugzilla.tianocore.org/show_bug.cgi?id=1860
 
 ## BZs made easier to address by integrating the new loader
 * https://bugzilla.tianocore.org/show_bug.cgi?id=2120
 * https://bugzilla.tianocore.org/show_bug.cgi?id=3326
 * https://bugzilla.tianocore.org/show_bug.cgi?id=3331
-
-## BZs that require further discussion
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1860
-* https://bugzilla.tianocore.org/show_bug.cgi?id=2213
-
-Please note that the list of BZs is not comprehensive regarding all issues of the current image loader. For further reading, please refer to section 2 of the publication "Securing the EDK II Image Loader".
-
-## Further reading
-* https://github.com/mhaeuser/ISPRASOpen-SecurePE
-* M. Häuser and V. Cheptsov, "Securing the EDK II Image Loader," 2020 Ivannikov Ispras Open Conference (ISPRAS), 2020, pp. 16-25, doi: 10.1109/ISPRAS51486.2020.00010. (preprint: https://arxiv.org/abs/2012.05471)
