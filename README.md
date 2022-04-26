@@ -12,6 +12,8 @@ Unfortunately, over the years, the current EDK II Image Loader has been subject 
 
 The usage of formal methods to design the new solution greatly helped restore the state of a truly sound solution, resolving many issues regarding inter-API guarantees and Image format validation. Many new abstractions have been introduced, external code has been centralized, and the overall flexibility has been improved, to hopefully aid developers to extend the codebase more easily in the future. Beyond that, the formal model ensures a high level of confidence that security-wise there have been no regressions, and there might even be potential improvements.
 
+Please also refer to the WIP EDK II Image Loader Documentation available at [MdePkg/Library/BasePeCoffLib/Documentation.md](MdePkg/Library/BasePeCoffLib/Documentation.md)
+
 ## Issues of the current solution
 * High level of maintenance cost due to convoluted function contracts
 * Error-prone design promoting the introduction of code bugs
