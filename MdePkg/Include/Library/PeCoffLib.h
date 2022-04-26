@@ -149,6 +149,65 @@ typedef struct {
   UINT64 FixupData[];
 } PE_COFF_LOADER_RUNTIME_CONTEXT;
 
+///
+/// Image record section that desribes the UEFI memory permission configuration
+/// for one segment of the Image.
+///
+typedef struct {
+  ///
+  /// The start address of the Image record section in memory.
+  ///
+  UINTN  Address;
+  ///
+  /// The size, in Bytes, of the Image record section.
+  ///
+  UINT32 Size;
+  ///
+  /// The UEFI memory permission attributes corresponding to this Image record
+  /// section.
+  ///
+  UINT32 Attributes;
+} PE_COFF_IMAGE_RECORD_SECTION;
+
+///
+/// The 32-bit signature that identifies a PE_COFF_IMAGE_RECORD structure.
+///
+#define PE_COFF_IMAGE_RECORD_SIGNATURE  SIGNATURE_32 ('P','C','I','R')
+
+///
+/// Image record that describes the UEFI memory permission configuration for
+/// every segment of the Image.
+///
+typedef struct {
+  ///
+  /// The signature of the Image record structure. Must be set to
+  /// PE_COFF_IMAGE_RECORD_SIGNATURE.
+  ///
+  UINT32                       Signature;
+  ///
+  /// A link to allow insertion of the Image record into a doubly-linked list.
+  ///
+  LIST_ENTRY                   Link;
+  // FIXME: Is this needed?
+  ///
+  /// The end address of the Image memory space. Must be equal to
+  /// Sections[NumberOfSections - 1].Address + Sections[NumberOfSections - 1].Size.
+  ///
+  UINTN                        EndAddress;
+  ///
+  /// The number of Image records. Must be at least 1.
+  ///
+  UINT32                       NumberOfSections;
+  ///
+  /// The Image record sections with their corresponding memory permission
+  /// attributes. Must be contiguous and cover the entire Image memory space.
+  /// The Image record sections are ordered in ascending order by Address. The
+  /// start address of the Image memory space can be retrieved by
+  /// Sections[0].Address.
+  ///
+  PE_COFF_IMAGE_RECORD_SECTION Sections[];
+} PE_COFF_IMAGE_RECORD;
+
 /**
   Adds the digest of Data to HashContext. This function can be called multiple
   times to compute the digest of discontinuous data.
@@ -637,6 +696,25 @@ PeCoffGetRelocsStripped (
 **/
 UINTN
 PeCoffLoaderGetImageAddress (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
+  Constructs an Image record from the Image. Any headers, gaps, or trailers are
+  described as read-only data.
+
+  May be called only after PeCoffLoadImage() has succeeded.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @retval NULL   The Image record could not constructed successfully.
+  @retval other  The Image record was constructed successfully and is returned.
+                 It is allocated using the AllocatePool() API and is
+                 caller-owned as soon as this function returns.
+**/
+PE_COFF_IMAGE_RECORD *
+PeCoffLoaderGetImageRecord (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 

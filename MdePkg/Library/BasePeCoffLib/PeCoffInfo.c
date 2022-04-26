@@ -10,8 +10,12 @@
 
 #include <Base.h>
 #include <Uefi/UefiBaseType.h>
+#include <Uefi/UefiSpec.h>
 
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PeCoffLib.h>
 
@@ -70,6 +74,7 @@ PeCoffGetSizeOfImage (
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
     ASSERT (Context->SizeOfImage + Context->SizeOfImageDebugAdd >= Context->SizeOfImage);
+
     return Context->SizeOfImage + Context->SizeOfImageDebugAdd;
   }
 
@@ -141,7 +146,6 @@ PeCoffGetSectionTable (
   ASSERT (Context != NULL);
   ASSERT (Sections != NULL);
 
-  // FIXME: Needs a solution for force-loaded debug info to enforce permissions.
   *Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                 (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                 );
@@ -169,4 +173,286 @@ PeCoffLoaderGetImageAddress (
   ASSERT (Context->ImageBuffer != NULL);
 
   return (UINTN) Context->ImageBuffer;
+}
+
+/**
+  Retrieves the memory protection attributes corresponding to PE/COFF Image
+  section permissions.
+
+  @param[in] Characteristics  The PE/COFF Image section permissions
+
+  @returns  The memory protection attributes corresponding to the PE/COFF Image
+            section permissions.
+**/
+STATIC
+UINT32
+InternalCharacteristicsToAttributes (
+  IN UINT32  Characteristics
+  )
+{
+  UINT32 Attributes;
+
+  Attributes = 0;
+  if ((Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
+    Attributes |= EFI_MEMORY_XP;
+  }
+  if ((Characteristics & EFI_IMAGE_SCN_MEM_READ) == 0) {
+    Attributes |= EFI_MEMORY_RP;
+  }
+  if ((Characteristics & EFI_IMAGE_SCN_MEM_WRITE) == 0) {
+    Attributes |= EFI_MEMORY_RO;
+  }
+
+  return Attributes;
+}
+
+/**
+  Index the read-only padding following an Image record section, if existent.
+
+  @param[in,out] RecordSection  The Image record section for the current memory
+                                protection range. May be extended if it is of
+                                the same type as the adjacent padding. At least
+                                one more record section must be reserved after
+                                it in order to index the read-only padding.
+  @param[in]     NextAddress    The start address of the next memory permission
+                                range. This may be the end address of the Image
+                                in order to cover the Image trailer.
+  @param[in]     EndAddress     The end address of the current memory permission
+                                range. This also denotes the start of the added
+                                read-only padding.
+  @param[in]     Attributes     The memory protection attributes of the current
+                                memory permission range.
+
+  @returns  The amount of Image record sections that have been appended.
+**/
+STATIC
+UINT8
+InternalInsertImageRecordSectionPadding (
+  IN OUT PE_COFF_IMAGE_RECORD_SECTION  *RecordSection,
+  IN     UINTN                         EndAddress,
+  IN     UINTN                         NextAddress,
+  IN     UINT32                        Attributes
+  )
+{
+  ASSERT (RecordSection != NULL);
+  ASSERT (EndAddress <= NextAddress);
+
+  if (NextAddress == EndAddress) {
+    return 0;
+  }
+  //
+  // Add a new Image record section or expand the previous one depending on
+  // the the permissions of the previous Image record section.
+  //
+  if (Attributes == (EFI_MEMORY_XP | EFI_MEMORY_RO)) {
+    RecordSection->Size += NextAddress - EndAddress;
+
+    return 0;
+  }
+
+  ++RecordSection;
+  RecordSection->Address    = EndAddress;
+  //
+  // This cast is safe because all RVAs are UINT32.
+  //
+  RecordSection->Size       = (UINT32) (NextAddress - EndAddress);
+  RecordSection->Attributes = EFI_MEMORY_XP | EFI_MEMORY_RO;
+
+  return 1;
+}
+
+PE_COFF_IMAGE_RECORD *
+PeCoffLoaderGetImageRecord (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  PE_COFF_IMAGE_RECORD           *ImageRecord;
+  UINT32                         MaxRecordSectionsCount;
+  UINT32                         NumberOfRecordSections;
+  PE_COFF_IMAGE_RECORD_SECTION   *RecordSection;
+  UINTN                          ImageAddress;
+  UINT32                         SectionAlignment;
+  CONST EFI_IMAGE_SECTION_HEADER *Sections;
+  UINT16                         NumberOfSections;
+  UINT16                         SectIndex;
+  CONST EFI_IMAGE_SECTION_HEADER *Section;
+  UINTN                          SectionAddress;
+  UINT32                         SectionSize;
+  UINT32                         SectionCharacteristics;
+  UINTN                          StartAddress;
+  UINTN                          EndAddress;
+  UINT32                         Characteristics;
+  UINT32                         Attributes;
+
+  ASSERT (Context != NULL);
+  //
+  // Determine the maximum amount of Image record sections and allocate the
+  // Image record.
+  //
+  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+
+  STATIC_ASSERT (
+    MAX_UINT16 <= MAX_UINT32 / 2 - 1,
+    "The following arithmetic may overflow."
+    );
+
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
+    //
+    // In case of contiguous Image sections, there can be two additional record
+    // sections (Image Headers and trailer, e.g. debug information).
+    //
+    MaxRecordSectionsCount = (UINT32) NumberOfSections + 2;
+  } else {
+    //
+    // In case of possibly non-contiguous Image sections, there can be a trailer
+    // per Image section (the last Image section's trailer is the same as the
+    // Image trailer), as well as additionally the Image Headers.
+    //
+    MaxRecordSectionsCount = (UINT32) NumberOfSections * 2 + 1;
+  }
+
+  ImageRecord = AllocatePool (
+                  sizeof (*ImageRecord)
+                    + MaxRecordSectionsCount * sizeof (*ImageRecord->Sections)
+                  );
+  if (ImageRecord == NULL) {
+    DEBUG_RAISE ();
+    return NULL;
+  }
+
+  ImageRecord->Signature = PE_COFF_IMAGE_RECORD_SIGNATURE;
+  InitializeListHead (&ImageRecord->Link);
+
+  ImageAddress     = PeCoffLoaderGetImageAddress (Context);
+  SectionAlignment = PeCoffGetSectionAlignment (Context);
+  //
+  // Map the Image Headers as read-only data. If the first Image section is
+  // loaded at the start of the Image memory space, the condition
+  // SectionAddress != StartAddress does not hold and these definitions will be
+  // ignored.
+  //
+  StartAddress    = ImageAddress;
+  EndAddress      = PeCoffGetSizeOfHeaders (Context);
+  Characteristics = EFI_IMAGE_SCN_MEM_READ;
+  Attributes      = EFI_MEMORY_XP | EFI_MEMORY_RO;
+  ASSERT (Attributes == InternalCharacteristicsToAttributes (Characteristics));
+  //
+  // Create an Image record section for every permission-distinct range of the
+  // Image. The current range [StartAddress, EndAddress) shares the memory
+  // permissions Charactersitics/Attributes and is extended till a new
+  // memory permission configuration is required. Headers and trailers treated
+  // as read-only data.
+  //
+  NumberOfRecordSections = 0;
+  for (SectIndex = 0; SectIndex < NumberOfSections; ++SectIndex) {
+    Section = Sections + SectIndex;
+    //
+    // Skip empty Image sections to avoid unnecessary splitting.
+    //
+    if (Section->VirtualSize == 0) {
+      continue;
+    }
+    //
+    // These arithmetics are safe as guaranteed by PeCoffInitializeContext().
+    //
+    SectionAddress = ImageAddress + Section->VirtualAddress;
+    SectionSize    = ALIGN_VALUE (Section->VirtualSize, SectionAlignment);
+    SectionCharacteristics = Section->Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE);
+    //
+    // Skip Image sections with the same memory permissions as the current range
+    // as they can be merged. For this, the Image sections must be adjacent, or
+    // the range must have the same memory permissions as the padding inbetween
+    // (read-only).
+    //
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0
+     || SectionAddress == EndAddress
+     || Characteristics == EFI_IMAGE_SCN_MEM_READ) {
+      if (SectionCharacteristics == Characteristics) {
+        EndAddress = SectionAddress + SectionSize;
+        continue;
+      }
+    }
+    //
+    // Only create an entry if the range is not empty, otherwise discard it and
+    // start a new one. Even with skipping empty Image sections, this can still
+    // happen for the Image Headers when the first Image section starts at 0.
+    //
+    if (SectionAddress != StartAddress) {
+      //
+      // Create an Image record section for the current memory permission range.
+      //
+      RecordSection = &ImageRecord->Sections[NumberOfRecordSections];
+      RecordSection->Address    = StartAddress;
+      //
+      // This cast is safe because all RVAs are UINT32.
+      //
+      RecordSection->Size       = (UINT32) (EndAddress - StartAddress);
+      RecordSection->Attributes = Attributes;
+      ++NumberOfRecordSections;
+      //
+      // If the previous range is not adjacent to the current Image section,
+      // report the padding as read-only data.
+      //
+      if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
+        NumberOfRecordSections += InternalInsertImageRecordSectionPadding (
+                                    RecordSection,
+                                    EndAddress,
+                                    SectionAddress,
+                                    Attributes
+                                    );
+      }
+
+      StartAddress = SectionAddress;
+    }
+    //
+    // Start a Image record section with the current Image section.
+    //
+    EndAddress      = SectionAddress + SectionSize;
+    Characteristics = SectionCharacteristics;
+    Attributes      = InternalCharacteristicsToAttributes (Characteristics);
+  }
+  //
+  // Image Record sections are only created once a non-empty Image section is
+  // encountered that requests a different memory permission configuration.
+  // As such, the last memory permission range is never converted in the loop.
+  // If the loop never produced such, this is true for the Image Headers, which
+  // cannot be empty.
+  //
+  ASSERT (0 < EndAddress - StartAddress);
+  //
+  // Create an Image record section for the last Image memory permission range.
+  //
+  RecordSection = &ImageRecord->Sections[NumberOfRecordSections];
+  RecordSection->Address    = StartAddress;
+  //
+  // This cast is safe because all RVAs are UINT32.
+  //
+  RecordSection->Size       = (UINT32) (EndAddress - StartAddress);
+  RecordSection->Attributes = Attributes;
+  ++NumberOfRecordSections;
+  //
+  // The Image trailer (e.g. the force-loaded debug data), if existent, is
+  // treated as padding and as such is reported as read-only data, as intended.
+  // Because it is not part of the original Image memory space, this needs to
+  // happen whether Image sections are guaranteed to be contiguously form the
+  // entire Image memory space or not.
+  //
+  NumberOfRecordSections += InternalInsertImageRecordSectionPadding (
+                              RecordSection,
+                              EndAddress,
+                              ImageAddress + PeCoffGetSizeOfImage (Context),
+                              Attributes
+                              );
+
+  ImageRecord->NumberOfSections = NumberOfRecordSections;
+  ImageRecord->EndAddress       = ImageAddress + PeCoffGetSizeOfImage (Context);
+  //
+  // Zero the remaining array entries to avoid uninitialised data.
+  //
+  ZeroMem (
+    ImageRecord->Sections + NumberOfRecordSections,
+    (MaxRecordSectionsCount - NumberOfRecordSections) * sizeof (*ImageRecord->Sections)
+    );
+
+  return ImageRecord;
 }
