@@ -14,6 +14,15 @@
 
 #include <Guid/WinCertificate.h>
 
+/**
+  Returns whether the Image targets the UEFI Subsystem.
+
+  @param[in] Subsystem  The Subsystem value from the Image Headers.
+**/
+#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
+  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
+   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
+
 ///
 /// Image type enumeration for Image format identification from the context.
 ///
@@ -134,7 +143,7 @@ typedef struct {
   ///
   UINT32 RelocDirSize;
   ///
-  /// Information bookkept during the initial Image Relocation.
+  /// Information bookkept during the initial Image relocation.
   ///
   UINT64 FixupData[];
 } PE_COFF_LOADER_RUNTIME_CONTEXT;
@@ -144,7 +153,7 @@ typedef struct {
   times to compute the digest of discontinuous data.
 
   @param[in,out] HashContext  The context of the current hash.
-  @param[in]     Data         Pointer to the data to be hashed.
+  @param[in]     Data         The data to be hashed.
   @param[in]     DataSize     The size, in Bytes, of Data.
 
   @returns  Whether hashing has been successful.
@@ -161,12 +170,13 @@ BOOLEAN
   Verify the TE, PE32, or PE32+ Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be correct.
+  Image Section Headers and basic Relocation information must be well-formed.
 
-  @param[out] Context   The context describing the Image.
-  @param[in]  FileSize  The size, in Bytes, of Context->FileBuffer.
+  @param[out] Context     The context describing the Image.
+  @param[in]  FileBuffer  The file data to parse as TE or PE Image.
+  @param[in]  FileSize    The size, in Bytes, of FileBuffer.
 
-  @retval RETURN_SUCCESS  The file data is correct.
+  @retval RETURN_SUCCESS  The file data is well-formed.
   @retval other           The file data is malformed.
 **/
 RETURN_STATUS
@@ -202,41 +212,23 @@ PeCoffLoadImage (
   IN     UINT32                        DestinationSize
   );
 
-RETURN_STATUS
-PeCoffLoadImageForExecution (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    VOID                            *Destination,
-  IN     UINT32                          DestinationSize,
-  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
-  IN     UINT32                          RuntimeContextSize
-  );
+/**
+  Equivalent to the PeCoffLoadImage() function for inplace-loading. Ensures that
+  all important raw file offsets match the respective RVAs.
 
-RETURN_STATUS
-PeCoffRelocateImageForRuntimeExecution (
-  IN OUT VOID                                  *Image,
-  IN     UINT32                                ImageSize,
-  IN     UINT64                                BaseAddress,
-  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
-  );
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
 
+  @retval RETURN_SUCCESS  The Image has been inplace-loaded successfully.
+  @retval other           The Image is not suitable for inplace-loading.
+**/
 RETURN_STATUS
 PeCoffLoadImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
-  Discards optional Image Sections to disguise sensitive data.
-
-  @param[in] Context  The context describing the Image. Must have been loaded by
-                      PeCoffLoadImage().
-**/
-VOID
-PeCoffDiscardSections (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
-/**
-  Retrieves the size required to bookkeep Runtime Relocation information.
+  Retrieves the size required to bookkeep Runtime relocation information.
 
   @param[in]  Context  The context describing the Image. Must have been loaded
                        by PeCoffLoadImage().
@@ -254,7 +246,7 @@ PeCoffLoaderGetRuntimeContextSize (
   );
 
 /**
-  Relocate Image for boot-time usage.
+  Relocate the Image for boot-time usage.
 
   @param[in]  Context             The context describing the Image. Must have
                                   been loaded by PeCoffLoadImage().
@@ -266,7 +258,7 @@ PeCoffLoaderGetRuntimeContextSize (
                                   PeCoffLoaderGetRuntimeContextSize().
 
   @retval RETURN_SUCCESS  The Image has been relocated successfully.
-  @retval other           The Image could not be relocated successfully.
+  @retval other           The Image Relocation Directory is malformed.
 **/
 RETURN_STATUS
 PeCoffRelocateImage (
@@ -277,14 +269,52 @@ PeCoffRelocateImage (
   );
 
 /**
+  Load the Image into the destination memory space, relocate Image for boot-time
+  usage, and perform environment-specific actions required to execute code from
+  the Image.
+
+  @param[in,out] Context             The context describing the Image. Must have
+                                     been initialised by
+                                     PeCoffInitializeContext().
+  @param[out]    Destination         The Image destination memory. Must be
+                                     allocated from page memory.
+  @param[in]     DestinationSize     The size, in Bytes, of Destination.
+                                     Must be at least
+                                     Context->SizeOfImage +
+                                     Context->SizeOfImageDebugAdd. If the Image
+                                     section alignment exceeds 4 KB, must be at
+                                     least
+                                     Context->SizeOfImage +
+                                     Context->SizeOfImageDebugAdd +
+                                     (Context->SectionAlignment - 1).
+  @param[out]    RuntimeContext      If not NULL, on output, a buffer
+                                     bookkeeping data required for Runtime
+                                     relocation.
+  @param[in]     RuntimeContextSize  The size, in Bytes, of RuntimeContext. Must
+                                     be at least as big as the size returned by
+                                     PeCoffLoaderGetRuntimeContextSize().
+
+  @retval RETURN_SUCCESS  The Image was loaded successfully.
+  @retval other           The Image could not be loaded successfully.
+**/
+RETURN_STATUS
+PeCoffLoadImageForExecution (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
+  OUT    VOID                            *Destination,
+  IN     UINT32                          DestinationSize,
+  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                          RuntimeContextSize
+  );
+
+/**
   Relocate Image for Runtime usage.
 
-  @param[in]  Image           The Image destination memory. Must have been
-                              relocated by PeCoffRelocateImage().
-  @param[in]  ImageSize       The size, in Bytes, of Image.
-  @param[in]  BaseAddress     The address to relocate the Image to.
-  @param[in]  RuntimeContext  The Relocation context obtained by
-                              PeCoffRelocateImage().
+  @param[in,out] Image           The Image destination memory. Must have been
+                                 relocated by PeCoffRelocateImage().
+  @param[in]     ImageSize       The size, in Bytes, of Image.
+  @param[in]     BaseAddress     The address to relocate the Image to.
+  @param[in]     RuntimeContext  The Relocation context obtained by
+                                 PeCoffRelocateImage().
 
   @retval RETURN_SUCCESS  The Image has been relocated successfully.
   @retval other           The Image could not be relocated successfully.
@@ -298,12 +328,45 @@ PeCoffRelocateImageForRuntime (
   );
 
 /**
+  Relocate Image for Runtime usage, and perform environment-specific actions
+  required to execute code from the Image.
+
+  @param[in,out] Image           The Image destination memory. Must have been
+                                 relocated by PeCoffRelocateImage().
+  @param[in]     ImageSize       The size, in Bytes, of Image.
+  @param[in]     BaseAddress     The address to relocate the Image to.
+  @param[in]     RuntimeContext  The Relocation context obtained by
+                                 PeCoffRelocateImage().
+
+  @retval RETURN_SUCCESS  The Image has been relocated successfully.
+  @retval other           The Image could not be relocated successfully.
+**/
+RETURN_STATUS
+PeCoffRelocateImageForRuntimeExecution (
+  IN OUT VOID                                  *Image,
+  IN     UINT32                                ImageSize,
+  IN     UINT64                                BaseAddress,
+  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
+  );
+
+/**
+  Discards optional Image Sections to disguise sensitive data.
+
+  @param[in] Context  The context describing the Image. Must have been loaded by
+                      PeCoffLoadImage().
+**/
+VOID
+PeCoffDiscardSections (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
   Retrieves the Image PDB path.
 
   @param[in,out] Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
   @param[out]    PdbPath      On output, a pointer to the Image PDB path.
-  @param[out]    PdbPathSize  On output, the size, in Bytes, of *PdbPath.
+  @param[out]    PdbPathSize  On output, the size, in Bytes, of PdbPath.
 
   @retval RETURN_SUCCESS  The Image PDB path was retrieved successfully.
   @retval other           The Image PDB path could not be retrieved
@@ -320,7 +383,7 @@ PeCoffGetPdbPath (
   Hashes the Image using the Authenticode (PE/COFF Specification 8.1 Appendix A)
   algorithm.
 
-  @param[in]     Context      The context describing the Image. Must have been
+  @param[in,out] Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
   @param[in]     HashUpdate   The data hashing function.
   @param[in,out] HashContext  The context of the current hash.
@@ -334,79 +397,212 @@ PeCoffHashImageAuthenticode (
   IN     PE_COFF_LOADER_HASH_UPDATE    HashUpdate
   );
 
+/**
+  Retrieves the first certificate from the Image Certificate Directory.
+
+  @param[in,out] Context      The context describing the Image. Must have been
+                              initialised by PeCoffInitializeContext().
+  @param[out]    Certificate  On output, the first certificate of the Image.
+
+  @retval RETURN_SUCCESS    The certificate has been retrieved successfully.
+  @retval RETURN_NOT_FOUND  There is no such certificate.
+  @retval other             The Image Certificate Directory is malformed.
+**/
 RETURN_STATUS
 PeCoffGetFirstCertificate (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    CONST WIN_CERTIFICATE         **Certificate
   );
 
+/**
+  Retrieves the next certificate from the Image Certificate Directory.
+
+  @param[in,out] Context      The context describing the Image. Must have been
+                              initialised by PeCoffInitializeContext().
+  @param[out]    Certificate  On input, the current certificate of the Image.
+                              Must have been retrieved by
+                              PeCoffGetFirstCertificate().
+                              On output, the next certificate of the Image.
+
+  @retval RETURN_SUCCESS    The certificate has been retrieved successfully.
+  @retval RETURN_NOT_FOUND  There is no such certificate.
+  @retval other             The Image Certificate Directory is malformed.
+**/
 RETURN_STATUS
 PeCoffGetNextCertificate (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST WIN_CERTIFICATE         **Certificate
+  IN OUT CONST WIN_CERTIFICATE         **Certificate
   );
 
+/**
+  Retrieves the Image Section Table.
+
+  @param[in,out] Context   The context describing the Image. Must have been
+                           initialised by PeCoffInitializeContext().
+  @param[out]    Sections  On output, points to the Image Section Table.
+
+  @returns  The number of sections in the Image Section Table.
+**/
 UINT16
-PeCoffGetSections (
+PeCoffGetSectionTable (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
   OUT    CONST EFI_IMAGE_SECTION_HEADER  **Sections
   );
 
+/**
+  Retrieves the Image HII data RVA.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+  @param[out]    HiiRva   On output, the RVA of the HII resource data.
+  @param[out]    HiiSize  On output, the size, in Bytes, of HiiRva.
+
+  @retval RETURN_SUCCESS    The Image HII data has been retrieved successfully.
+  @retval RETURN_NOT_FOUND  The Image HII data could not be found.
+  @retval other             The Image Resource Directory is malformed.
+**/
 RETURN_STATUS
-PeCoffGetHiiResourceSection (
+PeCoffGetHiiDataRva (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT32                        *HiiRva,
   OUT    UINT32                        *HiiSize
   );
 
+/**
+  Retrieve the Image entry point RVA.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image entry point RVA.
+**/
 UINT32
 PeCoffGetAddressOfEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the Image machine type.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image machine type.
+**/
 UINT16
 PeCoffGetMachine (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the Image subsystem type.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image subsystem type.
+**/
 UINT16
 PeCoffGetSubsystem (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
+
+/**
+  Retrieves the Image section alignment.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image section alignment.
+**/
 UINT32
 PeCoffGetSectionAlignment (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the size, in Bytes, of the Image memory space.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The size of the Image memory space.
+**/
 UINT32
 PeCoffGetSizeOfImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the Image preferred load address.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image preferred load address.
+**/
 UINT64
 PeCoffGetImageBase (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the size, in Bytes, of the Image Headers.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The size of the Image Headers.
+**/
 UINT32
 PeCoffGetSizeOfHeaders (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Returns whether the Image relocations have been stripped.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  Whether the Image relocations have been stripped.
+**/
 BOOLEAN
 PeCoffGetRelocsStripped (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieves the Image load address PeCoffLoadImage() has loaded the Image to.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image load address.
+**/
 UINTN
 PeCoffLoaderGetImageAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Calculate the size, in Bytes, required for the destination Image memory space
+  to load into with PeCoffLoadImage(). This potentially includes additional
+  space to internally align the Image within the destination buffer.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+  @param[out]    Size     On output, the size, in Bytes, required to allocate
+                          the Image destination buffer.
+
+  @retval RETURN_SUCCESS  The Image destination size has been calculated
+                          successfully.
+  @retval other           The Image destination cannot be calculated.
+**/
 RETURN_STATUS
 PeCoffLoaderGetDestinationSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT32                        *Size
   );
 
-#endif // PE_COFF_LIB_H
+#endif // PE_COFF_LIB_H_

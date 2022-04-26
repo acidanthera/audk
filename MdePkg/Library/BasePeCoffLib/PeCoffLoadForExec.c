@@ -12,6 +12,7 @@
 #include <Library/PeCoffLib.h>
 #include <Library/CacheMaintenanceLib.h>
 
+// FIXME: Check Machine / Subsystem here?
 RETURN_STATUS
 PeCoffLoadImageForExecution (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,

@@ -24,7 +24,7 @@
 #include "BasePeCoffLibInternals.h"
 
 /**
-  Hashes the Image Section data in ascending order of raw file appearance.
+  Hashes the Image section data in ascending order of raw file appearance.
 
   @param[in]     Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
@@ -97,9 +97,9 @@ InternalHashSections (
   ASSERT (Context->TeStrippedOffset == 0);
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
-    // Verify the Section does not overlap with the previous one if the policy
-    // demands it. Overlapping Sections could dramatically increase the hashing
-    // time.
+    // Verify the Image section does not overlap with the previous one if the
+    // policy demands it. Overlapping Sections could dramatically increase the
+    // hashing time.
     // FIXME: Move to init, along with a trailing data policy.
     //
     if (PcdGetBool (PcdImageLoaderHashProhibitOverlap)) {
@@ -398,7 +398,7 @@ PeCoffGetFirstCertificate (
 RETURN_STATUS
 PeCoffGetNextCertificate (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST WIN_CERTIFICATE         **Certificate
+  IN OUT CONST WIN_CERTIFICATE         **Certificate
   )
 {
   BOOLEAN               Overflow;

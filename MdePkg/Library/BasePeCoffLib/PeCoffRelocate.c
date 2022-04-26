@@ -464,7 +464,7 @@ PeCoffRelocateImage (
     return RETURN_SUCCESS;
   }
   //
-  // Initialise the Runtime Context header.
+  // Initialise the Runtime context header.
   //
   if (RuntimeContext != NULL) {
     RuntimeContext->RelocDirRva  = Context->RelocDirRva;

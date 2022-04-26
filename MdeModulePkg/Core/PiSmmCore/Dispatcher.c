@@ -231,7 +231,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   FixLoadingAddress = 0;
   Status            = EFI_NOT_FOUND;
 
-  NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
   if (RETURN_ERROR (Status)) {

@@ -23,7 +23,7 @@
 #include "BasePeCoffLibInternals.h"
 
 /**
-  Loads the Image Sections into the memory space and initialises any padding
+  Loads the Image sections into the memory space and initialises any padding
   with zeros.
 
   @param[in]  Context           The context describing the Image. Must have been
@@ -33,11 +33,11 @@
   @param[in]  DestinationSize   The size, in Bytes, of Destination.
                                 Must be at least
                                 Context->SizeOfImage +
-                                Context->SizeOfImageDebugAdd. If the Section
-                                Alignment exceeds 4 KB, must be at least
+                                Context->SizeOfImageDebugAdd. If the section
+                                alignment exceeds 4 KB, must be at least
                                 Context->SizeOfImage +
-                                Context->SizeOfImageDebugAdd
-                                Context->SectionAlignment.
+                                Context->SizeOfImageDebugAdd+
+                                (Context->SectionAlignment - 1).
 **/
 STATIC
 VOID
@@ -63,17 +63,23 @@ InternalLoadSections (
   PreviousTopRva = LoadedHeaderSize;
 
   for (Index = 0; Index < Context->NumberOfSections; ++Index) {
-    if (Sections[Index].VirtualSize < Sections[Index].SizeOfRawData) {
-      DataSize = Sections[Index].VirtualSize;
-    } else {
+    //
+    // Zero from the end of the previous section to the start of this section.
+    //
+    ZeroMem (
+      (CHAR8 *) Destination + PreviousTopRva,
+      Sections[Index].VirtualAddress - PreviousTopRva
+      );
+    //
+    // Copy the maximum amount of data that fits both sizes.
+    //
+    if (Sections[Index].SizeOfRawData <= Sections[Index].VirtualSize) {
       DataSize = Sections[Index].SizeOfRawData;
+    } else {
+      DataSize = Sections[Index].VirtualSize;
     }
     //
-    // Zero from the end of the previous Section to the start of this Section.
-    //
-    ZeroMem ((CHAR8 *) Destination + PreviousTopRva, Sections[Index].VirtualAddress - PreviousTopRva);
-    //
-    // Load the current Section into memory.
+    // Load the current Image section into the memory space.
     //
     CopyMem (
       (CHAR8 *) Destination + Sections[Index].VirtualAddress,
@@ -84,7 +90,7 @@ InternalLoadSections (
     PreviousTopRva = Sections[Index].VirtualAddress + DataSize;
   }
   //
-  // Zero the trailer after the last Image Section.
+  // Zero the trailing data after the last Image section.
   //
   ZeroMem (
     (CHAR8 *) Destination + PreviousTopRva,
@@ -122,6 +128,10 @@ PeCoffLoadImage (
     AlignedSize = DestinationSize;
     AlignOffset = 0;
   } else {
+    //
+    // Images aligned stricter than by the UEFI page size have an increased
+    // destination size to internally align the Image.
+    //
     Address        = (UINTN) Destination;
     AlignedAddress = ALIGN_VALUE (Address, (UINTN) Context->SectionAlignment);
     AlignOffset    = (UINT32) (AlignedAddress - Address);
@@ -147,7 +157,7 @@ PeCoffLoadImage (
     LoadedHeaderSize = 0;
   }
   //
-  // Load all Image Sections into the memory space.
+  // Load all Image sections into the memory space.
   //
   InternalLoadSections (
     Context,
@@ -191,7 +201,10 @@ PeCoffLoadImageInplace (
   // Verify all RVAs and raw file offsets are identical for XIP Images.
   //
   for (Index = 0; Index < Context->NumberOfSections; ++Index) {
-    AlignedSize = ALIGN_VALUE (Sections[Index].VirtualSize, Context->SectionAlignment);
+    AlignedSize = ALIGN_VALUE (
+                    Sections[Index].VirtualSize,
+                    Context->SectionAlignment
+                    );
     if (Sections[Index].PointerToRawData != Sections[Index].VirtualAddress
      || Sections[Index].SizeOfRawData != AlignedSize) {
       DEBUG_RAISE ();
@@ -233,7 +246,7 @@ PeCoffDiscardSections (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   //
-  // Zero all Image Sections that are flagged as discardable.
+  // Zero all Image sections that are flagged as discardable.
   //
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     if ((Sections[SectIndex].Characteristics & EFI_IMAGE_SCN_MEM_DISCARDABLE) != 0) {

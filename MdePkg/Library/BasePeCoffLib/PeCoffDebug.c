@@ -134,14 +134,14 @@ PeCoffLoaderRetrieveCodeViewInfo (
      }
   }
   //
-  // Verify the Debug Directory was found among the Sections.
+  // Verify the Debug Directory was found among the Image sections.
   //
   if (SectIndex == Context->NumberOfSections) {
     DEBUG_RAISE ();
     return;
   }
   //
-  // Verify the Debug Directory data is in bounds of the Section.
+  // Verify the Debug Directory data is in bounds of the Image section.
   //
   // This arithmetics cannot overflow because we know
   //   1) DebugDir->VirtualAddress + DebugDir->Size <= MAX_UINT32
@@ -212,7 +212,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
     }
   } else {
     //
-    // Force-load the CodeView entry if it is not mapped by a Section.
+    // Force-load the CodeView entry if it is not mapped by an Image section.
     //
     if (PcdGet32 (PcdImageLoaderDebugSupport) < PCD_DEBUG_SUPPORT_FORCE_LOAD) {
       return;
@@ -310,7 +310,7 @@ PeCoffLoaderLoadCodeView (
     return;
   }
   //
-  // Force-load the CodeView entry if it is not mapped by a Section.
+  // Force-load the CodeView entry if it is not mapped by an Image section.
   //
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
                     (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
@@ -349,7 +349,7 @@ PeCoffLoaderLoadCodeViewInplace (
     return;
   }
   //
-  // Force-load the CodeView entry if it is not mapped by a Section.
+  // Force-load the CodeView entry if it is not mapped by an Image section.
   //
   CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
                     (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva

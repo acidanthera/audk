@@ -119,7 +119,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   FixLoadingAddress = 0;
   Status            = EFI_NOT_FOUND;
 
-   NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
    //
   // Get base address from the first section header that doesn't point to code section.

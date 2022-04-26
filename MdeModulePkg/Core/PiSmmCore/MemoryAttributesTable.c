@@ -842,7 +842,7 @@ SmmInsertImageRecord (
 
   DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", ImageBuffer, NumberOfPage));
 
-  NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   //
   // The image headers are not recorded among the sections, allocate one more.

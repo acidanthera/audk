@@ -1090,7 +1090,7 @@ InsertImageRecord (
     DEBUG ((DEBUG_INFO, "Do not insert runtime image record after EndOfDxe\n"));
     return;
   }
-  NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   //
   // The image headers are not recorded among the sections, allocate one more.

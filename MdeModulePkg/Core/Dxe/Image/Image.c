@@ -444,7 +444,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
 
    Status = EFI_NOT_FOUND;
 
-   NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
    Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
    if (RETURN_ERROR (Status)) {
@@ -804,7 +804,7 @@ CoreLoadPeImage (
 
   UINT32 Hiioff;
   UINT32 Hiisize;
-  Status = PeCoffGetHiiResourceSection (ImageContext, &Hiioff, &Hiisize);
+  Status = PeCoffGetHiiDataRva (ImageContext, &Hiioff, &Hiisize);
   if (Status != RETURN_NOT_FOUND) {
     ASSERT_EFI_ERROR (Status);
   }

@@ -25,37 +25,27 @@
 #include "BaseOverflow.h"
 #include "BasePeCoffLibInternals.h"
 
-// FIXME: Use?
-/**
-  Returns whether the Image targets the UEFI Subsystem.
-
-  @param[in] Subsystem  The Subsystem value from the Image Headers.
-**/
-#define IMAGE_IS_EFI_SUBYSYSTEM(Subsystem) \
-  ((Subsystem) >= EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION && \
-   (Subsystem) <= EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)
-
 //
 // FIXME: Provide an API to destruct the context?
 //
 
 /**
-  Verify the Image Section Headers.
+  Verify the Image section Headers.
 
-  The first Section must be the beginning of the virtual address space, or be
+  The first Image section must be the beginning of the memory space, or be
   contiguous to the aligned Image Headers.
-  Sections must be disjoint and, depending on the policy, contiguous in virtual
-  space.
-  Section data must be in file bounds.
+  Sections must be disjoint and, depending on the policy, contiguous in the
+  memory space space.
+  The section data must be in bounds bounds of the file buffer.
 
   @param[in]  Context       The context describing the Image. Must have been
                             initialised by PeCoffInitializeContext().
   @param[in]  FileSize      The size, in Bytes, of Context->FileBuffer.
-  @param[out] StartAddress  On output, the RVA of the first Image Section.
-  @param[out] EndAddress    On output, the end RVA of the last Image Section.
+  @param[out] StartAddress  On output, the RVA of the first Image section.
+  @param[out] EndAddress    On output, the end RVA of the last Image section.
 
-  @retval RETURN_SUCCESS  The Image Section Headers are well-formed.
-  @retval other           The Image Section Headers are malformed.
+  @retval RETURN_SUCCESS  The Image section Headers are well-formed.
+  @retval other           The Image section Headers are malformed.
 **/
 STATIC
 RETURN_STATUS
@@ -88,13 +78,13 @@ InternalVerifySections (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   //
-  // The first Image Section must begin the Image memory space, or it must be
+  // The first Image section must begin the Image memory space, or it must be
   // adjacent to the Image Headers.
   //
   if (Sections[0].VirtualAddress == 0) {
     //
     // TE Images cannot support loading the Image Headers as part of the first
-    // Section due to its StrippedSize sematics.
+    // Image section due to its StrippedSize sematics.
     //
     if (Context->ImageType == PeCoffLoaderTypeTe) {
       DEBUG_RAISE ();
@@ -124,11 +114,11 @@ InternalVerifySections (
 
   *StartAddress = NextSectRva;
   //
-  // Verify all Image Sections are valid.
+  // Verify all Image sections are valid.
   //
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
-    // Verify the Image Section are disjoint (relaxed) or adjacent (strict)
+    // Verify the Image section are disjoint (relaxed) or adjacent (strict)
     // depending on whether unaligned Sections may be loaded or not. Unaligned
     // Sections have been observed with iPXE Option ROMs and old Apple OS X
     // bootloaders.
@@ -145,7 +135,7 @@ InternalVerifySections (
       }
     }
     //
-    // Verify the Image Sections with data are in bounds of the file buffer.
+    // Verify the Image sections with data are in bounds of the file buffer.
     //
     if (Sections[SectIndex].SizeOfRawData > 0) {
       if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
@@ -169,7 +159,7 @@ InternalVerifySections (
       }
     }
     //
-    // Determine the end of the current Image Section.
+    // Determine the end of the current Image section.
     //
     Overflow = BaseOverflowAddU32 (
                  Sections[SectIndex].VirtualAddress,
@@ -204,13 +194,13 @@ InternalVerifySections (
 /**
   Verify the basic Image Relocation information.
 
-  The preferred Image load address must be aligned by the Section Alignment.
-  The Relocation Directory must be contained within the Image Section memory.
+  The preferred Image load address must be aligned by the section alignment.
+  The Relocation Directory must be contained within the Image section memory.
   The Relocation Directory must be sufficiently aligned in memory.
 
   @param[in] Context       The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
-  @param[in] StartAddress  The RVA of the first Image Section.
+  @param[in] StartAddress  The RVA of the first Image section.
 
   @retval RETURN_SUCCESS  The basic Image Relocation information is well-formed.
   @retval other           The basic Image Relocation information is malformed.
@@ -279,7 +269,7 @@ InternalValidateRelocInfo (
   Verify the TE Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be well-formed.
+  Image section Headers and basic Relocation information must be well-formed.
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
@@ -342,14 +332,14 @@ InternalInitializeTe (
 
   STATIC_ASSERT (
     IS_ALIGNED (sizeof (*TeHdr), ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
-    "The Section alignment requirements are violated."
+    "The Image section alignment requirements are violated."
     );
   //
-  // TE Sections start right after the Image Headers.
+  // TE Image sections start right after the Image Headers.
   //
   Context->SectionsOffset = sizeof (EFI_TE_IMAGE_HEADER);
   //
-  // TE Images do not store their Section alignment. Assume the UEFI Page size
+  // TE Images do not store their section alignment. Assume the UEFI Page size
   // by default, as it is the minimum to guarantee memory permission support.
   //
   Context->SectionAlignment = EFI_PAGE_SIZE;
@@ -357,7 +347,7 @@ InternalInitializeTe (
   //
   // Validate the sections.
   // TE images do not have a field to explicitly describe the image size.
-  // Set it to the top of the image's virtual space.
+  // Set it to the top of the Image's memory space.
   //
   Status = InternalVerifySections (
              Context,
@@ -369,7 +359,7 @@ InternalInitializeTe (
     return Status;
   }
   //
-  // Verify the Image Entry Point is in bounds of the Image buffer.
+  // Verify the Image entry point is in bounds of the Image buffer.
   //
   if (TeHdr->AddressOfEntryPoint >= SizeOfImage) {
     return RETURN_UNSUPPORTED;
@@ -398,7 +388,7 @@ InternalInitializeTe (
   Verify the PE32 or PE32+ Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be Well-formed.
+  Image section Headers and basic Relocation information must be Well-formed.
 
   @param[in,out] Context   The context describing the Image. Must have been
                            initialised by PeCoffInitializeContext().
@@ -541,7 +531,7 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // Verify the Entry Point is in bounds of the Image buffer.
+  // Verify the entry point is in bounds of the Image buffer.
   //
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
     DEBUG_RAISE ();
@@ -560,7 +550,7 @@ InternalInitializePe (
     "The following arithmetics may overflow."
     );
   //
-  // Calculate the offset of the Image Sections.
+  // Calculate the offset of the Image sections.
   //
   // Context->ExeHdrOffset + sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) cannot overflow because
   //   * ExeFileSize > sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) and
@@ -628,7 +618,7 @@ InternalInitializePe (
     return RETURN_UNSUPPORTED;
   }
   //
-  // Populate the Image Context with information from the Common Header.
+  // Populate the Image context with information from the Common Header.
   //
   Context->NumberOfSections = PeCommon->FileHeader.NumberOfSections;
   Context->Machine          = PeCommon->FileHeader.Machine;
@@ -678,7 +668,7 @@ InternalInitializePe (
     }
   } else {
     //
-    // The Loader Context is zero'd on allocation.
+    // The Image context is zero'd on allocation.
     //
     ASSERT (Context->SecDirOffset == 0);
     ASSERT (Context->SecDirSize == 0);
@@ -686,7 +676,7 @@ InternalInitializePe (
 
   ASSERT (Context->TeStrippedOffset == 0);
   //
-  // Verify the Image Sections are Well-formed.
+  // Verify the Image sections are Well-formed.
   //
   Status = InternalVerifySections (
              Context,
@@ -699,7 +689,7 @@ InternalInitializePe (
     return Status;
   }
   //
-  // Verify SizeOfImage fits all Image Sections.
+  // Verify SizeOfImage fits all Image sections.
   //
   if (MinSizeOfImage > Context->SizeOfImage) {
     DEBUG_RAISE ();
@@ -729,7 +719,7 @@ PeCoffInitializeContext (
   ASSERT (Context != NULL);
   ASSERT (FileBuffer != NULL || FileSize == 0);
   //
-  // Initialise the Image Context with 0-values.
+  // Initialise the Image context with 0-values.
   //
   ZeroMem (Context, sizeof (*Context));
 

@@ -327,7 +327,7 @@ ProtectUefiImage (
       return;
   }
 
-  NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   //
   // The image headers are not recorded among the sections, allocate one more.

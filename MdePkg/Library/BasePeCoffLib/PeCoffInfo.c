@@ -54,6 +54,7 @@ PeCoffGetSectionAlignment (
 {
   ASSERT (Context != NULL);
 
+  // FIXME: How to handle misaligned sections if the policy allows it?
   return Context->SectionAlignment;
 }
 
@@ -64,7 +65,7 @@ PeCoffGetSizeOfImage (
 {
   ASSERT (Context != NULL);
   //
-  // Transparents reserve the force-load space for debug information, if the
+  // Transparently reserve the force-load space for debug information, if the
   // policy demands it.
   //
   if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
@@ -91,7 +92,7 @@ PeCoffLoaderGetDestinationSize (
 
   TotalSize = PeCoffGetSizeOfImage (Context);
   //
-  // If the Image Section alignment is larger than the UEFI Page Size,
+  // If the Image section alignment is larger than the UEFI page size,
   // sufficient alignment cannot be guaranteed by the allocater. Allodate an
   // additional Image page to be able to manually align within the buffer.
   //
@@ -132,13 +133,15 @@ PeCoffGetSizeOfHeaders (
 }
 
 UINT16
-PeCoffGetSections (
+PeCoffGetSectionTable (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
   OUT    CONST EFI_IMAGE_SECTION_HEADER  **Sections
   )
 {
   ASSERT (Context != NULL);
+  ASSERT (Sections != NULL);
 
+  // FIXME: Needs a solution for force-loaded debug info to enforce permissions.
   *Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
                 (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                 );

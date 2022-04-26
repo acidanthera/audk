@@ -937,7 +937,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   Status            = EFI_NOT_FOUND;
   SmramBase         = mLMFAConfigurationTable->SmramBase;
 
-   NumberOfSections = PeCoffGetSections (ImageContext, &Sections);
+   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   //
   // Get base address from the first section header that doesn't point to code section.
