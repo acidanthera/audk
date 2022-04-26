@@ -120,6 +120,7 @@ PeCoffLoadImage (
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
   ASSERT (Context->SectionAlignment <= DestinationSize);
+  ASSERT (Context->ImageBase - Context->TeStrippedOffset != (UINTN) Context->FileBuffer);
   //
   // Sufficiently align the Image data in memory.
   //
@@ -221,9 +222,7 @@ PeCoffLoadImageInplaceNoBase (
     // There is no other way but to treat the data in front of the TE Image
     // Header as a part of the TE Image Header.
     //
-    if (Context->ImageType == PeCoffLoaderTypeTe) {
-      ImageBuffer -= Context->TeStrippedOffset;
-    }
+    ImageBuffer -= Context->TeStrippedOffset;
   } else {
     ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
   }
@@ -249,6 +248,7 @@ PeCoffLoadImageInplace (
   ASSERT (Context != NULL);
 
   ImageBase = PeCoffGetImageBase (Context);
+
   if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
     ImageBase += Context->TeStrippedOffset;
   } else {

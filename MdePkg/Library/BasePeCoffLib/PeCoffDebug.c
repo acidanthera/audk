@@ -162,14 +162,13 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   // Verify the Debug Directory raw file offset is sufficiently aligned.
   //
+  DebugDirFileOffset = Sections[SectionIndex].PointerToRawData + DebugDirSectionOffset;
+
   if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    DebugDirFileOffset = Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset;
+    DebugDirFileOffset -= Context->TeStrippedOffset;
   } else {
     ASSERT (Context->TeStrippedOffset == 0);
-    DebugDirFileOffset = Sections[SectionIndex].PointerToRawData;
   }
-
-  DebugDirFileOffset += DebugDirSectionOffset;
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
@@ -346,12 +345,12 @@ PeCoffLoaderLoadCodeView (
 
     ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
 
-    
+    CodeViewOffset = CodeViewEntry->FileOffset;
+
     if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-      CodeViewOffset = CodeViewEntry->FileOffset - Context->TeStrippedOffset;
+      CodeViewOffset -= Context->TeStrippedOffset;
     } else {
       ASSERT (Context->TeStrippedOffset == 0);
-      CodeViewOffset = CodeViewEntry->FileOffset;
     }
 
     CopyMem (
