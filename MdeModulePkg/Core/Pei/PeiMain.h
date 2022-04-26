@@ -902,6 +902,8 @@ PeiFfsFindNextFile (
   @param SectionSize          The file size to search.
   @param OutputBuffer         A pointer to the discovered section, if successful.
                               NULL if section not found.
+  @param OutputSize        The size of the discovered section, if successful.
+                           0 if section not found
   @param AuthenticationStatus Updated upon return to point to the authentication status for this section.
   @param IsFfs3Fv             Indicates the FV format.
 
@@ -917,6 +919,7 @@ ProcessSection (
   IN EFI_COMMON_SECTION_HEADER  *Section,
   IN UINTN                      SectionSize,
   OUT VOID                      **OutputBuffer,
+  OUT UINT32                    *OutputSize,
   OUT UINT32                    *AuthenticationStatus,
   IN BOOLEAN                    IsFfs3Fv
   );
@@ -966,6 +969,33 @@ PeiFfsFindSectionData3 (
   IN     EFI_PEI_FILE_HANDLE  FileHandle,
   OUT VOID                    **SectionData,
   OUT UINT32                  *AuthenticationStatus
+  );
+
+/**
+  Searches for the next matching section within the specified file.
+
+  @param  PeiServices           An indirect pointer to the EFI_PEI_SERVICES table published by the PEI Foundation.
+  @param  SectionType           The value of the section type to find.
+  @param  SectionInstance       Section instance to find.
+  @param  FileHandle            Handle of the firmware file to search.
+  @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionDataSize       The size of the discovered section, if successful.
+  @param  AuthenticationStatus  A pointer to the authentication status for this section.
+
+  @retval EFI_SUCCESS      The section was found.
+  @retval EFI_NOT_FOUND    The section was not found.
+
+**/
+EFI_STATUS
+EFIAPI
+PeiFfsFindSectionData4 (
+  IN CONST EFI_PEI_SERVICES    **PeiServices,
+  IN     EFI_SECTION_TYPE      SectionType,
+  IN     UINTN                 SectionInstance,
+  IN     EFI_PEI_FILE_HANDLE   FileHandle,
+  OUT VOID                     **SectionData,
+  OUT UINT32                   *SectionDataSize,
+  OUT UINT32                   *AuthenticationStatus
   );
 
 /**
