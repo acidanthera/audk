@@ -147,13 +147,21 @@ InternalVerifySections (
       }
       //
       // If the Image section address is not aligned by the Image section
-      // alignment, fall back to the UEFI page size if possible, to ensure the
-      // Image can have memory protection applied. Otherwise, report no
-      // alignment for the Image.
+      // alignment, fall back to important architecture-specific page sizes if
+      // possible, to ensure the Image can have memory protection applied.
+      // Otherwise, report no alignment for the Image.
       //
       if (!IS_ALIGNED (Sections[SectIndex].VirtualAddress, Context->SectionAlignment)) {
-        if (IS_ALIGNED (Sections[SectIndex].VirtualAddress, EFI_PAGE_SIZE)) {
-          Context->SectionAlignment = EFI_PAGE_SIZE;
+        STATIC_ASSERT (
+          DEFAULT_PAGE_ALLOCATION_GRANULARITY <= RUNTIME_PAGE_ALLOCATION_GRANULARITY,
+          "This code must be adapted to consider the reversed order."
+          );
+
+        if (IS_ALIGNED (Sections[SectIndex].VirtualAddress, RUNTIME_PAGE_ALLOCATION_GRANULARITY)) {
+          Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+        } else if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
+         && IS_ALIGNED (Sections[SectIndex].VirtualAddress, DEFAULT_PAGE_ALLOCATION_GRANULARITY)) {
+          Context->SectionAlignment = DEFAULT_PAGE_ALLOCATION_GRANULARITY;
         } else {
           Context->SectionAlignment = 1;
         }
@@ -212,6 +220,40 @@ InternalVerifySections (
   }
 
   *EndAddress = NextSectRva;
+  //
+  // Because VirtualAddress is aligned by SectionAlignment for all Image
+  // sections, and they are disjoint and ordered by VirtualAddress,
+  // VirtualAddress + VirtualSize must be safe to align by SectionAlignment for
+  // all but the last Image section.
+  // Determine the strictest common alignment that the last section's end is
+  // safe to align to.
+  //
+  Overflow = BaseOverflowAlignUpU32 (
+               NextSectRva,
+               Context->SectionAlignment,
+               &NextSectRva
+               );
+  if (Overflow) {
+    Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+    Overflow = BaseOverflowAlignUpU32 (
+                 NextSectRva,
+                 Context->SectionAlignment,
+                 &NextSectRva
+                 );
+    if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
+     && Overflow) {
+      Context->SectionAlignment = DEFAULT_PAGE_ALLOCATION_GRANULARITY;
+      Overflow = BaseOverflowAlignUpU32 (
+                   NextSectRva,
+                   Context->SectionAlignment,
+                   &NextSectRva
+                   );
+    }
+
+    if (Overflow) {
+      Context->SectionAlignment = 1;
+    }
+  }
 
   return RETURN_SUCCESS;
 }
@@ -334,6 +376,7 @@ InternalInitializeTe (
                &Context->TeStrippedOffset
                );
   if (Overflow) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -382,6 +425,7 @@ InternalInitializeTe (
              &SizeOfImage
              );
   if (Status != RETURN_SUCCESS) {
+    DEBUG_RAISE ();
     return Status;
   }
   //
