@@ -1009,7 +1009,6 @@ MigratePeim (
   EFI_FFS_FILE_HEADER  *FileHeader;
   VOID                 *Pe32Data;
   VOID                 *ImageAddress;
-  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
 
   Status = EFI_SUCCESS;
 
@@ -1019,20 +1018,6 @@ MigratePeim (
   ImageAddress = NULL;
   PeiGetPe32Data (MigratedFileHandle, &ImageAddress);
   if (ImageAddress != NULL) {
-    DEBUG_CODE_BEGIN ();
-    CHAR8 EfiFileName[256];
-    Status = PeCoffInitializeContext (&ImageContext, (CONST VOID *) ImageAddress, 0xFFFFFFFF);
-    ASSERT_EFI_ERROR (Status);
-    Status = PeCoffGetModuleNameFromPdb (
-               &ImageContext,
-               EfiFileName,
-               sizeof (EfiFileName)
-               );
-    if (!EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_INFO, "%a", EfiFileName));
-    }
-    DEBUG_CODE_END ();
-
     Pe32Data = (VOID *)((UINTN)ImageAddress - (UINTN)MigratedFileHandle + (UINTN)FileHandle);
     Status   = LoadAndRelocatePeCoffImageInPlace (Pe32Data, ImageAddress);
     ASSERT_EFI_ERROR (Status);

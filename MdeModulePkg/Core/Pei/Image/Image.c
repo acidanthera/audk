@@ -392,7 +392,6 @@ LoadAndRelocatePeCoffImageInPlace (
   EFI_STATUS                    Status;
   PE_COFF_LOADER_IMAGE_CONTEXT    ImageContext;
 
-  // FIXME: Seems to hold, but verify!
   ASSERT (Pe32Data != ImageAddress);
 
   // FIXME: File size
