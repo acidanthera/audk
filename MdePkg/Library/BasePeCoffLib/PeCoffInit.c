@@ -97,7 +97,7 @@ InternalVerifySections (
     // Section due to its StrippedSize sematics.
     //
     if (Context->ImageType == PeCoffLoaderTypeTe) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
 
@@ -114,7 +114,7 @@ InternalVerifySections (
                    &NextSectRva
                    );
       if (Overflow) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     } else {
@@ -133,12 +133,12 @@ InternalVerifySections (
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       if (Sections[SectIndex].VirtualAddress != NextSectRva) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     } else {
       if (Sections[SectIndex].VirtualAddress < NextSectRva) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     }
@@ -147,7 +147,7 @@ InternalVerifySections (
     //
     if (Sections[SectIndex].SizeOfRawData > 0) {
       if (Context->TeStrippedOffset > Sections[SectIndex].PointerToRawData) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
 
@@ -157,12 +157,12 @@ InternalVerifySections (
                    &SectRawEnd
                    );
       if (Overflow) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
 
       if (SectRawEnd - Context->TeStrippedOffset > FileSize) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     }
@@ -175,7 +175,7 @@ InternalVerifySections (
                  &NextSectRva
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -188,7 +188,7 @@ InternalVerifySections (
                    &NextSectRva
                    );
       if (Overflow) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     }
@@ -232,14 +232,14 @@ InternalValidateRelocInfo (
     // Verify the Relocation Directory is not empty.
     //
     if (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) > Context->RelocDirSize) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
     // Verify the Relocation Directory does not overlap with the Image Headers.
     //
     if (StartAddress > Context->RelocDirRva) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -251,14 +251,14 @@ InternalValidateRelocInfo (
                  &SectRvaEnd
                  );
     if (Overflow || SectRvaEnd > Context->SizeOfImage) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
     // Verify the Relocation Directory start is sufficiently aligned.
     //
     if (!IS_ALIGNED (Context->RelocDirRva, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -266,7 +266,7 @@ InternalValidateRelocInfo (
   // Verify the preferred Image load address is sufficiently aligned.
   //
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -451,7 +451,7 @@ InternalInitializePe (
       // Verify the PE32 header is in bounds of the file buffer.
       //
       if (sizeof (*Pe32) > FileSize - Context->ExeHdrOffset) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -490,14 +490,14 @@ InternalInitializePe (
       // Verify the PE32+ header is in bounds of the file buffer.
       //
       if (sizeof (*Pe32Plus) > FileSize - Context->ExeHdrOffset) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
       // Verify the PE32+ header offset is sufficiently aligned.
       //
       if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -528,28 +528,28 @@ InternalInitializePe (
       //
       // Disallow Images with unknown PE Optional Header signatures.
       //
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
   //
   // Disallow Images with unknown directories.
   //
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Entry Point is in bounds of the Image buffer.
   //
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Image alignment is a power of 2.
   //
   if (!IS_POW2 (Context->SectionAlignment)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -570,14 +570,14 @@ InternalInitializePe (
                &Context->SectionsOffset
                );
   if (Overflow) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Section Headers offset is sufficiently aligned.
   //
   if (!IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -602,7 +602,7 @@ InternalInitializePe (
                &MinSizeOfHeaders
                );
   if (Overflow) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -610,19 +610,19 @@ InternalInitializePe (
   // components (DOS, PE Common and Optional Header).
   //
   if (MinSizeOfOptionalHeader > PeCommon->FileHeader.SizeOfOptionalHeader) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
   if (MinSizeOfHeaders > Context->SizeOfHeaders) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Image Headers are in bounds of the file buffer.
   //
   if (Context->SizeOfHeaders > FileSize) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -654,14 +654,14 @@ InternalInitializePe (
                  &SecDirEnd
                  );
     if (Overflow || SecDirEnd > FileSize) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
     // Verify the Security Directory is sufficiently aligned.
     //
     if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -671,7 +671,7 @@ InternalInitializePe (
     if (Context->SecDirSize != 0
      && (!IS_ALIGNED (Context->SecDirSize, IMAGE_CERTIFICATE_ALIGN)
       || Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   } else {
@@ -693,14 +693,14 @@ InternalInitializePe (
              &MinSizeOfImage
              );
   if (Status != RETURN_SUCCESS) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return Status;
   }
   //
   // Verify SizeOfImage fits all Image Sections.
   //
   if (MinSizeOfImage > Context->SizeOfImage) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -708,7 +708,7 @@ InternalInitializePe (
   //
   Status = InternalValidateRelocInfo (Context, StartAddress);
   if (Status != RETURN_SUCCESS) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
   }
 
   return Status;
@@ -747,7 +747,7 @@ PeCoffInitializeContext (
     //
     if (sizeof (EFI_IMAGE_DOS_HEADER) > DosHdr->e_lfanew
      || DosHdr->e_lfanew > FileSize) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
 
@@ -764,7 +764,7 @@ PeCoffInitializeContext (
       //
       Status = InternalInitializeTe (Context, FileSize);
       if (Status != RETURN_SUCCESS) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return Status;
       }
       //
@@ -781,14 +781,14 @@ PeCoffInitializeContext (
   // Verify the file buffer can hold a PE Common Header.
   //
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Execution Header offset is sufficiently aligned.
   //
   if (!IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -800,7 +800,7 @@ PeCoffInitializeContext (
   // Verify the Image Executable Header has a PE signature.
   //
   if (*(CONST UINT32 *) (CONST VOID *) ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -808,7 +808,7 @@ PeCoffInitializeContext (
   //
   Status = InternalInitializePe (Context, FileSize);
   if (Status != RETURN_SUCCESS) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return Status;
   }
   //

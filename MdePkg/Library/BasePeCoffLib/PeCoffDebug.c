@@ -105,7 +105,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   // Verify the Debug Directory has a well-formed size.
   //
   if (DebugDir->Size % sizeof (*DebugEntries) != 0) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -117,7 +117,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                &DebugDirTop
                );
   if (Overflow || DebugDirTop > Context->SizeOfImage) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -137,7 +137,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   // Verify the Debug Directory was found among the Sections.
   //
   if (SectIndex == Context->NumberOfSections) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -150,7 +150,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectIndex].VirtualAddress;
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
   if (DebugDirSectionRawTop > Sections[SectIndex].SizeOfRawData) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -159,7 +159,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   DebugDirFileOffset = (Sections[SectIndex].PointerToRawData - Context->TeStrippedOffset) + DebugDirSectionOffset;
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -188,7 +188,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   CodeViewEntry = &DebugEntries[DebugIndex];
 
   if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return;
   }
   //
@@ -207,7 +207,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  );
     if (Overflow || DebugEntryRvaTop > Context->SizeOfImage
      || !IS_ALIGNED (CodeViewEntry->RVA, ALIGNOF (UINT32))) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
   } else {
@@ -227,7 +227,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  &DebugEntryTopOffset
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
 
@@ -237,7 +237,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  &DebugEntryTopOffset
                  );
     if (Overflow || DebugEntryTopOffset > FileSize) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
     //
@@ -249,7 +249,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  &DebugSizeOfImage
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
 
@@ -259,7 +259,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  &DebugSizeOfImage
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
     //
@@ -271,7 +271,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                  &DebugSizeOfImage
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return;
     }
     //
@@ -360,7 +360,7 @@ PeCoffLoaderLoadCodeViewInplace (
     // be equal to the raw file offset as the Image was loaded in-place.
     //
     if (CodeViewEntry->RVA != CodeViewEntry->FileOffset) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       Context->CodeViewRva = 0;
       return;
     }
@@ -441,7 +441,7 @@ PeCoffGetPdbPath (
       break;
 
     default:
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
   //
@@ -453,7 +453,7 @@ PeCoffGetPdbPath (
                &PdbNameSize
                );
   if (Overflow || PdbNameSize == 0) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -461,7 +461,7 @@ PeCoffGetPdbPath (
   //
   PdbName = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
   if (PdbName[PdbNameSize - 1] != 0) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 

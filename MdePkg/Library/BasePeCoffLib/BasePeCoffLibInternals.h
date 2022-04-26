@@ -18,7 +18,7 @@
 #define PCD_DEBUG_SUPPORT_FORCE_LOAD  2U
 
 #define ALIGNOF           _Alignof
-#define CRITICAL_ERROR(x)  ASSERT(x)
+#define DEBUG_RAISE()     ASSERT(FALSE)
 #define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
 #define IS_POW2(v)        ((v) != 0 && ((v) & ((v) - 1U)) == 0)
 

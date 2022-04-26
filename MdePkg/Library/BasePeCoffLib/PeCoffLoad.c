@@ -188,7 +188,7 @@ PeCoffLoadImageInplace (
     AlignedSize = ALIGN_VALUE (Sections[Index].VirtualSize, Context->SectionAlignment);
     if (Sections[Index].PointerToRawData != Sections[Index].VirtualAddress
      || Sections[Index].SizeOfRawData != AlignedSize) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }

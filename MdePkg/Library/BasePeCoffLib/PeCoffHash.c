@@ -197,7 +197,7 @@ PeCoffHashImage (
       //
       // Authenticode does not define a hashing algorithm for TE Images.
       //
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return FALSE;
 
     case PeCoffLoaderTypePe32:
@@ -247,7 +247,7 @@ PeCoffHashImage (
   //
   Result = HashUpdate (HashContext, Context->FileBuffer, ChecksumOffset);
   if (!Result) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return FALSE;
   }
   //
@@ -267,7 +267,7 @@ PeCoffHashImage (
                HashSize
                );
     if (!Result) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return FALSE;
     }
     //
@@ -288,7 +288,7 @@ PeCoffHashImage (
              HashSize
              );
   if (!Result) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return FALSE;
   }
 //
@@ -301,7 +301,7 @@ PeCoffHashImage (
              &SumBytesHashed
              );
   if (!Result) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return FALSE;
   }
   //
@@ -315,7 +315,7 @@ PeCoffHashImage (
               &SumBytesHashed
               );
   if (!Result) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return FALSE;
   }
   //
@@ -373,7 +373,7 @@ PeCoffGetFirstCertificate (
                      );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
    || WinCertificate->dwLength > Context->SecDirSize) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -383,7 +383,7 @@ PeCoffGetFirstCertificate (
   //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -438,7 +438,7 @@ PeCoffGetNextCertificate (
   // Verify the Directory fits another certificate.
   //
   if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -448,7 +448,7 @@ PeCoffGetNextCertificate (
                      (CONST UINT8 *) Context->FileBuffer + Context->SecDirOffset + CertOffset
                      );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -457,7 +457,7 @@ PeCoffGetNextCertificate (
   //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -470,7 +470,7 @@ PeCoffGetNextCertificate (
                &CertEnd
                );
   if (Overflow || CertEnd > Context->SecDirSize) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 

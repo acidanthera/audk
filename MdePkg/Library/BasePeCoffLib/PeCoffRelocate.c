@@ -264,7 +264,7 @@ InternalApplyRelocation (
                &RelocTarget
                );
   if (Overflow) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -274,7 +274,7 @@ InternalApplyRelocation (
                &RemRelocTargetSize
                );
   if (Overflow) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -298,7 +298,7 @@ InternalApplyRelocation (
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT32) > RemRelocTargetSize) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -306,7 +306,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT32) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -329,7 +329,7 @@ InternalApplyRelocation (
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -337,7 +337,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -360,14 +360,14 @@ InternalApplyRelocation (
       // Verify ARM Thumb mode Base Relocations are supported.
       //
       if ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) == 0) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -375,7 +375,7 @@ InternalApplyRelocation (
       // The ARM THunb instruction pait must start on a 32-bit boundary.
       //
       if (!IS_ALIGNED (RelocTarget, ALIGNOF (UINT32))) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -383,7 +383,7 @@ InternalApplyRelocation (
       //
       if (RelocTarget + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTarget) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -403,7 +403,7 @@ InternalApplyRelocation (
       //
       // The Base Relocation type cannot be recognised, disallow the Image.
       //
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
 
@@ -490,7 +490,7 @@ PeCoffRelocateImage (
                  &TopOfRelocDir
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -510,7 +510,7 @@ PeCoffRelocateImage (
                  &SizeOfRelocs
                  );
     if (Overflow) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -518,7 +518,7 @@ PeCoffRelocateImage (
     // Directory.
     //
     if (SizeOfRelocs > RelocMax - RelocOffset) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -531,7 +531,7 @@ PeCoffRelocateImage (
       // Verify the next Base Relocation Block offset is sufficiently aligned.
       //
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     } else {
@@ -580,7 +580,7 @@ PeCoffRelocateImage (
                  WalkerFixupData
                  );
       if (Status != RETURN_SUCCESS) {
-        CRITICAL_ERROR (FALSE);
+        DEBUG_RAISE ();
         return Status;
       }
     }
@@ -592,7 +592,7 @@ PeCoffRelocateImage (
   // Verify the Relocation Directory size matches the contained data.
   //
   if (RelocOffset != TopOfRelocDir) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //

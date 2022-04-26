@@ -86,7 +86,7 @@ PeCoffGetHiiResourceSection (
   // Verify the start of the Resource Directory Table is sufficiently aligned.
   //
   if (!IS_ALIGNED (ResDirTable->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -98,7 +98,7 @@ PeCoffGetHiiResourceSection (
                &TopOffset
                );
   if (Overflow || TopOffset > Context->SizeOfImage) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -115,7 +115,7 @@ PeCoffGetHiiResourceSection (
   TopOffset = sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDirEntry) *
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
   if (TopOffset > ResDirTable->Size) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -139,7 +139,7 @@ PeCoffGetHiiResourceSection (
                  &TopOffset
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -147,7 +147,7 @@ PeCoffGetHiiResourceSection (
     //
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
 
@@ -164,7 +164,7 @@ PeCoffGetHiiResourceSection (
                  &TopOffset
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -199,7 +199,7 @@ PeCoffGetHiiResourceSection (
     // with and one Relocation Directory Entry.
     //
     if (ResourceDirEntry->u2.s.OffsetToDirectory > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -207,7 +207,7 @@ PeCoffGetHiiResourceSection (
     //
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -217,7 +217,7 @@ PeCoffGetHiiResourceSection (
                     (CONST CHAR8 *) Context->ImageBuffer + Offset
                     );
     if ((UINT32) ResourceDir->NumberOfIdEntries + ResourceDir->NumberOfNamedEntries == 0) {
-      CRITICAL_ERROR (FALSE);
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -229,7 +229,7 @@ PeCoffGetHiiResourceSection (
   // Verify the final Resource Directory Entry is of a data type.
   //
   if (ResourceDirEntry->u2.s.DataIsDirectory != 0) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -240,7 +240,7 @@ PeCoffGetHiiResourceSection (
     "The following arithmetics may overflow."
     );
   if (ResourceDirEntry->u2.OffsetToData > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -248,7 +248,7 @@ PeCoffGetHiiResourceSection (
   //
   Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
   if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -264,7 +264,7 @@ PeCoffGetHiiResourceSection (
                &HiiRvaEnd
                );
   if (Overflow || HiiRvaEnd > Context->SizeOfImage) {
-    CRITICAL_ERROR (FALSE);
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
