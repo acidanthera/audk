@@ -448,7 +448,6 @@ PeCoffRelocateImage (
   ASSERT (!Context->RelocsStripped || BaseAddress == Context->ImageBase);
   ASSERT (RuntimeContext != NULL || RuntimeContextSize == 0);
   ASSERT (RuntimeContext == NULL || RuntimeContextSize >= sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
-  ASSERT (Context->ImageBase - Context->TeStrippedOffset != (UINTN) Context->FileBuffer);
   //
   // Verify the Relocation Directory is not empty.
   //

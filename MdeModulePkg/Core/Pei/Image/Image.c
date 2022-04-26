@@ -386,7 +386,8 @@ LoadAndRelocatePeCoffImage (
 EFI_STATUS
 LoadAndRelocatePeCoffImageInPlace (
   IN  VOID  *Pe32Data,
-  IN  VOID  *ImageAddress
+  IN  VOID    *ImageAddress,
+  IN  UINT32  ImageSize
   )
 {
   EFI_STATUS                    Status;
@@ -394,13 +395,9 @@ LoadAndRelocatePeCoffImageInPlace (
 
   ASSERT (Pe32Data != ImageAddress);
 
-  //
-  // FIXME: Copy image 1:1 and relocate in-place (loading may consume more
-  //        memory and change offsets)
-  //
+  CopyMem (ImageAddress, Pe32Data, ImageSize);
 
-  // FIXME: File size
-  Status = PeCoffInitializeContext (&ImageContext, Pe32Data, 0xFFFFFFFF);
+  Status = PeCoffInitializeContext (&ImageContext, ImageAddress, ImageSize);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
@@ -410,7 +407,7 @@ LoadAndRelocatePeCoffImageInPlace (
   // Load the image in place
   //
   // FIXME: Destination size
-  Status = PeCoffLoadImageForExecution (&ImageContext, ImageAddress, 0xFFFFFFFF, NULL, 0);
+  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext, (UINTN) ImageAddress);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
@@ -432,7 +429,8 @@ LoadAndRelocatePeCoffImageInPlace (
 EFI_STATUS
 PeiGetPe32Data (
   IN     EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT    VOID                 **Pe32Data
+  OUT    VOID                 **Pe32Data,
+  OUT    UINT32               *Pe32DataSize
   )
 {
   EFI_STATUS        Status;
@@ -454,22 +452,24 @@ PeiGetPe32Data (
   // Try to find a first exe section (if PcdPeiCoreImageLoaderSearchTeSectionFirst
   // is true, TE will be searched first).
   //
-  Status = PeiServicesFfsFindSectionData3 (
+  Status = PeiServicesFfsFindSectionData4 (
              SearchType1,
              0,
              FileHandle,
              Pe32Data,
+             Pe32DataSize,
              &AuthenticationState
              );
   //
   // If we didn't find a first exe section, try to find the second exe section.
   //
   if (EFI_ERROR (Status)) {
-    Status = PeiServicesFfsFindSectionData3 (
+    Status = PeiServicesFfsFindSectionData4 (
                SearchType2,
                0,
                FileHandle,
                Pe32Data,
+               Pe32DataSize,
                &AuthenticationState
                );
   }

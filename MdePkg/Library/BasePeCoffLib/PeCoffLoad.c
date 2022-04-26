@@ -120,7 +120,6 @@ PeCoffLoadImage (
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
   ASSERT (Context->SectionAlignment <= DestinationSize);
-  ASSERT (Context->ImageBase - Context->TeStrippedOffset != (UINTN) Context->FileBuffer);
   //
   // Sufficiently align the Image data in memory.
   //
