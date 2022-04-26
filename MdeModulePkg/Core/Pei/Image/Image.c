@@ -196,6 +196,7 @@ EFI_STATUS
 LoadAndRelocatePeCoffImage (
   IN  EFI_PEI_FILE_HANDLE   FileHandle,
   IN  VOID                  *Pe32Data,
+  IN  UINT32                                    Pe32DataSize,
   OUT PE_COFF_LOADER_IMAGE_CONTEXT              *ImageContext,
   OUT EFI_PHYSICAL_ADDRESS                      *ImageAddress
   )
@@ -216,8 +217,7 @@ LoadAndRelocatePeCoffImage (
   ReturnStatus = EFI_SUCCESS;
   IsXipImage   = FALSE;
 
-  // TODO: File size?
-  Status = PeCoffInitializeContext (ImageContext, Pe32Data, 0xFFFFFFFF);
+  Status = PeCoffInitializeContext (ImageContext, Pe32Data, Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -346,12 +346,12 @@ LoadAndRelocatePeCoffImage (
     // Load the image to our new buffer
     //
     Status = PeCoffLoadImageForExecution (
-      ImageContext,
-      (VOID *) (UINTN) LoadAddress,
-      AlignImageSize,
-      NULL,
-      0
-      );
+               ImageContext,
+               (VOID *) (UINTN) LoadAddress,
+               AlignImageSize,
+               NULL,
+               0
+               );
     if (EFI_ERROR (Status)) {
       // TODO: Fix?
       //if (ImageContext.ImageError == IMAGE_ERROR_INVALID_SECTION_ALIGNMENT) {
@@ -511,6 +511,7 @@ PeiLoadImageLoadImage (
 {
   EFI_STATUS            Status;
   VOID                  *Pe32Data;
+  UINT32                      Pe32DataSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
   UINT16                      Machine;
   EFI_SECTION_TYPE      SearchType1;
@@ -532,22 +533,24 @@ PeiLoadImageLoadImage (
   // Try to find a first exe section (if PcdPeiCoreImageLoaderSearchTeSectionFirst
   // is true, TE will be searched first).
   //
-  Status = PeiServicesFfsFindSectionData3 (
+  Status = PeiServicesFfsFindSectionData4 (
              SearchType1,
              0,
              FileHandle,
              &Pe32Data,
+             &Pe32DataSize,
              AuthenticationState
              );
   //
   // If we didn't find a first exe section, try to find the second exe section.
   //
   if (EFI_ERROR (Status)) {
-    Status = PeiServicesFfsFindSectionData3 (
+    Status = PeiServicesFfsFindSectionData4 (
                SearchType2,
                0,
                FileHandle,
                &Pe32Data,
+               &Pe32DataSize,
                AuthenticationState
                );
     if (EFI_ERROR (Status)) {
@@ -567,6 +570,7 @@ PeiLoadImageLoadImage (
   Status = LoadAndRelocatePeCoffImage (
              FileHandle,
              Pe32Data,
+    Pe32DataSize,
     &ImageContext,
     &ImageAddress
              );
