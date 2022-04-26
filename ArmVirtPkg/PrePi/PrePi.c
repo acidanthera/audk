@@ -143,6 +143,7 @@ RelocatePeCoffImage (
 {
   EFI_PEI_FILE_HANDLE           FileHandle;
   VOID                          *SectionData;
+  UINT32                        SectionSize;
   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
   EFI_STATUS                    Status;
 
@@ -154,15 +155,14 @@ RelocatePeCoffImage (
                  );
   ASSERT_EFI_ERROR (Status);
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SectionData);
+  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SectionData, &SectionSize);
   if (EFI_ERROR (Status)) {
-    Status = FfsFindSectionData (EFI_SECTION_TE, FileHandle, &SectionData);
+    Status = FfsFindSectionData (EFI_SECTION_TE, FileHandle, &SectionData, &SectionSize);
   }
 
   ASSERT_EFI_ERROR (Status);
 
-  // FIXME: file size
-  Status = PeCoffInitializeContext (&ImageContext, SectionData, MAX_UINT32);
+  Status = PeCoffInitializeContext (&ImageContext, SectionData, SectionSize);
   ASSERT_RETURN_ERROR (Status);
 
   PeCoffRelocateImageInplaceForExecution (&ImageContext, (UINTN) SectionData);

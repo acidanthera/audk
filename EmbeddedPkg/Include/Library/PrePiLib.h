@@ -69,7 +69,8 @@ EFIAPI
 FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT VOID                **SectionData
+  OUT VOID                **SectionData,
+  OUT UINT32                    *SectionSize
   );
 
 /**
@@ -710,6 +711,7 @@ EFI_STATUS
 EFIAPI
 LoadPeCoffImage (
   IN  VOID                  *PeCoffImage,
+  IN  UINT32                                    PeCoffImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint

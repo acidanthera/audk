@@ -6,6 +6,7 @@
 
 **/
 
+#include "ProcessorBind.h"
 #include <PrePi.h>
 
 //
@@ -58,6 +59,7 @@ EFI_STATUS
 EFIAPI
 LoadPeCoffImage (
   IN  VOID                  *PeCoffImage,
+  IN  UINT32                                    PeCoffImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
@@ -68,8 +70,7 @@ LoadPeCoffImage (
   VOID                          *Buffer;
   UINT32                         BufferSize;
 
-  // FIXME: File size
-  Status = PeCoffInitializeContext (&ImageContext, PeCoffImage, MAX_UINT32);
+  Status = PeCoffInitializeContext (&ImageContext, PeCoffImage, PeCoffImageSize);
   ASSERT_EFI_ERROR (Status);
 
   Status = PeCoffLoaderGetDestinationSize (&ImageContext, &BufferSize);
@@ -109,6 +110,7 @@ LoadDxeCoreFromFfsFile (
 {
   EFI_STATUS            Status;
   VOID                  *PeCoffImage;
+  UINT32                  PeCoffImageSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
   UINT64                ImageSize;
   EFI_PHYSICAL_ADDRESS  EntryPoint;
@@ -117,12 +119,12 @@ LoadDxeCoreFromFfsFile (
   VOID                  *Hob;
   EFI_FV_FILE_INFO      FvFileInfo;
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &PeCoffImage);
+  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &PeCoffImage, &PeCoffImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = LoadPeCoffImage (PeCoffImage, &ImageAddress, &ImageSize, &EntryPoint);
+  Status = LoadPeCoffImage (PeCoffImage, PeCoffImageSize, &ImageAddress, &ImageSize, &EntryPoint);
   // For NT32 Debug  Status = SecWinNtPeiLoadFile (PeCoffImage, &ImageAddress, &ImageSize, &EntryPoint);
   ASSERT_EFI_ERROR (Status);
 

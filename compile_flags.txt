@@ -28,4 +28,5 @@ x86_64-unknown-windows-gnu
 -IArmPlatformPkg/Include
 -IStandaloneMmPkg/Include
 -ICryptoPkg/Include
+-IEmbeddedPkg/Include
 -includeUefi.h
