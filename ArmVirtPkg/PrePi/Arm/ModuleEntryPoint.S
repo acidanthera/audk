@@ -146,7 +146,6 @@ ASM_PFX(ArmPlatformPeiBootAction):
   // window at the beginning of the FD image as a temp stack.
   //
   mov   r0, r5
-  ADRL  (r1, PeCoffLoaderImageReadFromMemory)
   mov   sp, r5
   bl    RelocatePeCoffImage
 

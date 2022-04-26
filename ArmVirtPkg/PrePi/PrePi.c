@@ -138,8 +138,7 @@ CEntryPoint (
 
 VOID
 RelocatePeCoffImage (
-  IN  EFI_PEI_FV_HANDLE         FwVolHeader,
-  IN  PE_COFF_LOADER_READ_FILE  ImageRead
+  IN  EFI_PEI_FV_HANDLE             FwVolHeader
   )
 {
   EFI_PEI_FILE_HANDLE           FileHandle;
