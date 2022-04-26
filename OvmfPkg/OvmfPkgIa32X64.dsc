@@ -538,6 +538,7 @@
 !endif
 
   gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x1
+  gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
 
 [PcdsFixedAtBuild.IA32]
   #
