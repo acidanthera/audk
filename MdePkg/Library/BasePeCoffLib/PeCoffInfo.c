@@ -55,7 +55,6 @@ PeCoffGetSectionAlignment (
 {
   ASSERT (Context != NULL);
 
-  // FIXME: How to handle misaligned sections if the policy allows it?
   return Context->SectionAlignment;
 }
 

@@ -302,7 +302,6 @@ MmLoadImage (
   }
 
   //
-  // FIXME: Can this be removed entirely?
   // Print the load address and the PDB file name if it is available
   //
   DEBUG_CODE_BEGIN ();

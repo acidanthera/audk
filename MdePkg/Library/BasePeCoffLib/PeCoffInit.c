@@ -39,11 +39,11 @@
   memory space space.
   The section data must be in bounds bounds of the file buffer.
 
-  @param[in]  Context       The context describing the Image. Must have been
-                            initialised by PeCoffInitializeContext().
-  @param[in]  FileSize      The size, in Bytes, of Context->FileBuffer.
-  @param[out] StartAddress  On output, the RVA of the first Image section.
-  @param[out] EndAddress    On output, the end RVA of the last Image section.
+  @param[in,out] Context       The context describing the Image. Must have been
+                               initialised by PeCoffInitializeContext().
+  @param[in]     FileSize      The size, in Bytes, of Context->FileBuffer.
+  @param[out]    StartAddress  On output, the RVA of the first Image section.
+  @param[out]    EndAddress    On output, the end RVA of the last Image section.
 
   @retval RETURN_SUCCESS  The Image section Headers are well-formed.
   @retval other           The Image section Headers are malformed.
@@ -51,10 +51,10 @@
 STATIC
 RETURN_STATUS
 InternalVerifySections (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINT32                              FileSize,
-  OUT UINT32                              *StartAddress,
-  OUT UINT32                              *EndAddress
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT32                        FileSize,
+  OUT    UINT32                        *StartAddress,
+  OUT    UINT32                        *EndAddress
   )
 {
   BOOLEAN                        Overflow;
@@ -96,8 +96,8 @@ InternalVerifySections (
     NextSectRva = 0;
   } else {
     //
-    // Choose the raw or aligned Image Headers' size depending on whether
-    // loading unaligned Sections is allowed.
+    // Choose the raw or aligned Image Headers size depending on whether loading
+    // unaligned Sections is allowed.
     //
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
@@ -134,6 +134,19 @@ InternalVerifySections (
       if (Sections[SectIndex].VirtualAddress < NextSectRva) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
+      }
+      //
+      // If the Image section address is not aligned by the Image section
+      // alignment, fall back to the UEFI page size if possible, to ensure the
+      // Image can have memory protection applied. Otherwise, report no
+      // alignment for the Image.
+      //
+      if (!IS_ALIGNED (Sections[SectIndex].VirtualAddress, Context->SectionAlignment)) {
+        if (IS_ALIGNED (Sections[SectIndex].VirtualAddress, EFI_PAGE_SIZE)) {
+          Context->SectionAlignment = EFI_PAGE_SIZE;
+        } else {
+          Context->SectionAlignment = 1;
+        }
       }
     }
     //
