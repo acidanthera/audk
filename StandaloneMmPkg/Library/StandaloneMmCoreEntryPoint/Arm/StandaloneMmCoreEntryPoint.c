@@ -23,6 +23,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/BaseMemoryLib.h>
 #include <Library/SerialPortLib.h>
 #include <Library/PcdLib.h>
+#include <Library/MemoryAllocationLib.h>
 
 #include <IndustryStandard/ArmStdSmc.h>
 #include <IndustryStandard/ArmMmSvc.h>
@@ -332,6 +333,7 @@ _ModuleEntryPoint (
   VOID                            *TeData;
   UINT32                                  TeDataSize;
   UINT32                                  SectionIndex;
+  PE_COFF_IMAGE_RECORD                    *ImageRecord;
 
   // Get Secure Partition Manager Version Information
   Status = GetSpmVersion ();
@@ -366,7 +368,6 @@ _ModuleEntryPoint (
     goto finish;
   }
 
-  PE_COFF_IMAGE_RECORD *ImageRecord;
   ImageRecord = PeCoffLoaderGetImageRecord (&ImageContext);
 
   if (ImageRecord == NULL) {
@@ -388,6 +389,8 @@ _ModuleEntryPoint (
         );
     }
   }
+
+  FreePool (ImageRecord);
 
   // FIXME: Should relocation not be performed with all of the Image writable?
   Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
