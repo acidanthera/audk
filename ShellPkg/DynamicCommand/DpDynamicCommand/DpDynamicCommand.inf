@@ -55,6 +55,7 @@
 
 [Guids]
   gPerformanceProtocolGuid                                ## CONSUMES ## SystemTable
+  gEfiDebugImageInfoTableGuid                             ## CONSUMES ## SystemTable
 
 [Protocols]
   gEfiLoadedImageProtocolGuid                             ## CONSUMES
