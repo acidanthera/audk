@@ -16,11 +16,11 @@
 // FIXME: Check Machine / Subsystem here?
 RETURN_STATUS
 PeCoffLoadImageForExecution (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    VOID                          *Destination,
-  IN     UINT32                        DestinationSize,
-  OUT PE_COFF_LOADER_RUNTIME_CONTEXT   *RuntimeContext OPTIONAL,
-  IN  UINT32                           RuntimeContextSize
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
+  OUT    VOID                            *Destination,
+  IN     UINT32                          DestinationSize,
+  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                          RuntimeContextSize
   )
 {
   RETURN_STATUS Status;
