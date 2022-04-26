@@ -299,6 +299,7 @@ InternalValidateRelocInfo (
   UINT32  SectRvaEnd;
 
   ASSERT (Context != NULL);
+  ASSERT (!Context->RelocsStripped || Context->RelocDirSize == 0);
   //
   // If the Base Relocations have not been stripped, verify their Directory.
   //
@@ -469,7 +470,7 @@ InternalInitializeTe (
   // stripped. Assume that if there are no Relocations, they have been stripped
   // to prevent loading into non-preferred memory locations.
   //
-  Context->RelocsStripped = TeHdr->DataDirectory[0].Size > 0;
+  Context->RelocsStripped = TeHdr->DataDirectory[0].Size == 0;
   //
   // Verify basic sanity of the Relocation Directory.
   //
@@ -722,6 +723,11 @@ InternalInitializePe (
   if (EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC < NumberOfRvaAndSizes) {
     Context->RelocDirRva  = RelocDir->VirtualAddress;
     Context->RelocDirSize = RelocDir->Size;
+
+    if (Context->RelocsStripped && Context->RelocDirSize != 0) {
+      DEBUG_RAISE ();
+      return RETURN_UNSUPPORTED;
+    }
   } else {
     ASSERT (Context->RelocDirRva == 0);
     ASSERT (Context->RelocDirSize == 0);
