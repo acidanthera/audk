@@ -24,7 +24,7 @@
 ///
 /// If set, unaligned Image sections are permitted.
 ///
-#define PCD_ALIGNMENT_POLICY_SECTIONS                BIT0
+#define PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS     BIT0
 ///
 /// If set, unaligned Image Relocation Block sizes are permitted.
 ///

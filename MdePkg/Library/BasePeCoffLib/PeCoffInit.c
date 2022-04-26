@@ -99,7 +99,7 @@ InternalVerifySections (
     // Choose the raw or aligned Image Headers size depending on whether loading
     // unaligned Sections is allowed.
     //
-    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
                    Context->SizeOfHeaders,
                    Context->SectionAlignment,
@@ -121,11 +121,11 @@ InternalVerifySections (
   for (SectIndex = 0; SectIndex < Context->NumberOfSections; ++SectIndex) {
     //
     // Verify the Image section are disjoint (relaxed) or adjacent (strict)
-    // depending on whether unaligned Sections may be loaded or not. Unaligned
-    // Sections have been observed with iPXE Option ROMs and old Apple OS X
-    // bootloaders.
+    // depending on whether unaligned Image sections may be loaded or not.
+    // Unaligned Image sections have been observed with iPXE Option ROMs and old
+    // Apple Mac OS X bootloaders.
     //
-    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
       if (Sections[SectIndex].VirtualAddress != NextSectRva) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
@@ -188,7 +188,7 @@ InternalVerifySections (
     //
     // VirtualSize does not need to be aligned, so align the result if needed.
     //
-    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_SECTIONS) == 0) {
+    if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
       Overflow = BaseOverflowAlignUpU32 (
                    NextSectRva,
                    Context->SectionAlignment,
