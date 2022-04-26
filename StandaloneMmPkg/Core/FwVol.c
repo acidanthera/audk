@@ -67,13 +67,13 @@ MmCoreFfsFindMmDriver (
   EFI_FFS_FILE_HEADER         *FileHeader;
   EFI_FV_FILETYPE             FileType;
   VOID                        *Pe32Data;
-  UINTN                       Pe32DataSize;
+  UINT32                                  Pe32DataSize;
   VOID                        *Depex;
-  UINTN                       DepexSize;
+  UINT32                                  DepexSize;
   UINTN                       Index;
   EFI_COMMON_SECTION_HEADER   *Section;
   VOID                        *SectionData;
-  UINTN                       SectionDataSize;
+  UINT32                                  SectionDataSize;
   UINT32                      DstBufferSize;
   VOID                        *ScratchBuffer;
   UINT32                      ScratchBufferSize;

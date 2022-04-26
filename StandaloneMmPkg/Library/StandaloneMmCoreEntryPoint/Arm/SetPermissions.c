@@ -40,7 +40,7 @@ EFIAPI
 LocateStandaloneMmCorePeCoffData (
   IN        EFI_FIRMWARE_VOLUME_HEADER  *BfvAddress,
   IN  OUT   VOID                        **TeData,
-  IN  OUT   UINTN                       *TeDataSize
+  IN  OUT   UINT32                          *TeDataSize
   )
 {
   EFI_FFS_FILE_HEADER  *FileHeader;

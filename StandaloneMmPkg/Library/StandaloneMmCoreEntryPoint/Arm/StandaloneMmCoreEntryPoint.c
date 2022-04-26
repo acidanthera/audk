@@ -330,7 +330,7 @@ _ModuleEntryPoint (
   INT32                           Ret;
   VOID                            *HobStart;
   VOID                            *TeData;
-  UINTN                           TeDataSize;
+  UINT32                                  TeDataSize;
   UINT32                                  SectionIndex;
 
   // Get Secure Partition Manager Version Information

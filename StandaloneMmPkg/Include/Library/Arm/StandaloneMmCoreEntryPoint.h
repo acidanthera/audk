@@ -78,9 +78,9 @@ typedef RETURN_STATUS (*REGION_PERMISSION_UPDATE_FUNC) (
 EFI_STATUS
 EFIAPI
 LocateStandaloneMmCorePeCoffData (
-  IN        EFI_FIRMWARE_VOLUME_HEADER  *BfvAddress,
-  IN  OUT   VOID                        **TeData,
-  IN  OUT   UINTN                       *TeDataSize
+  IN        EFI_FIRMWARE_VOLUME_HEADER      *BfvAddress,
+  IN  OUT   VOID                            **TeData,
+  IN  OUT   UINT32                          *TeDataSize
   );
 
 /**
