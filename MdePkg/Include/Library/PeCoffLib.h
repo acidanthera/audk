@@ -289,7 +289,8 @@ PeCoffLoaderGetRuntimeContextSize (
 /**
   Relocate the Image for boot-time usage.
 
-  May only be called when PeCoffGetRelocsStripped() returns FALSE.
+  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
+  BaseAddress == PeCoffGetImageBase().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been loaded by PeCoffLoadImage().
@@ -316,7 +317,8 @@ PeCoffRelocateImage (
   usage, and perform environment-specific actions required to execute code from
   the Image.
 
-  May only be called when PeCoffGetRelocsStripped() returns FALSE.
+  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
+  BaseAddress == PeCoffGetImageBase().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been initialised by
@@ -348,7 +350,8 @@ PeCoffLoadImageForExecution (
 /**
   Relocate Image for Runtime usage.
 
-  May only be called when PeCoffGetRelocsStripped() returns FALSE.
+  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
+  BaseAddress == PeCoffGetImageBase().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by PeCoffRelocateImage().
@@ -372,7 +375,8 @@ PeCoffRelocateImageForRuntime (
   Relocate Image for Runtime usage, and perform environment-specific actions
   required to execute code from the Image.
 
-  May only be called when PeCoffGetRelocsStripped() returns FALSE.
+  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
+  BaseAddress == PeCoffGetImageBase().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by PeCoffRelocateImage().
