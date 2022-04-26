@@ -209,6 +209,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   // is not mapped by a section.
   //
   if (CodeViewEntry->RVA != 0) {
+    // FIXME: Verify against first Image section / Headers due to XIP TE.
     //
     // Verify the CodeView entry is in bounds of the Image buffer, and the
     // CodeView entry RVA is sufficiently aligned.

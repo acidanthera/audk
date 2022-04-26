@@ -99,6 +99,7 @@ PeCoffGetHiiDataRva (
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
+  // FIXME: Verify against first Image section / Headers due to XIP TE.
   //
   // Verify the Resource Directory Table is in bounds of the Image buffer.
   //

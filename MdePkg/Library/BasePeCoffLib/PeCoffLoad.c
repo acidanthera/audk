@@ -189,6 +189,7 @@ PeCoffLoadImageInplaceNoBase (
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT32                         AlignedSize;
   UINT16                         SectionIndex;
+  CHAR8                          *ImageBuffer;
 
   ASSERT (Context != NULL);
 
@@ -210,7 +211,24 @@ PeCoffLoadImageInplaceNoBase (
     }
   }
 
-  Context->ImageBuffer = (VOID *) Context->FileBuffer;
+  ImageBuffer = (CHAR8 *) Context->FileBuffer;
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    // FIXME: Abstract all accesses to ImageBuffer for safety?
+    //
+    // TE XIP Images are padded to be aligned such that their Image sections
+    // are correctly aligned. ImageBuffer is used exclusively to accesses RVAs,
+    // which for TE XIP Images are always off by Context->TeStrippedOffset.
+    // There is no other way but to treat the data in front of the TE Image
+    // Header as a part of the TE Image Header.
+    //
+    if (Context->ImageType == PeCoffLoaderTypeTe) {
+      ImageBuffer -= Context->TeStrippedOffset;
+    }
+  } else {
+    ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
+  }
+
+  Context->ImageBuffer = ImageBuffer;
   //
   // Force-load its contents into the memory space, if the policy demands it.
   //
@@ -226,11 +244,21 @@ PeCoffLoadImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
+  UINT64 ImageBase;
+
   ASSERT (Context != NULL);
+
+  ImageBase = PeCoffGetImageBase (Context);
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    ImageBase += Context->TeStrippedOffset;
+  } else {
+    ASSERT (Context->TeStrippedOffset == 0);
+  }
   //
   // Verify the Image is located at its preferred load address.
   //
-  if (Context->ImageBase != (UINTN) Context->FileBuffer) {
+  if (ImageBase != (UINTN) Context->FileBuffer) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
