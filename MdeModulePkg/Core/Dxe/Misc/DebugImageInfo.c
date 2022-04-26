@@ -160,15 +160,19 @@ CoreUpdateDebugTableCrc32 (
 **/
 VOID
 CoreNewDebugImageInfoEntry (
-  IN  UINT32                     ImageInfoType,
-  IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN  EFI_HANDLE                 ImageHandle
+  IN  UINT32                        ImageInfoType,
+  IN  EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
+  IN  EFI_HANDLE                    ImageHandle,
+  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   EFI_DEBUG_IMAGE_INFO  *Table;
   EFI_DEBUG_IMAGE_INFO  *NewTable;
   UINTN                 Index;
   UINTN                 TableSize;
+  RETURN_STATUS             Status;
+  CONST CHAR8               *PdbPath;
+  UINT32                    PdbPathSize;
 
   //
   // Set the flag indicating that we're in the process of updating the table.
@@ -233,6 +237,11 @@ CoreNewDebugImageInfoEntry (
     Table[Index].NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
     Table[Index].NormalImage->LoadedImageProtocolInstance = LoadedImage;
     Table[Index].NormalImage->ImageHandle                 = ImageHandle;
+
+    Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+    if (!RETURN_ERROR (Status)) {
+      Table[Index].NormalImage->PdbPath = PdbPath;
+    }
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
     //

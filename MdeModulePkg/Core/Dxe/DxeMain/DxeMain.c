@@ -363,7 +363,8 @@ DxeMain (
   CoreNewDebugImageInfoEntry (
     EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
     gDxeCoreLoadedImage,
-    gDxeCoreImageHandle
+    gDxeCoreImageHandle,
+    &ImageContext
     );
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "HOBLIST address in DXE = 0x%p\n", HobStart));

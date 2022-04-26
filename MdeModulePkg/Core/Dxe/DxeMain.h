@@ -2376,7 +2376,8 @@ VOID
 CoreNewDebugImageInfoEntry (
   IN  UINT32                     ImageInfoType,
   IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN  EFI_HANDLE                 ImageHandle
+  IN  EFI_HANDLE                 ImageHandle,
+  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
