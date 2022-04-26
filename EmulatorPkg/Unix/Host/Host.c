@@ -745,7 +745,7 @@ SecPeCoffGetEntryPoint (
     return Status;
   }
 
-  *EntryPoint = (VOID *) (PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
+  *EntryPoint = (VOID *) (PeCoffLoaderGetImageEntryPoint (&ImageContext));
 
   // On Unix a dlopen is done that will change the entry point
   SecPeCoffRelocateImageExtraAction2 (&ImageContext, EntryPoint);
@@ -1025,7 +1025,7 @@ PrintLoadAddress (
       stderr,
       "0x%08lx Loading NO DEBUG with entry point 0x%08lx\n",
       (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
-      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
+      (unsigned long) PeCoffLoaderGetImageEntryPoint (ImageContext)
       );
   } else {
     fprintf (
@@ -1033,7 +1033,7 @@ PrintLoadAddress (
       "0x%08lx Loading %s with entry point 0x%08lx\n",
       (unsigned long)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)),
       PdbPath,
-      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
+      (unsigned long) PeCoffLoaderGetImageEntryPoint (ImageContext)
       );
   }
 
@@ -1084,7 +1084,7 @@ DlLoadImage (
     "Loading %s 0x%08lx - entry point 0x%08lx\n",
      PdbPath,
       (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
-      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext)
+      (unsigned long) PeCoffLoaderGetImageEntryPoint (ImageContext)
     );
 
   Handle = dlopen (PdbPath, RTLD_NOW);

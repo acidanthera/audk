@@ -178,6 +178,21 @@ PeCoffLoaderGetImageAddress (
   return (UINTN) Context->ImageBuffer;
 }
 
+UINTN
+PeCoffLoaderGetImageEntryPoint (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  UINT32 AddressOfEntryPoint;
+
+  ASSERT (Context != NULL);
+  ASSERT (Context->ImageBuffer != NULL);
+
+  AddressOfEntryPoint = PeCoffGetAddressOfEntryPoint (Context);
+
+  return (UINTN) ((CONST CHAR8 *) Context->ImageBuffer + AddressOfEntryPoint);
+}
+
 /**
   Retrieves the memory protection attributes corresponding to PE/COFF Image
   section permissions.

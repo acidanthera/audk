@@ -118,8 +118,8 @@ RelocateImageUnder4GIfNeeded (
   //
   gBS->FreePool (Buffer);
 
-  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", PeCoffLoaderGetImageAddress (&ImageContext), PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext)));
-  Status = ((EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext)))(NewImageHandle, gST);
+  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", PeCoffLoaderGetImageAddress (&ImageContext), PeCoffLoaderGetImageEntryPoint (&ImageContext)));
+  Status = ((EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", PeCoffLoaderGetImageAddress (&ImageContext), Status));
     gBS->FreePages (FfsBuffer, Pages);

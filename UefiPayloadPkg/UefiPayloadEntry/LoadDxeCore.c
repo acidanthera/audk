@@ -107,7 +107,7 @@ LoadPeCoffImage (
 
   *ImageAddress = PeCoffLoaderGetImageAddress (&ImageContext);
   *ImageSize    = PeCoffGetSizeOfImage (&ImageContext);
-  *EntryPoint   = PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext);
+  *EntryPoint   = PeCoffLoaderGetImageEntryPoint (&ImageContext);
 
   return EFI_SUCCESS;
 }

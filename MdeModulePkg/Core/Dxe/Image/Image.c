@@ -239,10 +239,11 @@ CoreInitializeImageServices (
              (UINT32) DxeCoreImageLength
              );
   ASSERT_EFI_ERROR (Status);
-  ASSERT ((UINTN) DxeCoreEntryPoint == DxeCoreImageBaseAddress + PeCoffGetAddressOfEntryPoint (ImageContext));
 
   // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
   ImageContext->ImageBuffer = (VOID *) ImageContext->FileBuffer;
+
+  ASSERT ((UINTN) DxeCoreEntryPoint == PeCoffLoaderGetImageEntryPoint (ImageContext));
 
   Image->EntryPoint       = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage    = DxeCoreImageBaseAddress;
@@ -781,7 +782,7 @@ CoreLoadPeImage (
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext));
+  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol
@@ -814,7 +815,7 @@ CoreLoadPeImage (
   // Fill in the entry point of the image if it is available
   //
   if (EntryPoint != NULL) {
-    *EntryPoint = LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext);
+    *EntryPoint = PeCoffLoaderGetImageEntryPoint (ImageContext);
   }
 
   UINT32 Hiioff;
@@ -838,7 +839,7 @@ CoreLoadPeImage (
   DEBUG ((DEBUG_INFO | DEBUG_LOAD,
          "Loading driver at 0x%11p EntryPoint=0x%11p \n",
          (VOID *)(UINTN)LoadAddress,
-         FUNCTION_ENTRY_POINT (LoadAddress + PeCoffGetAddressOfEntryPoint (ImageContext))));
+           FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
 
   Status = PeCoffGetModuleNameFromPdb (
              ImageContext,

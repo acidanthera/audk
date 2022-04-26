@@ -578,7 +578,7 @@ PeiLoadImageLoadImage (
   //
   // Got the entry point from the loaded Pe32Data
   //
-  *EntryPoint = ImageAddress + PeCoffGetAddressOfEntryPoint (&ImageContext);
+  *EntryPoint = PeCoffLoaderGetImageEntryPoint (&ImageContext);
 
   Machine = PeCoffGetMachine (&ImageContext);
 

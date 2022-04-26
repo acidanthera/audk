@@ -15,6 +15,8 @@
 
 #include <Guid/WinCertificate.h>
 
+// FIXME: Rework docs to consider Inplace dependencies
+
 /**
   Returns whether the Image targets the UEFI Subsystem.
 
@@ -702,6 +704,21 @@ PeCoffGetRelocsStripped (
 **/
 UINTN
 PeCoffLoaderGetImageAddress (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
+  Retrieve the Image entry point address.
+
+  May be called only after PeCoffLoadImage() has succeeded.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+
+  @returns  The Image entry point addres.
+**/
+UINTN
+PeCoffLoaderGetImageEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 

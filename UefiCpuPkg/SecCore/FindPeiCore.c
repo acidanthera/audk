@@ -213,7 +213,7 @@ FindAndReportEntryPoints (
   //
   // Find PEI Core entry point
   //
-  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT) (UINTN) (PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext));
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT) (UINTN) (PeCoffLoaderGetImageEntryPoint (&ImageContext));
 
   return;
 }

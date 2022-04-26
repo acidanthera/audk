@@ -93,10 +93,10 @@ PeCoffLoaderRelocateImageExtraAction (
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext))));
  #else
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
  #endif
   } else {
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
   }
 }
 

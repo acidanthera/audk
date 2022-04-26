@@ -318,7 +318,7 @@ BuildDriverInfo (
 
   DriverInfo->ImageBase      = PeCoffLoaderGetImageAddress (ImageContext);
   DriverInfo->ImageSize      = PeCoffGetSizeOfImage (ImageContext);
-  DriverInfo->EntryPoint     = PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetAddressOfEntryPoint (ImageContext);
+  DriverInfo->EntryPoint     = PeCoffLoaderGetImageEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = PeCoffGetSubsystem (ImageContext);
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {

@@ -1109,7 +1109,7 @@ ExecuteSmmCoreFromSmram (
     //
     // Print debug message showing SMM Core entry point address.
     //
-    DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(LoadAddress + PeCoffGetAddressOfEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
+    DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(PeCoffLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
 
     gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
     DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
@@ -1118,7 +1118,7 @@ ExecuteSmmCoreFromSmram (
     //
     // Execute image
     //
-    EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetAddressOfEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
+    EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
     Status = EntryPoint ((EFI_HANDLE)Context, gST);
   }
 

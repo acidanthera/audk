@@ -90,7 +90,7 @@ LoadPeCoffImage (
 
   *ImageAddress = (UINTN) PeCoffLoaderGetImageAddress (&ImageContext);
   *ImageSize    = PeCoffGetSizeOfImage (&ImageContext);
-  *EntryPoint   = (UINTN) PeCoffLoaderGetImageAddress (&ImageContext) + PeCoffGetAddressOfEntryPoint (&ImageContext);
+  *EntryPoint   = (UINTN) PeCoffLoaderGetImageEntryPoint (&ImageContext);
 
   return Status;
 }

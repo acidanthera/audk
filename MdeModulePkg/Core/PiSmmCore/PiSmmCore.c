@@ -822,7 +822,7 @@ SmmCoreInstallLoadedImage (
   mSmmCoreDriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   mSmmCoreDriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
-  mSmmCoreDriverEntry->ImageEntryPoint = gSmmCorePrivate->PiSmmCoreImageBase + PeCoffGetAddressOfEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext);
+  mSmmCoreDriverEntry->ImageEntryPoint = PeCoffLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreDriverEntry->ImageBuffer     = gSmmCorePrivate->PiSmmCoreImageBase;
   mSmmCoreDriverEntry->NumberOfPage    = EFI_SIZE_TO_PAGES ((UINTN)PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext));
 

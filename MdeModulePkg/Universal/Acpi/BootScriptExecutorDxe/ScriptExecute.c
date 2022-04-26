@@ -349,7 +349,7 @@ ReadyToLockEventNotify (
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(LoadAddress + PeCoffGetAddressOfEntryPoint (&ImageContext)))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
