@@ -20,7 +20,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DxeServicesTableLib.h>
 #include <Library/CacheMaintenanceLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+//#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/UefiLib.h>
 #include <Library/CpuLib.h>
 #include <Library/DefaultExceptionHandlerLib.h>
