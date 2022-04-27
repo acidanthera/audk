@@ -56,3 +56,5 @@
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
 
+[Guids]
+  gEfiDebugImageInfoTableGuid  ## CONSUMES ## SystemTable

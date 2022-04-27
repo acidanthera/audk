@@ -118,33 +118,29 @@ DumpModuleImageInfo (
   IN  UINTN  CurrentEip
   )
 {
-  RETURN_STATUS                        Status;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
-  CONST CHAR8                          *PdbPath;
-  UINT32                               PdbPathSize;
-  UINTN                                EntryPoint;
+  BOOLEAN      Result;
+  UINTN        ImageBase;
+  CONST CHAR8  *PdbPath;
 
-  Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip);
-  if (RETURN_ERROR (Status)) {
+  Result = GetImageInfoByIp (&ImageBase, &PdbPath, CurrentEip);
+
+  if (!Result) {
     InternalPrintMessage ("!!!! Can't find image information. !!!!\n");
   } else {
     //
     // Find Image Base entry point
     //
-    EntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
     InternalPrintMessage ("!!!! Find image based on IP(0x%x) ", CurrentEip);
-    Status = UefiImageGetSymbolsPath (&ImageContext, &PdbPath,&PdbPathSize);
-    if (!RETURN_ERROR (Status)) {
+    if (PdbPath!= NULL) {
       InternalPrintMessage ("%a", PdbPath);
     } else {
       InternalPrintMessage ("(No PDB) ");
     }
 
     InternalPrintMessage (
-      " (ImageBase=%016lp, EntryPoint=%016llx) !!!!\n",
-      UefiImageLoaderGetImageAddress (&ImageContext),
-      (UINT64) EntryPoint
+      " (ImageBase=%016lp) !!!!\n",
+      (EFI_PHYSICAL_ADDRESS) ImageBase
       );
   }
 }

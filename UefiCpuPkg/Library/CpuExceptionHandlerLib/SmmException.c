@@ -8,6 +8,8 @@
 
 #include <PiSmm.h>
 #include "CpuExceptionCommon.h"
+#include <Library/SmmServicesTableLib.h>
+#include <Guid/DebugImageInfoTable.h>
 
 CONST UINTN  mDoFarReturnFlag = 1;
 
@@ -20,6 +22,7 @@ RESERVED_VECTORS_DATA      mReservedVectorsData[CPU_EXCEPTION_NUM];
 EFI_CPU_INTERRUPT_HANDLER  mExternalInterruptHandlerTable[CPU_EXCEPTION_NUM];
 EXCEPTION_HANDLER_DATA     mExceptionHandlerData;
 
+STATIC CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTableHeader = NULL;
 /**
   Common exception handler.
 
@@ -152,4 +155,77 @@ InitializeCpuExceptionHandlersEx (
   )
 {
   return InitializeCpuExceptionHandlers (VectorInfo);
+}
+
+// FIXME: Lib?
+STATIC
+EFI_STATUS
+EFIAPI
+InternalGetSystemConfigurationTable (
+  IN  EFI_GUID  *TableGuid,
+  OUT VOID      **Table
+  )
+{
+  UINTN             Index;
+
+  ASSERT (TableGuid != NULL);
+  ASSERT (Table != NULL);
+
+  *Table = NULL;
+  for (Index = 0; Index < gSmst->NumberOfTableEntries; Index++) {
+    if (CompareGuid (TableGuid, &(gSmst->SmmConfigurationTable[Index].VendorGuid))) {
+      *Table = gSmst->SmmConfigurationTable[Index].VendorTable;
+      return EFI_SUCCESS;
+    }
+  }
+
+  return EFI_NOT_FOUND;
+}
+
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
+  )
+{
+  EFI_STATUS                        Status;
+  UINT32                            Index;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+
+  if (mDebugImageInfoTableHeader == NULL) {
+    Status = InternalGetSystemConfigurationTable (
+               &gEfiDebugImageInfoTableGuid,
+               (VOID **) &mDebugImageInfoTableHeader
+               );
+    if (EFI_ERROR (Status)) {
+      mDebugImageInfoTableHeader = NULL;
+      return FALSE;
+    }
+  }
+
+  ASSERT (mDebugImageInfoTableHeader != NULL);
+
+  for (Index = 0; Index < mDebugImageInfoTableHeader->TableSize; ++Index) {
+    if (mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType == NULL) {
+      continue;
+    }
+
+    if (*mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+      continue;
+    }
+
+    NormalImage = mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].NormalImage;
+
+    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+
+    if (CurrentEip >= (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase &&
+        CurrentEip < (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize) {
+      *ImageBase   = (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase;
+      *SymbolsPath = NormalImage->PdbPath;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }
