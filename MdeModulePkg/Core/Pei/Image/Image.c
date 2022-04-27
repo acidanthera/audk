@@ -550,66 +550,35 @@ PeiLoadImageLoadImage (
   }
 
   DEBUG_CODE_BEGIN ();
-    CONST CHAR8                        *AsciiString;
-    UINT32                             PdbSize;
-    CHAR8                              EfiFileName[512];
-    INT32                              Index;
-    INT32                              StartIndex;
-    UINT16                             Machine;
+    CHAR8  EfiFileName[512];
+    UINT16 Machine;
 
     Machine = UefiImageGetMachine (&ImageContext);
 
-  //
-  // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi
-  //
-  if (Machine != EFI_IMAGE_MACHINE_IA64) {
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)*EntryPoint));
-  } else {
     //
-    // For IPF Image, the real entry point should be print.
+    // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi
     //
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)(*(UINT64 *)(UINTN)*EntryPoint)));
-  }
-
-  //
-  // Print Module Name by PeImage PDB file name.
-  //
-    Status = UefiImageGetSymbolsPath (&ImageContext, &AsciiString, &PdbSize);
-
-  if (!RETURN_ERROR (Status)) {
-    StartIndex = 0;
-    for (Index = 0; AsciiString[Index] != 0; Index++) {
-      if ((AsciiString[Index] == '\\') || (AsciiString[Index] == '/')) {
-        StartIndex = Index + 1;
-      }
+    if (Machine != EFI_IMAGE_MACHINE_IA64) {
+      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)*EntryPoint));
+    } else {
+      //
+      // For IPF Image, the real entry point should be print.
+      //
+      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)(*(UINT64 *)(UINTN)*EntryPoint)));
     }
 
     //
-    // Copy the PDB file name to our temporary string, and replace .pdb with .efi
-    // The PDB file name is limited in the range of 0~511.
-    // If the length is bigger than 511, trim the redundant characters to avoid overflow in array boundary.
+    // Print Module Name by PeImage PDB file name.
     //
-    for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-      EfiFileName[Index] = AsciiString[Index + StartIndex];
-      if (EfiFileName[Index] == 0) {
-        EfiFileName[Index] = '.';
-      }
+    Status = UefiImageGetModuleNameFromSymbolsPath (
+               &ImageContext,
+               EfiFileName,
+               sizeof (EfiFileName)
+               );
 
-      if (EfiFileName[Index] == '.') {
-        EfiFileName[Index + 1] = 'e';
-        EfiFileName[Index + 2] = 'f';
-        EfiFileName[Index + 3] = 'i';
-        EfiFileName[Index + 4] = 0;
-        break;
-      }
+    if (!RETURN_ERROR (Status)) {
+      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
     }
-
-    if (Index == sizeof (EfiFileName) - 4) {
-      EfiFileName[Index] = 0;
-    }
-
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
-  }
 
   DEBUG_CODE_END ();
 
