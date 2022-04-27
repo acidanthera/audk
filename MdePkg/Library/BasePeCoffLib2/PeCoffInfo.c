@@ -303,7 +303,7 @@ InternalInsertImageRecordSectionPadding (
   // the the permissions of the previous Image record section.
   //
   if (Attributes == (EFI_MEMORY_XP | EFI_MEMORY_RO)) {
-    RecordSection->Size += NextAddress - EndAddress;
+    RecordSection->Size += (UINT32) (NextAddress - EndAddress);
 
     return 0;
   }

@@ -154,7 +154,7 @@ InternalHashSections (
   }
 
   *SumBytesHashed = CurHashSize;
-  FreePool (SortedSections);
+  FreePool ((VOID *) SortedSections);
 
   return Result;
 }

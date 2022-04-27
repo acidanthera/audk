@@ -11,6 +11,11 @@
 #include "Base.h"
 #include "BaseOverflow.h"
 
+// FIXME: Properly implement builtin vs manual choice
+#if defined(_MSC_VER) && defined(PRODUCTION)
+  #undef PRODUCTION
+#endif
+
 BOOLEAN
 BaseOverflowAddU32 (
   UINT32  A,
