@@ -180,6 +180,19 @@ PeCoffLoaderGetImageAddress (
 }
 
 UINTN
+PeCoffLoaderGetRvctSymbolsBaseAddress (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  //
+  // FIXME: Is RVCT even still used? Why is the Image base the end of the
+  //        Image headers? Are the Image headers just prepended to a 0-based
+  //        ELF or similar?
+  //
+  return PeCoffLoaderGetImageAddress (Context) + PeCoffGetSizeOfImage (Context);
+}
+
+UINTN
 PeCoffLoaderGetImageEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )

@@ -121,7 +121,7 @@ PeCoffLoaderRelocateImageExtraAction (
   }
 
 #if (__ARMCC_VERSION < 500000)
-  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, (UINTN)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)));
+  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, PeCoffLoaderGetRvctSymbolsBaseAddress (ImageContext));
  #else
   AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a -o 0x%08x\n", PdbPath, PeCoffLoaderGetImageAddress (ImageContext));
  #endif
