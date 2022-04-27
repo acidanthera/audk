@@ -348,7 +348,7 @@ _ModuleEntryPoint (
   }
 
   // Locate PE/COFF File information for the Standalone MM core module
-  Status = LocateStandaloneMmCorePeCoffData (
+  Status = LocateStandaloneMmCoreUefiImage (
              (EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)PayloadBootInfo->SpImageBase,
              &TeData,
              &TeDataSize
@@ -374,20 +374,23 @@ _ModuleEntryPoint (
     goto finish;
   }
 
+  UINT32 Address = 0;
   for (SectionIndex = 0; SectionIndex < ImageRecord->NumSegments; ++ SectionIndex) {
     if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) != 0) {
       ArmSetMemoryRegionNoExec (
-        ImageRecord->Segments[SectionIndex].Address,
+        Address,
         ImageRecord->Segments[SectionIndex].Size
         );
     }
 
     if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) == 0) {
       ArmClearMemoryRegionReadOnly (
-        ImageRecord->Segments[SectionIndex].Address,
+        Address,
         ImageRecord->Segments[SectionIndex].Size
         );
     }
+
+    Address += ImageRecord->Segments[SectionIndex].Size;
   }
 
   FreePool (ImageRecord);

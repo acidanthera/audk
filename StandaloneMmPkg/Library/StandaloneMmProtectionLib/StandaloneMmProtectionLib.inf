@@ -15,7 +15,7 @@
 [Sources.AARCH64]
   ProtectionAarch64.c
 
-[Sources.X64]
+[Sources.X64, Sources.ARM]
   ProtectionNull.c
 
 [Packages]
