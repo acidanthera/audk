@@ -298,9 +298,7 @@ ProtectUefiImage (
   EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage;
   EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
   UINT32                                SectionAlignment;
-  UINTN                                 Index;
   UEFI_IMAGE_RECORD                    *ImageRecord;
-  UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
   BOOLEAN                               IsAligned;
@@ -352,19 +350,7 @@ ProtectUefiImage (
   }
 
   UefiImageDebugPrintSegments (ImageContext);
-
-  SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "  RecordSegment\n"
-      ));
-    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%016llx\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
-    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
-
-    SectionAddress += ImageRecord->Segments[Index].Size;
-  }
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
   //
   // Record the image record in the list so we can undo the protections later

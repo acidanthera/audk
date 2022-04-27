@@ -1070,9 +1070,7 @@ InsertImageRecord (
   RETURN_STATUS                        PdbStatus;
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
   UINT32                                SectionAlignment;
-  UINTN                                 Index;
   UEFI_IMAGE_RECORD                    *ImageRecord;
-  UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
 
@@ -1117,19 +1115,7 @@ InsertImageRecord (
   }
 
   UefiImageDebugPrintSegments (ImageContext);
-
-  SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "  RecordSegment'\n"
-      ));
-    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
-    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
-
-    SectionAddress += ImageRecord->Segments[Index].Size;
-  }
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
   //
   // Section order is guaranteed by the PE specification.

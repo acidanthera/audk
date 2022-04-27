@@ -805,9 +805,7 @@ SmmInsertImageRecord (
   PHYSICAL_ADDRESS                     ImageBuffer;
   UINTN                                NumberOfPage;
   UINT32                                SectionAlignment;
-  UINTN                                 Index;
   UEFI_IMAGE_RECORD                    *ImageRecord;
-  UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
 
@@ -850,19 +848,7 @@ SmmInsertImageRecord (
   }
 
   UefiImageDebugPrintSegments (ImageContext);
-
-  SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "  RecordSegment'\n"
-      ));
-    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
-    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
-
-    SectionAddress += ImageRecord->Segments[Index].Size;
-  }
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
   InsertSortImageRecord (ImageRecord);
 

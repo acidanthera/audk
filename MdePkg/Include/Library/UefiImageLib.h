@@ -629,4 +629,9 @@ UefiImageDebugPrintSegments (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
+VOID
+UefiImageDebugPrintImageRecord (
+  IN CONST UEFI_IMAGE_RECORD  *ImageRecord
+  );
+
 #endif // UEFI_IMAGE_LIB_H_

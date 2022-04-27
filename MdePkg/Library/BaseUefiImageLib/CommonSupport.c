@@ -240,3 +240,34 @@ UefiImageGetModuleNameFromSymbolsPath (
 
   return RETURN_SUCCESS;
 }
+
+VOID
+UefiImageDebugPrintImageRecord (
+  IN CONST UEFI_IMAGE_RECORD  *ImageRecord
+  )
+{
+  UINT16 SegmentIndex;
+  UINTN  SegmentAddress;
+
+  ASSERT (ImageRecord != NULL);
+
+  SegmentAddress = ImageRecord->StartAddress;
+  for (
+    SegmentIndex = 0;
+    SegmentIndex < ImageRecord->NumSegments;
+    ++SegmentIndex
+    ) {
+    DEBUG ((
+      DEBUG_VERBOSE,
+      "  RecordSegment\n"
+      "  Address    - 0x%16xll\n"
+      "  Size       - 0x%08x\n"
+      "  Attributes - 0x%08x\n",
+      (UINT64) SegmentAddress,
+      ImageRecord->Segments[SegmentIndex].Size,
+      ImageRecord->Segments[SegmentIndex].Attributes
+      ));
+
+    SegmentAddress += ImageRecord->Segments[SegmentIndex].Size;
+  }
+}
