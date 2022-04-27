@@ -432,7 +432,7 @@ DxeMain (
   Status = CoreInitializeEventServices ();
   ASSERT_EFI_ERROR (Status);
 
-  //MemoryProfileInstallProtocol ();
+  MemoryProfileInstallProtocol ();
 
   CoreInitializeMemoryAttributesTable ();
   CoreInitializeMemoryProtection ();
