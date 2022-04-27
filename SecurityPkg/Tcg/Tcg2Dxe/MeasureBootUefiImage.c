@@ -51,10 +51,8 @@ MeasureUefiImageAndExtend (
 {
   EFI_STATUS                           Status;
   EFI_IMAGE_SECTION_HEADER             *SectionHeader;
-  HASH_HANDLE                          HashHandle;
+  VOID                                 *HashHandle;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
-
-  HashHandle = 0xFFFFFFFF; // Know bad value
 
   Status        = EFI_UNSUPPORTED;
   SectionHeader = NULL;
@@ -88,7 +86,7 @@ MeasureUefiImageAndExtend (
   }
 
   // FIXME: This is just an ugly wrapper, the types should match (UINTN <-> VOID *), fix the libs
-  UefiImageHashImageDefault (NULL, (VOID *) HashHandle, (PE_COFF_LOADER_HASH_UPDATE) HashUpdate);
+  UefiImageHashImageDefault (NULL, HashHandle, HashUpdate);
   if (EFI_ERROR (Status)) {
     goto Finish;
   }
