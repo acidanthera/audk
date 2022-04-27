@@ -697,5 +697,37 @@ UefiImageDebugPrintSegments (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  PeCoffDebugPrintSectionTable (Context);
+  CONST EFI_IMAGE_SECTION_HEADER *Sections;
+  UINT16                         NumberOfSections;
+  UINT16                         SectionIndex;
+  CONST UINT8                    *Name;
+
+  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+
+  for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
+    Name = Sections[SectionIndex].Name;
+    DEBUG ((
+      DEBUG_VERBOSE,
+      "  Section - '%c%c%c%c%c%c%c%c'\n",
+      "  VirtualSize          - 0x%08x\n"
+      "  VirtualAddress       - 0x%08x\n"
+      "  SizeOfRawData        - 0x%08x\n"
+      "  PointerToRawData     - 0x%08x\n"
+      "  PointerToRelocations - 0x%08x\n"
+      "  PointerToLinenumbers - 0x%08x\n"
+      "  NumberOfRelocations  - 0x%08x\n"
+      "  NumberOfLinenumbers  - 0x%08x\n"
+      "  Characteristics      - 0x%08x\n",
+      Name[0], Name[1], Name[2], Name[3], Name[4], Name[5], Name[6], Name[7],
+      Sections[SectionIndex].VirtualSize,
+      Sections[SectionIndex].VirtualAddress,
+      Sections[SectionIndex].SizeOfRawData,
+      Sections[SectionIndex].PointerToRawData,
+      Sections[SectionIndex].PointerToRelocations,
+      Sections[SectionIndex].PointerToLinenumbers,
+      Sections[SectionIndex].NumberOfRelocations,
+      Sections[SectionIndex].NumberOfLinenumbers,
+      Sections[SectionIndex].Characteristics
+      ));
+  }
 }

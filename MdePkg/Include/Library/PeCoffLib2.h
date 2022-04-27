@@ -648,10 +648,4 @@ PeCoffGetFixedAddress (
   OUT    UINT64                        *Address
   );
 
-// FIXME: Docs
-VOID
-PeCoffDebugPrintSectionTable (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
 #endif // PE_COFF_LIB2_H_
