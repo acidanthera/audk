@@ -1170,7 +1170,7 @@ GdbScriptAddImage (
           );
         fclose (GdbTempFile);
         // This is for the lldb breakpoint only
-        SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1191,7 +1191,7 @@ GdbScriptAddImage (
         // Also used for the lldb breakpoint script. The lldb breakpoint script does
         // not use the file, it uses the arguments.
         //
-        SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)(PeCoffLoaderGetImageAddress (ImageContext) + PeCoffGetSizeOfHeaders (ImageContext)), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1266,7 +1266,7 @@ GdbScriptRemoveImage (
         PdbPath
         );
       fclose (GdbTempFile);
-      SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, PdbPathSize, 0, 0);
     } else {
       ASSERT (FALSE);
     }
@@ -1280,7 +1280,7 @@ GdbScriptRemoveImage (
       // Target for gdb breakpoint in a script that uses gGdbWorkingFileName to set a breakpoint.
       // Hey what can you say scripting in gdb is not that great....
       //
-      SecGdbScriptBreak (PdbPath, strlen (PdbPath) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, PdbPathSize, 0, 0);
     } else {
       ASSERT (FALSE);
     }
