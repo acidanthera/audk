@@ -11,12 +11,6 @@
 #ifndef BASE_PE_COFF_LIB2_INTERNALS_H_
 #define BASE_PE_COFF_LIB2_INTERNALS_H_
 
-// FIXME: Upstream general variants of these macros.
-#define ALIGNOF           _Alignof
-#define DEBUG_RAISE()     ASSERT (FALSE)
-#define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
-#define IS_POW2(v)        ((v) != 0U && ((v) & ((v) - 1U)) == 0U)
-
 //
 // PcdImageLoaderAlignmentPolicy bits.
 //
