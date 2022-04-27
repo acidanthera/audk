@@ -8,14 +8,14 @@
 
 [Defines]
   INF_VERSION    = 0x00010005
-  BASE_NAME      = BaseUefiImageLib
+  BASE_NAME      = BaseUefiImageLibPeCoff
   FILE_GUID      = 357AD87E-8D6B-468A-B3FA-0D9CC4C725CD
   MODULE_TYPE    = BASE
   VERSION_STRING = 1.0
-  LIBRARY_CLASS  = BaseUefiImageLibPeCoff
+  LIBRARY_CLASS  = UefiImageLib
 
 [Sources]
-  BaseUefiImageLibPeCoff.c
+  UefiImageLibPeCoff.c
 
 [Packages]
   MdePkg/MdePkg.dec
