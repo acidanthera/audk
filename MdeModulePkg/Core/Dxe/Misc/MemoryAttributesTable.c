@@ -1067,13 +1067,10 @@ InsertImageRecord (
   RETURN_STATUS                        PdbStatus;
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
   UINT32                                SectionAlignment;
-  CONST EFI_IMAGE_SECTION_HEADER       *Sections;
-  CONST UINT8                          *Name;
   UINTN                                 Index;
   PE_COFF_IMAGE_RECORD                 *ImageRecord;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
-  UINT16                               NumberOfSections;
 
   RuntimeImage = Image->RuntimeData;
 
@@ -1084,7 +1081,6 @@ InsertImageRecord (
     DEBUG ((DEBUG_INFO, "Do not insert runtime image record after EndOfDxe\n"));
     return;
   }
-  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   DEBUG ((DEBUG_VERBOSE, "ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
@@ -1116,30 +1112,7 @@ InsertImageRecord (
     return ;
   }
 
-  for (Index = 0; Index < NumberOfSections; Index++) {
-    Name = Sections[Index].Name;
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "  Section - '%c%c%c%c%c%c%c%c'\n",
-      Name[0],
-      Name[1],
-      Name[2],
-      Name[3],
-      Name[4],
-      Name[5],
-      Name[6],
-      Name[7]
-      ));
-    DEBUG ((DEBUG_VERBOSE, "  VirtualSize          - 0x%08x\n", Sections[Index].VirtualSize));
-    DEBUG ((DEBUG_VERBOSE, "  VirtualAddress       - 0x%08x\n", Sections[Index].VirtualAddress));
-    DEBUG ((DEBUG_VERBOSE, "  SizeOfRawData        - 0x%08x\n", Sections[Index].SizeOfRawData));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToRawData     - 0x%08x\n", Sections[Index].PointerToRawData));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToRelocations - 0x%08x\n", Sections[Index].PointerToRelocations));
-    DEBUG ((DEBUG_VERBOSE, "  PointerToLinenumbers - 0x%08x\n", Sections[Index].PointerToLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "  NumberOfRelocations  - 0x%08x\n", Sections[Index].NumberOfRelocations));
-    DEBUG ((DEBUG_VERBOSE, "  NumberOfLinenumbers  - 0x%08x\n", Sections[Index].NumberOfLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "  Characteristics      - 0x%08x\n", Sections[Index].Characteristics));
-  }
+  PeCoffDebugPrintSectionTable (ImageContext);
 
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((

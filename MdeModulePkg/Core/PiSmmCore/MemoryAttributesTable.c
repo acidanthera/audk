@@ -803,20 +803,15 @@ SmmInsertImageRecord (
   PHYSICAL_ADDRESS                     ImageBuffer;
   UINTN                                NumberOfPage;
   UINT32                                SectionAlignment;
-  CONST EFI_IMAGE_SECTION_HEADER       *Sections;
-  CONST UINT8                          *Name;
   UINTN                                 Index;
   PE_COFF_IMAGE_RECORD              *ImageRecord;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
-  UINT16                               NumberOfSections;
 
   ImageBuffer  = (UINTN)LoadedImage->ImageBase;
   NumberOfPage = EFI_SIZE_TO_PAGES((UINTN)LoadedImage->ImageSize);
 
   DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", ImageBuffer, NumberOfPage));
-
-  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
 
   DEBUG ((DEBUG_VERBOSE, "SMM ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
@@ -851,30 +846,7 @@ SmmInsertImageRecord (
     return ;
   }
 
-  for (Index = 0; Index < NumberOfSections; Index++) {
-    Name = Sections[Index].Name;
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "SMM   Section - '%c%c%c%c%c%c%c%c'\n",
-      Name[0],
-      Name[1],
-      Name[2],
-      Name[3],
-      Name[4],
-      Name[5],
-      Name[6],
-      Name[7]
-      ));
-    DEBUG ((DEBUG_VERBOSE, "SMM   VirtualSize          - 0x%08x\n", Sections[Index].VirtualSize));
-    DEBUG ((DEBUG_VERBOSE, "SMM   VirtualAddress       - 0x%08x\n", Sections[Index].VirtualAddress));
-    DEBUG ((DEBUG_VERBOSE, "SMM   SizeOfRawData        - 0x%08x\n", Sections[Index].SizeOfRawData));
-    DEBUG ((DEBUG_VERBOSE, "SMM   PointerToRawData     - 0x%08x\n", Sections[Index].PointerToRawData));
-    DEBUG ((DEBUG_VERBOSE, "SMM   PointerToRelocations - 0x%08x\n", Sections[Index].PointerToRelocations));
-    DEBUG ((DEBUG_VERBOSE, "SMM   PointerToLinenumbers - 0x%08x\n", Sections[Index].PointerToLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "SMM   NumberOfRelocations  - 0x%08x\n", Sections[Index].NumberOfRelocations));
-    DEBUG ((DEBUG_VERBOSE, "SMM   NumberOfLinenumbers  - 0x%08x\n", Sections[Index].NumberOfLinenumbers));
-    DEBUG ((DEBUG_VERBOSE, "SMM   Characteristics      - 0x%08x\n", Sections[Index].Characteristics));
-  }
+  PeCoffDebugPrintSectionTable (ImageContext);
 
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((

@@ -778,4 +778,10 @@ PeCoffGetAssignedAddress(
   OUT    UINT64                        *Address
   );
 
+// FIXME: Docs
+VOID
+PeCoffDebugPrintSectionTable (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 #endif // PE_COFF_LIB_H_
