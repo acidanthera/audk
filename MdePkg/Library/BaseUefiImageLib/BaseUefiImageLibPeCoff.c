@@ -52,6 +52,14 @@ UefiImageLoadImage (
   return PeCoffLoadImage (Context, Destination, DestinationSize);
 }
 
+BOOLEAN
+UefiImageImageIsInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffImageIsInplace (Context);
+}
+
 RETURN_STATUS
 UefiImageLoadImageInplace (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context

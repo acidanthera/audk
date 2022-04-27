@@ -502,7 +502,7 @@ PeCoffLoaderGetImageRecord (
 }
 
 RETURN_STATUS
-PeCoffGetFixedAddress(
+PeCoffGetFixedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT64                        *Address
   )

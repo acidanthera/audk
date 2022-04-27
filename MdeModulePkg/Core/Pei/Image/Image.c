@@ -185,7 +185,6 @@ LoadAndRelocateUefiImage (
   Private = PEI_CORE_INSTANCE_FROM_PS_THIS (GetPeiServicesTablePointer ());
 
   ReturnStatus = EFI_SUCCESS;
-  IsXipImage   = FALSE;
 
   Status = UefiImageInitializeContext (ImageContext, Pe32Data, Pe32DataSize);
   if (EFI_ERROR (Status)) {
@@ -218,10 +217,7 @@ LoadAndRelocateUefiImage (
   //
   // XIP image that ImageAddress is same to Image handle.
   //
-  // FIXME: PE lib function
-  if (UefiImageGetPreferredAddress (ImageContext) == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
-    IsXipImage = TRUE;
-  }
+  IsXipImage = UefiImageImageIsInplace (ImageContext);
 
   //
   // Get file type first

@@ -235,8 +235,8 @@ PeCoffLoadImageInplaceNoBase (
   return RETURN_SUCCESS;
 }
 
-RETURN_STATUS
-PeCoffLoadImageInplace (
+BOOLEAN
+PeCoffImageIsInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -254,7 +254,20 @@ PeCoffLoadImageInplace (
   //
   // Verify the Image is located at its preferred load address.
   //
-  if (ImageBase != (UINTN) Context->FileBuffer) {
+  return ImageBase == (UINTN) Context->FileBuffer;
+}
+
+RETURN_STATUS
+PeCoffLoadImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  BOOLEAN Result;
+
+  ASSERT (Context != NULL);
+
+  Result = PeCoffImageIsInplace (Context);
+  if (!Result) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }

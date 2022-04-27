@@ -113,6 +113,12 @@ UefiImageLoadImage (
   IN     UINT32                        DestinationSize
   );
 
+// FIXME: Docs
+BOOLEAN
+UefiImageImageIsInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 /**
   Equivalent to the UefiImageLoadImage() function for inplace-loading. Ensures that
   all important raw file offsets match the respective RVAs.

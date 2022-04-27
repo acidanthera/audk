@@ -318,6 +318,12 @@ PeCoffLoadImage (
   IN     UINT32                        DestinationSize
   );
 
+// FIXME: Docs
+BOOLEAN
+PeCoffImageIsInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 /**
   Equivalent to the PeCoffLoadImage() function for inplace-loading. Ensures that
   all important raw file offsets match the respective RVAs.
@@ -705,7 +711,7 @@ PeCoffDebugLocateImage (
   @retval RETURN_UNSUPPORTED  The Image fixed loading address is unaligned.
 **/
 RETURN_STATUS
-PeCoffGetFixedAddress(
+PeCoffGetFixedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT64                        *Address
   );
