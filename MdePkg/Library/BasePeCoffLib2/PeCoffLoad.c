@@ -30,7 +30,6 @@
   @param[in]  Context           The context describing the Image. Must have been
                                 initialised by PeCoffInitializeContext().
   @param[in]  LoadedHeaderSize  The size, in Bytes, of the loaded Image Headers.
-  @param[out] Destination       The Image destination memory.
   @param[in]  DestinationSize   The size, in Bytes, of Destination. Must be
                                 sufficent to load the Image with regards to its
                                 Image section alignment.
@@ -40,7 +39,6 @@ VOID
 InternalLoadSections (
   IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  UINT32                              LoadedHeaderSize,
-  OUT VOID                                *Destination,
   IN  UINT32                              DestinationSize
   )
 {
@@ -64,7 +62,7 @@ InternalLoadSections (
     // Zero from the end of the previous section to the start of this section.
     //
     ZeroMem (
-      (CHAR8 *) Destination + PreviousTopRva,
+      (CHAR8 *) Context->ImageBuffer + PreviousTopRva,
       Sections[SectionIndex].VirtualAddress - PreviousTopRva
       );
     //
@@ -86,7 +84,7 @@ InternalLoadSections (
     }
 
     CopyMem (
-      (CHAR8 *) Destination + Sections[SectionIndex].VirtualAddress,
+      (CHAR8 *) Context->ImageBuffer + Sections[SectionIndex].VirtualAddress,
       (CONST CHAR8 *) Context->FileBuffer + EffectivePointerToRawData,
       DataSize
       );
@@ -97,7 +95,7 @@ InternalLoadSections (
   // Zero the trailing data after the last Image section.
   //
   ZeroMem (
-    (CHAR8 *) Destination + PreviousTopRva,
+    (CHAR8 *) Context->ImageBuffer + PreviousTopRva,
     DestinationSize - PreviousTopRva
     );
 }
@@ -109,12 +107,11 @@ PeCoffLoadImage (
   IN     UINT32                        DestinationSize
   )
 {
-  CHAR8                          *AlignedDest;
   UINT32                         AlignOffset;
   UINT32                         AlignedSize;
   UINT32                         LoadedHeaderSize;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
-  UINTN                          Address;
+  UINTN                          DestAddress;
 
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
@@ -127,18 +124,18 @@ PeCoffLoadImage (
     // The caller is required to allocate page memory, hence we have at least
     // 4 KB alignment guaranteed.
     //
-    AlignedDest = Destination;
-    AlignedSize = DestinationSize;
     AlignOffset = 0;
+    AlignedSize = DestinationSize;
+    Context->ImageBuffer = Destination;
   } else {
     //
     // Images aligned stricter than by the UEFI page size have an increased
     // destination size to internally align the Image.
     //
-    Address     = (UINTN) Destination;
-    AlignOffset = (UINT32) ALIGN_VALUE_ADDEND (Address, (UINTN) Context->SectionAlignment);
-    AlignedDest = (CHAR8 *) Destination + AlignOffset;
+    DestAddress = (UINTN) Destination;
+    AlignOffset = ALIGN_VALUE_ADDEND ((UINT32) DestAddress, Context->SectionAlignment);
     AlignedSize = DestinationSize - AlignOffset;
+    Context->ImageBuffer = (CHAR8 *) Destination + AlignOffset;
 
     ASSERT (Context->SizeOfImage <= AlignedSize);
 
@@ -153,22 +150,15 @@ PeCoffLoadImage (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   if (PcdGetBool (PcdImageLoaderLoadHeader) && Sections[0].VirtualAddress != 0) {
-    LoadedHeaderSize = (Context->SizeOfHeaders - Context->TeStrippedOffset);
-    CopyMem (AlignedDest, Context->FileBuffer, LoadedHeaderSize);
+    LoadedHeaderSize = Context->SizeOfHeaders - Context->TeStrippedOffset;
+    CopyMem (Context->ImageBuffer, Context->FileBuffer, LoadedHeaderSize);
   } else {
     LoadedHeaderSize = 0;
   }
   //
   // Load all Image sections into the memory space.
   //
-  InternalLoadSections (
-    Context,
-    LoadedHeaderSize,
-    AlignedDest,
-    AlignedSize
-    );
-
-  Context->ImageBuffer = AlignedDest;
+  InternalLoadSections (Context, LoadedHeaderSize, AlignedSize);
 
   return RETURN_SUCCESS;
 }
