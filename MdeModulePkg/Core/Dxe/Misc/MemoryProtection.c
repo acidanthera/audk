@@ -356,12 +356,12 @@ ProtectUefiImage (
   SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
     DEBUG ((
-      DEBUG_ERROR,
+      DEBUG_VERBOSE,
       "  RecordSection\n"
       ));
-    DEBUG ((DEBUG_ERROR, "  Address              - 0x%016llx\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_ERROR, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
-    DEBUG ((DEBUG_ERROR, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
+    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%016llx\n", (UINT64) SectionAddress));
+    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
+    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
 
     SectionAddress += ImageRecord->Segments[Index].Size;
   }
