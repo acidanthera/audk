@@ -25,21 +25,6 @@
 #include "BaseOverflow.h"
 #include "BasePeCoffLib2Internals.h"
 
-/**
-  Returns the type of a Base Relocation.
-
-  @param[in] Relocation  The composite Base Relocation value.
-**/
-#define IMAGE_RELOC_TYPE(Relocation)    ((Relocation) >> 12U)
-
-/**
-  Returns the target offset of a Base Relocation.
-
-  @param[in] Relocation  The composite Base Relocation value.
-**/
-#define IMAGE_RELOC_OFFSET(Relocation)  ((Relocation) & 0x0FFFU)
-
-
 // FIXME: Add RISC-V support.
 /**
   Returns whether the Base Relocation type is supported by this loader.

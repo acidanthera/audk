@@ -18,6 +18,7 @@
 
 #ifndef PE_COFF_IMAGE2_H_
 #define PE_COFF_IMAGE2_H_
+
 //
 // PE32+ Subsystem type for EFI images
 //
@@ -36,6 +37,9 @@
 #define IMAGE_FILE_MACHINE_X64             0x8664
 #define IMAGE_FILE_MACHINE_ARMTHUMB_MIXED  0x01c2
 #define IMAGE_FILE_MACHINE_ARM64           0xAA64
+#define IMAGE_FILE_MACHINE_RISCV32         0x5032
+#define IMAGE_FILE_MACHINE_RISCV64         0x5064
+#define IMAGE_FILE_MACHINE_RISCV128        0x5128
 
 //
 // EXE file formats
@@ -444,6 +448,20 @@ typedef struct {
 #define IMAGE_REL_AMD64_PAIR      0x000F
 #define IMAGE_REL_AMD64_SSPAN32   0x0010
 
+/**
+  Returns the type of a Base Relocation.
+
+  @param[in] Relocation  The composite Base Relocation value.
+**/
+#define IMAGE_RELOC_TYPE(Relocation)    ((Relocation) >> 12U)
+
+/**
+  Returns the target offset of a Base Relocation.
+
+  @param[in] Relocation  The composite Base Relocation value.
+**/
+#define IMAGE_RELOC_OFFSET(Relocation)  ((Relocation) & 0x0FFFU)
+
 ///
 /// Based relocation format.
 ///
@@ -467,6 +485,13 @@ typedef struct {
 #define EFI_IMAGE_REL_BASED_IA64_IMM64      9
 #define EFI_IMAGE_REL_BASED_MIPS_JMPADDR16  9
 #define EFI_IMAGE_REL_BASED_DIR64           10
+
+///
+/// Relocation types of RISC-V processor.
+///
+#define EFI_IMAGE_REL_BASED_RISCV_HI20      5
+#define EFI_IMAGE_REL_BASED_RISCV_LOW12I    7
+#define EFI_IMAGE_REL_BASED_RISCV_LOW12S    8
 
 ///
 /// Line number format.
