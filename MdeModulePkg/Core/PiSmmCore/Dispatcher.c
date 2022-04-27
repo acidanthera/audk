@@ -225,7 +225,7 @@ GetUefiImageFixLoadingAssignedAddress (
   EFI_PHYSICAL_ADDRESS FixLoadingAddress;
   UINT32               SizeOfImage;
 
-  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }

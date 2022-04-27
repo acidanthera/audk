@@ -1121,7 +1121,7 @@ ConvertPeiCorePpiPointers (
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - UefiImageGetAddressOfEntryPoint (&ImageContext);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - UefiImageGetEntryPointAddress (&ImageContext);
 
     //
     // Size of loaded PEI_CORE in permanent memory.

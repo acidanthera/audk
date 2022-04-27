@@ -326,7 +326,7 @@ ProtectUefiImage (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = UefiImageGetSectionAlignment (ImageContext);
+  SectionAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
   IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
   if (!IsAligned) {

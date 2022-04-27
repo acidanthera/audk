@@ -822,7 +822,7 @@ SmmInsertImageRecord (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = UefiImageGetSectionAlignment (ImageContext);
+  SectionAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {

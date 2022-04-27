@@ -9,7 +9,7 @@ typedef PE_COFF_LOADER_IMAGE_CONTEXT   UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
 typedef PE_COFF_LOADER_RUNTIME_CONTEXT UEFI_IMAGE_LOADER_RUNTIME_CONTEXT;
 
 // FIXME: Work on reasonable common sharing
-typedef PE_COFF_IMAGE_RECORD_SECTION   UEFI_IMAGE_IMAGE_RECORD_SECTION;
+typedef PE_COFF_IMAGE_RECORD_SECTION   UEFI_IMAGE_IMAGE_RECORD_SEGMENT;
 typedef PE_COFF_IMAGE_RECORD           UEFI_IMAGE_IMAGE_RECORD;
 #define UEFI_IMAGE_IMAGE_RECORD_SIGNATURE  PE_COFF_IMAGE_RECORD_SIGNATURE
 
@@ -35,7 +35,7 @@ BOOLEAN
   Verify the UEFI Image and initialise Context.
 
   Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image Section Headers and basic Relocation information must be well-formed.
+  Image headers and basic Relocation information must be well-formed.
 
   FileBuffer must remain valid for the entire lifetime of Context.
 
@@ -159,7 +159,7 @@ UefiImageLoaderGetRuntimeContextSize (
   Relocate the Image for boot-time usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetImageBase().
+  BaseAddress == UefiImageGetPreferredAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been loaded by UefiImageLoadImage().
@@ -187,7 +187,7 @@ UefiImageRelocateImage (
   the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetImageBase().
+  BaseAddress == UefiImageGetPreferredAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been initialised by
@@ -220,7 +220,7 @@ UefiImageLoadImageForExecution (
   Relocate Image for Runtime usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetImageBase().
+  BaseAddress == UefiImageGetPreferredAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -233,7 +233,7 @@ UefiImageLoadImageForExecution (
   @retval other           The Image could not be relocated successfully.
 **/
 RETURN_STATUS
-UefiImageRelocateImageForRuntime (
+UefiImageRuntimeRelocateImage (
   IN OUT VOID                                     *Image,
   IN     UINT32                                   ImageSize,
   IN     UINT64                                   BaseAddress,
@@ -245,7 +245,7 @@ UefiImageRelocateImageForRuntime (
   required to execute code from the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetImageBase().
+  BaseAddress == UefiImageGetPreferredAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -258,7 +258,7 @@ UefiImageRelocateImageForRuntime (
   @retval other           The Image could not be relocated successfully.
 **/
 RETURN_STATUS
-UefiImageRelocateImageForRuntimeExecution (
+UefiImageRuntimeRelocateImageForExecution (
   IN OUT VOID                                     *Image,
   IN     UINT32                                   ImageSize,
   IN     UINT64                                   BaseAddress,
@@ -266,7 +266,7 @@ UefiImageRelocateImageForRuntimeExecution (
   );
 
 /**
-  Discards optional Image Sections to disguise sensitive data.
+  Discards optional Image segments to disguise sensitive data.
 
   This may destruct the Image Relocation Directory and as such, no function that
   performs Image relocation may be called after this function has been invoked.
@@ -275,7 +275,7 @@ UefiImageRelocateImageForRuntimeExecution (
                           loaded by UefiImageLoadImage().
 **/
 VOID
-UefiImageDiscardSections (
+UefiImageDiscardSegments (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -389,7 +389,7 @@ UefiImageGetHiiDataRva (
   @returns  The Image entry point RVA.
 **/
 UINT32
-UefiImageGetAddressOfEntryPoint (
+UefiImageGetEntryPointAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -420,15 +420,15 @@ UefiImageGetSubsystem (
   );
 
 /**
-  Retrieves the Image section alignment.
+  Retrieves the Image segment alignment.
 
   @param[in,out] Context  The context describing the Image. Must have been
                           initialised by UefiImageInitializeContext().
 
-  @returns  The Image section alignment.
+  @returns  The Image segment alignment.
 **/
 UINT32
-UefiImageGetSectionAlignment (
+UefiImageGetSegmentAlignment (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -460,7 +460,7 @@ UefiImageGetSizeOfImageInplace (
   @returns  The Image preferred load address.
 **/
 UINT64
-UefiImageGetImageBase (
+UefiImageGetPreferredAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -549,7 +549,7 @@ UefiImageDebugLocateImage (
                           initialised by UefiImageInitializeContext().
   @param[out]    Address  On output, the fixed loading address of the Image.
                           *Address is guaranteed to by aligned by the Image
-                          section alignment, and thus the size returned by
+                          segment alignment, and thus the size returned by
                           UefiImageGetSizeOfImage is sufficient to hold the
                           Image.
 
@@ -558,7 +558,7 @@ UefiImageDebugLocateImage (
   @retval RETURN_UNSUPPORTED  The Image fixed loading address is unaligned.
 **/
 RETURN_STATUS
-UefiImageGetAssignedAddress (
+UefiImageGetFixedAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT64                           *Address
   );

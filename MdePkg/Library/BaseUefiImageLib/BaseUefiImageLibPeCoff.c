@@ -136,14 +136,14 @@ UefiImageLoadImageForExecution (
 }
 
 RETURN_STATUS
-UefiImageRelocateImageForRuntime (
+UefiImageRuntimeRelocateImage (
   IN OUT VOID                                     *Image,
   IN     UINT32                                   ImageSize,
   IN     UINT64                                   BaseAddress,
   IN     CONST UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   )
 {
-  return PeCoffRelocateImageForRuntime (
+  return PeCoffRuntimeRelocateImage (
            Image,
            ImageSize,
            BaseAddress,
@@ -152,7 +152,7 @@ UefiImageRelocateImageForRuntime (
 }
 
 RETURN_STATUS
-UefiImageRelocateImageForRuntimeExecution (
+UefiImageRuntimeRelocateImageForExecution (
   IN OUT VOID                                     *Image,
   IN     UINT32                                   ImageSize,
   IN     UINT64                                   BaseAddress,
@@ -163,7 +163,7 @@ UefiImageRelocateImageForRuntimeExecution (
   //
   // Relocate the Image to the new address.
   //
-  Status = PeCoffRelocateImageForRuntime (
+  Status = PeCoffRuntimeRelocateImage (
              Image,
              ImageSize,
              BaseAddress,
@@ -181,7 +181,7 @@ UefiImageRelocateImageForRuntimeExecution (
 }
 
 VOID
-UefiImageDiscardSections (
+UefiImageDiscardSegments (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -237,7 +237,7 @@ UefiImageGetHiiDataRva (
 }
 
 UINT32
-UefiImageGetAddressOfEntryPoint (
+UefiImageGetEntryPointAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -261,7 +261,7 @@ UefiImageGetSubsystem (
 }
 
 UINT32
-UefiImageGetSectionAlignment (
+UefiImageGetSegmentAlignment (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -285,7 +285,7 @@ UefiImageGetSizeOfImageInplace (
 }
 
 UINT64
-UefiImageGetImageBase (
+UefiImageGetPreferredAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -342,12 +342,12 @@ UefiImageDebugLocateImage (
 }
 
 RETURN_STATUS
-UefiImageGetAssignedAddress (
+UefiImageGetFixedAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT64                           *Address
   )
 {
-  return PeCoffGetAssignedAddress (Context, Address);
+  return PeCoffGetFixedAddress (Context, Address);
 }
 
 VOID

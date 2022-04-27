@@ -317,7 +317,7 @@ RuntimeDriverSetVirtualAddressMap (
       Status        = RuntimeDriverConvertPointer (0, (VOID **)&VirtImageBase);
       ASSERT_EFI_ERROR (Status);
 
-      UefiImageRelocateImageForRuntimeExecution (
+      UefiImageRuntimeRelocateImageForExecution (
         (VOID *)(UINTN)RuntimeImage->ImageBase,
         (UINT32)RuntimeImage->ImageSize,
         VirtImageBase,

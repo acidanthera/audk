@@ -357,7 +357,7 @@ PeCoffLoaderImageReadFromMemory (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageForRuntime (
+PeCoffLoaderRuntimeRelocateImage (
   IN  PHYSICAL_ADDRESS        ImageBase,
   IN  PHYSICAL_ADDRESS        VirtImageBase,
   IN  UINTN                   ImageSize,

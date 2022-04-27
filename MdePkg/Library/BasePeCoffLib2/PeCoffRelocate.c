@@ -766,7 +766,7 @@ PeCoffLoaderGetRuntimeContextSize (
 }
 
 RETURN_STATUS
-PeCoffRelocateImageForRuntime (
+PeCoffRuntimeRelocateImage (
   IN OUT VOID                                  *Image,
   IN     UINT32                                ImageSize,
   IN     UINT64                                BaseAddress,

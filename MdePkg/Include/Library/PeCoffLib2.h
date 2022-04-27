@@ -403,7 +403,7 @@ PeCoffRelocateImage (
   @retval other           The Image could not be relocated successfully.
 **/
 RETURN_STATUS
-PeCoffRelocateImageForRuntime (
+PeCoffRuntimeRelocateImage (
   IN OUT VOID                                  *Image,
   IN     UINT32                                ImageSize,
   IN     UINT64                                BaseAddress,
@@ -732,7 +732,7 @@ PeCoffDebugLocateImage (
   @retval RETURN_UNSUPPORTED  The Image fixed loading address is unaligned.
 **/
 RETURN_STATUS
-PeCoffGetAssignedAddress(
+PeCoffGetFixedAddress(
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT64                        *Address
   );

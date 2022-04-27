@@ -456,7 +456,7 @@ GetUefiImageFixLoadingAssignedAddress (
   EFI_PHYSICAL_ADDRESS FixLoadingAddress;
   UINT32               SizeOfImage;
 
-  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -654,7 +654,7 @@ CoreLoadPeImage (
       }
     }
     if (EFI_ERROR (Status)) {
-      BufferAddress = UefiImageGetImageBase ((ImageContext);
+      BufferAddress = UefiImageGetPreferredAddress ((ImageContext);
       if (BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = CoreAllocatePages (
                    AllocateAddress,

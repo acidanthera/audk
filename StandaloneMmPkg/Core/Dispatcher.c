@@ -196,7 +196,7 @@ InternalProtectMmImage (
   PE_COFF_IMAGE_RECORD *ImageRecord;
   UINT32               SectionIndex;
 
-  if (UefiImageGetSectionAlignment (ImageContext) < EFI_PAGE_SIZE) {
+  if (UefiImageGetSegmentAlignment (ImageContext) < EFI_PAGE_SIZE) {
     // FIXME: PCD to abort loading?
     //
     // The sections need to be at least 4 KB aligned, since that is the
@@ -205,7 +205,7 @@ InternalProtectMmImage (
     //
     DEBUG ((DEBUG_WARN,
       "%a: Image at 0x%lx has SectionAlignment < 4 KB (%lu)\n",
-      __FUNCTION__, UefiImageLoaderGetImageAddress (ImageContext), UefiImageGetSectionAlignment (ImageContext)));
+      __FUNCTION__, UefiImageLoaderGetImageAddress (ImageContext), UefiImageGetSegmentAlignment (ImageContext)));
 
     ASSERT ((UefiImageLoaderGetImageAddress (ImageContext) & (EFI_PAGE_SIZE - 1)) == 0);
 

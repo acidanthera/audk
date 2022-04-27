@@ -927,7 +927,7 @@ GetUefiImageFixLoadingAssignedAddress (
   EFI_PHYSICAL_ADDRESS SmramBase;
   UINT64               SmmCodeSize;
 
-  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }

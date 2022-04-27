@@ -114,7 +114,7 @@ GetUefiImageFixLoadingAssignedAddress (
    EFI_PHYSICAL_ADDRESS FixLoadingAddress;
    UINT32               SizeOfImage;
 
-  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -219,7 +219,7 @@ LoadAndRelocateUefiImage (
   // XIP image that ImageAddress is same to Image handle.
   //
   // FIXME: PE lib function
-  if (UefiImageGetImageBase (ImageContext) == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
+  if (UefiImageGetPreferredAddress (ImageContext) == (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data) {
     IsXipImage = TRUE;
   }
 
