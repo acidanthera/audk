@@ -44,12 +44,9 @@ UINT8  mHashOidValue[] = {
 };
 
 HASH_TABLE  mHash[] = {
- #ifndef DISABLE_SHA1_DEPRECATED_INTERFACES
-  { L"SHA1",   20, &mHashOidValue[0],  5, Sha1GetContextSize,   Sha1Init,   Sha1Update,   Sha1Final   },
- #else
-  { L"SHA1",   20, &mHashOidValue[0],  5, NULL,                 NULL,       NULL,         NULL        },
- #endif
-  { L"SHA224", 28, &mHashOidValue[5],  9, NULL,                 NULL,       NULL,         NULL        },
+#ifndef DISABLE_SHA1_DEPRECATED_INTERFACES
+  { L"SHA1",   20, &mHashOidValue[0],  5, Sha1GetContextSize,   Sha1Init,   Sha1Update,   Sha1Final  },
+#endif
   { L"SHA256", 32, &mHashOidValue[14], 9, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
   { L"SHA384", 48, &mHashOidValue[23], 9, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
   { L"SHA512", 64, &mHashOidValue[32], 9, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
