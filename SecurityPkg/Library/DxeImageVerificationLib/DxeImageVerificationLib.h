@@ -60,16 +60,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define QUERY_USER_ON_SECURITY_VIOLATION     0x00000005
 
 //
-// Support hash types
-//
-#define HASHALG_SHA1    0x00000000
-#define HASHALG_SHA224  0x00000001
-#define HASHALG_SHA256  0x00000002
-#define HASHALG_SHA384  0x00000003
-#define HASHALG_SHA512  0x00000004
-#define HASHALG_MAX     0x00000005
-
-//
 // Set max digest size as SHA512 Output (64 bytes) by far
 //
 #define MAX_DIGEST_SIZE  SHA512_DIGEST_SIZE

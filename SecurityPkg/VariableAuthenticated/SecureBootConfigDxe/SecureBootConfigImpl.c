@@ -61,11 +61,19 @@ UINT8  mHashOidValue[] = {
   0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, // OBJ_sha512
 };
 
-HASH_TABLE  mHash[] = {
-  { L"SHA224", 28, &mHashOidValue[13], 9, NULL,                 NULL,       NULL,         NULL        },
-  { L"SHA256", 32, &mHashOidValue[22], 9, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
-  { L"SHA384", 48, &mHashOidValue[31], 9, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
-  { L"SHA512", 64, &mHashOidValue[40], 9, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
+//
+//  Support hash types
+//
+#define HASHALG_SHA256                         0x00000001
+#define HASHALG_SHA384                         0x00000002
+#define HASHALG_SHA512                         0x00000003
+#define HASHALG_RAW                            0x00000004
+#define HASHALG_MAX                            0x00000004
+
+HASH_TABLE mHash[] = {
+  { L"SHA256", 32, &mHashOidValue[14], 9, &gEfiCertSha256Guid, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final},
+  { L"SHA384", 48, &mHashOidValue[23], 9, &gEfiCertSha384Guid, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final},
+  { L"SHA512", 64, &mHashOidValue[32], 9, &gEfiCertSha512Guid, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
 };
 
 //
@@ -1603,8 +1611,7 @@ HashPeImage (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN  UINT32                    HashAlg,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
-  UINTN                         *ImageDigestSize,
-  OUT CONST EFI_GUID **CertType
+  UINTN                         *ImageDigestSize
   )
 {
   BOOLEAN                   Status;
@@ -1711,9 +1718,11 @@ HashPeImageByType (
   //
   // HASH PE Image based on Hash algorithm in PE/COFF Authenticode.
   //
-  if (!HashPeImage (ImageContext, Index, ImageDigest, ImageDigestSize, CertType)) {
+  if (!HashPeImage (ImageContext, Index, ImageDigest, ImageDigestSize)) {
     return EFI_UNSUPPORTED;
   }
+
+  *CertType = mHash[Index].CertType;
 
   return EFI_SUCCESS;
 }

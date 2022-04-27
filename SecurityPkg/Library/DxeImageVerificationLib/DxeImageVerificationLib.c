@@ -43,13 +43,22 @@ UINT8  mHashOidValue[] = {
   0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x03, // OBJ_sha512
 };
 
-HASH_TABLE  mHash[] = {
+//
+//  Support hash types
+//
+#define HASHALG_SHA256                         0x00000000
+#define HASHALG_SHA384                         0x00000001
+#define HASHALG_SHA512                         0x00000002
+#define HASHALG_SHA1                           0x00000003
+#define HASHALG_MAX                            0x00000004
+
+HASH_TABLE mHash[] = {
+  { L"SHA256", 32, &mHashOidValue[14], 9, &gEfiCertSha256Guid, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
+  { L"SHA384", 48, &mHashOidValue[23], 9, &gEfiCertSha384Guid, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
+  { L"SHA512", 64, &mHashOidValue[32], 9, &gEfiCertSha512Guid, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final },
 #ifndef DISABLE_SHA1_DEPRECATED_INTERFACES
   { L"SHA1",   20, &mHashOidValue[0],  5, &gEfiCertSha1Guid, Sha1GetContextSize,   Sha1Init,   Sha1Update,   Sha1Final  },
 #endif
-  { L"SHA256", 32, &mHashOidValue[14], 9, &gEfiCertSha256Guid, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
-  { L"SHA384", 48, &mHashOidValue[23], 9, &gEfiCertSha384Guid, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
-  { L"SHA512", 64, &mHashOidValue[32], 9, &gEfiCertSha512Guid, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
 };
 
 /**
