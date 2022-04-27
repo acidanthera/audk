@@ -1236,23 +1236,31 @@ BmIsLoadOptionPeHeaderValid (
   )
 {
   EFI_STATUS                        Status;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT          ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
+  UINT16                            Subsystem;
 
   if ((FileBuffer == NULL) || (FileSize == 0)) {
     return FALSE;
   }
 
-  // FIXME: What?
   Status = UefiImageInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
   if (EFI_ERROR (Status)) {
     return FALSE;
   }
-  // FIXME: What about emu?
-  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (UefiImageGetMachine (&ImageContext))) {
-    return FALSE;
+
+  Subsystem = PeCoffGetSubsystem (&ImageContext);
+
+  if ((Type == LoadOptionTypeMax) ||
+      (Type == LoadOptionTypeDriver && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER) ||
+      (Type == LoadOptionTypeDriver && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) ||
+      (Type == LoadOptionTypeSysPrep && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION) ||
+      (Type == LoadOptionTypeBoot && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION) ||
+      (Type == LoadOptionTypePlatformRecovery && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)
+      ) {
+    return TRUE;
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 /**
