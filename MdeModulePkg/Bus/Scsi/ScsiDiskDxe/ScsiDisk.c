@@ -1980,7 +1980,7 @@ ScsiDiskReceiveData (
       goto Done;
     }
 
-    if ((ScsiDiskDevice->ScsiIo->IoAlign > 1) && !ADDRESS_IS_ALIGNED_ (PayloadBuffer, ScsiDiskDevice->ScsiIo->IoAlign)) {
+    if ((ScsiDiskDevice->ScsiIo->IoAlign > 1) && !ADDRESS_IS_ALIGNED (PayloadBuffer, ScsiDiskDevice->ScsiIo->IoAlign)) {
       AlignedBuffer = AllocateAlignedBuffer (ScsiDiskDevice, PayloadBufferSize);
       if (AlignedBuffer == NULL) {
         Status = EFI_OUT_OF_RESOURCES;
@@ -2200,7 +2200,7 @@ ScsiDiskSendData (
       goto Done;
     }
 
-    if ((ScsiDiskDevice->ScsiIo->IoAlign > 1) && !ADDRESS_IS_ALIGNED_ (PayloadBuffer, ScsiDiskDevice->ScsiIo->IoAlign)) {
+    if ((ScsiDiskDevice->ScsiIo->IoAlign > 1) && !ADDRESS_IS_ALIGNED (PayloadBuffer, ScsiDiskDevice->ScsiIo->IoAlign)) {
       AlignedBuffer = AllocateAlignedBuffer (ScsiDiskDevice, PayloadBufferSize);
       if (AlignedBuffer == NULL) {
         Status = EFI_OUT_OF_RESOURCES;
