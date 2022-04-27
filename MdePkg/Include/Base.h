@@ -918,11 +918,7 @@ STATIC_ASSERT (ALIGNOF (__VERIFY_UINT32_ENUM_SIZE) == sizeof (__VERIFY_UINT32_EN
 #define BASE_CR(Record, TYPE, Field)  ((TYPE *) ((CHAR8 *) (Record) - OFFSET_OF (TYPE, Field)))
 
 // FIXME: Upstream general variants of these macros.
-#define ALIGNOF           _Alignof
 #define DEBUG_RAISE()     ASSERT (FALSE)
-#define ALIGN_VALUE_ADDEND(v, a) (((a) - (v)) & ((a) - 1))
-#define IS_ALIGNED(v, a)  (((v) & ((a) - 1U)) == 0U)
-#define IS_POW2(v)        ((v) != 0U && ((v) & ((v) - 1U)) == 0U)
 
 /**
   Checks whether a value is a power of two.
