@@ -172,7 +172,7 @@ LoadAndRelocateUefiImage (
 {
   EFI_STATUS                    Status;
   PEI_CORE_INSTANCE             *Private;
-  UINT32                                AlignImageSize;
+  UINT32                                DynamicImageSize;
   BOOLEAN                       IsXipImage;
   EFI_STATUS                    ReturnStatus;
   BOOLEAN                       IsS3Boot;
@@ -181,6 +181,7 @@ LoadAndRelocateUefiImage (
   EFI_FV_FILE_INFO              FileInfo;
   EFI_PHYSICAL_ADDRESS                  LoadAddress;
   UINT16                                Machine;
+  BOOLEAN                               LoadDynamically;
 
   Private = PEI_CORE_INSTANCE_FROM_PS_THIS (GetPeiServicesTablePointer ());
 
@@ -248,12 +249,8 @@ LoadAndRelocateUefiImage (
     DEBUG ((DEBUG_INFO|DEBUG_LOAD, "The image at 0x%08x without reloc section can't be loaded into memory\n", (UINTN)Pe32Data));
   }
 
-  //
-  // Set default base address to current image address.
-  //
-  LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
-
-  AlignImageSize = 0;
+  LoadDynamically  = FALSE;
+  DynamicImageSize = 0;
 
   //
   // Allocate Memory for the image when memory is ready, and image is relocatable.
@@ -266,20 +263,14 @@ LoadAndRelocateUefiImage (
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
       )
   {
-    //
-    // Allocate more buffer to avoid buffer overflow.
-    //
-    Status = UefiImageLoaderGetDestinationSize (ImageContext, &AlignImageSize);
-    if (RETURN_ERROR (Status)) {
-      return Status;
-    }
-
     Status = EFI_UNSUPPORTED;
 
-    if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
-      Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, Private, &LoadAddress);
-      if (!EFI_ERROR (Status)) {
-        if (LoadAddress != PeCoffGetImageBase (ImageContext) && PeCoffGetRelocsStripped (ImageContext)) {
+    if (PcdGet64(PcdLoadModuleAtFixAddressEnable) != 0 && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
+      Status = GetUefiImageFixLoadingAssignedAddress(ImageContext, Private, &LoadAddress);
+      if (!EFI_ERROR (Status)){
+        DynamicImageSize = UefiImageGetSizeOfImage (ImageContext);
+
+        if (LoadAddress != UefiImageGetPreferredAddress (ImageContext)) {
           Status = EFI_UNSUPPORTED;
           DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
         }
@@ -287,50 +278,56 @@ LoadAndRelocateUefiImage (
         DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
       }
     }
-    if (EFI_ERROR (Status) && !PeCoffGetRelocsStripped (ImageContext)) {
+    if (EFI_ERROR (Status)) {
+      //
+      // Allocate more buffer to avoid buffer overflow.
+      //
+      Status = UefiImageLoaderGetDestinationSize (ImageContext, &DynamicImageSize);
+      if (RETURN_ERROR (Status)) {
+        return Status;
+      }
+
       Status = PeiServicesAllocatePages (
                  EfiBootServicesCode,
-                 EFI_SIZE_TO_PAGES (AlignImageSize),
+                 EFI_SIZE_TO_PAGES (DynamicImageSize),
                  &LoadAddress
                  );
     }
 
-    if (EFI_ERROR (Status)) {
+    if (!EFI_ERROR (Status)) {
+      LoadDynamically = TRUE;
+      //
+      // Load the image to our new buffer
+      //
+      Status = UefiImageLoadImageForExecution (
+                ImageContext,
+                (VOID *) (UINTN)LoadAddress,
+                DynamicImageSize,
+                NULL,
+                0
+                );
+      if (EFI_ERROR (Status)) {
+        return              Status;
+      }
+    } else {
       //
       // No enough memory resource.
       //
-      if (IsXipImage) {
-        //
-        // XIP image can still be invoked.
-        //
-        LoadAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Pe32Data;
-        //AlignImageSize = UefiImageGetSizeOfImage (ImageContext);
-        ReturnStatus              = EFI_WARN_BUFFER_TOO_SMALL;
-      } else {
+      if (!IsXipImage) {
         //
         // Non XIP image can't be loaded because no enough memory is allocated.
         //
         ASSERT (FALSE);
         return EFI_OUT_OF_RESOURCES;
       }
+      //
+      // XIP image can still be invoked.
+      //
+      ReturnStatus = EFI_WARN_BUFFER_TOO_SMALL;
     }
   }
 
-  if (LoadAddress != (EFI_PHYSICAL_ADDRESS)(UINTN) Pe32Data) {
-    //
-    // Load the image to our new buffer
-    //
-    Status = UefiImageLoadImageForExecution (
-               ImageContext,
-               (VOID *) (UINTN) LoadAddress,
-               AlignImageSize,
-               NULL,
-               0
-               );
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-  } else {
+  if (!LoadDynamically) {
     Status = UefiImageLoadImageInplace (ImageContext);
     if (EFI_ERROR (Status)) {
       return Status;
