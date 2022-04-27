@@ -86,8 +86,11 @@ PeCoffRelocateImageInplaceForExecution (
       DEBUG_RAISE ();
       return Status;
     }
-
-    SizeOfImage = PeCoffGetSizeOfImage (Context);
+    //
+    // In-place Image loading cannot force-load Debug data, thus omit its size.
+    // FIXME: Public API?
+    //
+    SizeOfImage = Context->SizeOfImage;
 
     if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
       ASSERT (Context->TeStrippedOffset < SizeOfImage);
