@@ -434,7 +434,7 @@ InternalCharacteristicsToAttributes (
 /**
   Index the read-only padding following an Image record section, if existent.
 
-  @param[in,out] RecordSection  The Image record section for the current memory
+  @param[in,out] RecordSegment  The Image record section for the current memory
                                 protection range. May be extended if it is of
                                 the same type as the adjacent padding. At least
                                 one more record section must be reserved after
@@ -453,13 +453,13 @@ InternalCharacteristicsToAttributes (
 STATIC
 UINT8
 InternalInsertImageRecordSegmentPadding (
-  IN OUT UEFI_IMAGE_RECORD_SEGMENT  *RecordSection,
+  IN OUT UEFI_IMAGE_RECORD_SEGMENT  *RecordSegment,
   IN     UINT32                     EndAddress,
   IN     UINT32                     NextAddress,
   IN     UINT32                     Attributes
   )
 {
-  ASSERT (RecordSection != NULL);
+  ASSERT (RecordSegment != NULL);
   ASSERT (EndAddress <= NextAddress);
 
   if (NextAddress == EndAddress) {
@@ -470,14 +470,14 @@ InternalInsertImageRecordSegmentPadding (
   // the the permissions of the previous Image record section.
   //
   if (Attributes == (EFI_MEMORY_XP | EFI_MEMORY_RO)) {
-    RecordSection->Size += NextAddress - EndAddress;
+    RecordSegment->Size += NextAddress - EndAddress;
 
     return 0;
   }
 
-  ++RecordSection;
-  RecordSection->Size       = NextAddress - EndAddress;
-  RecordSection->Attributes = EFI_MEMORY_XP | EFI_MEMORY_RO;
+  ++RecordSegment;
+  RecordSegment->Size       = NextAddress - EndAddress;
+  RecordSegment->Attributes = EFI_MEMORY_XP | EFI_MEMORY_RO;
 
   return 1;
 }

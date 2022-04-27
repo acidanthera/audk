@@ -855,7 +855,7 @@ SmmInsertImageRecord (
   for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
     DEBUG ((
       DEBUG_VERBOSE,
-      "  RecordSection'\n"
+      "  RecordSegment'\n"
       ));
     DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) SectionAddress));
     DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
