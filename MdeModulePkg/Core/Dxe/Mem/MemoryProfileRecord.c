@@ -282,12 +282,10 @@ BuildDriverInfo (
 
   PdbOccupiedSize = 0;
 
-  // FIXME: This used to be allowed?
   ASSERT (UefiImageLoaderGetImageAddress (ImageContext) != 0);
 
   PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbString, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
-    // FIXME: Unsafe operation.
     PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
   }
 
@@ -882,7 +880,6 @@ CoreUpdateProfileAllocate (
   ActionStringOccupiedSize = 0;
   if (ActionString != NULL) {
     ActionStringSize         = AsciiStrSize (ActionString);
-    // FIXME: Unsafe operation
     ActionStringOccupiedSize = GET_OCCUPIED_SIZE (ActionStringSize, sizeof (UINT64));
   }
 

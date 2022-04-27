@@ -17,7 +17,7 @@
 
 #include "BasePeCoffLib2Internals.h"
 
-// FIXME: Check Machine / Subsystem here?
+// FIXME: Check Subsystem here?
 RETURN_STATUS
 PeCoffLoadImageForExecution (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
