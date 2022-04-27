@@ -12,7 +12,7 @@
 
 #include <Base.h>
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #include <Guid/WinCertificate.h>
 

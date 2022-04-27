@@ -21,7 +21,7 @@
 
 #include "BaseOverflow.h"
 #include "BasePeCoffLib2Internals.h"
-#include "IndustryStandard/PeImage.h"
+#include "IndustryStandard/PeImage2.h"
 
 UINT32
 PeCoffGetAddressOfEntryPoint (

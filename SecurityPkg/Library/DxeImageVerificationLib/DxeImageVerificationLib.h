@@ -30,7 +30,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/VariableWrite.h>
 #include <Guid/ImageAuthentication.h>
 #include <Guid/AuthenticatedVariableFormat.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #define EFI_CERT_TYPE_RSA2048_SHA256_SIZE  256
 #define EFI_CERT_TYPE_RSA2048_SIZE         256

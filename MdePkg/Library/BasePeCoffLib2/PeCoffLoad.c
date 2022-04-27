@@ -14,7 +14,7 @@
 #include <Base.h>
 #include <Uefi/UefiBaseType.h>
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>

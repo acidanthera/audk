@@ -9,7 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <PiDxe.h>
 #include <IndustryStandard/Acpi.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include <IndustryStandard/TcpaAcpi.h>
 
 #include <Guid/GlobalVariable.h>

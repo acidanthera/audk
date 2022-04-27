@@ -13,7 +13,7 @@
 
 #include <Base.h>
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>

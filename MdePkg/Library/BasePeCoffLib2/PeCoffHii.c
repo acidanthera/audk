@@ -13,7 +13,7 @@
 
 #include <Base.h>
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>

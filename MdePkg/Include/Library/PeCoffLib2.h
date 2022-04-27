@@ -18,7 +18,7 @@
 #ifndef PE_COFF_LIB2_H_
 #define PE_COFF_LIB2_H_
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #include <Guid/WinCertificate.h>
 
