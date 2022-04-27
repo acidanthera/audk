@@ -211,7 +211,7 @@ InternalProtectMmImage (
 
     ClearMemoryRegionNoExec (
       UefiImageLoaderGetImageAddress (ImageContext),
-      ALIGN_VALUE (UefiImageGetSizeOfImage (ImageContext), EFI_PAGE_SIZE)
+      ALIGN_VALUE (UefiImageGetImageSize (ImageContext), EFI_PAGE_SIZE)
       );
 
     return RETURN_SUCCESS;
@@ -319,7 +319,7 @@ MmLoadImage (
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
-  ImageSize = UefiImageGetSizeOfImage (&ImageContext);
+  ImageSize = UefiImageGetImageSize (&ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry

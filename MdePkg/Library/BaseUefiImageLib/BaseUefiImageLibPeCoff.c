@@ -347,7 +347,7 @@ UefiImageGetSegmentAlignment (
 }
 
 UINT32
-UefiImageGetSizeOfImage (
+UefiImageGetImageSize (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -355,7 +355,7 @@ UefiImageGetSizeOfImage (
 }
 
 UINT32
-UefiImageGetSizeOfImageInplace (
+UefiImageGetImageSizeInplace (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {

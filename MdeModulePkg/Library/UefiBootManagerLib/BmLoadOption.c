@@ -10,7 +10,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "InternalBm.h"
 
 #include <Library/VariablePolicyHelperLib.h>
-#include <Library/UefiImageLib.h>
 
 GLOBAL_REMOVE_IF_UNREFERENCED
 CHAR16  *mBmLoadOptionName[] = {
@@ -1248,7 +1247,7 @@ BmIsLoadOptionPeHeaderValid (
     return FALSE;
   }
 
-  Subsystem = PeCoffGetSubsystem (&ImageContext);
+  Subsystem = UefiImageGetSubsystem (&ImageContext);
 
   if ((Type == LoadOptionTypeMax) ||
       (Type == LoadOptionTypeDriver && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER) ||

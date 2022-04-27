@@ -106,7 +106,7 @@ LoadUefiImage (
   }
 
   *ImageAddress = UefiImageLoaderGetImageAddress (&ImageContext);
-  *ImageSize    = UefiImageGetSizeOfImage (&ImageContext);
+  *ImageSize    = UefiImageGetImageSize (&ImageContext);
   *EntryPoint   = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return EFI_SUCCESS;

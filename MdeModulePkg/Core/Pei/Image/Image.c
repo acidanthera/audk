@@ -7,8 +7,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "PeiMain.h"
-#include "Library/UefiImageLib.h"
-#include "Uefi/UefiBaseType.h"
 
 EFI_PEI_LOAD_FILE_PPI  mPeiLoadImagePpi = {
   PeiLoadImageLoadImageWrapper
@@ -135,7 +133,7 @@ GetUefiImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetImageSize (ImageContext);
   Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, SizeOfImage);
   *LoadAddress = FixLoadingAddress;
 
@@ -268,7 +266,7 @@ LoadAndRelocateUefiImage (
     if (PcdGet64(PcdLoadModuleAtFixAddressEnable) != 0 && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
       Status = GetUefiImageFixLoadingAssignedAddress(ImageContext, Private, &LoadAddress);
       if (!EFI_ERROR (Status)){
-        DynamicImageSize = UefiImageGetSizeOfImage (ImageContext);
+        DynamicImageSize = UefiImageGetImageSize (ImageContext);
 
         if (LoadAddress != UefiImageGetPreferredAddress (ImageContext)) {
           Status = EFI_UNSUPPORTED;
@@ -548,7 +546,7 @@ PeiLoadImageLoadImage (
   }
 
   if (ImageSizeArg != NULL) {
-    *ImageSizeArg =UefiImageGetSizeOfImage (&ImageContext);
+    *ImageSizeArg =UefiImageGetImageSize (&ImageContext);
   }
 
   DEBUG_CODE_BEGIN ();
@@ -559,7 +557,7 @@ PeiLoadImageLoadImage (
     INT32                              StartIndex;
     UINT16                             Machine;
 
-    Machine = PeCoffGetMachine (&ImageContext);
+    Machine = UefiImageGetMachine (&ImageContext);
 
   //
   // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi

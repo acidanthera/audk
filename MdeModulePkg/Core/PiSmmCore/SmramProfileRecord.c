@@ -314,7 +314,7 @@ BuildDriverInfo (
   }
 
   DriverInfo->ImageBase      = LoadAddress;
-  DriverInfo->ImageSize      = UefiImageGetSizeOfImage (ImageContext);
+  DriverInfo->ImageSize      = UefiImageGetImageSize (ImageContext);
   DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
 

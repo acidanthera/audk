@@ -477,7 +477,7 @@ GetUefiImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetImageSize (ImageContext);
   Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
   *LoadAddress = FixLoadingAddress;
 
@@ -642,7 +642,7 @@ CoreLoadPeImage (
       Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
 
       if (!EFI_ERROR (Status))  {
-        if (BufferAddress != PeCoffGetImageBase (ImageContext) && PeCoffGetRelocsStripped (ImageContext)) {
+        if (BufferAddress != UefiImageGetPreferredAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
           Status = EFI_UNSUPPORTED;
           DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
         }
@@ -770,7 +770,7 @@ CoreLoadPeImage (
   //
   Image->Type               = UefiImageGetSubsystem (ImageContext);
   Image->Info.ImageBase     = (VOID *)(UINTN)LoadAddress;
-  Image->Info.ImageSize     = UefiImageGetSizeOfImage (ImageContext);
+  Image->Info.ImageSize     = UefiImageGetImageSize (ImageContext);
   Image->Info.ImageCodeType = ImageCodeMemoryType;
   Image->Info.ImageDataType = ImageDataMemoryType;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {

@@ -938,7 +938,7 @@ GetUefiImageFixLoadingAssignedAddress (
   SmramBase = mLMFAConfigurationTable->SmramBase;
 
   FixLoadingAddress = SmramBase + ValueInSectionHeader;
-  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetImageSize (ImageContext);
 
   if (SmramBase + SmmCodeSize >= FixLoadingAddress + SizeOfImage
    && SmramBase <= FixLoadingAddress) {
@@ -1008,7 +1008,7 @@ ExecuteSmmCoreFromSmram (
   // Stripped relocations are not supported for both fixed-address and dynamic
   // loading.
   //
-  if (PeCoffGetRelocsStripped (&gSmmCorePrivate->PiSmmCoreImageContext)) {
+  if (UefiImageGetRelocsStripped (&gSmmCorePrivate->PiSmmCoreImageContext)) {
     return EFI_UNSUPPORTED;
   }
 
@@ -1099,7 +1099,7 @@ ExecuteSmmCoreFromSmram (
 
     gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
     DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-    DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", UefiImageGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
+    DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext)));
 
     //
     // Execute image

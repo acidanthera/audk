@@ -89,7 +89,7 @@ LoadUefiImage (
   ASSERT_EFI_ERROR (Status);
 
   *ImageAddress = (UINTN) UefiImageLoaderGetImageAddress (&ImageContext);
-  *ImageSize    = UefiImageGetSizeOfImage (&ImageContext);
+  *ImageSize    = UefiImageGetImageSize (&ImageContext);
   *EntryPoint   = (UINTN) UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return Status;

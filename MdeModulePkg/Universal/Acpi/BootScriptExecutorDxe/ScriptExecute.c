@@ -359,7 +359,7 @@ ReadyToLockEventNotify (
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
              (VOID *)(UINTN)LoadAddress,
-             (UINTN)UefiImageGetSizeOfImage (&ImageContext)
+             (UINTN)UefiImageGetImageSize (&ImageContext)
              );
   ASSERT_EFI_ERROR (Status);
 

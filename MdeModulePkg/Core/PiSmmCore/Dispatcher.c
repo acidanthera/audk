@@ -231,7 +231,7 @@ GetUefiImageFixLoadingAssignedAddress (
   }
 
   FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(gLoadModuleAtFixAddressSmramBase + ValueInSectionHeader);
-  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetImageSize (ImageContext);
   Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
   *LoadAddress = FixLoadingAddress;
 
@@ -384,7 +384,7 @@ SmmLoadImage (
   // Stripped relocations are not supported for both fixed-address and dynamic
   // loading.
   //
-  if (PeCoffGetRelocsStripped (ImageContext)) {
+  if (UefiImageGetRelocsStripped (ImageContext)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);
     }
@@ -556,7 +556,7 @@ SmmLoadImage (
   CopyMem (DriverEntry->LoadedImage->FilePath, FilePath, GetDevicePathSize (FilePath));
 
   DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)LoadAddress;
-  DriverEntry->LoadedImage->ImageSize     = UefiImageGetSizeOfImage (ImageContext);
+  DriverEntry->LoadedImage->ImageSize     = UefiImageGetImageSize (ImageContext);
   DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;
 
@@ -577,7 +577,7 @@ SmmLoadImage (
   CopyMem (DriverEntry->SmmLoadedImage.FilePath, FilePath, GetDevicePathSize(FilePath));
 
   DriverEntry->SmmLoadedImage.ImageBase = (VOID *)(UINTN)LoadAddress;
-  DriverEntry->SmmLoadedImage.ImageSize = UefiImageGetSizeOfImage (ImageContext);
+  DriverEntry->SmmLoadedImage.ImageSize = UefiImageGetImageSize (ImageContext);
   DriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
