@@ -51,7 +51,7 @@
   IoLib
   BlParseLib
   HobLib
-  PeCoffLib
+  UefiImageLib
   PlatformSupportLib
   UefiCpuLib
   MemoryAllocationLib

@@ -41,7 +41,7 @@
   DebugLib
   BaseMemoryLib
   UefiDecompressLib
-  PeCoffLib
+  UefiImageLib
   CacheMaintenanceLib
   PrintLib
   SerialPortLib

@@ -234,15 +234,14 @@ DxeMain (
   IN  VOID  *HobStart
   )
 {
-  EFI_STATUS                    Status;
-  EFI_PHYSICAL_ADDRESS          MemoryBaseAddress;
-  UINT64                        MemoryLength;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  UINTN                         Index;
-  EFI_HOB_GUID_TYPE             *GuidHob;
-  EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
-  EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
-  //VOID                          *EntryPoint;
+  EFI_STATUS                      Status;
+  EFI_PHYSICAL_ADDRESS            MemoryBaseAddress;
+  UINT64                          MemoryLength;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINTN                           Index;
+  EFI_HOB_GUID_TYPE               *GuidHob;
+  EFI_VECTOR_HANDOFF_INFO         *VectorInfoList;
+  EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
   //
   // Setup the default exception handlers
@@ -316,7 +315,7 @@ DxeMain (
   // Report DXE Core image information to the PE/COFF Extra Action Library
   // FIXME: This is done by DxeIpl, why is this needed here? Difference PEI/DXE?
   //
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  UefiImageLoaderRelocateImageExtraAction (&ImageContext);
 
   //
   // Install the DXE Services Table into the EFI System Tables's Configuration Table

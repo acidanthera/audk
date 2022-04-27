@@ -6,11 +6,11 @@
 
 **/
 
-#ifndef _PE_COFF_EXTRA_ACTION_LIB_H_
-#define _PE_COFF_EXTRA_ACTION_LIB_H_
+#ifndef _UEFI_IMAGE_EXTRA_ACTION_LIB_H_
+#define _UEFI_IMAGE_EXTRA_ACTION_LIB_H_
 
 #include <Base.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseLib.h>
 #include <Library/IoLib.h>

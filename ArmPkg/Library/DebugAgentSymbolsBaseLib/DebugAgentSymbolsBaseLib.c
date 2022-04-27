@@ -13,8 +13,8 @@
 #include <Library/DebugLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/PcdLib.h>
-#include <Library/PeCoffExtraActionLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageExtraActionLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Pi/PiFirmwareFile.h>
 #include <Pi/PiFirmwareVolume.h>
@@ -165,8 +165,8 @@ GetFfsFile (
 
 EFI_STATUS
 GetImageContext (
-  IN  EFI_FFS_FILE_HEADER           *FfsHeader,
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN  EFI_FFS_FILE_HEADER              *FfsHeader,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   EFI_STATUS                              Status;
@@ -214,9 +214,9 @@ GetImageContext (
 
   // Initialize the Image Context
   // FIXME: Common FFS API with size checks
-  Status = PeCoffInitializeContext (ImageContext, EfiImage, SectionLength - sizeof (*Section));
+  Status = UefiImageInitializeContext (ImageContext, EfiImage, SectionLength - sizeof (*Section));
   if (!EFI_ERROR(Status)) {
-    Status = PeCoffLoadImageInplace( ImageContext);
+    Status = UefiImageLoadImageInplace( ImageContext);
   }
 
   return Status;
@@ -252,9 +252,9 @@ InitializeDebugAgent (
   IN DEBUG_AGENT_CONTINUE  Function  OPTIONAL
   )
 {
-  EFI_STATUS                    Status;
-  EFI_FFS_FILE_HEADER           *FfsHeader;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  EFI_STATUS                      Status;
+  EFI_FFS_FILE_HEADER             *FfsHeader;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   // We use InitFlag to know if DebugAgent has been initialized from
   // Sec (DEBUG_AGENT_INIT_PREMEM_SEC) or PrePi (DEBUG_AGENT_INIT_POSTMEM_SEC)
@@ -267,7 +267,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
   } else if (InitFlag == DEBUG_AGENT_INIT_POSTMEM_SEC) {
@@ -278,7 +278,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
 
@@ -289,7 +289,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
   }

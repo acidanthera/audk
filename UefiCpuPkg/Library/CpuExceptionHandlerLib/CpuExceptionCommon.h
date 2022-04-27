@@ -19,7 +19,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/SynchronizationLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #define  CPU_EXCEPTION_NUM    32
 #define  CPU_INTERRUPT_NUM    256

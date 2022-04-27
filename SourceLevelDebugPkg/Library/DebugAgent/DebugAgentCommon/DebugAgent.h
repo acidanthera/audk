@@ -26,7 +26,7 @@
 #include <Library/DebugLib.h>
 #include <Library/TimerLib.h>
 #include <Library/PrintLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Register/ArchitecturalMsr.h>
 
 #include <TransferProtocol.h>

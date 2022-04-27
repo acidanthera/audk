@@ -8,7 +8,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeMain.h"
 #include "Image.h"
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include "Uefi/UefiBaseType.h"
 
 //
@@ -195,8 +195,8 @@ PeCoffEmuProtocolNotify (
 **/
 EFI_STATUS
 CoreInitializeImageServices (
-  IN  VOID                         *HobStart,
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN  VOID                            *HobStart,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   EFI_STATUS                 Status;
@@ -233,7 +233,7 @@ CoreInitializeImageServices (
   //
   Image = &mCorePrivateImage;
 
-  Status = PeCoffInitializeContext (
+  Status = UefiImageInitializeContext (
              ImageContext,
              (VOID *) (UINTN) DxeCoreImageBaseAddress,
              (UINT32) DxeCoreImageLength
@@ -243,7 +243,7 @@ CoreInitializeImageServices (
   // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
   ImageContext->ImageBuffer = (VOID *) ImageContext->FileBuffer;
 
-  ASSERT ((UINTN) DxeCoreEntryPoint == PeCoffLoaderGetImageEntryPoint (ImageContext));
+  ASSERT ((UINTN) DxeCoreEntryPoint == UefiImageLoaderGetImageEntryPoint (ImageContext));
 
   Image->EntryPoint       = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage    = DxeCoreImageBaseAddress;
@@ -446,9 +446,9 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 
 **/
 EFI_STATUS
-GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
+GetUefiImageFixLoadingAssignedAddress (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  OUT    EFI_PHYSICAL_ADDRESS             *LoadAddress
   )
 {
   EFI_STATUS           Status;
@@ -456,7 +456,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   EFI_PHYSICAL_ADDRESS FixLoadingAddress;
   UINT32               SizeOfImage;
 
-  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -477,7 +477,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
   Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
   *LoadAddress = FixLoadingAddress;
 
@@ -500,8 +500,8 @@ GetPeCoffImageFixLoadingAssignedAddress (
 STATIC
 BOOLEAN
 CoreIsImageTypeSupported (
-  IN OUT LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN OUT LOADED_IMAGE_PRIVATE_DATA       *Image,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   LIST_ENTRY      *Link;
@@ -512,13 +512,13 @@ CoreIsImageTypeSupported (
        Link = GetNextNode (&mAvailableEmulators, Link))
   {
     Entry = BASE_CR (Link, EMULATOR_ENTRY, Link);
-    if (Entry->MachineType != PeCoffGetMachine (ImageContext)) {
+    if (Entry->MachineType != UefiImageGetMachine (ImageContext)) {
       continue;
     }
 
     if (Entry->Emulator->IsImageSupported (
                            Entry->Emulator,
-                           PeCoffGetSubsystem (ImageContext),
+                           UefiImageGetSubsystem (ImageContext),
                            Image->Info.FilePath
                            ))
     {
@@ -527,8 +527,8 @@ CoreIsImageTypeSupported (
     }
   }
 
-  return EFI_IMAGE_MACHINE_TYPE_SUPPORTED (PeCoffGetMachine (ImageContext)) ||
-         EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (PeCoffGetMachine (ImageContext));
+  return EFI_IMAGE_MACHINE_TYPE_SUPPORTED (UefiImageGetMachine (ImageContext)) ||
+         EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (UefiImageGetMachine (ImageContext));
 }
 
 /**
@@ -553,12 +553,12 @@ CoreIsImageTypeSupported (
 **/
 EFI_STATUS
 CoreLoadPeImage (
-  IN BOOLEAN                    BootPolicy,
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN EFI_PHYSICAL_ADDRESS        *DstBuffer    OPTIONAL,
-  OUT EFI_PHYSICAL_ADDRESS      *EntryPoint  OPTIONAL,
-  IN  UINT32                     Attribute,
-  PE_COFF_LOADER_IMAGE_CONTEXT          *ImageContext
+  IN     BOOLEAN                          BootPolicy,
+  IN     LOADED_IMAGE_PRIVATE_DATA        *Image,
+  IN     EFI_PHYSICAL_ADDRESS             *DstBuffer   OPTIONAL,
+  OUT    EFI_PHYSICAL_ADDRESS             *EntryPoint  OPTIONAL,
+  IN     UINT32                           Attribute,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   EFI_STATUS  Status;
@@ -581,7 +581,7 @@ CoreLoadPeImage (
     DEBUG ((
       DEBUG_ERROR,
       "Image type %s can't be loaded on %s UEFI system.\n",
-      GetMachineTypeName (PeCoffGetMachine (ImageContext)),
+      GetMachineTypeName (UefiImageGetMachine (ImageContext)),
       mDxeCoreImageMachineTypeName
       ));
     ASSERT (FALSE);
@@ -591,7 +591,7 @@ CoreLoadPeImage (
   //
   // Set EFI memory type based on ImageType
   //
-  switch (PeCoffGetSubsystem (ImageContext)) {
+  switch (UefiImageGetSubsystem (ImageContext)) {
     case EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION:
       ImageCodeMemoryType = EfiLoaderCode;
       ImageDataMemoryType = EfiLoaderData;
@@ -606,11 +606,11 @@ CoreLoadPeImage (
       ImageDataMemoryType = EfiRuntimeServicesData;
       break;
   default:
-    DEBUG ((DEBUG_INFO, "Unsupported type %d\n", PeCoffGetSubsystem (ImageContext)));
+    DEBUG ((DEBUG_INFO, "Unsupported type %d\n", UefiImageGetSubsystem (ImageContext)));
     return EFI_UNSUPPORTED;
   }
 
-  Status = PeCoffLoaderGetDestinationSize (ImageContext, &Size);
+  Status = UefiImageLoaderGetDestinationSize (ImageContext, &Size);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -639,7 +639,7 @@ CoreLoadPeImage (
     // a specified address.
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
-      Status = GetPeCoffImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
+      Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
 
       if (EFI_ERROR (Status)) {
         //
@@ -655,7 +655,7 @@ CoreLoadPeImage (
                    );
       }
     } else {
-      if (PeCoffGetImageBase ((ImageContext) >= 0x100000) || PeCoffGetRelocsStripped (ImageContext)) {
+      if (UefiImageGetImageBase ((ImageContext) >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = CoreAllocatePages (
                    AllocateAddress,
                    ImageCodeMemoryType,
@@ -664,7 +664,7 @@ CoreLoadPeImage (
                    );
       }
 
-      if (EFI_ERROR (Status) && !PeCoffGetRelocsStripped (ImageContext)) {
+      if (EFI_ERROR (Status) && !UefiImageGetRelocsStripped (ImageContext)) {
         Status = CoreAllocatePages (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
@@ -686,7 +686,7 @@ CoreLoadPeImage (
     // Caller provided the destination buffer
     //
 
-    if (PeCoffGetRelocsStripped (ImageContext) && (BufferAddress != *DstBuffer)) {
+    if (UefiImageGetRelocsStripped (ImageContext) && (BufferAddress != *DstBuffer)) {
       //
       // If the image relocations were stripped, and the caller provided a
       // destination buffer address that does not match the address that the
@@ -718,13 +718,13 @@ CoreLoadPeImage (
   //
   RelocDataSize = 0;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
-    if (PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
-      if (PeCoffGetRelocsStripped (ImageContext)) {
+    if (UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+      if (UefiImageGetRelocsStripped (ImageContext)) {
         ASSERT (FALSE);
         Status = RETURN_UNSUPPORTED;
         goto Done;
       }
-      Status = PeCoffLoaderGetRuntimeContextSize (ImageContext, &RelocDataSize);
+      Status = UefiImageLoaderGetRuntimeContextSize (ImageContext, &RelocDataSize);
       if (EFI_ERROR (Status)) {
         ASSERT (FALSE);
         goto Done;
@@ -741,7 +741,7 @@ CoreLoadPeImage (
   //
   // Load the image from the file into the allocated memory
   //
-  Status = PeCoffLoadImageForExecution (
+  Status = UefiImageLoadImageForExecution (
              ImageContext,
              (VOID *)(UINTN)BufferAddress,
              Size,
@@ -753,28 +753,28 @@ CoreLoadPeImage (
     goto Done;
   }
 
-  LoadAddress = PeCoffLoaderGetImageAddress (ImageContext);
+  LoadAddress = UefiImageLoaderGetImageAddress (ImageContext);
 
   //
   // Copy the machine type from the context to the image private data.
   //
-  Image->Machine = PeCoffGetMachine (ImageContext);
+  Image->Machine = UefiImageGetMachine (ImageContext);
 
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageEntryPoint (ImageContext));
+  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol
   //
-  Image->Type               = PeCoffGetSubsystem (ImageContext);
+  Image->Type               = UefiImageGetSubsystem (ImageContext);
   Image->Info.ImageBase     = (VOID *)(UINTN)LoadAddress;
-  Image->Info.ImageSize     = PeCoffGetSizeOfImage (ImageContext);
+  Image->Info.ImageSize     = UefiImageGetSizeOfImage (ImageContext);
   Image->Info.ImageCodeType = ImageCodeMemoryType;
   Image->Info.ImageDataType = ImageDataMemoryType;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
-    if (PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+    if (UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
       //
       // Make a list off all the RT images so we can let the RT AP know about them.
       //
@@ -796,12 +796,12 @@ CoreLoadPeImage (
   // Fill in the entry point of the image if it is available
   //
   if (EntryPoint != NULL) {
-    *EntryPoint = PeCoffLoaderGetImageEntryPoint (ImageContext);
+    *EntryPoint = UefiImageLoaderGetImageEntryPoint (ImageContext);
   }
 
   UINT32 Hiioff;
   UINT32 Hiisize;
-  Status = PeCoffGetHiiDataRva (ImageContext, &Hiioff, &Hiisize);
+  Status = UefiImageGetHiiDataRva (ImageContext, &Hiioff, &Hiisize);
   if (Status != RETURN_NOT_FOUND) {
     ASSERT_EFI_ERROR (Status);
   }
@@ -820,9 +820,9 @@ CoreLoadPeImage (
   DEBUG ((DEBUG_INFO | DEBUG_LOAD,
          "Loading driver at 0x%11p EntryPoint=0x%11p \n",
          (VOID *)(UINTN)LoadAddress,
-           FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
+           FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))));
 
-  Status = PeCoffGetModuleNameFromPdb (
+    Status = UefiImageGetModuleNameFromSymbolsPath (
              ImageContext,
              EfiFileName,
              sizeof (EfiFileName)
@@ -1109,21 +1109,21 @@ CoreLoadImageCommon (
   IN  UINT32                    Attribute
   )
 {
-  LOADED_IMAGE_PRIVATE_DATA  *Image;
-  LOADED_IMAGE_PRIVATE_DATA  *ParentImage;
-  IMAGE_FILE_HANDLE          FHand;
-  EFI_STATUS                 Status;
-  EFI_STATUS                 SecurityStatus;
-  EFI_HANDLE                 DeviceHandle;
-  UINT32                     AuthenticationStatus;
-  EFI_DEVICE_PATH_PROTOCOL   *OriginalFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *HandleFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *InputFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *Node;
-  UINTN                      FilePathSize;
-  BOOLEAN                    ImageIsFromFv;
-  BOOLEAN                    ImageIsFromLoadFile;
-  PE_COFF_LOADER_IMAGE_CONTEXT      ImageContext;
+  LOADED_IMAGE_PRIVATE_DATA       *Image;
+  LOADED_IMAGE_PRIVATE_DATA       *ParentImage;
+  IMAGE_FILE_HANDLE               FHand;
+  EFI_STATUS                      Status;
+  EFI_STATUS                      SecurityStatus;
+  EFI_HANDLE                      DeviceHandle;
+  UINT32                          AuthenticationStatus;
+  EFI_DEVICE_PATH_PROTOCOL        *OriginalFilePath;
+  EFI_DEVICE_PATH_PROTOCOL        *HandleFilePath;
+  EFI_DEVICE_PATH_PROTOCOL        *InputFilePath;
+  EFI_DEVICE_PATH_PROTOCOL        *Node;
+  UINTN                           FilePathSize;
+  BOOLEAN                         ImageIsFromFv;
+  BOOLEAN                         ImageIsFromLoadFile;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1232,7 +1232,7 @@ CoreLoadImageCommon (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
+  Status = UefiImageInitializeContext (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     return Status;
@@ -1423,7 +1423,7 @@ CoreLoadImageCommon (
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
-    (PeCoffGetSubsystem (&ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
+    (UefiImageGetSubsystem (&ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
     &ImageContext
     );
 

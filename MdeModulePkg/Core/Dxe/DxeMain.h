@@ -73,8 +73,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/ExtractGuidedSectionLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/PcdLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DevicePathLib.h>
@@ -381,7 +381,7 @@ CoreInitializeEventServices (
 EFI_STATUS
 CoreInitializeImageServices (
   IN  VOID                         *HobStart,
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2377,7 +2377,7 @@ CoreNewDebugImageInfoEntry (
   IN  UINT32                     ImageInfoType,
   IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
   IN  EFI_HANDLE                 ImageHandle,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
@@ -2567,7 +2567,7 @@ VerifyFvHeaderChecksum (
 VOID
 MemoryProfileInit (
   IN VOID                         *HobStart,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2595,7 +2595,7 @@ EFI_STATUS
 RegisterMemoryProfileImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
   IN EFI_FV_FILETYPE            FileType,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   );
 
 /**
@@ -2700,7 +2700,7 @@ InstallMemoryAttributesTableOnMemoryAllocation (
 VOID
 InsertImageRecord (
   IN LOADED_IMAGE_PRIVATE_DATA   *Image,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2722,7 +2722,7 @@ RemoveImageRecord (
 VOID
 ProtectUefiImage (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

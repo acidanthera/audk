@@ -23,7 +23,7 @@
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
@@ -915,8 +915,8 @@ SmmIplSetVirtualAddressNotify (
   @retval EFI_NOT_FOUND             The image has no assigned fixed loading address.
 **/
 EFI_STATUS
-GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+GetUefiImageFixLoadingAssignedAddress (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
@@ -927,7 +927,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   EFI_PHYSICAL_ADDRESS SmramBase;
   UINT64               SmmCodeSize;
 
-  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  Status = UefiImageGetAssignedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -938,7 +938,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
   SmramBase = mLMFAConfigurationTable->SmramBase;
 
   FixLoadingAddress = SmramBase + ValueInSectionHeader;
-  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
+  SizeOfImage = UefiImageGetSizeOfImage (ImageContext);
 
   if (SmramBase + SmmCodeSize >= FixLoadingAddress + SizeOfImage
    && SmramBase <= FixLoadingAddress) {
@@ -999,12 +999,12 @@ ExecuteSmmCoreFromSmram (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&gSmmCorePrivate->PiSmmCoreImageContext, SourceBuffer, (UINT32) SourceSize);
+  Status = UefiImageInitializeContext (&gSmmCorePrivate->PiSmmCoreImageContext, SourceBuffer, (UINT32) SourceSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = PeCoffLoaderGetDestinationSize (
+  Status = UefiImageLoaderGetDestinationSize (
              &gSmmCorePrivate->PiSmmCoreImageContext,
              &DestinationSize
              );
@@ -1019,7 +1019,7 @@ ExecuteSmmCoreFromSmram (
     //
     // Get the fixed loading address assigned by Build tool
     //
-    Status = GetPeCoffImageFixLoadingAssignedAddress (&gSmmCorePrivate->PiSmmCoreImageContext, &LoadAddress);
+    Status = GetUefiImageFixLoadingAssignedAddress (&gSmmCorePrivate->PiSmmCoreImageContext, &LoadAddress);
     if (!EFI_ERROR (Status)) {
       //
       // Since the memory range to load SMM CORE will be cut out in SMM core, so no need to allocate and free this range
@@ -1081,22 +1081,22 @@ ExecuteSmmCoreFromSmram (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImageForExecution (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize, NULL, 0);
   if (!EFI_ERROR (Status)) {
-    LoadAddress = PeCoffLoaderGetImageAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
+    LoadAddress = UefiImageLoaderGetImageAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
     //
     // Print debug message showing SMM Core entry point address.
     //
-    DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(PeCoffLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
+    DEBUG ((DEBUG_INFO, "SMM IPL calling SMM Core at SMRAM address %p\n", (VOID *)(UINTN)(UefiImageLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext))));
 
     gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
     DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
-    DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", PeCoffGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
+    DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", UefiImageGetSizeOfImage (&gSmmCorePrivate->PiSmmCoreImageContext)));
 
     //
     // Execute image
     //
-    EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
+    EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)(UefiImageLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext));
     Status = EntryPoint ((EFI_HANDLE)Context, gST);
   }
 

@@ -183,7 +183,7 @@ IsDebugAgentInitialzed (
   }
 }
 
-// FIXME: PeCoffRelocExtra functio removed, done by *Core?
+// FIXME: UefiImageRelocExtra functio removed, done by *Core?
 
 /**
   Trigger one software interrupt to debug agent to handle it.
@@ -1292,7 +1292,7 @@ GetBreakCause (
           // triggered by the single step execution mode.
           // The single-step mode is the highest priority debug exception.
           // This is single step, no need to check DR0, to ensure single step
-          // work in PeCoffExtraActionLib (right after triggering a breakpoint
+        // work in UefiImageExtraActionLib (right after triggering a breakpoint
           // to report image load/unload).
           //
           return Cause;

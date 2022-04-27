@@ -33,7 +33,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PerformanceLib.h>
 #include <Library/PeiServicesLib.h>
 #include <Library/ReportStatusCodeLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/PcdLib.h>
@@ -1431,7 +1431,7 @@ InitializeImageServices (
 
 **/
 EFI_STATUS
-LoadAndRelocatePeCoffImageInPlace (
+LoadAndRelocateUefiImageInPlace (
   IN  VOID  *Pe32Data,
   IN  VOID    *ImageAddress,
   IN  UINT32  ImageSize

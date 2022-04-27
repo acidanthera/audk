@@ -313,8 +313,8 @@ ASM_PFX(GasketSecGetNextProtocol):
 
 // PPIs produced by SEC
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffGetEntryPoint)
-ASM_PFX(GasketSecPeCoffGetEntryPoint):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageGetEntryPoint)
+ASM_PFX(GasketSecUefiImageGetEntryPoint):
   pushl %ebp
   movl  %esp, %ebp
   subl  $40, %esp      // sub extra 16 from the stack for alignment
@@ -326,13 +326,13 @@ ASM_PFX(GasketSecPeCoffGetEntryPoint):
   movl  8(%ebp), %eax
   movl  %eax, (%esp)
 
-  call    ASM_PFX(SecPeCoffGetEntryPoint)
+  call    ASM_PFX(SecUefiImageGetEntryPoint)
 
   leave
   ret
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffRelocateImageExtraAction)
-ASM_PFX(GasketSecPeCoffRelocateImageExtraAction):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageRelocateImageExtraAction)
+ASM_PFX(GasketSecUefiImageRelocateImageExtraAction):
   pushl %ebp
   movl  %esp, %ebp
   subl  $24, %esp      // sub extra 16 from the stack for alignment
@@ -340,13 +340,13 @@ ASM_PFX(GasketSecPeCoffRelocateImageExtraAction):
   movl  8(%ebp), %eax
   movl  %eax, (%esp)
 
-  call    ASM_PFX(SecPeCoffRelocateImageExtraAction)
+  call    ASM_PFX(SecUefiImageRelocateImageExtraAction)
 
   leave
   ret
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffUnloadImageExtraAction)
-ASM_PFX(GasketSecPeCoffUnloadImageExtraAction):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageUnloadImageExtraAction)
+ASM_PFX(GasketSecUefiImageUnloadImageExtraAction):
   pushl %ebp
   movl  %esp, %ebp
   subl  $24, %esp      // sub extra 16 from the stack for alignment
@@ -354,7 +354,7 @@ ASM_PFX(GasketSecPeCoffUnloadImageExtraAction):
   movl  8(%ebp), %eax
   movl  %eax, (%esp)
 
-  call    ASM_PFX(SecPeCoffUnloadImageExtraAction)
+  call    ASM_PFX(SecUefiImageUnloadImageExtraAction)
 
   leave
   ret

@@ -143,7 +143,7 @@ ASM_PFX(DiscoverDramFromDt):
   //
   mov   x0, x7
   mov   sp, x7
-  bl    RelocatePeCoffImage
+  bl    RelocateUefiImage
 
   //
   // Discover the memory size and offset from the DTB, and record in the

@@ -49,7 +49,7 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  PeCoffLib
+  UefiImageLib
   DebugLib
   VmgExitLib
 

@@ -15,7 +15,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Guid/PiSmmMemoryAttributesTable.h>
 
@@ -796,7 +796,7 @@ DumpImageRecord (
 VOID
 SmmInsertImageRecord (
   IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext
   )
 {
   RETURN_STATUS                        PdbStatus;
@@ -815,7 +815,7 @@ SmmInsertImageRecord (
 
   DEBUG ((DEBUG_VERBOSE, "SMM ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
-  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
   if (!RETURN_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
   }
@@ -823,7 +823,7 @@ SmmInsertImageRecord (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = PeCoffGetSectionAlignment (ImageContext);
+  SectionAlignment = UefiImageGetSectionAlignment (ImageContext);
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
@@ -841,12 +841,12 @@ SmmInsertImageRecord (
   //
   // The image headers are not recorded among the sections, allocate one more.
   //
-  ImageRecord = PeCoffLoaderGetImageRecord (ImageContext);
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
     return ;
   }
 
-  PeCoffDebugPrintSectionTable (ImageContext);
+  UefiImageDebugPrintSegments (ImageContext);
 
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((

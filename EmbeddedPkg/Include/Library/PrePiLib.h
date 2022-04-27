@@ -643,7 +643,7 @@ BuildExtractSectionHob (
 
 VOID
 EFIAPI
-BuildPeCoffLoaderHob (
+BuildUefiLoaderHob (
   VOID
   );
 
@@ -709,9 +709,9 @@ AllocateAlignedPages (
 
 EFI_STATUS
 EFIAPI
-LoadPeCoffImage (
-  IN  VOID                  *PeCoffImage,
-  IN  UINT32                                    PeCoffImageSize,
+LoadUefiImage (
+  IN  VOID                                      *UefiImage,
+  IN  UINT32                                    UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint

@@ -591,7 +591,7 @@ SecLoadFromCore (
   //
   // Find the SEC Core Entry Point
   //
-  Status = SecPeCoffGetEntryPoint (PeiCorePe32File, PeiCorePe32Size, (VOID **)&PeiCoreEntryPoint);
+  Status = SecUefiImageGetEntryPoint (PeiCorePe32File, PeiCorePe32Size, (VOID **)&PeiCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -725,28 +725,28 @@ SecEmuThunkAddress (
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
+SecUefiImageGetEntryPoint (
   IN     VOID   *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID   **EntryPoint
   )
 {
-  EFI_STATUS                    Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  EFI_STATUS                      Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
-  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, Pe32Size);
+  Status                  = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
   // FIXME: Why cannot the Image be in-place already?
-  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  SecPeCoffRelocateImageExtraAction (&ImageContext);
-  *EntryPoint = (VOID *) (PeCoffLoaderGetImageEntryPoint (&ImageContext));
+  SecUefiImageRelocateImageExtraAction (&ImageContext);
+  *EntryPoint = (VOID *) (UefiImageLoaderGetImageEntryPoint (&ImageContext));
 
   return Status;
 }
@@ -899,29 +899,29 @@ IsPdbFile (
 
 void
 PrintLoadAddress (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT       *ImageContext
   )
 {
   EFI_STATUS                   Status;
   CONST CHAR8                  *PdbPath;
   UINT32                       PdbPathSize;
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
 
   if (EFI_ERROR (Status)) {
     fprintf (
       stderr,
       "0x%08lx Loading NO DEBUG with entry point 0x%08lx\n",
-      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
-      (unsigned long) PeCoffLoaderGetImageEntryPoint (ImageContext)
+      (unsigned long) UefiImageLoaderGetImageAddress (ImageContext),
+      (unsigned long) UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
   } else {
     fprintf (
       stderr,
       "0x%08lx Loading %s with entry point 0x%08lx\n",
-      (unsigned long) PeCoffLoaderGetImageAddress (ImageContext),
+      (unsigned long) UefiImageLoaderGetImageAddress (ImageContext),
       PdbPath,
-      (unsigned long) PeCoffLoaderGetImageEntryPoint (ImageContext)
+      (unsigned long) UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
   }
 
@@ -952,7 +952,7 @@ SecGdbScriptBreak (
 **/
 VOID
 GdbScriptAddImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   EFI_STATUS  Status;
@@ -961,7 +961,7 @@ GdbScriptAddImage (
 
   PrintLoadAddress (ImageContext);
 
-  Status = PeCoffGetPdbPath ((ImageContext, &PdbPath,) &PdbPathSize);
+  Status = UefiImageGetSymbolsPath ((ImageContext, &PdbPath,) &PdbPathSize);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -971,7 +971,7 @@ GdbScriptAddImage (
     if (FeaturePcdGet (PcdEmulatorLazyLoadSymbols)) {
       GdbTempFile = fopen (gGdbWorkingFileName, "a");
       if (GdbTempFile != NULL) {
-        long unsigned int SymbolsAddr = (long unsigned int)PeCoffLoaderGetImageAddress (ImageContext);
+        long unsigned int SymbolsAddr = (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext);
         mScriptSymbolChangesCount++;
         fprintf (
           GdbTempFile,
@@ -982,7 +982,7 @@ GdbScriptAddImage (
           );
         fclose (GdbTempFile);
         // This is for the lldb breakpoint only
-        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)PeCoffLoaderGetImageAddress (ImageContext), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -993,7 +993,7 @@ GdbScriptAddImage (
           GdbTempFile,
           "add-symbol-file %s -o 0x%08lx\n",
           PdbPath,
-          (long unsigned int)PeCoffLoaderGetImageAddress (ImageContext)
+          (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext)
           );
         fclose (GdbTempFile);
 
@@ -1003,7 +1003,7 @@ GdbScriptAddImage (
         // Also used for the lldb breakpoint script. The lldb breakpoint script does
         // not use the file, it uses the arguments.
         //
-        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)PeCoffLoaderGetImageAddress (ImageContext), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1013,8 +1013,8 @@ GdbScriptAddImage (
 
 VOID
 EFIAPI
-SecPeCoffRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   GdbScriptAddImage (ImageContext);
@@ -1029,7 +1029,7 @@ SecPeCoffRelocateImageExtraAction (
 **/
 VOID
 GdbScriptRemoveImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   FILE        *GdbTempFile;
@@ -1037,7 +1037,7 @@ GdbScriptRemoveImage (
   CONST CHAR8 *PdbPath;
   UINT32      PdbPathSize;
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -1086,8 +1086,8 @@ GdbScriptRemoveImage (
 
 VOID
 EFIAPI
-SecPeCoffUnloadImageExtraAction (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageUnloadImageExtraAction (
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   GdbScriptRemoveImage (ImageContext);

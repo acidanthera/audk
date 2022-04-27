@@ -29,18 +29,18 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   by the Boot Firmware Volume. This function locates the Standalone MM Core
   module PE/COFF image in the BFV and returns this information.
 
-  @param  [in]      BfvAddress         Base Address of Boot Firmware Volume
-  @param  [in, out] TeData             Pointer to address for allocating memory
-                                       for PE/COFF image data
-  @param  [in, out] TeDataSize         Pointer to size of PE/COFF image data
+  @param  [in]      BfvAddress        Base Address of Boot Firmware Volume
+  @param  [in, out] UefiImage         Pointer to address for allocating memory
+                                      for PE/COFF image data
+  @param  [in, out] UefiImageSize     Pointer to size of PE/COFF image data
 
 **/
 EFI_STATUS
 EFIAPI
-LocateStandaloneMmCorePeCoffData (
+LocateStandaloneMmCoreUefiImage (
   IN        EFI_FIRMWARE_VOLUME_HEADER  *BfvAddress,
-  IN  OUT   VOID                        **TeData,
-  IN  OUT   UINT32                          *TeDataSize
+  IN  OUT   VOID                            **UefiImage,
+  IN  OUT   UINT32                          *UefiImageSize
   )
 {
   EFI_FFS_FILE_HEADER  *FileHeader;
@@ -62,9 +62,9 @@ LocateStandaloneMmCorePeCoffData (
     return Status;
   }
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, TeData, TeDataSize);
+  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, UefiImage, UefiImageSize);
   if (EFI_ERROR (Status)) {
-    Status = FfsFindSectionData (EFI_SECTION_TE, FileHeader, TeData, TeDataSize);
+    Status = FfsFindSectionData (EFI_SECTION_TE, FileHeader, UefiImage, UefiImageSize);
     if (EFI_ERROR (Status)) {
       DEBUG ((
         DEBUG_ERROR,
@@ -75,6 +75,6 @@ LocateStandaloneMmCorePeCoffData (
     }
   }
 
-  DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", *TeData));
+  DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", *UefiImage));
   return Status;
 }

@@ -33,7 +33,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DevicePathLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseCryptLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/SecurityManagementLib.h>
 #include <Library/HobLib.h>
 
@@ -226,7 +226,7 @@ TcgMeasureGptTable (
   PE/COFF image is external input, so this function will validate its data structure
   within this image buffer before use.
 
-  Notes: PE/COFF image has been checked by BasePeCoffLib PeCoffInitializeContext() in
+  Notes: PE/COFF image has been checked by UefiImageLibLib UefiImageInitializeContext() in
   its caller function DxeTpmMeasureBootHandler().
 
   @param[in] TcgProtocol    Pointer to the located TCG protocol instance.
@@ -248,7 +248,7 @@ TcgMeasurePeImage (
   IN  EFI_TCG_PROTOCOL              *TcgProtocol,
   IN  EFI_PHYSICAL_ADDRESS          ImageAddress,
   IN  UINTN                         ImageSize,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN  EFI_DEVICE_PATH_PROTOCOL      *FilePath
   )
 {
@@ -283,7 +283,7 @@ TcgMeasurePeImage (
   TcgEvent->EventSize = EventSize;
   ImageLoad           = (EFI_IMAGE_LOAD_EVENT *)TcgEvent->Event;
 
-  ImageType = PeCoffGetSubsystem (ImageContext);
+  ImageType = UefiImageGetSubsystem (ImageContext);
 
   switch (ImageType) {
     case EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION:
@@ -309,7 +309,7 @@ TcgMeasurePeImage (
 
   ImageLoad->ImageLocationInMemory = ImageAddress;
   ImageLoad->ImageLengthInMemory   = ImageSize;
-  ImageLoad->ImageLinkTimeAddress  = PeCoffLoaderGetImageAddress (ImageContext);
+  ImageLoad->ImageLinkTimeAddress  = UefiImageLoaderGetImageAddress (ImageContext);
   ImageLoad->LengthOfDevicePath    = FilePathSize;
   if ((FilePath != NULL) && (FilePathSize != 0)) {
     CopyMem (ImageLoad->DevicePath, FilePath, FilePathSize);
@@ -341,7 +341,7 @@ TcgMeasurePeImage (
   // But CheckSum field and SECURITY data directory (certificate) are excluded
   //
 
-  PeCoffHashImageAuthenticode (ImageContext, Sha1Ctx, Sha1Update);
+  UefiImageHashImageDefault (ImageContext, Sha1Ctx, Sha1Update);
 
   //
   // 17.  Finalize the SHA hash.
@@ -446,13 +446,13 @@ DxeTpmMeasureBootHandler (
   EFI_HANDLE                          Handle;
   EFI_HANDLE                          TempHandle;
   BOOLEAN                             ApplicationRequired;
-  PE_COFF_LOADER_IMAGE_CONTEXT        *ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT     *ImageContext;
   EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL  *FvbProtocol;
   EFI_PHYSICAL_ADDRESS                FvAddress;
   UINT32                              Index;
 
   // FIXME:
-  ASSERT (FileSize == sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
+  ASSERT (FileSize == sizeof (UEFI_IMAGE_LOADER_IMAGE_CONTEXT));
   ImageContext = FileBuffer;
 
   Status = gBS->LocateProtocol (&gEfiTcgProtocolGuid, NULL, (VOID **)&TcgProtocol);
@@ -626,7 +626,7 @@ DxeTpmMeasureBootHandler (
   // Measure drivers and applications if Application flag is not set
   //
   if ((!ApplicationRequired) ||
-        (ApplicationRequired && PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) {
+        (ApplicationRequired && UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) {
     //
     // Print the image path to be measured.
     //

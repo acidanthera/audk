@@ -64,7 +64,7 @@ RegisterSmiHandlerProfileHandler (
 
 **/
 RETURN_STATUS
-InternalPeCoffGetEntryPoint (
+InternalUefiImageGetEntryPoint (
   IN  VOID  *Pe32Data,
   OUT VOID  **EntryPoint
   );
@@ -319,7 +319,7 @@ GetSmmLoadedImage (
         // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
         // So patch ImageBuffer here to align the EntryPoint.
         //
-        Status = InternalPeCoffGetEntryPoint (LoadedImage->ImageBase, &EntryPointInImage);
+        Status = InternalUefiImageGetEntryPoint (LoadedImage->ImageBase, &EntryPointInImage);
         ASSERT_EFI_ERROR (Status);
         RealImageBase = (UINTN)LoadedImage->ImageBase + EntryPoint - (UINTN)EntryPointInImage;
       }*/
@@ -334,7 +334,7 @@ GetSmmLoadedImage (
 
     // FIXME:
     /*if (RealImageBase != 0) {
-      PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)RealImageBase);
+      PdbString = UefiImageLoaderGetPdbPointer ((VOID *)(UINTN)RealImageBase);
       DEBUG ((DEBUG_INFO, "       pdb - %a\n", PdbString));
     } else*/ {
       PdbString = NULL;

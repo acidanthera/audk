@@ -160,10 +160,10 @@ CoreUpdateDebugTableCrc32 (
 **/
 VOID
 CoreNewDebugImageInfoEntry (
-  IN  UINT32                        ImageInfoType,
-  IN  EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
-  IN  EFI_HANDLE                    ImageHandle,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN     UINT32                           ImageInfoType,
+  IN     EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN     EFI_HANDLE                       ImageHandle,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   EFI_DEBUG_IMAGE_INFO  *Table;
@@ -238,7 +238,7 @@ CoreNewDebugImageInfoEntry (
     Table[Index].NormalImage->LoadedImageProtocolInstance = LoadedImage;
     Table[Index].NormalImage->ImageHandle                 = ImageHandle;
 
-    Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+    Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
     if (!RETURN_ERROR (Status)) {
       Table[Index].NormalImage->PdbPath = PdbPath;
     }

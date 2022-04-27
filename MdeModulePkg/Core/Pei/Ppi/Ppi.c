@@ -1091,7 +1091,7 @@ ConvertPeiCorePpiPointers (
   UINT32                PeiCoreImageSize;
   //VOID                  *PeiCoreEntryPoint;
   EFI_STATUS            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   PeiCoreFileHandle = NULL;
 
@@ -1117,11 +1117,11 @@ ConvertPeiCorePpiPointers (
     // Find PEI Core EntryPoint in the BFV in temporary memory.
     //
     // FIXME: "Assume" sanity and skip full initialisation?
-    Status = PeCoffInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
+    Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - PeCoffGetAddressOfEntryPoint (&ImageContext);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - UefiImageGetAddressOfEntryPoint (&ImageContext);
 
     //
     // Size of loaded PEI_CORE in permanent memory.

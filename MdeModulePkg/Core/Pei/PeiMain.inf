@@ -62,7 +62,7 @@
   DebugLib
   MemoryAllocationLib
   CacheMaintenanceLib
-  PeCoffLib
+  UefiImageLib
   PeiServicesTablePointerLib
   PcdLib
 

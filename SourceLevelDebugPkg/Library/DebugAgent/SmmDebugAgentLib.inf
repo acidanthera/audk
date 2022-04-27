@@ -63,7 +63,7 @@
   LocalApicLib
   TimerLib
   PrintLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
   SmmServicesTableLib
 
 [Guids]

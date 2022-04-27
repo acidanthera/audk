@@ -19,7 +19,6 @@
 
   @param  FaultAddress         Address to find PE/COFF image for.
   @param  ImageBase            Return load address of found image
-  @param  PeCoffSizeOfHeaders  Return the size of the PE/COFF header for the image that was found
 
   @retval NULL                 FaultAddress not in a loaded PE/COFF image.
   @retval                      Path and file name of PE/COFF image.

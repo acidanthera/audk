@@ -128,7 +128,7 @@ EFIAPI
 SmramProfileProtocolRegisterImage (
   IN EDKII_SMM_MEMORY_PROFILE_PROTOCOL  *This,
   IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
   IN EFI_FV_FILETYPE                    FileType
   );
 
@@ -266,7 +266,7 @@ MEMORY_PROFILE_DRIVER_INFO_DATA *
 BuildDriverInfo (
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
   IN EFI_GUID                     *FileName,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext,
   IN EFI_PHYSICAL_ADDRESS           LoadAddress,
   IN EFI_FV_FILETYPE              FileType
   )
@@ -282,9 +282,9 @@ BuildDriverInfo (
   PdbOccupiedSize = 0;
 
   // FIXME: This used to be allowed?
-  ASSERT (PeCoffLoaderGetImageAddress (ImageContext) != 0);
+  ASSERT (UefiImageLoaderGetImageAddress (ImageContext) != 0);
 
-  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbString, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
     // FIXME: Unsafe operation.
     PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
@@ -316,16 +316,16 @@ BuildDriverInfo (
   }
 
   DriverInfo->ImageBase      = LoadAddress;
-  DriverInfo->ImageSize      = PeCoffGetSizeOfImage (ImageContext);
-  DriverInfo->EntryPoint     = PeCoffLoaderGetImageEntryPoint (ImageContext);
-  DriverInfo->ImageSubsystem = PeCoffGetSubsystem (ImageContext);
+  DriverInfo->ImageSize      = UefiImageGetSizeOfImage (ImageContext);
+  DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
+  DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageBuffer here to align the EntryPoint.
     //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
+    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
   }*/
@@ -364,7 +364,7 @@ BuildDriverInfo (
 VOID
 RegisterImageToDxe (
   IN EFI_GUID          *FileName,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext,
   IN EFI_FV_FILETYPE   FileType
   )
 {
@@ -643,7 +643,7 @@ EFI_STATUS
 RegisterSmramProfileImage (
   IN EFI_GUID                     *FileName,
   IN BOOLEAN                      RegisterToDxe,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA        *ContextData;
@@ -680,7 +680,7 @@ RegisterSmramProfileImage (
                      ContextData,
                      FileName,
                      ImageContext,
-                     PeCoffLoaderGetImageAddress (ImageContext),
+                     UefiImageLoaderGetImageAddress (ImageContext),
                      EFI_FV_FILETYPE_SMM
                      );
   if (DriverInfoData == NULL) {
@@ -837,7 +837,7 @@ UnregisterSmramProfileImage (
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageBase here to align the EntryPoint.
     //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
+    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     ImageBase = ImageBase + (UINTN)DriverEntry->ImageEntryPoint - (UINTN)EntryPointInImage;
   }*/
@@ -1871,7 +1871,7 @@ EFIAPI
 SmramProfileProtocolRegisterImage (
   IN EDKII_SMM_MEMORY_PROFILE_PROTOCOL  *This,
   IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
   IN EFI_FV_FILETYPE                    FileType
   )
 {

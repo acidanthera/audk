@@ -41,7 +41,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "Base.h"
 #include "DxeMain.h"
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include "Mem/HeapGuard.h"
 #include "ProcessorBind.h"
 #include "Uefi/UefiMultiPhase.h"
@@ -286,8 +286,8 @@ IsMemoryProtectionSectionAligned (
 **/
 VOID
 ProtectUefiImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN LOADED_IMAGE_PRIVATE_DATA     *Image,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS               PdbStatus;
@@ -318,7 +318,7 @@ ProtectUefiImage (
       return;
   }
 
-  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
   if (!RETURN_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
   }
@@ -326,7 +326,7 @@ ProtectUefiImage (
   //
   // Get SectionAlignment
   //
-  SectionAlignment = PeCoffGetSectionAlignment (ImageContext);
+  SectionAlignment = UefiImageGetSectionAlignment (ImageContext);
 
   IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
   if (!IsAligned) {
@@ -341,12 +341,12 @@ ProtectUefiImage (
     goto Finish;
   }
 
-  ImageRecord = PeCoffLoaderGetImageRecord (ImageContext);
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
     return ;
   }
 
-  PeCoffDebugPrintSectionTable (ImageContext);
+  UefiImageDebugPrintSegments (ImageContext);
 
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((

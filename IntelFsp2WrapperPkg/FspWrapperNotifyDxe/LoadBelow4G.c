@@ -11,7 +11,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/CacheMaintenanceLib.h>
@@ -40,7 +40,7 @@ RelocateImageUnder4GIfNeeded (
   UINT32                                        DestinationSize;
   UINTN                         Pages;
   EFI_PHYSICAL_ADDRESS          FfsBuffer;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT               ImageContext;
   VOID                          *Interface;
 
   //
@@ -87,9 +87,9 @@ RelocateImageUnder4GIfNeeded (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
+  Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
-  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &DestinationSize);
+  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &DestinationSize);
   ASSERT_EFI_ERROR (Status);
   Pages = EFI_SIZE_TO_PAGES (DestinationSize);
 
@@ -104,7 +104,7 @@ RelocateImageUnder4GIfNeeded (
   //
   // Load and relocate the image to our new buffer
   //
-  Status = PeCoffLoadImageForExecution (
+  Status = UefiImageLoadImageForExecution (
              &ImageContext,
              (VOID *) (UINTN) FfsBuffer,
              DestinationSize,
@@ -118,10 +118,10 @@ RelocateImageUnder4GIfNeeded (
   //
   gBS->FreePool (Buffer);
 
-  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", PeCoffLoaderGetImageAddress (&ImageContext), PeCoffLoaderGetImageEntryPoint (&ImageContext)));
-  Status = ((EFI_IMAGE_ENTRY_POINT)(PeCoffLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
+  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", UefiImageLoaderGetImageAddress (&ImageContext), UefiImageLoaderGetImageEntryPoint (&ImageContext)));
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", PeCoffLoaderGetImageAddress (&ImageContext), Status));
+    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", UefiImageLoaderGetImageAddress (&ImageContext), Status));
     gBS->FreePages (FfsBuffer, Pages);
   }
 

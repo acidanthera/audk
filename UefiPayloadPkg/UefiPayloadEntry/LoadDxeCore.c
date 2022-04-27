@@ -48,7 +48,7 @@ AllocateCodePages (
 /**
     Loads and relocates a PE/COFF image
 
-  @param[in]  PeCoffImage     Point to a Pe/Coff image.
+  @param[in]  UefiImage     Point to a Pe/Coff image.
   @param[out]  ImageAddress   The image memory address after relocation.
   @param[out]  ImageSize      The image size.
   @param[out]  EntryPoint     The image entry point.
@@ -57,26 +57,26 @@ AllocateCodePages (
   @return Others         If the image failed to load or relocate.
 **/
 EFI_STATUS
-LoadPeCoffImage (
-  IN  VOID                  *PeCoffImage,
-  IN  UINT32                        PeCoffImageSize,
+LoadUefiImage (
+  IN  VOID                          *UefiImage,
+  IN  UINT32                        UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
   RETURN_STATUS                 Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
   UINT32                            BufferSize;
   VOID                          *Buffer;
 
-  Status = PeCoffInitializeContext (&ImageContext, PeCoffImage, PeCoffImageSize);
+  Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
   }
 
-  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &BufferSize);
+  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &BufferSize);
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
@@ -93,7 +93,7 @@ LoadPeCoffImage (
   //
   // Load and relocate the image to our new buffer
   //
-  Status = PeCoffLoadImageForExecution (
+  Status = UefiImageLoadImageForExecution (
              &ImageContext,
              Buffer,
              BufferSize,
@@ -105,9 +105,9 @@ LoadPeCoffImage (
     return Status;
   }
 
-  *ImageAddress = PeCoffLoaderGetImageAddress (&ImageContext);
-  *ImageSize    = PeCoffGetSizeOfImage (&ImageContext);
-  *EntryPoint   = PeCoffLoaderGetImageEntryPoint (&ImageContext);
+  *ImageAddress = UefiImageLoaderGetImageAddress (&ImageContext);
+  *ImageSize    = UefiImageGetSizeOfImage (&ImageContext);
+  *EntryPoint   = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return EFI_SUCCESS;
 }
@@ -266,8 +266,8 @@ LoadDxeCore (
   EFI_FIRMWARE_VOLUME_HEADER  *DxeCoreFv;
   UINT32                      DxeCoreFvSize;
   EFI_FFS_FILE_HEADER         *FileHeader;
-  VOID                        *PeCoffImage;
-  UINT32                      PeCoffImageSize;
+  VOID                        *UefiImage;
+  UINT32                      UefiImageSize;
   EFI_PHYSICAL_ADDRESS        ImageAddress;
   UINT64                      ImageSize;
 
@@ -299,7 +299,7 @@ LoadDxeCore (
     return Status;
   }
 
-  Status = FileFindSection (FileHeader, EFI_SECTION_PE32, (VOID **)&PeCoffImage, &PeCoffImageSize);
+  Status = FileFindSection (FileHeader, EFI_SECTION_PE32, (VOID **)&UefiImage, &UefiImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -307,7 +307,7 @@ LoadDxeCore (
   //
   // Get DXE core info
   //
-  Status = LoadPeCoffImage (PeCoffImage, PeCoffImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -334,8 +334,8 @@ UniversalLoadDxeCore (
 {
   EFI_STATUS            Status;
   EFI_FFS_FILE_HEADER   *FileHeader;
-  VOID                  *PeCoffImage;
-  UINT32                      PeCoffImageSize;
+  VOID                        *UefiImage;
+  UINT32                      UefiImageSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
   UINT64                ImageSize;
 
@@ -347,7 +347,7 @@ UniversalLoadDxeCore (
     return Status;
   }
 
-  Status = FileFindSection (FileHeader, EFI_SECTION_PE32, (VOID **)&PeCoffImage, &PeCoffImageSize);
+  Status = FileFindSection (FileHeader, EFI_SECTION_PE32, (VOID **)&UefiImage, &UefiImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -355,7 +355,7 @@ UniversalLoadDxeCore (
   //
   // Get DXE core info
   //
-  Status = LoadPeCoffImage (PeCoffImage, PeCoffImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return Status;
   }

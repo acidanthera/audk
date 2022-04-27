@@ -20,7 +20,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeImageVerificationLib.h"
 #include "Library/BaseCryptLib.h"
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 
 //
 // Notify string for authorization UI.
@@ -215,7 +215,7 @@ GetImageType (
   PE/COFF image is external input, so this function will validate its data structure
   within this image buffer before use.
 
-  Notes: PE/COFF image has been checked by BasePeCoffLib PeCoffInitializeContext() in
+  Notes: PE/COFF image has been checked by UefiImageLibLib UefiImageInitializeContext() in
   its caller function DxeImageVerificationHandler().
 
   @param[in]    HashAlg   Hash algorithm type.
@@ -226,7 +226,7 @@ GetImageType (
 **/
 BOOLEAN
 HashPeImage (
-  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN  UINT32                    HashAlg,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
   UINTN                         *ImageDigestSize,
@@ -283,7 +283,7 @@ HashPeImage (
     goto Done;
   }
 
-  Status = PeCoffHashImageAuthenticode (ImageContext, HashCtx, mHash[HashAlg].HashUpdate);
+  Status = UefiImageHashImageDefault (ImageContext, HashCtx, mHash[HashAlg].HashUpdate);
 
   if (!Status) {
     DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image using %s.\n", mHash[HashAlg].Name));
@@ -321,7 +321,7 @@ Done:
 **/
 EFI_STATUS
 HashPeImageByType (
-  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN CONST UINT8                *AuthData,
   IN UINTN                      AuthDataSize,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
@@ -1385,7 +1385,7 @@ DxeImageVerificationHandler (
   EFI_STATUS                    HashStatus;
   EFI_STATUS                    DbStatus;
   BOOLEAN                       IsFound;
-  PE_COFF_LOADER_IMAGE_CONTEXT         *ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext;
 
   UINT8                               ImageDigest[MAX_DIGEST_SIZE];
   UINTN                               ImageDigestSize;
@@ -1400,7 +1400,7 @@ DxeImageVerificationHandler (
   IsFound           = FALSE;
 
   // FIXME:
-  ASSERT (FileSize == sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
+  ASSERT (FileSize == sizeof (UEFI_IMAGE_LOADER_IMAGE_CONTEXT));
   ImageContext = FileBuffer;
 
   //
@@ -1473,7 +1473,7 @@ DxeImageVerificationHandler (
     return EFI_ACCESS_DENIED;
   }
 
-  HashStatus = PeCoffGetFirstCertificate (ImageContext, &WinCertificate);
+  HashStatus = UefiImageGetFirstCertificate (ImageContext, &WinCertificate);
 
   //
   // Start Image Validation.
@@ -1532,7 +1532,7 @@ DxeImageVerificationHandler (
   for (
     ;
     !RETURN_ERROR (HashStatus);
-    HashStatus = PeCoffGetNextCertificate (ImageContext, &WinCertificate)
+    HashStatus = UefiImageGetNextCertificate (ImageContext, &WinCertificate)
     )
   {
     //

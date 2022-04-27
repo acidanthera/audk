@@ -51,7 +51,7 @@
   DevicePathLib
   BaseCryptLib
   SecurityManagementLib
-  PeCoffLib
+  UefiImageLib
   TpmMeasurementLib
 
 [Protocols]

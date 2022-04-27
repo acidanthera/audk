@@ -38,7 +38,7 @@
   FspWrapperPlatformLib
   FspWrapperHobProcessLib
   UefiCpuLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
   PerformanceLib
   TimerLib
   FspWrapperApiLib

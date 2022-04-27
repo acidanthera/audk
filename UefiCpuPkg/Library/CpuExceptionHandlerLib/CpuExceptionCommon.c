@@ -119,22 +119,22 @@ DumpModuleImageInfo (
   )
 {
   RETURN_STATUS                        Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT         ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
   CONST CHAR8                          *PdbPath;
   UINT32                               PdbPathSize;
   UINTN                                EntryPoint;
 
-  Status = PeCoffDebugLocateImage (&ImageContext, CurrentEip);
+  Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip);
   if (RETURN_ERROR (Status)) {
     InternalPrintMessage ("!!!! Can't find image information. !!!!\n");
   } else {
     //
     // Find Image Base entry point
     //
-    EntryPoint = PeCoffLoaderGetImageEntryPoint (&ImageContext);
+    EntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
     InternalPrintMessage ("!!!! Find image based on IP(0x%x) ", CurrentEip);
-    Status = PeCoffGetPdbPath (&ImageContext, &PdbPath,&PdbPathSize);
+    Status = UefiImageGetSymbolsPath (&ImageContext, &PdbPath,&PdbPathSize);
     if (!RETURN_ERROR (Status)) {
       InternalPrintMessage ("%a", PdbPath);
     } else {
@@ -143,7 +143,7 @@ DumpModuleImageInfo (
 
     InternalPrintMessage (
       " (ImageBase=%016lp, EntryPoint=%016llx) !!!!\n",
-      PeCoffLoaderGetImageAddress (&ImageContext),
+      UefiImageLoaderGetImageAddress (&ImageContext),
       (UINT64) EntryPoint
       );
   }

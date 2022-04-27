@@ -694,7 +694,7 @@ Returns:
   //
   // Load the PEI Core from a Firmware Volume
   //
-  Status = SecPeCoffGetEntryPoint (
+  Status = SecUefiImageGetEntryPoint (
              SecCorePe32File,
             SecCorePe32Size,
              &SecCoreEntryPoint
@@ -720,18 +720,18 @@ Returns:
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
+SecUefiImageGetEntryPoint (
   IN     VOID   *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID   **EntryPoint
   )
 {
   EFI_STATUS                    Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT       ImageContext;
   VOID                                  *Dest;
   UINT32                                DestSize;
 
-  Status                  = PeCoffInitializeContext (&ImageContext, Pe32Data, Pe32Size);
+  Status                  = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -740,7 +740,7 @@ SecPeCoffGetEntryPoint (
   // Allocate space in NT (not emulator) memory with ReadWrite and Execute attribute.
   // Extra space is for alignment
   //
-  Status = PeCoffLoaderGetDestinationSize(&ImageContext, &DestSize);
+  Status = UefiImageLoaderGetDestinationSize(&ImageContext, &DestSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -750,17 +750,17 @@ SecPeCoffGetEntryPoint (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  Status = PeCoffLoadImage (&ImageContext, Dest, DestSize);
+  Status = UefiImageLoadImage (&ImageContext, Dest, DestSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = PeCoffRelocateImage (&ImageContext, (UINTN) Dest, NULL, 0);
+  Status = UefiImageRelocateImage (&ImageContext, (UINTN) Dest, NULL, 0);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  *EntryPoint   = (VOID *) (PeCoffLoaderGetImageEntryPoint (&ImageContext));
+  *EntryPoint   = (VOID *) (UefiImageLoaderGetImageEntryPoint (&ImageContext));
 
   return EFI_SUCCESS;
 }
@@ -894,7 +894,7 @@ Returns:
 --*/
 EFI_STATUS
 AddModHandle (
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext,
   IN  VOID                          *ModHandle
   )
 
@@ -971,7 +971,7 @@ AddModHandle (
 **/
 VOID *
 RemoveModHandle (
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   UINTN                   Index;
@@ -1001,8 +1001,8 @@ RemoveModHandle (
 
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   EFI_STATUS  Status;
@@ -1027,7 +1027,7 @@ PeCoffLoaderRelocateImageExtraAction (
   // Load the DLL if it's not an EBC image.
   //
   if ((ImageContext->PdbPointer != NULL) &&
-      (PeCoffGetMachine (ImageContext) != EFI_IMAGE_MACHINE_EBC))
+      (UefiImageGetMachine (ImageContext) != EFI_IMAGE_MACHINE_EBC))
   {
     //
     // Convert filename from ASCII to Unicode
@@ -1041,7 +1041,7 @@ PeCoffLoaderRelocateImageExtraAction (
       free (DllFileName);
 
       //
-      // Never return an error if PeCoffLoaderRelocateImage() succeeded.
+      // Never return an error if UefiImageRelocateImage() succeeded.
       // The image will run, but we just can't source level debug. If we
       // return an error the image will not run.
       //
@@ -1097,8 +1097,8 @@ PeCoffLoaderRelocateImageExtraAction (
 
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   VOID  *ModHandle;

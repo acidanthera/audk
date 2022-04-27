@@ -39,7 +39,7 @@
   FspWrapperPlatformLib
   FspWrapperHobProcessLib
   UefiCpuLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
   PerformanceLib
   FspWrapperApiLib
   FspWrapperApiTestLib

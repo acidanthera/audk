@@ -34,7 +34,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PlatformSecureLib.h>
 #include <Library/BaseCryptLib.h>
 #include <Library/FileExplorerLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Guid/MdeModuleHii.h>
 #include <Guid/AuthenticatedVariableFormat.h>

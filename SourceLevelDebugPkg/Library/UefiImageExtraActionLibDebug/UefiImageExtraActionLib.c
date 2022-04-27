@@ -6,10 +6,10 @@
 
 **/
 
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include "ProcessorBind.h"
 #include "Uefi/UefiBaseType.h"
-#include <PeCoffExtraActionLib.h>
+#include <UefiImageExtraActionLib.h>
 
 /**
   Check if the hardware breakpoint in Drx is enabled by checking the Lx and Gx bit in Dr7.
@@ -44,8 +44,8 @@ IsDrxEnabled (
 
 **/
 VOID
-PeCoffLoaderExtraActionCommon (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+UefiImageLoaderExtraActionCommon (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN     UINTN                         Signature
   )
 {
@@ -70,7 +70,7 @@ PeCoffLoaderExtraActionCommon (
 
   ASSERT (ImageContext != NULL);
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
   if (!RETURN_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "    PDB = %a\n", PdbPath));
   }
@@ -111,7 +111,7 @@ PeCoffLoaderExtraActionCommon (
     }
   }
 
-  ImageBase = PeCoffLoaderGetImageAddress (ImageContext);
+  ImageBase = UefiImageLoaderGetImageAddress (ImageContext);
 
   //
   // Save Debug Register State
@@ -216,16 +216,16 @@ PeCoffLoaderExtraActionCommon (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  PeCoffLoaderExtraActionCommon (ImageContext, IMAGE_LOAD_SIGNATURE);
+  UefiImageLoaderExtraActionCommon (ImageContext, IMAGE_LOAD_SIGNATURE);
 }
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   @param  ImageContext  Pointer to the image context structure that describes the
                         PE/COFF image that is being unloaded.
@@ -233,9 +233,9 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  PeCoffLoaderExtraActionCommon (ImageContext, IMAGE_UNLOAD_SIGNATURE);
+  UefiImageLoaderExtraActionCommon (ImageContext, IMAGE_UNLOAD_SIGNATURE);
 }

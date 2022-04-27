@@ -8,7 +8,7 @@
 
 #include "DxeMain.h"
 #include "Imem.h"
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include "ProcessorBind.h"
 #include "Protocol/LoadedImage.h"
 #include "Uefi/UefiBaseType.h"
@@ -108,7 +108,7 @@ EFIAPI
 ProfileProtocolRegisterImage (
   IN EDKII_MEMORY_PROFILE_PROTOCOL  *This,
   IN EFI_DEVICE_PATH_PROTOCOL       *FilePath,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
   IN EFI_FV_FILETYPE                FileType
   );
 
@@ -266,10 +266,10 @@ GetMemoryProfileContext (
 **/
 MEMORY_PROFILE_DRIVER_INFO_DATA *
 BuildDriverInfo (
-  IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
-  IN EFI_GUID                     *FileName,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
-  IN EFI_FV_FILETYPE              FileType
+  IN MEMORY_PROFILE_CONTEXT_DATA      *ContextData,
+  IN EFI_GUID                         *FileName,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN EFI_FV_FILETYPE                  FileType
   )
 {
   RETURN_STATUS                     PdbStatus;
@@ -283,9 +283,9 @@ BuildDriverInfo (
   PdbOccupiedSize = 0;
 
   // FIXME: This used to be allowed?
-  ASSERT (PeCoffLoaderGetImageAddress (ImageContext) != 0);
+  ASSERT (UefiImageLoaderGetImageAddress (ImageContext) != 0);
 
-  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbString, &PdbSize);
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbString, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
     // FIXME: Unsafe operation.
     PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
@@ -316,17 +316,17 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = PeCoffLoaderGetImageAddress (ImageContext);
-  DriverInfo->ImageSize      = PeCoffGetSizeOfImage (ImageContext);
-  DriverInfo->EntryPoint     = PeCoffLoaderGetImageEntryPoint (ImageContext);
-  DriverInfo->ImageSubsystem = PeCoffGetSubsystem (ImageContext);
+  DriverInfo->ImageBase      = UefiImageLoaderGetImageAddress (ImageContext);
+  DriverInfo->ImageSize      = UefiImageGetSizeOfImage (ImageContext);
+  DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
+  DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
   // FIXME:
   /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
     //
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageBuffer here to align the EntryPoint.
     //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
+    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
   }*/
@@ -425,9 +425,9 @@ NeedRecordThisDriver (
 **/
 BOOLEAN
 RegisterDxeCore (
-  IN VOID                         *HobStart,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
-  IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData
+  IN VOID                             *HobStart,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN MEMORY_PROFILE_CONTEXT_DATA      *ContextData
   )
 {
   EFI_PEI_HOB_POINTERS               DxeCoreHob;
@@ -483,8 +483,8 @@ RegisterDxeCore (
 **/
 VOID
 MemoryProfileInit (
-  IN VOID                         *HobStart,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN VOID                            *HobStart,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA  *ContextData;
@@ -586,9 +586,9 @@ GetFileNameFromFilePath (
 **/
 EFI_STATUS
 RegisterMemoryProfileImage (
-  IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
-  IN EFI_FV_FILETYPE            FileType,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT      *ImageContext
+  IN EFI_DEVICE_PATH_PROTOCOL         *FilePath,
+  IN EFI_FV_FILETYPE                  FileType,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA      *ContextData;
@@ -754,7 +754,7 @@ UnregisterMemoryProfileImage (
     // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
     // So patch ImageAddress here to align the EntryPoint.
     //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageAddress, &EntryPointInImage);
+    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageAddress, &EntryPointInImage);
     ASSERT_EFI_ERROR (Status);
     ImageAddress = ImageAddress + (UINTN)DriverEntry->ImageContext.EntryPoint - (UINTN)EntryPointInImage;
   }*/
@@ -1524,7 +1524,7 @@ EFIAPI
 ProfileProtocolRegisterImage (
   IN EDKII_MEMORY_PROFILE_PROTOCOL      *This,
   IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
   IN EFI_FV_FILETYPE                    FileType
   )
 {

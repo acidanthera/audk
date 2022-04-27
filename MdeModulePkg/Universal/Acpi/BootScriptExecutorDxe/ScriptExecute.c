@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "ScriptExecute.h"
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include "Uefi/UefiBaseType.h"
 
 EFI_GUID  mBootScriptExecutorImageGuid = {
@@ -220,7 +220,7 @@ S3BootScriptExecutorEntryFunction (
 VOID
 RegisterMemoryProfileImage (
   IN EFI_GUID          *FileName,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT   *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext,
   IN EFI_FV_FILETYPE   FileType
   )
 {
@@ -267,7 +267,7 @@ ReadyToLockEventNotify (
   EFI_HANDLE                       NewImageHandle;
   UINTN                            Pages;
   EFI_PHYSICAL_ADDRESS             FfsBuffer;
-  PE_COFF_LOADER_IMAGE_CONTEXT                  ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT               ImageContext;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 
@@ -302,10 +302,10 @@ ReadyToLockEventNotify (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
+  Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
   UINT32 Size;
-  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &Size);
+  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &Size);
   ASSERT_EFI_ERROR (Status);
   Pages = EFI_SIZE_TO_PAGES (Size);
   FfsBuffer = 0xFFFFFFFF;
@@ -333,10 +333,10 @@ ReadyToLockEventNotify (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  LoadAddress = PeCoffLoaderGetImageAddress (&ImageContext);
+  LoadAddress = UefiImageLoaderGetImageAddress (&ImageContext);
 
   //
   // Free the buffer allocated by ReadSection since the image has been relocated in the new buffer
@@ -349,7 +349,7 @@ ReadyToLockEventNotify (
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(UefiImageLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -359,7 +359,7 @@ ReadyToLockEventNotify (
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
              (VOID *)(UINTN)LoadAddress,
-             (UINTN)PeCoffGetSizeOfImage (&ImageContext)
+             (UINTN)UefiImageGetSizeOfImage (&ImageContext)
              );
   ASSERT_EFI_ERROR (Status);
 

@@ -10,7 +10,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef __STANDALONEMMCORE_ENTRY_POINT_H__
 #define __STANDALONEMMCORE_ENTRY_POINT_H__
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/FvLib.h>
 
 #define CPU_INFO_FLAG_PRIMARY_CPU  0x00000001
@@ -77,7 +77,7 @@ typedef RETURN_STATUS (*REGION_PERMISSION_UPDATE_FUNC) (
 **/
 EFI_STATUS
 EFIAPI
-LocateStandaloneMmCorePeCoffData (
+LocateStandaloneMmCoreUefiImage (
   IN        EFI_FIRMWARE_VOLUME_HEADER      *BfvAddress,
   IN  OUT   VOID                            **TeData,
   IN  OUT   UINT32                          *TeDataSize

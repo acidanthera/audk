@@ -361,14 +361,14 @@ _ModuleEntryPoint (
   DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", TeData));
 
   // Obtain the PE/COFF Section information for the Standalone MM core module
-  Status = PeCoffInitializeContext (&ImageContext, TeData, TeDataSize);
+  Status = UefiImageInitializeContext (&ImageContext, TeData, TeDataSize);
 
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to locate Standalone MM Core PE-COFF Section information - %r\n", Status));
     goto finish;
   }
 
-  ImageRecord = PeCoffLoaderGetImageRecord (&ImageContext);
+  ImageRecord = UefiImageLoaderGetImageRecord (&ImageContext);
 
   if (ImageRecord == NULL) {
     goto finish;
@@ -393,7 +393,7 @@ _ModuleEntryPoint (
   FreePool (ImageRecord);
 
   // FIXME: Should relocation not be performed with all of the Image writable?
-  Status = PeCoffRelocateImageInplaceForExecution (&ImageContext);
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
   ASSERT_EFI_ERROR (Status);
 
   //

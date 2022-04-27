@@ -7,7 +7,7 @@
 **/
 
 #include <Base.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/DebugLib.h>
 
 /**
@@ -21,8 +21,8 @@
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   ASSERT (ImageContext != NULL);
@@ -30,7 +30,7 @@ PeCoffLoaderRelocateImageExtraAction (
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   If ImageContext is NULL, then ASSERT().
 
@@ -40,8 +40,8 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   ASSERT (ImageContext != NULL);

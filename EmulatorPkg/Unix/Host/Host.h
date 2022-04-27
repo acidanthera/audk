@@ -85,7 +85,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <PiPei.h>
 #include <Uefi.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -136,7 +136,7 @@ typedef struct {
 #define MAX_IMAGE_CONTEXT_TO_MOD_HANDLE_ARRAY_SIZE  0x100
 
 typedef struct {
-  PE_COFF_LOADER_IMAGE_CONTEXT    *ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext;
   VOID                            *ModHandle;
 } IMAGE_CONTEXT_TO_MOD_HANDLE;
 
@@ -202,20 +202,6 @@ SecFfsFindSectionData2 (
   );
 
 EFI_STATUS
-EFIAPI
-SecUnixPeCoffLoaderLoadAsDll (
-  IN CHAR8  *PdbFileName,
-  IN VOID   **ImageEntryPoint,
-  OUT VOID  **ModHandle
-  );
-
-EFI_STATUS
-EFIAPI
-SecUnixPeCoffLoaderFreeLibrary (
-  OUT VOID  *ModHandle
-  );
-
-EFI_STATUS
 SecUnixFdAddress (
   IN     UINTN                 Index,
   IN OUT EFI_PHYSICAL_ADDRESS  *FdBase,
@@ -236,7 +222,7 @@ GasketSecUnixFdAddress (
 
 EFI_STATUS
 GetImageReadFunction (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT          *ImageContext,
   IN EFI_PHYSICAL_ADDRESS          *TopOfMemory
   );
 
@@ -281,7 +267,7 @@ GasketSecTemporaryRamSupport (
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
+SecUefiImageGetEntryPoint (
   IN     VOID  *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint
@@ -289,14 +275,14 @@ SecPeCoffGetEntryPoint (
 
 VOID
 EFIAPI
-SecPeCoffRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID
 EFIAPI
-SecPeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID

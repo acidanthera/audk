@@ -34,7 +34,7 @@ Abstract:
 #include <Protocol/EmuSnp.h>
 
 #include <Library/BaseLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/ThunkPpiList.h>
@@ -43,7 +43,7 @@ Abstract:
 #include <Library/PrintLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/PeiServicesLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/NetLib.h>
 
 #define TEMPORARY_RAM_SIZE  0x20000
@@ -60,7 +60,7 @@ typedef struct {
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
+SecUefiImageGetEntryPoint (
   IN     VOID  *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint

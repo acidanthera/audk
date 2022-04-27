@@ -190,13 +190,13 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 STATIC
 RETURN_STATUS
 InternalProtectMmImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   PE_COFF_IMAGE_RECORD *ImageRecord;
   UINT32               SectionIndex;
 
-  if (PeCoffGetSectionAlignment (ImageContext) < EFI_PAGE_SIZE) {
+  if (UefiImageGetSectionAlignment (ImageContext) < EFI_PAGE_SIZE) {
     // FIXME: PCD to abort loading?
     //
     // The sections need to be at least 4 KB aligned, since that is the
@@ -205,19 +205,19 @@ InternalProtectMmImage (
     //
     DEBUG ((DEBUG_WARN,
       "%a: Image at 0x%lx has SectionAlignment < 4 KB (%lu)\n",
-      __FUNCTION__, PeCoffLoaderGetImageAddress (ImageContext), PeCoffGetSectionAlignment (ImageContext)));
+      __FUNCTION__, UefiImageLoaderGetImageAddress (ImageContext), UefiImageGetSectionAlignment (ImageContext)));
 
-    ASSERT ((PeCoffLoaderGetImageAddress (ImageContext) & (EFI_PAGE_SIZE - 1)) == 0);
+    ASSERT ((UefiImageLoaderGetImageAddress (ImageContext) & (EFI_PAGE_SIZE - 1)) == 0);
 
     ClearMemoryRegionNoExec (
-      PeCoffLoaderGetImageAddress (ImageContext),
-      ALIGN_VALUE (PeCoffGetSizeOfImage (ImageContext), EFI_PAGE_SIZE)
+      UefiImageLoaderGetImageAddress (ImageContext),
+      ALIGN_VALUE (UefiImageGetSizeOfImage (ImageContext), EFI_PAGE_SIZE)
       );
 
     return RETURN_SUCCESS;
   }
 
-  ImageRecord = PeCoffLoaderGetImageRecord (ImageContext);
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
     return RETURN_OUT_OF_RESOURCES;
   }
@@ -267,13 +267,13 @@ MmLoadImage (
   IN OUT EFI_MM_DRIVER_ENTRY  *DriverEntry
   )
 {
-  UINT32                         DestinationSize;
-  UINTN                          ImageSize;
-  UINTN                         PageCount;
-  EFI_STATUS                    Status;
-  EFI_PHYSICAL_ADDRESS          DstBuffer;
-  UINTN                          ImageBase;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  UINT32                          DestinationSize;
+  UINTN                           ImageSize;
+  UINTN                           PageCount;
+  EFI_STATUS                      Status;
+  EFI_PHYSICAL_ADDRESS            DstBuffer;
+  UINTN                           ImageBase;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
 
@@ -282,12 +282,12 @@ MmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffInitializeContext (&ImageContext, DriverEntry->Pe32Data, DriverEntry->Pe32DataSize);
+  Status = UefiImageInitializeContext (&ImageContext, DriverEntry->Pe32Data, DriverEntry->Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = PeCoffLoaderGetDestinationSize (&ImageContext, &DestinationSize);
+  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &DestinationSize);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
@@ -308,23 +308,23 @@ MmLoadImage (
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize, NULL, 0);
   if (EFI_ERROR (Status)) {
     MmFreePages (DstBuffer, PageCount);
     return Status;
   }
 
-  ImageBase = PeCoffLoaderGetImageAddress (&ImageContext);
+  ImageBase = UefiImageLoaderGetImageAddress (&ImageContext);
 
   //
   // Flush the instruction cache so the image data are written before we execute it
   //
-  ImageSize = PeCoffGetSizeOfImage (&ImageContext);
+  ImageSize = UefiImageGetSizeOfImage (&ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint  = PeCoffLoaderGetImageEntryPoint (&ImageContext);
+  DriverEntry->ImageEntryPoint  = UefiImageLoaderGetImageEntryPoint (&ImageContext);
   DriverEntry->ImageBuffer     = DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
@@ -380,10 +380,10 @@ MmLoadImage (
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
     (VOID *)(UINTN)ImageBase,
-    FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (&ImageContext))
+    FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (&ImageContext))
     ));
 
-  Status = PeCoffGetModuleNameFromPdb (
+  Status = UefiImageGetModuleNameFromSymbolsPath (
              &ImageContext,
              EfiFileName,
              sizeof (EfiFileName)

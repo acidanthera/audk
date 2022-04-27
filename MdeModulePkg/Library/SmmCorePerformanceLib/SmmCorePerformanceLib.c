@@ -367,7 +367,7 @@ GetModuleInfoFromHandle (
     // Method 1 Get Module Name from PDB string.
     //
     // FIXME:
-    /*PdbFileName = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
+    /*PdbFileName = UefiImageLoaderGetPdbPointer (LoadedImage->ImageBase);
     if ((PdbFileName != NULL) && (BufferSize > 0)) {
       StartIndex = 0;
       for (Index = 0; PdbFileName[Index] != 0; Index++) {

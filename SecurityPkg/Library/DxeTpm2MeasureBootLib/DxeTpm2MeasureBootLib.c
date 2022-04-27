@@ -36,7 +36,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DevicePathLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseCryptLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/SecurityManagementLib.h>
 #include <Library/HobLib.h>
 #include <Protocol/CcMeasurement.h>
@@ -574,13 +574,13 @@ DxeTpm2MeasureBootHandler (
   EFI_HANDLE                          Handle;
   EFI_HANDLE                          TempHandle;
   BOOLEAN                             ApplicationRequired;
-  PE_COFF_LOADER_IMAGE_CONTEXT        *ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT     *ImageContext;
   EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL  *FvbProtocol;
   EFI_PHYSICAL_ADDRESS                FvAddress;
   UINT32                              Index;
 
   // FIXME:
-  ASSERT (FileSize == sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
+  ASSERT (FileSize == sizeof (UEFI_IMAGE_LOADER_IMAGE_CONTEXT));
   ImageContext = FileBuffer;
 
   MeasureBootProtocols.Tcg2Protocol = NULL;
@@ -752,7 +752,7 @@ DxeTpm2MeasureBootHandler (
   // Measure drivers and applications if Application flag is not set
   //
   if ((!ApplicationRequired) ||
-        (ApplicationRequired && PeCoffGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) {
+        (ApplicationRequired && UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) {
     //
     // Print the image path to be measured.
     //
@@ -778,8 +778,8 @@ DxeTpm2MeasureBootHandler (
                &MeasureBootProtocols,
                (EFI_PHYSICAL_ADDRESS)(UINTN)FileBuffer,
                FileSize,
-               PeCoffLoaderGetImageAddress (ImageContext),
-               PeCoffGetSubsystem (ImageContext),
+               UefiImageLoaderGetImageAddress (ImageContext),
+               UefiImageGetSubsystem (ImageContext),
                DevicePathNode
                );
   }

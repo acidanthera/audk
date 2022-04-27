@@ -25,7 +25,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/HobLib.h>
 #include <Library/PeiServicesTablePointerLib.h>
 #include <Library/PrintLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/PcdLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/DebugAgentLib.h>

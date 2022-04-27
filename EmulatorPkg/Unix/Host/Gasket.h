@@ -67,7 +67,7 @@ GasketSecFree (
 
 RETURN_STATUS
 EFIAPI
-GasketSecPeCoffGetEntryPoint (
+GasketSecUefiImageGetEntryPoint (
   IN     VOID  *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID  **EntryPoint
@@ -75,14 +75,14 @@ GasketSecPeCoffGetEntryPoint (
 
 VOID
 EFIAPI
-GasketSecPeCoffRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+GasketSecUefiImageRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID
 EFIAPI
-GasketSecPeCoffUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+GasketSecUefiImageUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID

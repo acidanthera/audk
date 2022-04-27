@@ -544,7 +544,7 @@ FindCapsuleCoalesceImage (
 
       *CoalesceImageMachineType = EFI_IMAGE_MACHINE_X64;
       // FIXME: Get machine type from context once PPI is adapted
-      //*CoalesceImageMachineType = PeCoffLoaderGetMachineType ((VOID *)(UINTN)CoalesceImageAddress);
+      //*CoalesceImageMachineType = UefiImageLoaderGetMachineType ((VOID *)(UINTN)CoalesceImageAddress);
       break;
     } else {
       continue;

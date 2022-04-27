@@ -1060,8 +1060,8 @@ InsertSortImageRecord (
 **/
 VOID
 InsertImageRecord (
-  IN LOADED_IMAGE_PRIVATE_DATA   *Image,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN     LOADED_IMAGE_PRIVATE_DATA        *Image,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS                        PdbStatus;
@@ -1084,7 +1084,7 @@ InsertImageRecord (
 
   DEBUG ((DEBUG_VERBOSE, "ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
-  PdbStatus = PeCoffGetPdbPath (ImageContext, &PdbPointer, &PdbSize);
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
   if (!EFI_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
   }
@@ -1092,7 +1092,7 @@ InsertImageRecord (
   //
   // Get SectionAlignment
   //
-  SectionAlignment  = PeCoffGetSectionAlignment (ImageContext);
+  SectionAlignment  = UefiImageGetSectionAlignment (ImageContext);
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
@@ -1107,12 +1107,12 @@ InsertImageRecord (
     goto Finish;
   }
 
-  ImageRecord = PeCoffLoaderGetImageRecord (ImageContext);
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
     return ;
   }
 
-  PeCoffDebugPrintSectionTable (ImageContext);
+  UefiImageDebugPrintSegments (ImageContext);
 
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((

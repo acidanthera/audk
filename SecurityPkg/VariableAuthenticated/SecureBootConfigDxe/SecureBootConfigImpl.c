@@ -9,7 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "SecureBootConfigImpl.h"
 #include <Protocol/HiiPopup.h>
-#include "Library/PeCoffLib.h"
+#include "Library/UefiImageLib.h"
 #include <Library/BaseCryptLib.h>
 #include <Library/SecureBootVariableLib.h>
 #include <Library/SecureBootVariableProvisionLib.h>
@@ -1589,7 +1589,7 @@ ON_EXIT:
   Calculate hash of Pe/Coff image based on the authenticode image hashing in
   PE/COFF Specification 8.0 Appendix A
 
-  Notes: PE/COFF image has been checked by BasePeCoffLib PeCoffInitializeContext() in
+  Notes: PE/COFF image has been checked by UefiImageLibLib UefiImageInitializeContext() in
   the function LoadPeImage ().
 
   @param[in]    HashAlg   Hash algorithm type.
@@ -1600,7 +1600,7 @@ ON_EXIT:
 **/
 BOOLEAN
 HashPeImage (
-  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN  UINT32                    HashAlg,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
   UINTN                         *ImageDigestSize,
@@ -1634,7 +1634,7 @@ HashPeImage (
     goto Done;
   }
 
-  Status = PeCoffHashImageAuthenticode (ImageContext, HashCtx, mHash[HashAlg].HashUpdate);
+  Status = UefiImageHashImageDefault (ImageContext, HashCtx, mHash[HashAlg].HashUpdate);
 
   if (!Status) {
     DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image using %s.\n", mHash[HashAlg].Name));
@@ -1665,7 +1665,7 @@ Done:
 **/
 EFI_STATUS
 HashPeImageByType (
-  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN CONST UINT8                *AuthData,
   IN UINTN                      AuthDataSize,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
@@ -1846,7 +1846,7 @@ EnrollImageSignatureToSigDB (
   UINT32                     Attr;
   CONST WIN_CERTIFICATE_UEFI_GUID   *GuidCertData;
   CONST WIN_CERTIFICATE             *Certificate;
-  PE_COFF_LOADER_IMAGE_CONTEXT      ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
   UINT8                             *ImageBase;
   UINTN                             ImageSize;
   UINT8                             ImageDigest[MAX_DIGEST_SIZE];
@@ -1883,12 +1883,12 @@ EnrollImageSignatureToSigDB (
     goto ON_EXIT;
   }
 
-  Status = PeCoffInitializeContext (&ImageContext, ImageBase, (UINT32) ImageSize);
+  Status = UefiImageInitializeContext (&ImageContext, ImageBase, (UINT32) ImageSize);
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
   }
 
-  Status = PeCoffGetFirstCertificate (&ImageContext, &Certificate);
+  Status = UefiImageGetFirstCertificate (&ImageContext, &Certificate);
 
   if (Status == RETURN_NOT_FOUND) {
     if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize, &CertType)) {

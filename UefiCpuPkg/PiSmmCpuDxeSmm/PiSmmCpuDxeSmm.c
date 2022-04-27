@@ -191,17 +191,17 @@ DumpModuleInfoByIp (
   )
 {
   RETURN_STATUS                        Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT         ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
   CONST CHAR8                          *PdbPath;
   UINT32                               PdbPathSize;
 
   //
   // Find Image Base
   //
-  Status = PeCoffDebugLocateImage (&ImageContext, CallerIpAddress);
+  Status = UefiImageDebugLocateImage (&ImageContext, CallerIpAddress);
   if (!RETURN_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "It is invoked from the instruction before IP(0x%p)", (VOID *)CallerIpAddress));
-    Status = PeCoffGetPdbPath (&ImageContext, &PdbPath,&PdbPathSize);
+    Status = UefiImageGetSymbolsPath (&ImageContext, &PdbPath,&PdbPathSize);
     if (!RETURN_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, " in module (%a)\n", PdbPath));
     }

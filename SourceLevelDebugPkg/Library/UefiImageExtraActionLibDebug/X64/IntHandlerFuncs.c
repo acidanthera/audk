@@ -6,7 +6,7 @@
 
 **/
 
-#include <PeCoffExtraActionLib.h>
+#include <UefiImageExtraActionLib.h>
 
 /**
   Read IDT entry to check if IDT entries are setup by Debug Agent.

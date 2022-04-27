@@ -10,7 +10,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "InternalBm.h"
 
 #include <Library/VariablePolicyHelperLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 GLOBAL_REMOVE_IF_UNREFERENCED
 CHAR16  *mBmLoadOptionName[] = {
@@ -1236,19 +1236,19 @@ BmIsLoadOptionPeHeaderValid (
   )
 {
   EFI_STATUS                        Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT             ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT          ImageContext;
 
   if ((FileBuffer == NULL) || (FileSize == 0)) {
     return FALSE;
   }
 
   // FIXME: What?
-  Status = PeCoffInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
+  Status = UefiImageInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
   if (EFI_ERROR (Status)) {
     return FALSE;
   }
   // FIXME: What about emu?
-  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (PeCoffGetMachine (&ImageContext))) {
+  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (UefiImageGetMachine (&ImageContext))) {
     return FALSE;
   }
 

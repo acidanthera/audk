@@ -69,7 +69,7 @@
   LocalApicLib
   TimerLib
   PrintLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
   MemoryAllocationLib
 
 [Guids]

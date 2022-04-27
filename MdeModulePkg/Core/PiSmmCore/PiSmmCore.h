@@ -40,7 +40,7 @@
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/ReportStatusCodeLib.h>
@@ -1019,7 +1019,7 @@ EFI_STATUS
 RegisterSmramProfileImage (
   IN EFI_GUID                     *FileName,
   IN BOOLEAN                      RegisterToDxe,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

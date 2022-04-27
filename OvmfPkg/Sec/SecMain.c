@@ -21,9 +21,9 @@
 #include <Library/UefiCpuLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/IoLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/ExtractGuidedSectionLib.h>
 #include <Library/LocalApicLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
@@ -699,7 +699,7 @@ FindAndReportEntryPoints (
   UINT32                           SecCoreImageSize;
   EFI_PHYSICAL_ADDRESS          PeiCoreImageBase;
   UINT32                           PeiCoreImageSize;
-  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
   //
   // Find SEC Core and PEI Core image base
@@ -712,29 +712,29 @@ FindAndReportEntryPoints (
   //
   // Report SEC Core debug information when remote debug is enabled
   //
-  Status = PeCoffInitializeContext (&ImageContext, (VOID *) (UINTN) SecCoreImageBase, SecCoreImageSize);
+  Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) SecCoreImageBase, SecCoreImageSize);
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeCoffLoadImageInplace (&ImageContext);
+  Status = UefiImageLoadImageInplace (&ImageContext);
   ASSERT_EFI_ERROR (Status);
 
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  UefiImageLoaderRelocateImageExtraAction (&ImageContext);
 
   //
   // Find PEI Core entry point
   //
-  Status = PeCoffInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
+  Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeCoffLoadImageInplace (&ImageContext);
+  Status = UefiImageLoadImageInplace (&ImageContext);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Report PEI Core debug information when remote debug is enabled
   //
-  PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+  UefiImageLoaderRelocateImageExtraAction (&ImageContext);
 
-  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(PeCoffLoaderGetImageEntryPoint (&ImageContext));
+  *PeiCoreEntryPoint = (EFI_PEI_CORE_ENTRY_POINT)(UINTN)(UefiImageLoaderGetImageEntryPoint (&ImageContext));
 
   return;
 }

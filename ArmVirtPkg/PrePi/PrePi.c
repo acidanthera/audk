@@ -9,7 +9,7 @@
 #include <PiPei.h>
 #include <Pi/PiBootMode.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/PrePiLib.h>
 #include <Library/PrintLib.h>
 #include <Library/PrePiHobListPointerLib.h>
@@ -137,15 +137,15 @@ CEntryPoint (
 }
 
 VOID
-RelocatePeCoffImage (
+RelocateUefiImage (
   IN  EFI_PEI_FV_HANDLE             FwVolHeader
   )
 {
-  EFI_PEI_FILE_HANDLE           FileHandle;
-  VOID                          *SectionData;
-  UINT32                        SectionSize;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  EFI_STATUS                    Status;
+  EFI_PEI_FILE_HANDLE             FileHandle;
+  VOID                            *SectionData;
+  UINT32                          SectionSize;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  EFI_STATUS                      Status;
 
   FileHandle = NULL;
   Status     = FfsFindNextFile (
@@ -162,8 +162,8 @@ RelocatePeCoffImage (
 
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeCoffInitializeContext (&ImageContext, SectionData, SectionSize);
+  Status = UefiImageInitializeContext (&ImageContext, SectionData, SectionSize);
   ASSERT_RETURN_ERROR (Status);
 
-  PeCoffRelocateImageInplaceForExecution (&ImageContext);
+  UefiImageRelocateImageInplaceForExecution (&ImageContext);
 }

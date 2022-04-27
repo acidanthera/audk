@@ -13,12 +13,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Protocol/EmuThunk.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/HobLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 
 //
 // Cache of UnixThunk protocol
@@ -34,7 +34,7 @@ EMU_THUNK_PROTOCOL  *mThunk = NULL;
 **/
 EFI_STATUS
 EFIAPI
-DxeEmuPeCoffLibExtraActionConstructor (
+DxeEmuUefiImageLibExtraActionConstructor (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
@@ -63,18 +63,18 @@ DxeEmuPeCoffLibExtraActionConstructor (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   if (mThunk != NULL) {
-    mThunk->PeCoffRelocateImageExtraAction (ImageContext);
+    mThunk->UefiImageRelocateImageExtraAction (ImageContext);
   }
 }
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   If ImageContext is NULL, then ASSERT().
 
@@ -84,11 +84,11 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   if (mThunk != NULL) {
-    mThunk->PeCoffUnloadImageExtraAction (ImageContext);
+    mThunk->UefiImageUnloadImageExtraAction (ImageContext);
   }
 }

@@ -147,7 +147,7 @@ ASM_PFX(ArmPlatformPeiBootAction):
   //
   mov   r0, r5
   mov   sp, r5
-  bl    RelocatePeCoffImage
+  bl    RelocateUefiImage
 
   //
   // Discover the memory size and offset from the DTB, and record in the

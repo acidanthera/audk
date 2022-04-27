@@ -1,7 +1,5 @@
 #include <Base.h>
 
-#include <Library/StandaloneMmMmuLib.h>
-
 EFI_STATUS
 SetMemoryRegionNoExec (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,

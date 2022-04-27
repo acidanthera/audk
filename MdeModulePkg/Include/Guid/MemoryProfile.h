@@ -11,7 +11,7 @@
 
 #include <Pi/PiFirmwareFile.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 //
 // For BIOS MemoryType (0 ~ EfiMaxMemoryType - 1), it is recorded in UsageByType[MemoryType]. (Each valid entry has one entry)
@@ -244,7 +244,7 @@ EFI_STATUS
 (EFIAPI *EDKII_MEMORY_PROFILE_REGISTER_IMAGE)(
   IN EDKII_MEMORY_PROFILE_PROTOCOL      *This,
   IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
-  IN PE_COFF_LOADER_IMAGE_CONTEXT       *ImageContext,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT       *ImageContext,
   IN EFI_FV_FILETYPE                    FileType
   );
 

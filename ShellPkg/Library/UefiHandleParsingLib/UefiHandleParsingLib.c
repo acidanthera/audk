@@ -307,7 +307,7 @@ LoadedImageProtocolDumpInformation (
   }
 
   // FIXME:
-  //PdbFileName = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
+  //PdbFileName = UefiImageLoaderGetPdbPointer (LoadedImage->ImageBase);
   PdbFileName = NULL;
   DataType    = ConvertMemoryType (LoadedImage->ImageDataType);
   CodeType    = ConvertMemoryType (LoadedImage->ImageCodeType);

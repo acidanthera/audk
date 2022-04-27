@@ -9,12 +9,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include <PiDxe.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/SemihostLib.h>
 #include <Library/PrintLib.h>
 
@@ -106,8 +106,8 @@ DeCygwinPathIfNeeded (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS Status;
@@ -115,15 +115,15 @@ PeCoffLoaderRelocateImageExtraAction (
   UINT32        PdbPathSize;
   CHAR8         Buffer[256];
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
   if (RETURN_ERROR (Status)) {
     return;
   }
 
 #if (__ARMCC_VERSION < 500000)
-  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, PeCoffLoaderGetRvctSymbolsBaseAddress (ImageContext));
+  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, UefiImageLoaderGetRvctSymbolsBaseAddress (ImageContext));
  #else
-  AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a -o 0x%08x\n", PdbPath, PeCoffLoaderGetImageAddress (ImageContext));
+  AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a -o 0x%08x\n", PdbPath, UefiImageLoaderGetImageAddress (ImageContext));
  #endif
   DeCygwinPathIfNeeded (&Buffer[16]);
 
@@ -132,7 +132,7 @@ PeCoffLoaderRelocateImageExtraAction (
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   If ImageContext is NULL, then ASSERT().
 
@@ -142,8 +142,8 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS Status;
@@ -151,7 +151,7 @@ PeCoffLoaderUnloadImageExtraAction (
   UINT32        PdbPathSize;
   CHAR8         Buffer[256];
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
   if (RETURN_ERROR (Status)) {
     return;
   }

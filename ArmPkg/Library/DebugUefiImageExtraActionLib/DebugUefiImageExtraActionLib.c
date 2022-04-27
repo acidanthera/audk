@@ -9,12 +9,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include <PiDxe.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/PrintLib.h>
 
 /**
@@ -67,8 +67,8 @@ DeCygwinPathIfNeeded (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS Status;
@@ -78,31 +78,31 @@ PeCoffLoaderRelocateImageExtraAction (
   CHAR8         Temp[512];
 #endif
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
 
   if (!RETURN_ERROR (Status)) {
  #ifdef __CC_ARM
  #if (__ARMCC_VERSION < 500000)
     // Print out the command for the RVD debugger to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), PeCoffLoaderGetRvctSymbolsBaseAddress (ImageContext)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), UefiImageLoaderGetRvctSymbolsBaseAddress (ImageContext)));
  #else
     // Print out the command for the DS-5 to load symbols for this image
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a -o 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), PeCoffLoaderGetImageAddress (ImageContext)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a -o 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), UefiImageLoaderGetImageAddress (ImageContext)));
  #endif
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a -o 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), PeCoffLoaderGetImageAddress (ImageContext)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "add-symbol-file %a -o 0x%p\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), UefiImageLoaderGetImageAddress (ImageContext)));
  #else
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)UefiImageLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))));
  #endif
   } else {
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (PeCoffLoaderGetImageEntryPoint (ImageContext))));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Loading driver at 0x%11p EntryPoint=0x%11p\n", (VOID *)(UINTN)UefiImageLoaderGetImageAddress (ImageContext), FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))));
   }
 }
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   If ImageContext is NULL, then ASSERT().
 
@@ -112,8 +112,8 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS Status;
@@ -123,7 +123,7 @@ PeCoffLoaderUnloadImageExtraAction (
   CHAR8         Temp[512];
 #endif
 
-  Status = PeCoffGetPdbPath (ImageContext, &PdbPath, &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
 
   if (!RETURN_ERROR (Status)) {
  #ifdef __CC_ARM
@@ -131,11 +131,11 @@ PeCoffLoaderUnloadImageExtraAction (
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "unload symbols_only %a\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp))));
  #elif __GNUC__
     // This may not work correctly if you generate PE/COFF directly as then the Offset would not be required
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)PeCoffLoaderGetImageAddress (ImageContext)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "remove-symbol-file %a 0x%08x\n", DeCygwinPathIfNeeded (PdbPath, Temp, sizeof (Temp)), (UINTN)UefiImageLoaderGetImageAddress (ImageContext)));
  #else
     DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading %a\n", PdbPath));
  #endif
   } else {
-    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading driver at 0x%11p\n", (VOID *)(UINTN)PeCoffLoaderGetImageAddress (ImageContext)));
+    DEBUG ((DEBUG_LOAD | DEBUG_INFO, "Unloading driver at 0x%11p\n", (VOID *)(UINTN)UefiImageLoaderGetImageAddress (ImageContext)));
   }
 }

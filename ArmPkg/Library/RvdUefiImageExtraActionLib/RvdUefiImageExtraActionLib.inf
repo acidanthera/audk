@@ -1,5 +1,5 @@
 #/** @file
-# PeCoff extra action library for DXE phase that run Unix emulator.
+# UEFI Image extra action library for DXE phase that run Unix emulator.
 #
 # Lib to provide memory journal status code reporting Routines
 # Copyright (c) 2007 - 2010, Intel Corporation. All rights reserved.<BR>
@@ -11,11 +11,11 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = RvdUnixPeCoffExtraActionLib
+  BASE_NAME                      = RvdUnixUefiImageExtraActionLib
   FILE_GUID                      = 5EDEB7E7-EA55-4E92-8216-335AC98A3B11
   MODULE_TYPE                    = BASE
   VERSION_STRING                 = 1.0
-  LIBRARY_CLASS                  = PeCoffExtraActionLib
+  LIBRARY_CLASS                  = UefiImageExtraActionLib
 
 #
 # The following information is for reference only and not required by the build tools.
@@ -24,7 +24,7 @@
 #
 
 [Sources.common]
-  RvdPeCoffExtraActionLib.c
+  RvdUefiImageExtraActionLib.c
 
 [Packages]
   MdePkg/MdePkg.dec

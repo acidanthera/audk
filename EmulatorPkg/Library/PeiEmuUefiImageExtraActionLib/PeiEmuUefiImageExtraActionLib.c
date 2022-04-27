@@ -12,11 +12,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Ppi/EmuThunk.h>
 #include <Protocol/EmuThunk.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/PeiServicesLib.h>
 #include <Library/DebugLib.h>
 #include <Library/BaseLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/EmuMagicPageLib.h>
 
 //
@@ -33,7 +33,7 @@ EMU_THUNK_PROTOCOL  *mThunk = NULL;
 **/
 EFI_STATUS
 EFIAPI
-EmuPeCoffGetThunkStucture (
+EmuUefiImageGetThunkStucture (
   )
 {
   EMU_THUNK_PPI  *ThunkPpi;
@@ -66,20 +66,20 @@ EmuPeCoffGetThunkStucture (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   if (EMU_MAGIC_PAGE ()->Thunk == NULL) {
-    EmuPeCoffGetThunkStucture ();
+    EmuUefiImageGetThunkStucture ();
   }
 
-  EMU_MAGIC_PAGE ()->Thunk->PeCoffRelocateImageExtraAction (ImageContext);
+  EMU_MAGIC_PAGE ()->Thunk->UefiImageRelocateImageExtraAction (ImageContext);
 }
 
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
-  that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
+  that were allocated by UefiImageLoaderRelocateImageExtraAction() must be freed.
 
   If ImageContext is NULL, then ASSERT().
 
@@ -89,13 +89,13 @@ PeCoffLoaderRelocateImageExtraAction (
 **/
 VOID
 EFIAPI
-PeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+UefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   if (EMU_MAGIC_PAGE ()->Thunk == NULL) {
-    EmuPeCoffGetThunkStucture ();
+    EmuUefiImageGetThunkStucture ();
   }
 
-  EMU_MAGIC_PAGE ()->Thunk->PeCoffUnloadImageExtraAction (ImageContext);
+  EMU_MAGIC_PAGE ()->Thunk->UefiImageUnloadImageExtraAction (ImageContext);
 }

@@ -1021,7 +1021,7 @@ MigratePeim (
   PeiGetPe32Data (MigratedFileHandle, &ImageAddress, &ImageSize);
   if (ImageAddress != NULL) {
     Pe32Data = (VOID *)((UINTN)ImageAddress - (UINTN)MigratedFileHandle + (UINTN)FileHandle);
-    Status   = LoadAndRelocatePeCoffImageInPlace (Pe32Data, ImageAddress, ImageSize);
+    Status   = LoadAndRelocateUefiImageInPlace (Pe32Data, ImageAddress, ImageSize);
     ASSERT_EFI_ERROR (Status);
   }
 
@@ -1172,7 +1172,7 @@ MigrateSecModulesInFv (
         OrgPe32SectionData = (VOID *) ((UINTN) Pe32SectionData - (UINTN) MigratedFileHandle + (UINTN) FileHandle);
         DEBUG ((DEBUG_VERBOSE, "      PE32 section in migrated file at 0x%x.\n", (UINTN) Pe32SectionData));
         DEBUG ((DEBUG_VERBOSE, "      PE32 section in original file at 0x%x.\n", (UINTN) OrgPe32SectionData));
-        Status = LoadAndRelocatePeCoffImageInPlace (OrgPe32SectionData, Pe32SectionData, Pe32SectionDataSize);
+        Status = LoadAndRelocateUefiImageInPlace (OrgPe32SectionData, Pe32SectionData, Pe32SectionDataSize);
         ASSERT_EFI_ERROR (Status);
       }
     }

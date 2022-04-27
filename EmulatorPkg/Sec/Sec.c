@@ -43,7 +43,7 @@ EFI_PEI_PPI_DESCRIPTOR  gPrivateDispatchTable[] = {
 **/
 RETURN_STATUS
 EFIAPI
-PeCoffLoaderGetEntryPoint (
+UefiImageLoaderGetEntryPoint (
   IN     VOID   *Pe32Data,
   IN     UINT32 Pe32Size,
   IN OUT VOID   **EntryPoint
@@ -66,7 +66,7 @@ PeCoffLoaderGetEntryPoint (
 
   Thunk  = (EMU_THUNK_PROTOCOL *)ThunkPpi->Thunk ();
 
-  return Thunk->PeCoffGetEntryPoint (Pe32Data, Pe32Size, EntryPoint);
+  return Thunk->UefiImageGetEntryPoint (Pe32Data, Pe32Size, EntryPoint);
 }
 
 
@@ -112,8 +112,8 @@ _ModuleEntryPoint (
   EFI_STATUS                Status;
   EFI_PEI_FV_HANDLE         VolumeHandle;
   EFI_PEI_FILE_HANDLE       FileHandle;
-  VOID                      *PeCoffImage;
-  UINT32                    PeCoffSize;
+  VOID                      *UefiImage;
+  UINT32                    UefiImageSize;
   EFI_PEI_CORE_ENTRY_POINT  EntryPoint;
   EFI_PEI_PPI_DESCRIPTOR    *Ppi;
   EFI_PEI_PPI_DESCRIPTOR    *SecPpiList;
@@ -168,10 +168,10 @@ _ModuleEntryPoint (
   Status       = PeiServicesFfsFindNextFile (EFI_FV_FILETYPE_PEI_CORE, VolumeHandle, &FileHandle);
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeiServicesFfsFindSectionData4 (EFI_SECTION_PE32, 0, FileHandle, &PeCoffImage, &PeCoffSize, &AuthenticationStatus);
+  Status = PeiServicesFfsFindSectionData4 (EFI_SECTION_PE32, 0, FileHandle, &UefiImage, &UefiImageSize, &AuthenticationStatus);
   ASSERT_EFI_ERROR (Status);
 
-  Status = PeCoffLoaderGetEntryPoint (PeCoffImage, PeCoffSize, (VOID **)&EntryPoint);
+  Status = UefiImageLoaderGetEntryPoint (UefiImage, UefiImageSize, (VOID **)&EntryPoint);
   ASSERT_EFI_ERROR (Status);
 
   // Transfer control to PEI Core

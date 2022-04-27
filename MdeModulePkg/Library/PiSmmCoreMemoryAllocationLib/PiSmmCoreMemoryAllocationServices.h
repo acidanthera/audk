@@ -12,7 +12,7 @@
 #ifndef _PI_SMM_CORE_MEMORY_ALLOCATION_SERVICES_H_
 #define _PI_SMM_CORE_MEMORY_ALLOCATION_SERVICES_H_
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 // FIXME: Duplication of private data?
 //
@@ -89,7 +89,7 @@ typedef struct {
   EFI_STATUS               ReturnStatus;
 
   EFI_PHYSICAL_ADDRESS     PiSmmCoreImageBase;
-  PE_COFF_LOADER_IMAGE_CONTEXT    PiSmmCoreImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT    PiSmmCoreImageContext;
 } SMM_CORE_PRIVATE_DATA;
 
 /**
