@@ -2,11 +2,13 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
-#include <Library/PeCoffLib2.h>
-
 // FIXME: Work on reasonable abstraction
-typedef PE_COFF_LOADER_IMAGE_CONTEXT   UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
-typedef PE_COFF_LOADER_RUNTIME_CONTEXT UEFI_IMAGE_LOADER_RUNTIME_CONTEXT;
+#ifndef UEFI_IMAGE_LOADER_IMAGE_CONTEXT
+  #include <Library/PeCoffLib2.h>
+
+  #define UEFI_IMAGE_LOADER_IMAGE_CONTEXT    PE_COFF_LOADER_IMAGE_CONTEXT
+  #define UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  PE_COFF_LOADER_RUNTIME_CONTEXT
+#endif
 
 ///
 /// Image record segment that desribes the UEFI memory permission configuration
@@ -183,6 +185,12 @@ UefiImageImageIsInplace (
 **/
 RETURN_STATUS
 UefiImageLoadImageInplace (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+// FIXME: Docs
+RETURN_STATUS
+UefiImageRelocateImageInplace (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 

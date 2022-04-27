@@ -15,6 +15,9 @@
   LIBRARY_CLASS  = UefiImageLib
 
 [Sources]
+  CommonSupport.c
+  PeCoffSupport.h
+  PeCoffSupport.c
   UefiImageLibPeCoff.c
 
 [Packages]
