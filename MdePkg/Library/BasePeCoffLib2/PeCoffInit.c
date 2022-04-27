@@ -132,7 +132,7 @@ InternalVerifySections (
       }
     }
     //
-    // Verify the Image section are disjoint (relaxed) or adjacent (strict)
+    // Verify the Image sections are disjoint (relaxed) or adjacent (strict)
     // depending on whether unaligned Image sections may be loaded or not.
     // Unaligned Image sections have been observed with iPXE Option ROMs and old
     // Apple Mac OS X bootloaders.

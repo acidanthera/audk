@@ -137,6 +137,7 @@ PeCoffLoadImage (
     // destination size to internally align the Image.
     //
     Address        = (UINTN) Destination;
+    // FIXME: Can just pull the addend out of ALIGN_VALUE().
     AlignedAddress = ALIGN_VALUE (Address, (UINTN) Context->SectionAlignment);
     AlignOffset    = (UINT32) (AlignedAddress - Address);
     AlignedDest    = (CHAR8 *) Destination + AlignOffset;
