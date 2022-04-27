@@ -343,6 +343,7 @@ InternalValidateRelocInfo (
   //
   // Verify the preferred Image load address is sufficiently aligned.
   //
+  // FIXME: Only with force-aligned sections? What to do with XIP?
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
