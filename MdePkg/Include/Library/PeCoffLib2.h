@@ -618,13 +618,6 @@ PeCoffLoaderGetImageEntryPoint (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-// FIXME: Docs
-RETURN_STATUS
-PeCoffDebugLocateImage (
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                         Address
-  );
-
 /**
   Retrieve the Image fixed loading address.
 
