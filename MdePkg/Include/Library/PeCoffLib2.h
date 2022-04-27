@@ -444,27 +444,6 @@ PeCoffGetPdbPath (
   );
 
 /**
-  Retrieves the Image module name from the Image PDB path.
-
-  @param[in,out] Context         The context describing the Image. Must have
-                                 been initialised by PeCoffInitializeContext().
-  @param[out]    ModuleName      Buffer the Image module name is written into.
-                                 If the name exceeds ModuleNameSize, it will be
-                                 truncated.
-  @param[out]    ModuleNameSize  The size, in Bytes, of ModuleName.
-
-  @retval RETURN_SUCCESS  The Image module name was retrieved successfully.
-  @retval other           The Image module name could not be retrieved
-                          successfully.
-**/
-RETURN_STATUS
-PeCoffGetModuleNameFromPdb (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CHAR8                         *ModuleName,
-  IN     UINT32                        ModuleNameSize
-  );
-
-/**
   Retrieves the first certificate from the Image Certificate Directory.
 
   @param[in,out] Context      The context describing the Image. Must have been

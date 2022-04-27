@@ -9,6 +9,7 @@
 #include <Base.h>
 
 #include <Library/CacheMaintenanceLib.h>
+#include <Library/DebugLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
 
@@ -198,6 +199,7 @@ UefiImageGetSymbolsPath (
   return PeCoffGetPdbPath (Context, SymbolsPath, SymbolsPathSize);
 }
 
+// FIXME: Some image prints use this and some don't. Is this really needed?
 RETURN_STATUS
 UefiImageGetModuleNameFromSymbolsPath (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
@@ -205,7 +207,55 @@ UefiImageGetModuleNameFromSymbolsPath (
   IN     UINT32                           ModuleNameSize
   )
 {
-  return PeCoffGetModuleNameFromPdb (Context, ModuleName, ModuleNameSize);
+  RETURN_STATUS Status;
+  CONST CHAR8   *PdbPath;
+  UINT32        PdbSize;
+  UINTN         Index;
+  UINTN         StartIndex;
+
+  ASSERT (Context != NULL);
+  ASSERT (ModuleName != NULL);
+  ASSERT (ModuleNameSize >= 4);
+  //
+  // Retrieve the PDB path.
+  //
+  Status = PeCoffGetPdbPath (Context, &PdbPath, &PdbSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+  //
+  // Find the last component of the PDB path, which is the file containing the
+  // debug symbols for the Image.
+  //
+  StartIndex = 0;
+  for (Index = 0; PdbPath[Index] != '\0'; Index++) {
+    if (PdbPath[Index] == '\\' || PdbPath[Index] == '/') {
+      StartIndex = Index + 1;
+    }
+  }
+  //
+  // Extract the module name from the debug symbols file and ensure the correct
+  // file extensions.
+  //
+  for (Index = 0; Index < ModuleNameSize - 4; Index++) {
+    ModuleName[Index] = PdbPath[Index + StartIndex];
+    if (ModuleName[Index] == '\0') {
+      ModuleName[Index] = '.';
+    }
+    if (ModuleName[Index] == '.') {
+      ModuleName[Index + 1] = 'e';
+      ModuleName[Index + 2] = 'f';
+      ModuleName[Index + 3] = 'i';
+      Index += 4;
+      break;
+    }
+  }
+  //
+  // Terminate the newly created module name string.
+  //
+  ModuleName[Index] = '\0';
+
+  return RETURN_SUCCESS;
 }
 
 RETURN_STATUS
