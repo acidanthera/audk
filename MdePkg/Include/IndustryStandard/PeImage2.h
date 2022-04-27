@@ -626,17 +626,26 @@ typedef struct {
 
 ///
 /// Debug Data Structure defined in Microsoft C++.
+/// FIXME:
+/// Documentation available at: https://github.com/dotnet/runtime/blob/main/docs/design/specs/PE-COFF.md
 ///
 #define CODEVIEW_SIGNATURE_RSDS  SIGNATURE_32('R', 'S', 'D', 'S')
 typedef struct {
-  UINT32  Signature;                        ///< "RSDS".
-  UINT32  Unknown;
-  UINT32  Unknown2;
-  UINT32  Unknown3;
-  UINT32  Unknown4;
-  UINT32  Unknown5;
   //
-  // Filename of .PDB goes here
+  // 0x52 0x53 0x44 0x53 (ASCII string: "RSDS")
+  //
+  UINT32  Signature;                        ///< "RSDS".
+  //
+  // GUID (Globally Unique Identifier) of the associated PDB.
+  //
+  UINT8   Guid[16];
+  //
+  // Iteration of the PDB. The first iteration is 1. The iteration is
+  // incremented each time the PDB content is augmented.
+  //
+  UINT32  Age;
+  //
+  // UTF-8 NUL-terminated path to the associated .pdb file
   //
 } EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY;
 
