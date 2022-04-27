@@ -16,7 +16,9 @@ Please also refer to the work-in-progress EDK II Image Loader documentation avai
 
 ## Further abstraction
 
-To increase platform flexibility, a new layer of abstraction is introduced in the form of the library class ``UefiImageLib``, which can be found at [MdePkg/Include/Library/UefiImageLib.h](MdePkg/Include/Library/UefiImageLib.h). Currently, it is a subset of the APIs provided by ``BasePeCoffLib2`` that is expected to be compatible with most other common executable formats. As part of the proposal, the instance ``UefiImageLibPeCoff`` is provided, which is basically a shim for ``BasePeCoffLib2``. In the future, instances to support other file formats can be introduced without having to integrate them across the entire EDK II tree.
+The new library has been designed a new library class in EDK II. ``PeCoffLib2`` features a new API design that allows for a more resilient and a more flexible caller design. Most notably, all Image operations have been integrated into the API design rather than the callers accessing the library context and duplicating certain work. ``PeCoffLib`` remains intact as deprecated API to support legacy code during the transition period.
+
+To increase platform flexibility, a new layer of abstraction is introduced in the form of the library class ``UefiImageLib``, which can be found at [MdePkg/Include/Library/UefiImageLib.h](MdePkg/Include/Library/UefiImageLib.h). Currently, it is a subset of the APIs provided by ``PeCoffLib2`` that is expected to be compatible with most other common executable formats. As part of the proposal, the instance ``UefiImageLibPeCoff`` is provided, which is basically a shim for ``PeCoffLib2``. In the future, instances to support other file formats can be introduced without having to integrate them across the entire EDK II tree.
 
 ## Issues of the current solution
 * High level of maintenance cost due to convoluted function contracts
