@@ -894,3 +894,27 @@ PeCoffRuntimeRelocateImage (
 
   return RETURN_SUCCESS;
 }
+
+RETURN_STATUS
+PeCoffRelocateImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  RETURN_STATUS Status;
+  UINTN         NewBase;
+
+  Status = PeCoffLoadImageInplaceNoBase (Context);
+  if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
+    return Status;
+  }
+
+  NewBase = PeCoffLoaderGetImageAddress (Context);
+
+  Status = PeCoffRelocateImage (Context, NewBase, NULL, 0);
+  if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
+  }
+
+  return Status;
+}

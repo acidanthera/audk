@@ -165,5 +165,6 @@ RelocateUefiImage (
   Status = UefiImageInitializeContext (&ImageContext, SectionData, SectionSize);
   ASSERT_RETURN_ERROR (Status);
 
-  UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  ASSERT_RETURN_ERROR (Status);
 }

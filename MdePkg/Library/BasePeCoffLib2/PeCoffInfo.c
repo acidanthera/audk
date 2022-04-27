@@ -193,6 +193,7 @@ PeCoffGetRelocsStripped (
   return Context->RelocsStripped;
 }
 
+// FIXME: Distinguish between base and buffer (XIP TE)
 UINTN
 PeCoffLoaderGetImageAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context

@@ -24,7 +24,6 @@
   PeCoffInfo.c
   PeCoffInit.c
   PeCoffLoad.c
-  PeCoffLoadForExec.c
   PeCoffRelocate.c
 
 [Packages]

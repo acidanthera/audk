@@ -73,7 +73,27 @@ UefiImageRelocateImageInplaceForExecution (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  return PeCoffRelocateImageInplaceForExecution (Context);
+  RETURN_STATUS Status;
+  UINTN         SizeOfImage;
+
+  Status = PeCoffRelocateImageInplace (Context);
+  if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
+    return Status;
+  }
+
+  SizeOfImage = PeCoffGetSizeOfImageInplace (Context);
+  //
+  // Flush the instruction cache so the image data is written before
+  // execution.
+  // FIXME: TE XIP
+  //
+  InvalidateInstructionCacheRange (
+    (VOID *) Context->ImageBuffer,
+    SizeOfImage
+    );
+
+  return RETURN_SUCCESS;
 }
 
 RETURN_STATUS

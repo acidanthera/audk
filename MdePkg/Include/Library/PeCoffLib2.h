@@ -339,9 +339,9 @@ PeCoffLoadImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-// FIXME:
+// FIXME: Docs
 RETURN_STATUS
-PeCoffRelocateImageInplaceForExecution (
+PeCoffRelocateImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 

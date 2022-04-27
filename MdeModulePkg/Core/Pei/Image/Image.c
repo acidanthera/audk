@@ -376,10 +376,7 @@ LoadAndRelocateUefiImageInPlace (
   // Load the image in place
   //
   Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    ASSERT_EFI_ERROR (Status);
-    return Status;
-  }
+  ASSERT_EFI_ERROR (Status);
 
   return Status;
 }
