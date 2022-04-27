@@ -169,12 +169,6 @@ PeCoffLoadImage (
     );
 
   Context->ImageBuffer = AlignedDest;
-  //
-  // Force-load its contents into the memory space, if the policy demands it.
-  //
-  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
-    PeCoffLoaderLoadCodeView (Context);
-  }
 
   return RETURN_SUCCESS;
 }
@@ -225,12 +219,6 @@ PeCoffLoadImageInplaceNoBase (
   }
 
   Context->ImageBuffer = ImageBuffer;
-  //
-  // Force-load its contents into the memory space, if the policy demands it.
-  //
-  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
-    PeCoffLoaderLoadCodeViewInplace (Context);
-  }
 
   return RETURN_SUCCESS;
 }

@@ -37,22 +37,6 @@
 ///
 #define PCD_RELOC_TYPE_POLICY_ARM  BIT0
 
-//
-// PcdImageLoaderDebugSupport levels.
-//
-
-///
-/// At this level, basic debugging support, like retrieving the Image PDB path,
-/// is provided.
-///
-#define PCD_DEBUG_SUPPORT_BASIC       1U
-///
-/// At this level, basic debugging support is provided. If the debug information
-/// is declared as optional in the image, force-load it into the Image memory
-/// space.
-///
-#define PCD_DEBUG_SUPPORT_FORCE_LOAD  2U
-
 ///
 /// Denotes the alignment requirement for Image certificate sizes.
 ///
@@ -77,47 +61,6 @@ STATIC_ASSERT (
 STATIC_ASSERT (
   sizeof (UINT32) == ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK),
   "The current model violates the PE/COFF specification"
-  );
-
-/**
-  Retrieves information about the Image CodeView data.
-
-  The Image context is updated accordingly.
-
-  @param[in,out]  Context   The context describing the Image. Must have been
-                            initialised by PeCoffInitializeContext().
-  @param[in]      FileSize  The size, in Bytes, of Context->FileBuffer.
-**/
-VOID
-PeCoffLoaderRetrieveCodeViewInfo (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        FileSize
-  );
-
-/**
-  Loads the Image CodeView data into the Image memory space.
-
-  If the function is not successful, Context->CodeView is set to 0.
-
-  @param[in,out]  Context   The context describing the Image. Must have been
-                            updated by PeCoffLoaderRetrieveCodeViewInfo().
-**/
-VOID
-PeCoffLoaderLoadCodeView (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
-/**
-  Loads the Image CodeView data inplace.
-
-  If the function is not successful, Context->CodeView is set to 0.
-
-  @param[in,out]  Context   The context describing the Image. Must have been
-                            updated by PeCoffLoaderRetrieveCodeViewInfo().
-**/
-VOID
-PeCoffLoaderLoadCodeViewInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 // FIXME:

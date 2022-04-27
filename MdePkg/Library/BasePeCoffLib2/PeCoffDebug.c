@@ -24,10 +24,11 @@
 #include "BaseOverflow.h"
 #include "BasePeCoffLib2Internals.h"
 
-VOID
-PeCoffLoaderRetrieveCodeViewInfo (
+RETURN_STATUS
+PeCoffGetPdbPath (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        FileSize
+  OUT    CONST CHAR8                   **PdbPath,
+  OUT    UINT32                        *PdbPathSize
   )
 {
   BOOLEAN                               Overflow;
@@ -46,16 +47,23 @@ PeCoffLoaderRetrieveCodeViewInfo (
   UINT32                                DebugDirFileOffset;
   UINT32                                DebugDirSectionOffset;
   UINT32                                DebugDirSectionRawTop;
-  UINT32                                DebugEntryTopOffset;
-  UINT32                                DebugEntryRvaTop;
+  UINT32                                DebugEntryFileOffset;
+  UINT32                                DebugEntryFileOffsetTop;
   CONST EFI_IMAGE_SECTION_HEADER        *Sections;
   UINT16                                SectionIndex;
 
-  UINT32                                DebugSizeOfImage;
+  CONST CHAR8                           *CodeView;
+  UINT32                                PdbOffset;
+  CONST CHAR8                           *PdbName;
+  UINT32                                PdbNameSize;
 
   ASSERT (Context != NULL);
-  ASSERT (Context->SizeOfImageDebugAdd == 0);
-  ASSERT (Context->CodeViewRva == 0);
+  ASSERT (PdbPath != NULL);
+  ASSERT (PdbPathSize != NULL);
+
+  if (!PcdGetBool (PcdImageLoaderDebugSupport)) {
+    return RETURN_NOT_FOUND;
+  }
   //
   // Retrieve the Debug Directory of the Image.
   //
@@ -63,7 +71,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
     case PeCoffLoaderTypeTe:
       if (PcdGetBool (PcdImageLoaderProhibitTe)) {
         ASSERT (FALSE);
-        return;
+        return RETURN_UNSUPPORTED;
       }
 
       TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
@@ -79,7 +87,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                   );
 
       if (Pe32Hdr->NumberOfRvaAndSizes <= EFI_IMAGE_DIRECTORY_ENTRY_DEBUG) {
-        return;
+        return RETURN_NOT_FOUND;
       }
 
       DebugDir = Pe32Hdr->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_DEBUG;
@@ -91,7 +99,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
                       );
 
       if (Pe32PlusHdr->NumberOfRvaAndSizes <= EFI_IMAGE_DIRECTORY_ENTRY_DEBUG) {
-        return;
+        return RETURN_NOT_FOUND;
       }
 
       DebugDir = Pe32PlusHdr->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_DEBUG;
@@ -99,20 +107,20 @@ PeCoffLoaderRetrieveCodeViewInfo (
 
     default:
       ASSERT (FALSE);
-      return;
+      return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Debug Directory is not empty.
   //
   if (DebugDir->Size == 0) {
-    return;
+    return RETURN_NOT_FOUND;
   }
   //
   // Verify the Debug Directory has a well-formed size.
   //
   if (DebugDir->Size % sizeof (*DebugEntries) != 0) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Debug Directory is in bounds of the Image buffer.
@@ -124,9 +132,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
                );
   if (Overflow || DebugDirTop > Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
-  //
+//
   // Determine the raw file offset of the Debug Directory.
   //
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
@@ -144,7 +152,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   //
   if (SectionIndex == Context->NumberOfSections) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Debug Directory data is in bounds of the Image section.
@@ -157,7 +165,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
   if (DebugDirSectionRawTop > Sections[SectionIndex].SizeOfRawData) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
   //
   // Verify the Debug Directory raw file offset is sufficiently aligned.
@@ -165,6 +173,11 @@ PeCoffLoaderRetrieveCodeViewInfo (
   DebugDirFileOffset = Sections[SectionIndex].PointerToRawData + DebugDirSectionOffset;
 
   if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    //
+    // This subtraction is safe because we know it holds that:
+    //   Context->TeStrippedOffset <= Sections[SectionIndex].PointerToRawData.
+    //
+    ASSERT (Context->TeStrippedOffset <= Sections[SectionIndex].PointerToRawData);
     DebugDirFileOffset -= Context->TeStrippedOffset;
   } else {
     ASSERT (Context->TeStrippedOffset == 0);
@@ -172,11 +185,9 @@ PeCoffLoaderRetrieveCodeViewInfo (
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
-  //
-  // Locate the CodeView entry in the Debug Directory.
-  //
+
   DebugEntries = (CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (CONST VOID *) (
                    (CONST CHAR8 *) Context->FileBuffer + DebugDirFileOffset
                    );
@@ -192,7 +203,7 @@ PeCoffLoaderRetrieveCodeViewInfo (
   // Verify the CodeView entry has been found in the Debug Directory.
   //
   if (DebugIndex == NumDebugEntries) {
-    return;
+    return RETURN_NOT_FOUND;
   }
   //
   // Verify the CodeView entry has sufficient space for the signature.
@@ -201,242 +212,43 @@ PeCoffLoaderRetrieveCodeViewInfo (
 
   if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
     DEBUG_RAISE ();
-    return;
+    return RETURN_UNSUPPORTED;
   }
-  //
-  // Verify the CodeView entry RVA is sane, or force-load, if permitted, if it
-  // is not mapped by a section.
-  //
-  if (CodeViewEntry->RVA != 0) {
-    // FIXME: Verify against first Image section / Headers due to XIP TE.
-    //
-    // Verify the CodeView entry is in bounds of the Image buffer, and the
-    // CodeView entry RVA is sufficiently aligned.
-    //
-    Overflow = BaseOverflowAddU32 (
-                 CodeViewEntry->RVA,
-                 CodeViewEntry->SizeOfData,
-                 &DebugEntryRvaTop
+
+  DebugEntryFileOffset = CodeViewEntry->FileOffset;
+
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    Overflow = BaseOverflowSubU32 (
+                 DebugEntryFileOffset,
+                 Context->TeStrippedOffset,
+                 &DebugEntryFileOffset
                  );
-    if (Overflow || DebugEntryRvaTop > Context->SizeOfImage
-     || !IS_ALIGNED (CodeViewEntry->RVA, ALIGNOF (UINT32))) {
+    if (Overflow) {
       DEBUG_RAISE ();
-      return;
+      return RETURN_UNSUPPORTED;
     }
   } else {
-    //
-    // Force-load the CodeView entry if it is not mapped by an Image section.
-    //
-    if (PcdGet32 (PcdImageLoaderDebugSupport) < PCD_DEBUG_SUPPORT_FORCE_LOAD) {
-      return;
-    }
-    //
-    // If the Image does not load the debug information into memory on its own,
-    // request reserved space for it to force-load it.
-    //
-    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-      Overflow = BaseOverflowSubU32 (
-                   CodeViewEntry->FileOffset,
-                   Context->TeStrippedOffset,
-                   &DebugEntryTopOffset
-                   );
-      if (Overflow) {
-        DEBUG_RAISE ();
-        return;
-      }
-    } else {
-      ASSERT (Context->TeStrippedOffset == 0);
-      DebugEntryTopOffset = CodeViewEntry->FileOffset;
-    }
-
-    Overflow = BaseOverflowAddU32 (
-                 DebugEntryTopOffset,
-                 CodeViewEntry->SizeOfData,
-                 &DebugEntryTopOffset
-                 );
-    if (Overflow || DebugEntryTopOffset > FileSize) {
-      DEBUG_RAISE ();
-      return;
-    }
-    //
-    // The CodeView data must start on a 32-bit boundary.
-    //
-    Overflow = BaseOverflowAlignUpU32 (
-                 Context->SizeOfImage,
-                 ALIGNOF (UINT32),
-                 &DebugSizeOfImage
-                 );
-    if (Overflow) {
-      DEBUG_RAISE ();
-      return;
-    }
-
-    Overflow = BaseOverflowAddU32 (
-                 DebugSizeOfImage,
-                 CodeViewEntry->SizeOfData,
-                 &DebugSizeOfImage
-                 );
-    if (Overflow) {
-      DEBUG_RAISE ();
-      return;
-    }
-    //
-    // Align the CodeView size by the Image alignment.
-    //
-    Overflow = BaseOverflowAlignUpU32 (
-                 DebugSizeOfImage,
-                 Context->SectionAlignment,
-                 &DebugSizeOfImage
-                 );
-    if (Overflow) {
-      DEBUG_RAISE ();
-      return;
-    }
-    //
-    // Ensure the destination space extension for images aligned more strictly
-    // than by page size does not overflow. This may allow images to load that
-    // would become too large by force-loading the debug data.
-    //
-    if (Context->SectionAlignment > EFI_PAGE_SIZE
-     && DebugSizeOfImage + Context->SectionAlignment < DebugSizeOfImage) {
-      return;
-    }
-
-    Context->SizeOfImageDebugAdd = DebugSizeOfImage - Context->SizeOfImage;
-    ASSERT (Context->SizeOfImageDebugAdd > 0);
+    ASSERT (Context->TeStrippedOffset == 0);
   }
   //
-  // Cache the CodeView RVA.
+  // Verify the CodeView entry is in bounds of the Image buffer, and the
+  // CodeView entry RVA is sufficiently aligned.
   //
-  Context->CodeViewRva = Sections[SectionIndex].VirtualAddress + DebugDirSectionOffset + DebugIndex * sizeof (*DebugEntries);
-  ASSERT (Context->CodeViewRva >= Sections[SectionIndex].VirtualAddress);
-  ASSERT (Context->CodeViewRva <= Sections[SectionIndex].VirtualAddress + Sections[SectionIndex].VirtualSize);
-}
-
-VOID
-PeCoffLoaderLoadCodeView (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
-  UINT32                          CodeViewOffset;
-
-  ASSERT (Context != NULL);
-  //
-  // Verify the CodeView entry is present and well-formed.
-  //
-  if (Context->CodeViewRva == 0) {
-    return;
+  Overflow = BaseOverflowAddU32 (
+               DebugEntryFileOffset,
+               CodeViewEntry->SizeOfData,
+               &DebugEntryFileOffsetTop
+               );
+  if (Overflow || DebugEntryFileOffsetTop > Context->FileSize
+   || !IS_ALIGNED (DebugEntryFileOffset, ALIGNOF (UINT32))) {
+    DEBUG_RAISE ();
+    return RETURN_UNSUPPORTED;
   }
-  //
-  // Force-load the CodeView entry if it is not mapped by an Image section.
-  //
-  CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
-                    (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
-                    );
-  if (CodeViewEntry->RVA == 0) {
-    ASSERT (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD);
-    ASSERT (Context->SizeOfImageDebugAdd > 0);
-    //
-    // This arithmetic cannot overflow because it has been verified during the
-    // calculation of SizeOfImageDebugAdd.
-    //
-    CodeViewEntry->RVA = ALIGN_VALUE (Context->SizeOfImage, ALIGNOF (UINT32));
 
-    ASSERT (Context->SizeOfImageDebugAdd >= (CodeViewEntry->RVA - Context->SizeOfImage) + CodeViewEntry->SizeOfData);
-
-    CodeViewOffset = CodeViewEntry->FileOffset;
-
-    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-      CodeViewOffset -= Context->TeStrippedOffset;
-    } else {
-      ASSERT (Context->TeStrippedOffset == 0);
-    }
-
-    CopyMem (
-      (CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA,
-      (CONST CHAR8 *) Context->FileBuffer + CodeViewOffset,
-      CodeViewEntry->SizeOfData
-      );
-  }
-}
-
-VOID
-PeCoffLoaderLoadCodeViewInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
-
-  ASSERT (Context != NULL);
-  //
-  // Verify the CodeView entry is present and well-formed.
-  //
-  if (Context->CodeViewRva == 0) {
-    return;
-  }
-  //
-  // Force-load the CodeView entry if it is not mapped by an Image section.
-  //
-  CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
-                    (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
-                    );
-  if (CodeViewEntry->RVA != 0) {
-    //
-    // If the CodeView entry is reported to be part of a Section, its RVA must
-    // be equal to the raw file offset as the Image was loaded in-place.
-    //
-    if (CodeViewEntry->RVA != CodeViewEntry->FileOffset) {
-      DEBUG_RAISE ();
-      Context->CodeViewRva = 0;
-      return;
-    }
-  } else {
-    ASSERT (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD);
-    ASSERT (Context->SizeOfImageDebugAdd > 0);
-    //
-    // The CodeView entry is always in the Image memory for inplace-loading.
-    // Update the RVA to the raw file offset.
-    //
-    CodeViewEntry->RVA = CodeViewEntry->FileOffset;
-  }
-}
-
-RETURN_STATUS
-PeCoffGetPdbPath (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8                   **PdbPath,
-  OUT    UINT32                        *PdbPathSize
-  )
-{
-  BOOLEAN                         Overflow;
-
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
-  CONST CHAR8                     *CodeView;
-  UINT32                          PdbOffset;
-  CONST CHAR8                     *PdbName;
-  UINT32                          PdbNameSize;
-
-  ASSERT (Context != NULL);
-  ASSERT (PdbPath != NULL);
-  ASSERT (PdbPathSize != NULL);
-  //
-  // Verify the CodeView entry is present and well-formed.
-  //
-  if (Context->CodeViewRva == 0) {
-    return RETURN_NOT_FOUND;
-  }
-  //
-  // Retrieve the PDB path offset.
-  //
-  CodeViewEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (VOID *) (
-                    (CHAR8 *) Context->ImageBuffer + Context->CodeViewRva
-                    );
-
-  CodeView = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA;
+  CodeView = (CONST CHAR8 *) Context->FileBuffer + DebugEntryFileOffset;
   //
   // This memory access is safe because we know that
-  //   1) IS_ALIGNED (CodeViewEntry->RVA, ALIGNOF (UINT32))
+  //   1) IS_ALIGNED (DebugEntryFileOffset, ALIGNOF (UINT32))
   //   2) sizeof (UINT32) <= CodeViewEntry->SizeOfData.
   //
   switch (*(CONST UINT32 *) (CONST VOID *) CodeView) {
@@ -486,7 +298,7 @@ PeCoffGetPdbPath (
   //
   // Verify the PDB path is correctly terminated.
   //
-  PdbName = (CONST CHAR8 *) Context->ImageBuffer + CodeViewEntry->RVA + PdbOffset;
+  PdbName = CodeView + PdbOffset;
   if (PdbName[PdbNameSize - 1] != 0) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;

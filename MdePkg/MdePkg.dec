@@ -2188,7 +2188,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE|BOOLEAN|0x4000101A
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRelocTypePolicy|0xFFFFFFFF|UINT32|0x4000101B
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderWXorX|TRUE|BOOLEAN|0x4000101C
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport|2|UINT32|0x4000101D
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport|TRUE|BOOLEAN|0x4000101D
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy|0xFFFFFFFF|UINT32|0x4000101E
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe|FALSE|BOOLEAN|0x4000101F
 

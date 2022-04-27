@@ -35,6 +35,6 @@ The Image memory space is protected as follows:
 1. Image Headers are protected as read-only data.
 2. Image sections are protected according to their defined permissions.
 3. Any gaps between Image sections are protected as read-only data.
-4. The Image trailer (e.g. force-loaded debug information) is protected as read-only data.
+4. The Image trailer is protected as read-only data.
 
 Due to the explicit handling of Image Headers, gaps, and Image trailer, the full Image memory space has well-defined permissions. To embrace the W^X pattern, and to mitigate attacks (e.g. format string exploits), the tightest permissions are chosen for all Image memory permission segments.

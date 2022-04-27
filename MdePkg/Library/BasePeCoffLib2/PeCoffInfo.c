@@ -68,24 +68,9 @@ PeCoffGetSizeOfImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  UINT32 SizeOfImage;
-
   ASSERT (Context != NULL);
 
-  SizeOfImage = Context->SizeOfImage;
-  //
-  // Transparently reserve the force-load space for debug information, if the
-  // policy demands it.
-  //
-  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_FORCE_LOAD) {
-    ASSERT (SizeOfImage + Context->SizeOfImageDebugAdd >= SizeOfImage);
-
-    SizeOfImage += Context->SizeOfImageDebugAdd;
-  } else {
-    ASSERT (Context->SizeOfImageDebugAdd == 0);
-  }
-
-  return SizeOfImage;
+  return Context->SizeOfImage;
 }
 
 UINT32
@@ -96,9 +81,7 @@ PeCoffGetSizeOfImageInplace (
   UINT32 SizeOfImage;
 
   ASSERT (Context != NULL);
-  //
-  // In-place Image loading cannot force-load Debug data, thus omit its size.
-  //
+
   SizeOfImage = Context->SizeOfImage;
   //
   // SizeOfImage is defined with the full Image header size pre-stripping. As
@@ -476,11 +459,11 @@ PeCoffLoaderGetImageRecord (
   RecordSection->Attributes = Attributes;
   ++NumberOfRecordSections;
   //
-  // The Image trailer (e.g. the force-loaded debug data), if existent, is
-  // treated as padding and as such is reported as read-only data, as intended.
-  // Because it is not part of the original Image memory space, this needs to
-  // happen whether Image sections are guaranteed to be contiguously form the
-  // entire Image memory space or not.
+  // The Image trailer, if existent, is treated as padding and as such is
+  // reported as read-only data, as intended. Because it is not part of the
+  // original Image memory space, this needs to happen whether Image sections
+  // are guaranteed to be contiguously form the entire Image memory space or
+  // not.
   //
   NumberOfRecordSections += InternalInsertImageRecordSectionPadding (
                               RecordSection,

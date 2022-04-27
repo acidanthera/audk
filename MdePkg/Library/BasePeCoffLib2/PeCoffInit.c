@@ -530,9 +530,8 @@ InternalInitializePe (
   // Determine the type of and retrieve data from the PE Optional Header.
   // Do not retrieve SizeOfImage as the value usually does not follow the
   // specification. Even if the value is large enough to hold the last Image
-  // section, it may not be aligned, or it may be too large. Except for
-  // force-loaded debug data, our own concept, no data can possibly be loaded
-  // past the last Image section anyway.
+  // section, it may not be aligned, or it may be too large. No data can
+  // possibly be loaded past the last Image section anyway.
   //
   switch (*(CONST UINT16 *) (CONST VOID *) OptHdrPtr) {
     case EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
@@ -852,12 +851,6 @@ PeCoffInitializeContext (
         DEBUG_RAISE ();
         return Status;
       }
-      //
-      // If debugging is enabled, index the debug information.
-      //
-      if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
-        PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
-      }
 
       return RETURN_SUCCESS;
     }
@@ -895,12 +888,6 @@ PeCoffInitializeContext (
   if (Status != RETURN_SUCCESS) {
     DEBUG_RAISE ();
     return Status;
-  }
-  //
-  // If debugging is enabled, index the debug information.
-  //
-  if (PcdGet32 (PcdImageLoaderDebugSupport) >= PCD_DEBUG_SUPPORT_BASIC) {
-    PeCoffLoaderRetrieveCodeViewInfo (Context, FileSize);
   }
 
   return RETURN_SUCCESS;

@@ -78,10 +78,6 @@ typedef struct {
   ///
   UINT32     SizeOfImage;
   ///
-  /// The additional size, in Bytes, required to force-load debug information.
-  ///
-  UINT32     SizeOfImageDebugAdd;
-  ///
   /// The alignment, in Bytes, of Image Sections virtual addresses.
   ///
   UINT32     SectionAlignment;
@@ -134,10 +130,6 @@ typedef struct {
   /// The size, in Bytes, of the Security Directory.
   ///
   UINT32     SecDirSize;
-  ///
-  /// The RVA of the CodeView debug information.
-  ///
-  UINT32     CodeViewRva;
 } PE_COFF_LOADER_IMAGE_CONTEXT;
 
 ///
