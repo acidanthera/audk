@@ -106,7 +106,7 @@ EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
   IN     PEI_CORE_INSTANCE             *Private,
-  EFI_PHYSICAL_ADDRESS *LoadAddress
+  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
    EFI_STATUS                         Status;

@@ -217,7 +217,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  EFI_PHYSICAL_ADDRESS *LoadAddress
+  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
   EFI_STATUS                         Status;
@@ -262,12 +262,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
         // Check if the memory range is available.
         //
         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, DestinationSize);
-        if (!EFI_ERROR (Status)) {
-          //
-          // The assigned address is valid. Return the specified loading address
-          //
-          *LoadAddress = FixLoadingAddress;
-        }
+        *LoadAddress = FixLoadingAddress;
       }
 
       break;

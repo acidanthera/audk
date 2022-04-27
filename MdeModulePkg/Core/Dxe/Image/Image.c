@@ -448,7 +448,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT    EFI_PHYSICAL_ADDRESS   *LoadAddress
+  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
    EFI_STATUS                         Status;
@@ -457,6 +457,7 @@ GetPeCoffImageFixLoadingAssignedAddress (
    UINT16                             Index;
    UINT16                             NumberOfSections;
    UINT64                             ValueInSectionHeader;
+   UINT64                             FixLoadingAddress;
 
    Status = EFI_NOT_FOUND;
 
@@ -483,20 +484,26 @@ GetPeCoffImageFixLoadingAssignedAddress (
        ValueInSectionHeader = ReadUnaligned64((UINT64*)&Sections[Index].PointerToRelocations);
 
        if (ValueInSectionHeader != 0) {
-         //
-         // When the feature is configured as load module at fixed absolute address, the ImageAddress field of ImageContext
-        // hold the specified address. If the feature is configured as load module at fixed offset, ImageAddress hold an offset
-        // relative to top address
-        //
-        if ((INT64)PcdGet64 (PcdLoadModuleAtFixAddressEnable) < 0) {
-          *LoadAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)(INTN)PeCoffGetImageBase (ImageContext);
-        }
+          if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
+           //
+           // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
+           // hold the absolute address of image base running in memory
+           //
+           FixLoadingAddress = ValueInSectionHeader;
+         } else {
+           //
+           // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
+           // hold the offset relative to a platform-specific top address.
+           //
+           FixLoadingAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)ValueInSectionHeader;
+         }
 
-        //
-        // Check if the memory range is available.
-        //
-         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (PeCoffGetImageBase (ImageContext), DestinationSize);
-      }
+         //
+         // Check if the memory range is available.
+         //
+         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, DestinationSize);
+         *LoadAddress = FixLoadingAddress;
+       }
        break;
      }
    }
