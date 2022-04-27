@@ -59,6 +59,7 @@ InternalVerifySections (
 {
   BOOLEAN                        Overflow;
   UINT32                         NextSectRva;
+  UINT32                         AlignedEndAddress;
   UINT32                         SectRawEnd;
   UINT32                         EffectiveSectRawEnd;
   UINT16                         SectionIndex;
@@ -236,38 +237,41 @@ InternalVerifySections (
   }
 
   *EndAddress = NextSectRva;
-  //
-  // Because VirtualAddress is aligned by SectionAlignment for all Image
-  // sections, and they are disjoint and ordered by VirtualAddress,
-  // VirtualAddress + VirtualSize must be safe to align by SectionAlignment for
-  // all but the last Image section.
-  // Determine the strictest common alignment that the last section's end is
-  // safe to align to.
-  //
-  Overflow = BaseOverflowAlignUpU32 (
-               NextSectRva,
-               Context->SectionAlignment,
-               &NextSectRva
-               );
-  if (Overflow) {
-    Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
-    Overflow = BaseOverflowAlignUpU32 (
-                 NextSectRva,
-                 Context->SectionAlignment,
-                 &NextSectRva
-                 );
-    if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
-     && Overflow) {
-      Context->SectionAlignment = DEFAULT_PAGE_ALLOCATION_GRANULARITY;
-      Overflow = BaseOverflowAlignUpU32 (
-                   NextSectRva,
-                   Context->SectionAlignment,
-                   &NextSectRva
-                   );
-    }
 
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
+    //
+    // Because VirtualAddress is aligned by SectionAlignment for all Image
+    // sections, and they are disjoint and ordered by VirtualAddress,
+    // VirtualAddress + VirtualSize must be safe to align by SectionAlignment for
+    // all but the last Image section.
+    // Determine the strictest common alignment that the last section's end is
+    // safe to align to.
+    //
+    Overflow = BaseOverflowAlignUpU32 (
+                NextSectRva,
+                Context->SectionAlignment,
+                &AlignedEndAddress
+                );
     if (Overflow) {
-      Context->SectionAlignment = 1;
+      Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+      Overflow = BaseOverflowAlignUpU32 (
+                  NextSectRva,
+                  Context->SectionAlignment,
+                  &AlignedEndAddress
+                  );
+      if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
+      && Overflow) {
+        Context->SectionAlignment = DEFAULT_PAGE_ALLOCATION_GRANULARITY;
+        Overflow = BaseOverflowAlignUpU32 (
+                    NextSectRva,
+                    Context->SectionAlignment,
+                    &AlignedEndAddress
+                    );
+      }
+
+      if (Overflow) {
+        Context->SectionAlignment = 1;
+      }
     }
   }
 
@@ -563,11 +567,11 @@ InternalInitializePe (
 
       RelocDir = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC;
       SecDir   = Pe32->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_SECURITY;
-      
+
       PeCommon              = &Pe32->CommonHeader;
       NumberOfRvaAndSizes   = Pe32->NumberOfRvaAndSizes;
       HdrSizeWithoutDataDir = sizeof (EFI_IMAGE_NT_HEADERS32) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
-      
+
       break;
 
     case EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC:
@@ -606,7 +610,7 @@ InternalInitializePe (
       PeCommon              = &Pe32Plus->CommonHeader;
       NumberOfRvaAndSizes   = Pe32Plus->NumberOfRvaAndSizes;
       HdrSizeWithoutDataDir = sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
-      
+
       break;
 
     default:
