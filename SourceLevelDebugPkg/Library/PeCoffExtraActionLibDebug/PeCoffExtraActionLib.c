@@ -8,6 +8,7 @@
 
 #include "Library/PeCoffLib.h"
 #include "ProcessorBind.h"
+#include "Uefi/UefiBaseType.h"
 #include <PeCoffExtraActionLib.h>
 
 /**
@@ -65,6 +66,7 @@ PeCoffLoaderExtraActionCommon (
   RETURN_STATUS              Status;
   CONST CHAR8                *PdbPath;
   UINT32                     PdbPathSize;
+  EFI_PHYSICAL_ADDRESS       ImageBase;
 
   ASSERT (ImageContext != NULL);
 
@@ -109,6 +111,8 @@ PeCoffLoaderExtraActionCommon (
     }
   }
 
+  ImageBase = PeCoffLoaderGetImageAddress (ImageContext);
+
   //
   // Save Debug Register State
   //
@@ -122,7 +126,7 @@ PeCoffLoaderExtraActionCommon (
   //
   // DR0 = Signature
   // DR1 = The address of the Null-terminated ASCII string for the PE/COFF image's PDB file name
-  // DR2 = The pointer to the ImageContext structure
+  // DR2 = The pointer to the ImageBase address
   // DR3 = IO_PORT_BREAKPOINT_ADDRESS
   // DR7 = Disables all HW breakpoints except for DR3 I/O port access of length 1 byte
   // CR4 = Make sure DE(BIT3) is set
@@ -130,7 +134,7 @@ PeCoffLoaderExtraActionCommon (
   AsmWriteDr7 (BIT10);
   AsmWriteDr0 (Signature);
   AsmWriteDr1 ((UINTN)PdbPath);
-  AsmWriteDr2 ((UINTN)ImageContext);
+  AsmWriteDr2 ((UINTN)&ImageBase);
   AsmWriteDr3 (IO_PORT_BREAKPOINT_ADDRESS);
 
   if (LoadImageMethod == DEBUG_LOAD_IMAGE_METHOD_IO_HW_BREAKPOINT) {
@@ -168,7 +172,7 @@ PeCoffLoaderExtraActionCommon (
     AsmWriteDr1 (Dr1);
   }
 
-  if (!IsDrxEnabled (2, NewDr7) && (AsmReadDr2 () == (UINTN)ImageContext)) {
+  if (!IsDrxEnabled (2, NewDr7) && (AsmReadDr2 () == (UINTN)&ImageBase)) {
     AsmWriteDr2 (Dr2);
   }
 
