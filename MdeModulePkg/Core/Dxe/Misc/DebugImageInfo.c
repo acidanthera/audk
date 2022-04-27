@@ -166,13 +166,14 @@ CoreNewDebugImageInfoEntry (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_DEBUG_IMAGE_INFO  *Table;
-  EFI_DEBUG_IMAGE_INFO  *NewTable;
-  UINTN                 Index;
-  UINTN                 TableSize;
-  RETURN_STATUS             Status;
-  CONST CHAR8               *PdbPath;
-  UINT32                    PdbPathSize;
+  EFI_DEBUG_IMAGE_INFO        *Table;
+  EFI_DEBUG_IMAGE_INFO        *NewTable;
+  UINTN                       Index;
+  UINTN                       TableSize;
+  EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+  RETURN_STATUS               Status;
+  CONST CHAR8                 *PdbPath;
+  UINT32                      PdbPathSize;
 
   //
   // Set the flag indicating that we're in the process of updating the table.
@@ -209,6 +210,11 @@ CoreNewDebugImageInfoEntry (
     // Copy the old table into the new one
     //
     CopyMem (NewTable, Table, TableSize);
+    mDebugInfoTableHeader.EfiDebugImageInfoTable = NewTable;
+    //
+    // Enlarge the max table entries.
+    //
+    mMaxTableEntries += EFI_PAGE_SIZE / EFI_DEBUG_TABLE_ENTRY_SIZE;
     //
     // Free the old table
     //
@@ -217,36 +223,34 @@ CoreNewDebugImageInfoEntry (
     // Update the table header
     //
     Table                                        = NewTable;
-    mDebugInfoTableHeader.EfiDebugImageInfoTable = NewTable;
     //
-    // Enlarge the max table entries and set the first empty entry index to
-    // be the original max table entries.
+    // Set the first empty entry index to be the original max table entries.
     //
     Index             = mMaxTableEntries;
-    mMaxTableEntries += EFI_PAGE_SIZE / EFI_DEBUG_TABLE_ENTRY_SIZE;
   }
 
   //
   // Allocate data for new entry
   //
-  Table[Index].NormalImage = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL));
-  if (Table[Index].NormalImage != NULL) {
+  NormalImage = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL));
+  if (NormalImage != NULL) {
     //
     // Update the entry
     //
-    Table[Index].NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
-    Table[Index].NormalImage->LoadedImageProtocolInstance = LoadedImage;
-    Table[Index].NormalImage->ImageHandle                 = ImageHandle;
+    NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
+    NormalImage->LoadedImageProtocolInstance = LoadedImage;
+    NormalImage->ImageHandle                 = ImageHandle;
 
     Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
     if (!RETURN_ERROR (Status)) {
-      Table[Index].NormalImage->PdbPath = PdbPath;
+      NormalImage->PdbPath = PdbPath;
     }
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
     //
-    mDebugInfoTableHeader.TableSize++;
     mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
+    Table[Index].NormalImage = NormalImage;
+    mDebugInfoTableHeader.TableSize++;
   }
 
   mDebugInfoTableHeader.UpdateStatus &= ~EFI_DEBUG_IMAGE_INFO_UPDATE_IN_PROGRESS;
@@ -263,8 +267,9 @@ CoreRemoveDebugImageInfoEntry (
   EFI_HANDLE  ImageHandle
   )
 {
-  EFI_DEBUG_IMAGE_INFO  *Table;
-  UINTN                 Index;
+  EFI_DEBUG_IMAGE_INFO        *Table;
+  UINTN                       Index;
+  EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
 
   mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_UPDATE_IN_PROGRESS;
 
@@ -276,13 +281,15 @@ CoreRemoveDebugImageInfoEntry (
       // Found a match. Free up the record, then NULL the pointer to indicate the slot
       // is free.
       //
-      CoreFreePool (Table[Index].NormalImage);
-      Table[Index].NormalImage = NULL;
+      NormalImage = Table[Index].NormalImage;
       //
       // Decrease the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
       //
-      mDebugInfoTableHeader.TableSize--;
       mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
+      mDebugInfoTableHeader.TableSize--;
+      Table[Index].NormalImage = NULL;
+
+      CoreFreePool (NormalImage);
       break;
     }
   }
