@@ -467,10 +467,10 @@ InternalInitializeTe (
   Context->RelocDirSize        = TeHdr->DataDirectory[0].Size;
   //
   // TE Images do not explicitly store whether their Relocations have been
-  // stripped. Assume that if there are no Relocations, they have been stripped
-  // to prevent loading into non-preferred memory locations.
+  // stripped. Relocations have been stripped if and only if both the RVA and
+  // size of the Relocation Directory are zero.
   //
-  Context->RelocsStripped = TeHdr->DataDirectory[0].Size == 0;
+  Context->RelocsStripped = TeHdr->DataDirectory[0].VirtualAddress == 0 && TeHdr->DataDirectory[0].Size == 0;
   //
   // Verify basic sanity of the Relocation Directory.
   //
