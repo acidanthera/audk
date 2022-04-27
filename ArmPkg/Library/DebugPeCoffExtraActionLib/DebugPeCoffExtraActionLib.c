@@ -83,7 +83,7 @@ PeCoffLoaderRelocateImageExtraAction (
 #ifdef __CC_ARM
 #if (__ARMCC_VERSION < 500000)
     // Print out the command for the RVD debugger to load symbols for this image
-    DEBUG ((EFI_D_LOAD | EFI_D_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
+    DEBUG ((EFI_D_LOAD | EFI_D_INFO, "load /a /ni /np %a &0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)ImageContext->ImageAddress));
 #else
     // Print out the command for the DS-5 to load symbols for this image
     DEBUG ((EFI_D_LOAD | EFI_D_INFO, "add-symbol-file %a 0x%p\n", DeCygwinPathIfNeeded (ImageContext->PdbPointer, Temp, sizeof (Temp)), (UINTN)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)));
