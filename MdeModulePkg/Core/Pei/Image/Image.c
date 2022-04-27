@@ -180,6 +180,7 @@ LoadAndRelocateUefiImage (
   BOOLEAN                       IsRegisterForShadow;
   EFI_FV_FILE_INFO              FileInfo;
   EFI_PHYSICAL_ADDRESS                  LoadAddress;
+  UINT16                                Machine;
 
   Private = PEI_CORE_INSTANCE_FROM_PS_THIS (GetPeiServicesTablePointer ());
 
@@ -189,6 +190,14 @@ LoadAndRelocateUefiImage (
   Status = UefiImageInitializeContext (ImageContext, Pe32Data, Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
+  }
+
+  Machine = UefiImageGetMachine (ImageContext);
+
+  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (Machine)) {
+    if (!EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (Machine)) {
+      return EFI_UNSUPPORTED;
+    }
   }
 
   //
@@ -478,7 +487,6 @@ PeiLoadImageLoadImage (
   VOID                  *Pe32Data;
   UINT32                      Pe32DataSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
-  UINT16                      Machine;
   EFI_SECTION_TYPE      SearchType1;
   EFI_SECTION_TYPE      SearchType2;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
@@ -549,14 +557,6 @@ PeiLoadImageLoadImage (
   //
   *EntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
-  Machine = UefiImageGetMachine (&ImageContext);
-
-  if (!EFI_IMAGE_MACHINE_TYPE_SUPPORTED (Machine)) {
-    if (!EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (Machine)) {
-      return EFI_UNSUPPORTED;
-    }
-  }
-
   if (ImageAddressArg != NULL) {
     *ImageAddressArg = ImageAddress;
   }
@@ -571,6 +571,9 @@ PeiLoadImageLoadImage (
     CHAR8                              EfiFileName[512];
     INT32                              Index;
     INT32                              StartIndex;
+    UINT16                             Machine;
+
+    Machine = PeCoffGetMachine (&ImageContext);
 
   //
   // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi
