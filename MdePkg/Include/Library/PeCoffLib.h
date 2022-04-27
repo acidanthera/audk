@@ -1,6 +1,13 @@
 /** @file
   Provides APIs to inspect, load, and relocate PE/COFF Images.
 
+  No implementation of this library may use global variable pointers, as this
+  may cause the emission of Image relocations for this address. This is
+  incompatible with the concept of Image self-relocation, where the Image is
+  loaded in a similar fashion to XIP Images into the memory at an address
+  unknown at compile-time. As such, Image relocation must be safe to perform
+  without any Image relocations applied earlier.
+
   Copyright (c) 2020 - 2021, Marvin Häuser. All rights reserved.<BR>
   Copyright (c) 2020, Vitaly Cheptsov. All rights reserved.<BR>
   Copyright (c) 2020, ISP RAS. All rights reserved.<BR>
