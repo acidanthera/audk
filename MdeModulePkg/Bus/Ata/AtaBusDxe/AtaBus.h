@@ -76,7 +76,7 @@
 #define ATA_TASK_SIGNATURE      SIGNATURE_32 ('A', 'T', 'S', 'K')
 #define ATA_DEVICE_SIGNATURE    SIGNATURE_32 ('A', 'B', 'I', 'D')
 #define ATA_SUB_TASK_SIGNATURE  SIGNATURE_32 ('A', 'S', 'T', 'S')
-#define ADDR_IS_ALIGNED(addr, size)       IS_ALIGNED ((UINTN) (addr), size)
+#define ADDRESS_IS_ALIGNED_(addr, size)            (((UINTN) (addr) & (size - 1)) == 0)
 
 //
 // ATA bus data structure for ATA controller

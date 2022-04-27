@@ -36,7 +36,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #define IS_DEVICE_FIXED(a)  (a)->FixedDevice ? 1 : 0
 
-#define ADDR_IS_ALIGNED(addr, size)    IS_ALIGNED ((UINTN) (addr), size)
+#define ADDRESS_IS_ALIGNED_(addr, size)    (((UINTN) (addr) & (size - 1)) == 0)
 
 #define UFS_WLUN_RPMB  0xC4
 

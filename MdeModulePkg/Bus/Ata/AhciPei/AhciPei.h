@@ -145,7 +145,7 @@ typedef union {
 #define AHCI_PORT_SERR  0x0030
 #define AHCI_PORT_CI    0x0038
 
-#define ADDR_IS_ALIGNED(addr, size)            IS_ALIGNED ((UINTN) (addr), size)
+#define ADDRESS_IS_ALIGNED_(addr, size)                 (((UINTN) (addr) & (size - 1)) == 0)
 #define TIMER_PERIOD_SECONDS(Seconds)  MultU64x32((UINT64)(Seconds), 10000000)
 
 #pragma pack(1)
