@@ -19,6 +19,8 @@
 #include <Library/PcdLib.h>
 #include <Library/UefiImageLib.h>
 
+#include "../BasePeCoffLib2/BaseOverflow.h"
+
 RETURN_STATUS
 UefiImageInitializeContext (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
@@ -45,7 +47,34 @@ UefiImageLoaderGetDestinationSize (
   OUT    UINT32                           *Size
   )
 {
-  return PeCoffLoaderGetDestinationSize (Context, Size);
+  BOOLEAN Overflow;
+  UINT32  AlignedSize;
+  UINT32  SectionAlignment;
+
+  ASSERT (Context != NULL);
+  ASSERT (Size != NULL);
+
+  AlignedSize      = PeCoffGetSizeOfImage (Context);
+  SectionAlignment = PeCoffGetSectionAlignment (Context);
+  //
+  // If the Image section alignment is larger than the UEFI page size,
+  // sufficient alignment cannot be guaranteed by the allocater. Allodate an
+  // additional Image page to be able to manually align within the buffer.
+  //
+  if (SectionAlignment > EFI_PAGE_SIZE) {
+    Overflow = BaseOverflowAddU32 (
+                 AlignedSize,
+                 SectionAlignment - EFI_PAGE_SIZE,
+                 &AlignedSize
+                 );
+    if (Overflow) {
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  *Size = AlignedSize;
+
+  return RETURN_SUCCESS;
 }
 
 RETURN_STATUS

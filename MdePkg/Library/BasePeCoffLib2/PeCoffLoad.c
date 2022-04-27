@@ -31,9 +31,9 @@
                                 initialised by PeCoffInitializeContext().
   @param[in]  LoadedHeaderSize  The size, in Bytes, of the loaded Image Headers.
   @param[out] Destination       The Image destination memory.
-  @param[in]  DestinationSize   The size, in Bytes, of Destination. Must be at
-                                least as large as the size returned by
-                                PeCoffLoaderGetDestinationSize().
+  @param[in]  DestinationSize   The size, in Bytes, of Destination. Must be
+                                sufficent to load the Image with regards to its
+                                Image section alignment.
 **/
 STATIC
 VOID
