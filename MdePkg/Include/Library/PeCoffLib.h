@@ -755,4 +755,27 @@ PeCoffDebugLocateImage (
   IN  UINTN                         Address
   );
 
+/**
+  Retrieve the Image fixed loading address.
+
+  This function is only guaranteed to function correctly if the Image was built
+  by a tool with this feature enabled.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by PeCoffInitializeContext().
+  @param[out]    Address  On output, the fixed loading address of the Image.
+                          *Address is guaranteed to by aligned by the Image
+                          section alignment, and thus the size returned by
+                          PeCoffGetSizeOfImage is sufficient to hold the Image.
+
+  @retval RETURN_SUCCESS      The Image has a fixed loading address.
+  @retval RETURN_NOT_FOUND    The Image does not have a fixed loading address.
+  @retval RETURN_UNSUPPORTED  The Image fixed loading address is unaligned.
+**/
+RETURN_STATUS
+PeCoffGetAssignedAddress(
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT64                        *Address
+  );
+
 #endif // PE_COFF_LIB_H_

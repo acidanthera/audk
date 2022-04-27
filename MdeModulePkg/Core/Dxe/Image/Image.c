@@ -451,63 +451,37 @@ GetPeCoffImageFixLoadingAssignedAddress (
   OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
-   EFI_STATUS                         Status;
-   CONST EFI_IMAGE_SECTION_HEADER     *Sections;
-   UINT32                             DestinationSize;
-   UINT16                             Index;
-   UINT16                             NumberOfSections;
-   UINT64                             ValueInSectionHeader;
-   UINT64                             FixLoadingAddress;
+  EFI_STATUS           Status;
+  UINT64               ValueInSectionHeader;
+  EFI_PHYSICAL_ADDRESS FixLoadingAddress;
+  UINT32               SizeOfImage;
 
-   Status = EFI_NOT_FOUND;
+  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
 
-   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
-
-   Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
-   if (RETURN_ERROR (Status)) {
-     return Status;
-   }
-
+  if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
+    //
+    // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the absolute address of image base running in memory
+    //
+    FixLoadingAddress = ValueInSectionHeader;
+  } else {
+    //
+    // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the offset relative to a platform-specific top address.
+    //
+    FixLoadingAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + ValueInSectionHeader;
+  }
   //
-  // Get base address from the first section header that doesn't point to code section.
-   //
-   for (Index = 0; Index < NumberOfSections; Index++) {
-     Status = EFI_NOT_FOUND;
+  // Check if the memory range is available.
+  //
+  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
+  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
+  *LoadAddress = FixLoadingAddress;
 
-    if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool will save the address in PointerToRelocations & PointerToLineNumbers fields in the first section header
-      // that doesn't point to code section in image header, as well as ImageBase field of image header. And there is an
-      // assumption that when the feature is enabled, if a module is assigned a loading address by tools, PointerToRelocations
-      // & PointerToLineNumbers fields should NOT be Zero, or else, these 2 fields should be set to Zero
-       //
-       ValueInSectionHeader = ReadUnaligned64((UINT64*)&Sections[Index].PointerToRelocations);
-
-       if (ValueInSectionHeader != 0) {
-          if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
-           //
-           // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
-           // hold the absolute address of image base running in memory
-           //
-           FixLoadingAddress = ValueInSectionHeader;
-         } else {
-           //
-           // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
-           // hold the offset relative to a platform-specific top address.
-           //
-           FixLoadingAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)ValueInSectionHeader;
-         }
-
-         //
-         // Check if the memory range is available.
-         //
-         Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, DestinationSize);
-         *LoadAddress = FixLoadingAddress;
-       }
-       break;
-     }
-   }
-   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)(PeCoffGetImageBase (ImageContext)), Status));
+   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
   return Status;
 }
 

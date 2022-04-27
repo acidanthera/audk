@@ -220,54 +220,20 @@ GetPeCoffImageFixLoadingAssignedAddress (
   OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
-  EFI_STATUS                         Status;
-  CONST EFI_IMAGE_SECTION_HEADER     *Sections;
-  UINT32                             DestinationSize;
-  EFI_PHYSICAL_ADDRESS               FixLoadingAddress;
-  UINT16                             Index;
-  UINT16                           NumberOfSections;
-  UINT64                           ValueInSectionHeader;
+  RETURN_STATUS        Status;
+  UINT64               ValueInSectionHeader;
+  EFI_PHYSICAL_ADDRESS FixLoadingAddress;
+  UINT32               SizeOfImage;
 
-  FixLoadingAddress = 0;
-  Status            = EFI_NOT_FOUND;
-
-  NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
-
-  Status = PeCoffLoaderGetDestinationSize (ImageContext, &DestinationSize);
+  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
 
-  //
-  // Get base address from the first section header that doesn't point to code section.
-  //
-  for (Index = 0; Index < NumberOfSections; Index++) {
-    Status = EFI_NOT_FOUND;
-
-    if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool will save the address in PointerToRelocations & PointerToLineNumbers fields in the first section header
-      // that doesn't point to code section in image header.So there is an assumption that when the feature is enabled,
-      // if a module with a loading address assigned by tools, the PointerToRelocations & PointerToLineNumbers fields
-      // should not be Zero, or else, these 2 fields should be set to Zero
-      //
-      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&Sections[Index].PointerToRelocations);
-      if (ValueInSectionHeader != 0) {
-        //
-        // Found first section header that doesn't point to code section in which build tool saves the
-        // offset to SMRAM base as image base in PointerToRelocations & PointerToLineNumbers fields
-        //
-        FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(gLoadModuleAtFixAddressSmramBase + (INT64)ValueInSectionHeader);
-        //
-        // Check if the memory range is available.
-        //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, DestinationSize);
-        *LoadAddress = FixLoadingAddress;
-      }
-
-      break;
-    }
-  }
+  FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(gLoadModuleAtFixAddressSmramBase + ValueInSectionHeader);
+  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
+  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
+  *LoadAddress = FixLoadingAddress;
 
   DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r\n", FixLoadingAddress, Status));
   return Status;

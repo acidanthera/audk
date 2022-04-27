@@ -36,6 +36,7 @@
 #include <Library/ReportStatusCodeLib.h>
 
 #include "PiSmmCorePrivateData.h"
+#include "ProcessorBind.h"
 #include "Uefi/UefiBaseType.h"
 
 #define SMRAM_CAPABILITIES  (EFI_MEMORY_WB | EFI_MEMORY_UC)
@@ -916,62 +917,39 @@ SmmIplSetVirtualAddressNotify (
 EFI_STATUS
 GetPeCoffImageFixLoadingAssignedAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  EFI_PHYSICAL_ADDRESS *LoadAddress
+  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
-   EFI_STATUS                         Status;
-   CONST EFI_IMAGE_SECTION_HEADER     *Sections;
-  EFI_PHYSICAL_ADDRESS             FixLoadingAddress;
-  UINT16                           Index;
-  UINT16                           NumberOfSections;
-  EFI_PHYSICAL_ADDRESS             SmramBase;
-  UINT64                           SmmCodeSize;
-  UINT64                           ValueInSectionHeader;
+  EFI_STATUS           Status;
+  UINT64               ValueInSectionHeader;
+  EFI_PHYSICAL_ADDRESS FixLoadingAddress;
+  UINT32               SizeOfImage;
+  EFI_PHYSICAL_ADDRESS SmramBase;
+  UINT64               SmmCodeSize;
 
+  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
   //
   // Build tool will calculate the smm code size and then patch the PcdLoadFixAddressSmmCodePageNumber
   //
-  SmmCodeSize = EFI_PAGES_TO_SIZE (PcdGet32 (PcdLoadFixAddressSmmCodePageNumber));
+  SmmCodeSize = EFI_PAGES_TO_SIZE (PcdGet32(PcdLoadFixAddressSmmCodePageNumber));
+  SmramBase = mLMFAConfigurationTable->SmramBase;
 
-  FixLoadingAddress = 0;
-  Status            = EFI_NOT_FOUND;
-  SmramBase         = mLMFAConfigurationTable->SmramBase;
+  FixLoadingAddress = SmramBase + ValueInSectionHeader;
+  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
 
-   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
+  if (SmramBase + SmmCodeSize >= FixLoadingAddress + SizeOfImage
+   && SmramBase <= FixLoadingAddress) {
+    //
+    // The assigned address is valid. Return the specified loading address
+    //
+    *LoadAddress = FixLoadingAddress;
+    Status = EFI_SUCCESS;
+  }
 
-  //
-  // Get base address from the first section header that doesn't point to code section.
-   //
-   for (Index = 0; Index < NumberOfSections; Index++) {
-     Status = EFI_NOT_FOUND;
-
-    if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool saves the offset to SMRAM base as image base in PointerToRelocations & PointerToLineNumbers fields in the
-      // first section header that doesn't point to code section in image header. And there is an assumption that when the
-      // feature is enabled, if a module is assigned a loading address by tools, PointerToRelocations & PointerToLineNumbers
-      // fields should NOT be Zero, or else, these 2 fields should be set to Zero
-      //
-      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&Sections[Index].PointerToRelocations);
-      if (ValueInSectionHeader != 0) {
-        //
-        // Found first section header that doesn't point to code section in which build tool saves the
-        // offset to SMRAM base as image base in PointerToRelocations & PointerToLineNumbers fields
-        //
-        FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(SmramBase + (INT64)ValueInSectionHeader);
-
-        if ((SmramBase + SmmCodeSize > FixLoadingAddress) && (SmramBase <=  FixLoadingAddress)) {
-          //
-          // The assigned address is valid. Return the specified loading address
-          //
-           *LoadAddress = FixLoadingAddress;
-          Status                     = EFI_SUCCESS;
-        }
-      }
-       break;
-     }
-   }
-   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r \n", FixLoadingAddress, Status));
+  DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address %x, Status = %r \n", FixLoadingAddress, Status));
   return Status;
 }
 

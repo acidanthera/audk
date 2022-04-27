@@ -109,68 +109,37 @@ GetPeCoffImageFixLoadingAssignedAddress (
   OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
   )
 {
-   EFI_STATUS                         Status;
-   CONST EFI_IMAGE_SECTION_HEADER     *Sections;
-   EFI_PHYSICAL_ADDRESS               FixLoadingAddress;
-   UINT16                             Index;
-   UINT16                             NumberOfSections;
-   UINT64                             ValueInSectionHeader;
+   EFI_STATUS           Status;
+   UINT64               ValueInSectionHeader;
+   EFI_PHYSICAL_ADDRESS FixLoadingAddress;
+   UINT32               SizeOfImage;
 
-  FixLoadingAddress = 0;
-  Status            = EFI_NOT_FOUND;
+  Status = PeCoffGetAssignedAddress (ImageContext, &ValueInSectionHeader);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
 
-   NumberOfSections = PeCoffGetSectionTable (ImageContext, &Sections);
+  if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
+    //
+    // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the absolute address of image base running in memory
+    //
+    FixLoadingAddress = ValueInSectionHeader;
+  } else {
+    //
+    // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the offset relative to a platform-specific top address.
+    //
+    FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(Private->LoadModuleAtFixAddressTopAddress + ValueInSectionHeader);
+  }
+  //
+  // Check if the memory range is available.
+  //
+  SizeOfImage = PeCoffGetSizeOfImage (ImageContext);
+  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, SizeOfImage);
+  *LoadAddress = FixLoadingAddress;
 
-   //
-  // Get base address from the first section header that doesn't point to code section.
-   //
-   for (Index = 0; Index < NumberOfSections; Index++) {
-     Status = EFI_NOT_FOUND;
-
-    if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool will save the address in PointerToRelocations & PointerToLineNumbers fields in the first section header
-      // that doesn't point to code section in image header, as well as ImageBase field of image header. A notable thing is
-      // that for PEIM, the value in ImageBase field may not be equal to the value in PointerToRelocations & PointerToLineNumbers because
-      // for XIP PEIM, ImageBase field holds the image base address running on the Flash. And PointerToRelocations & PointerToLineNumbers
-      // hold the image base address when it is shadow to the memory. And there is an assumption that when the feature is enabled, if a
-      // module is assigned a loading address by tools, PointerToRelocations & PointerToLineNumbers fields should NOT be Zero, or
-      // else, these 2 fields should be set to Zero
-       //
-       ValueInSectionHeader = ReadUnaligned64((UINT64*)&Sections[Index].PointerToRelocations);
-       if (ValueInSectionHeader != 0) {
-         //
-         // Found first section header that doesn't point to code section.
-        //
-        if ((INT64)PcdGet64 (PcdLoadModuleAtFixAddressEnable) > 0) {
-          //
-          // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
-          // hold the absolute address of image base running in memory
-          //
-          FixLoadingAddress = ValueInSectionHeader;
-        } else {
-          //
-          // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
-          // hold the offset relative to a platform-specific top address.
-          //
-          FixLoadingAddress = (EFI_PHYSICAL_ADDRESS)(Private->LoadModuleAtFixAddressTopAddress + (INT64)ValueInSectionHeader);
-        }
-
-        //
-        // Check if the memory range is available.
-        //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, (UINT32)PeCoffGetSizeOfImage (ImageContext));
-        if (!EFI_ERROR (Status)) {
-          //
-          // The assigned address is valid. Return the specified loading address
-          //
-           *LoadAddress = FixLoadingAddress;
-        }
-      }
-       break;
-     }
-   }
-   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status= %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
+  DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status= %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
   return Status;
 }
 
