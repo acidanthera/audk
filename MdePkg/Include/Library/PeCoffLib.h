@@ -490,7 +490,7 @@ PeCoffDiscardSections (
   @param[in,out] Context      The context describing the Image. Must have been
                               initialised by PeCoffInitializeContext().
   @param[out]    PdbPath      On output, a pointer to the Image PDB path.
-  @param[out]    PdbPathSize  On output, the size, in Bytes, of PdbPath.
+  @param[out]    PdbPathSize  On output, the size, in Bytes, of *PdbPath.
 
   @retval RETURN_SUCCESS  The Image PDB path was retrieved successfully.
   @retval other           The Image PDB path could not be retrieved
