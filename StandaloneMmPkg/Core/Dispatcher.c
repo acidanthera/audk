@@ -194,9 +194,9 @@ InternalProtectMmImage (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  PE_COFF_IMAGE_RECORD *ImageRecord;
-  UINTN                SectionAddress;
-  UINT32               SectionIndex;
+  UEFI_IMAGE_RECORD       *ImageRecord;
+  UINTN                   SectionAddress;
+  UINT32                  SectionIndex;
 
   if (UefiImageGetSegmentAlignment (ImageContext) < EFI_PAGE_SIZE) {
     // FIXME: PCD to abort loading?
@@ -227,30 +227,30 @@ InternalProtectMmImage (
   // Images are loaded into RW memory, thus only +X and -W need to be handled.
   //
   SectionAddress = ImageRecord->StartAddress;
-  for (SectionIndex = 0; SectionIndex < ImageRecord->NumberOfSections; ++ SectionIndex) {
+  for (SectionIndex = 0; SectionIndex < ImageRecord->NumSegments; ++ SectionIndex) {
     DEBUG ((DEBUG_INFO,
       "%a: Mapping segment of image at 0x%lx with %s-%s permissions and size 0x%x\n",
       __FUNCTION__, SectionAddress,
-      (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0 ? "RO" : "RW",
-      (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) != 0 ? "XN" : "X",
-      ImageRecord->Sections[SectionIndex].Size));
+      (ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) != 0 ? "RO" : "RW",
+      (ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) != 0 ? "XN" : "X",
+      ImageRecord->Segments[SectionIndex].Size));
 
     // FIXME: What about their return values?
-    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0) {
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) != 0) {
       SetMemoryRegionReadOnly (
         SectionAddress,
-        ImageRecord->Sections[SectionIndex].Size
+        ImageRecord->Segments[SectionIndex].Size
         );
     }
 
-    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) == 0) {
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) == 0) {
       ClearMemoryRegionNoExec (
         SectionAddress,
-        ImageRecord->Sections[SectionIndex].Size
+        ImageRecord->Segments[SectionIndex].Size
         );
     }
 
-    SectionAddress += ImageRecord->Sections[SectionIndex].Size;
+    SectionAddress += ImageRecord->Segments[SectionIndex].Size;
   }
 
   FreePool (ImageRecord);

@@ -8,10 +8,62 @@
 typedef PE_COFF_LOADER_IMAGE_CONTEXT   UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
 typedef PE_COFF_LOADER_RUNTIME_CONTEXT UEFI_IMAGE_LOADER_RUNTIME_CONTEXT;
 
-// FIXME: Work on reasonable common sharing
-typedef PE_COFF_IMAGE_RECORD_SECTION   UEFI_IMAGE_IMAGE_RECORD_SEGMENT;
-typedef PE_COFF_IMAGE_RECORD           UEFI_IMAGE_IMAGE_RECORD;
-#define UEFI_IMAGE_IMAGE_RECORD_SIGNATURE  PE_COFF_IMAGE_RECORD_SIGNATURE
+///
+/// Image record segment that desribes the UEFI memory permission configuration
+/// for one segment of the Image.
+///
+typedef struct {
+  ///
+  /// The size, in Bytes, of the Image record segment.
+  ///
+  UINT32 Size;
+  ///
+  /// The UEFI memory permission attributes corresponding to this Image record
+  /// segment.
+  ///
+  UINT32 Attributes;
+} UEFI_IMAGE_RECORD_SEGMENT;
+
+///
+/// The 32-bit signature that identifies a UEFI_IMAGE_RECORD structure.
+///
+#define UEFI_IMAGE_RECORD_SIGNATURE  SIGNATURE_32 ('U','I','I','R')
+
+///
+/// Image record that describes the UEFI memory permission configuration for
+/// every segment of the Image.
+///
+typedef struct {
+  ///
+  /// The signature of the Image record structure. Must be set to
+  /// UEFI_IMAGE_RECORD_SIGNATURE.
+  ///
+  UINT32                       Signature;
+  ///
+  /// A link to allow insertion of the Image record into a doubly-linked list.
+  ///
+  LIST_ENTRY                   Link;
+  ///
+  /// The start address of the Image memory space.
+  ///
+  UINTN                        StartAddress;
+  ///
+  /// The end address of the Image memory space. Must be equal to StartAddress
+  /// plus the sum of Segments[i].Size for 0 <= i < NumSegments.
+  ///
+  UINTN                        EndAddress;
+  ///
+  /// The number of Image records. Must be at least 1.
+  ///
+  UINT32                       NumSegments;
+  ///
+  /// The Image record segments with their corresponding memory permission
+  /// attributes. All Image record segments are contiguous and cover the entire
+  /// Image memory space. The address of an Image record segment can be
+  /// determined by adding the sum of all previous sizes to StartAddress.
+  ///
+  UEFI_IMAGE_RECORD_SEGMENT    Segments[];
+} UEFI_IMAGE_RECORD;
 
 /**
   Adds the digest of Data to HashContext. This function can be called multiple
@@ -109,14 +161,14 @@ UefiImageLoaderGetDestinationSize (
 RETURN_STATUS
 UefiImageLoadImage (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    VOID                          *Destination,
-  IN     UINT32                        DestinationSize
+  OUT    VOID                             *Destination,
+  IN     UINT32                           DestinationSize
   );
 
 // FIXME: Docs
 BOOLEAN
 UefiImageImageIsInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
@@ -527,7 +579,7 @@ UefiImageLoaderGetImageEntryPoint (
                  It is allocated using the AllocatePool() API and is
                  caller-owned as soon as this function returns.
 **/
-UEFI_IMAGE_IMAGE_RECORD *
+UEFI_IMAGE_RECORD *
 UefiImageLoaderGetImageRecord (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );

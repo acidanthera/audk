@@ -12,23 +12,6 @@
 #define BASE_PE_COFF_LIB2_INTERNALS_H_
 
 //
-// PcdImageLoaderAlignmentPolicy bits.
-//
-
-///
-/// If set, unaligned Image sections are permitted.
-///
-#define PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS     BIT0
-///
-/// If set, unaligned Image Relocation Block sizes are permitted.
-///
-#define PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES  BIT1
-///
-/// If set, unaligned Image certificate sizes are permitted.
-///
-#define PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES       BIT2
-
-//
 // PcdImageLoaderRelocTypePolicy bits.
 //
 

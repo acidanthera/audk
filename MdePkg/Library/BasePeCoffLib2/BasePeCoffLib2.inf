@@ -32,7 +32,6 @@
 [LibraryClasses]
   BaseLib
   BaseMemoryLib
-  CacheMaintenanceLib
   DebugLib
   MemoryAllocationLib
   UefiImageExtraActionLib

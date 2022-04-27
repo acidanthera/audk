@@ -216,23 +216,23 @@ SetUefiImageMemoryAttributes (
 **/
 VOID
 SetUefiImageProtectionAttributes (
-  IN PE_COFF_IMAGE_RECORD     *ImageRecord
+  IN UEFI_IMAGE_RECORD        *ImageRecord
   )
 {
-  PE_COFF_IMAGE_RECORD_SECTION    *ImageRecordSection;
+  UEFI_IMAGE_RECORD_SEGMENT       *ImageRecordSegment;
   UINTN                           SectionAddress;
   UINT32                          Index;
 
   SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumberOfSections; Index++) {
-    ImageRecordSection = &ImageRecord->Sections[Index];
+  for (Index = 0; Index < ImageRecord->NumSegments; Index++) {
+    ImageRecordSegment = &ImageRecord->Segments[Index];
     SetUefiImageMemoryAttributes (
       SectionAddress,
-      ImageRecordSection->Size,
-      ImageRecordSection->Attributes
+      ImageRecordSegment->Size,
+      ImageRecordSegment->Attributes
       );
 
-    SectionAddress += ImageRecordSection->Size;
+    SectionAddress += ImageRecordSegment->Size;
   }
 }
 
@@ -299,7 +299,7 @@ ProtectUefiImage (
   EFI_DEVICE_PATH_PROTOCOL    *LoadedImageDevicePath;
   UINT32                                SectionAlignment;
   UINTN                                 Index;
-  PE_COFF_IMAGE_RECORD                 *ImageRecord;
+  UEFI_IMAGE_RECORD                    *ImageRecord;
   UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
@@ -354,19 +354,17 @@ ProtectUefiImage (
   UefiImageDebugPrintSegments (ImageContext);
 
   SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
+  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
     DEBUG ((
       DEBUG_ERROR,
       "  RecordSection\n"
       ));
     DEBUG ((DEBUG_ERROR, "  Address              - 0x%016llx\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_ERROR, "  Size                 - 0x%08x\n", ImageRecord->Sections[Index].Size));
-    DEBUG ((DEBUG_ERROR, "  Attributes           - 0x%08x\n", ImageRecord->Sections[Index].Attributes));
+    DEBUG ((DEBUG_ERROR, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
+    DEBUG ((DEBUG_ERROR, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
 
-    SectionAddress += ImageRecord->Sections[Index].Size;
+    SectionAddress += ImageRecord->Segments[Index].Size;
   }
-
-  ASSERT (FALSE);
 
   //
   // Record the image record in the list so we can undo the protections later
@@ -396,7 +394,7 @@ UnprotectUefiImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
   )
 {
-  PE_COFF_IMAGE_RECORD       *ImageRecord;
+  UEFI_IMAGE_RECORD          *ImageRecord;
   LIST_ENTRY                 *ImageRecordLink;
 
   for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
@@ -405,9 +403,9 @@ UnprotectUefiImage (
     {
     ImageRecord = CR (
                     ImageRecordLink,
-                    PE_COFF_IMAGE_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    PE_COFF_IMAGE_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
     if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
@@ -771,7 +769,7 @@ MemoryProtectionCpuArchProtocolNotify (
 {
   EFI_STATUS                 Status;
   LIST_ENTRY                  *ImageRecordLink;
-  PE_COFF_IMAGE_RECORD        *ImageRecord;
+  UEFI_IMAGE_RECORD           *ImageRecord;
 
   DEBUG ((DEBUG_INFO, "MemoryProtectionCpuArchProtocolNotify:\n"));
   Status = CoreLocateProtocol (&gEfiCpuArchProtocolGuid, NULL, (VOID **)&gCpu);
@@ -800,9 +798,9 @@ MemoryProtectionCpuArchProtocolNotify (
         ImageRecordLink = ImageRecordLink->ForwardLink) {
     ImageRecord = CR (
                     ImageRecordLink,
-                    PE_COFF_IMAGE_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    PE_COFF_IMAGE_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
     //

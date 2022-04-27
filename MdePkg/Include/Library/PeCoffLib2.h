@@ -22,6 +22,24 @@
 
 #include <Guid/WinCertificate.h>
 
+// FIXME: Where to put this?
+//
+// PcdImageLoaderAlignmentPolicy bits.
+//
+
+///
+/// If set, unaligned Image sections are permitted.
+///
+#define PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS     BIT0
+///
+/// If set, unaligned Image Relocation Block sizes are permitted.
+///
+#define PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES  BIT1
+///
+/// If set, unaligned Image certificate sizes are permitted.
+///
+#define PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES       BIT2
+
 // FIXME: Rework docs to consider Inplace dependencies
 
 /**
@@ -149,63 +167,6 @@ typedef struct {
   ///
   UINT64 FixupData[];
 } PE_COFF_LOADER_RUNTIME_CONTEXT;
-
-///
-/// Image record section that desribes the UEFI memory permission configuration
-/// for one segment of the Image.
-///
-typedef struct {
-  ///
-  /// The size, in Bytes, of the Image record section.
-  ///
-  UINT32 Size;
-  ///
-  /// The UEFI memory permission attributes corresponding to this Image record
-  /// section.
-  ///
-  UINT32 Attributes;
-} PE_COFF_IMAGE_RECORD_SECTION;
-
-///
-/// The 32-bit signature that identifies a PE_COFF_IMAGE_RECORD structure.
-///
-#define PE_COFF_IMAGE_RECORD_SIGNATURE  SIGNATURE_32 ('P','C','I','R')
-
-///
-/// Image record that describes the UEFI memory permission configuration for
-/// every segment of the Image.
-///
-typedef struct {
-  ///
-  /// The signature of the Image record structure. Must be set to
-  /// PE_COFF_IMAGE_RECORD_SIGNATURE.
-  ///
-  UINT32                       Signature;
-  ///
-  /// A link to allow insertion of the Image record into a doubly-linked list.
-  ///
-  LIST_ENTRY                   Link;
-  ///
-  /// The start address of the Image memory space.
-  ///
-  UINTN                        StartAddress;
-  ///
-  /// The end address of the Image memory space. Must be equal to StartAddress
-  /// plus the sum of Sections[i].Size for 0 <= i < NumberOfSections.
-  ///
-  UINTN                        EndAddress;
-  ///
-  /// The number of Image records. Must be at least 1.
-  ///
-  UINT32                       NumberOfSections;
-  ///
-  /// The Image record sections with their corresponding memory permission
-  /// attributes. All Image record sections are contiguous and cover the entire
-  /// Image memory space. The address of an Image record section can be
-  /// determined by adding the sum of all previous sizes to StartAddress.
-  ///
-  PE_COFF_IMAGE_RECORD_SECTION Sections[];
-} PE_COFF_IMAGE_RECORD;
 
 /**
   Adds the digest of Data to HashContext. This function can be called multiple
@@ -654,25 +615,6 @@ PeCoffLoaderGetImageAddress (
 **/
 UINTN
 PeCoffLoaderGetImageEntryPoint (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
-/**
-  Constructs an Image record from the Image. Any headers, gaps, or trailers are
-  described as read-only data.
-
-  May be called only after PeCoffLoadImage() has succeeded.
-
-  @param[in,out] Context  The context describing the Image. Must have been
-                          initialised by PeCoffInitializeContext().
-
-  @retval NULL   The Image record could not constructed successfully.
-  @retval other  The Image record was constructed successfully and is returned.
-                 It is allocated using the AllocatePool() API and is
-                 caller-owned as soon as this function returns.
-**/
-PE_COFF_IMAGE_RECORD *
-PeCoffLoaderGetImageRecord (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 

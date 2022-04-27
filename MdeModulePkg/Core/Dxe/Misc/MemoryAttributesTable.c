@@ -543,13 +543,13 @@ EnforceMemoryMapAttribute (
   @return first image record covered by [buffer, length]
 **/
 STATIC
-PE_COFF_IMAGE_RECORD *
+UEFI_IMAGE_RECORD *
 GetImageRecordByAddress (
   IN EFI_PHYSICAL_ADDRESS  Buffer,
   IN UINT64                Length
   )
 {
-  PE_COFF_IMAGE_RECORD       *ImageRecord;
+  UEFI_IMAGE_RECORD          *ImageRecord;
   LIST_ENTRY               *ImageRecordLink;
   LIST_ENTRY               *ImageRecordList;
 
@@ -561,9 +561,9 @@ GetImageRecordByAddress (
   {
     ImageRecord = CR (
                     ImageRecordLink,
-                    PE_COFF_IMAGE_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    PE_COFF_IMAGE_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
     if ((Buffer <= ImageRecord->StartAddress) &&
@@ -592,13 +592,13 @@ GetImageRecordByAddress (
 STATIC
 UINTN
 SetNewRecord (
-  IN PE_COFF_IMAGE_RECORD          *ImageRecord,
+  IN UEFI_IMAGE_RECORD             *ImageRecord,
   IN OUT EFI_MEMORY_DESCRIPTOR  *NewRecord,
   IN EFI_MEMORY_DESCRIPTOR      *OldRecord,
   IN UINTN                      DescriptorSize
   )
 {
-  PE_COFF_IMAGE_RECORD_SECTION              *ImageRecordSection;
+  UEFI_IMAGE_RECORD_SEGMENT                 *ImageRecordSegment;
   UINTN                                     SectionAddress;
   UINT32                                    Index;
   UINT32                                    NewRecordCount;
@@ -618,20 +618,20 @@ SetNewRecord (
   }
 
   SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
-    ImageRecordSection = &ImageRecord->Sections[Index];
+  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
+    ImageRecordSegment = &ImageRecord->Segments[Index];
 
     NewRecord->Type          = OldRecord->Type;
     NewRecord->PhysicalStart = SectionAddress;
     NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSection->Size);
-    NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSection->Attributes;
+    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSegment->Size);
+    NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
 
-    SectionAddress += ImageRecordSection->Size;
+    SectionAddress += ImageRecordSegment->Size;
     NewRecord= NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
   }
 
-  return NewRecordCount + ImageRecord->NumberOfSections;
+  return NewRecordCount + ImageRecord->NumSegments;
 }
 
 /**
@@ -649,7 +649,7 @@ GetMaxSplitRecordCount (
   IN EFI_MEMORY_DESCRIPTOR  *OldRecord
   )
 {
-  PE_COFF_IMAGE_RECORD    *ImageRecord;
+  UEFI_IMAGE_RECORD       *ImageRecord;
   UINTN                    SplitRecordCount;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
@@ -668,7 +668,7 @@ GetMaxSplitRecordCount (
     //
     // Per image, they may be one trailer.
     //
-    SplitRecordCount += ImageRecord->NumberOfSections + 1;
+    SplitRecordCount += ImageRecord->NumSegments + 1;
     PhysicalStart = ImageRecord->EndAddress;
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
 
@@ -703,8 +703,8 @@ SplitRecord (
   )
 {
   EFI_MEMORY_DESCRIPTOR    TempRecord;
-  PE_COFF_IMAGE_RECORD    *ImageRecord;
-  PE_COFF_IMAGE_RECORD    *NewImageRecord;
+  UEFI_IMAGE_RECORD       *ImageRecord;
+  UEFI_IMAGE_RECORD       *NewImageRecord;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
   UINTN                    NewRecordCount;
@@ -1019,10 +1019,10 @@ SetMemoryAttributesTableSectionAlignment (
 STATIC
 VOID
 InsertSortImageRecord (
-  IN PE_COFF_IMAGE_RECORD  *NewImageRecord
+  IN UEFI_IMAGE_RECORD        *NewImageRecord
   )
 {
-  PE_COFF_IMAGE_RECORD         *ImageRecord;
+  UEFI_IMAGE_RECORD            *ImageRecord;
   LIST_ENTRY                   *PrevImageRecordLink;
   LIST_ENTRY                   *ImageRecordLink;
   LIST_ENTRY                   *ImageRecordList;
@@ -1037,9 +1037,9 @@ InsertSortImageRecord (
     ) {
     ImageRecord = CR (
                     ImageRecordLink,
-                    PE_COFF_IMAGE_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    PE_COFF_IMAGE_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
     if (NewImageRecord->StartAddress < ImageRecord->StartAddress) {
       break;
@@ -1051,8 +1051,8 @@ InsertSortImageRecord (
   InsertHeadList (PrevImageRecordLink, &NewImageRecord->Link);
   mImagePropertiesPrivateData.ImageRecordCount++;
 
-  if (mImagePropertiesPrivateData.SectionCountMax < NewImageRecord->NumberOfSections) {
-    mImagePropertiesPrivateData.SectionCountMax = NewImageRecord->NumberOfSections;
+  if (mImagePropertiesPrivateData.SectionCountMax < NewImageRecord->NumSegments) {
+    mImagePropertiesPrivateData.SectionCountMax = NewImageRecord->NumSegments;
   }
 }
 
@@ -1071,7 +1071,7 @@ InsertImageRecord (
   EFI_RUNTIME_IMAGE_ENTRY              *RuntimeImage;
   UINT32                                SectionAlignment;
   UINTN                                 Index;
-  PE_COFF_IMAGE_RECORD                 *ImageRecord;
+  UEFI_IMAGE_RECORD                    *ImageRecord;
   UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
@@ -1119,16 +1119,16 @@ InsertImageRecord (
   UefiImageDebugPrintSegments (ImageContext);
 
   SectionAddress = ImageRecord->StartAddress;
-  for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
+  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
     DEBUG ((
       DEBUG_VERBOSE,
       "  RecordSection'\n"
       ));
     DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) SectionAddress));
-    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Sections[Index].Size));
-    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Sections[Index].Attributes));
+    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Segments[Index].Size));
+    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Segments[Index].Attributes));
 
-    SectionAddress += ImageRecord->Sections[Index].Size;
+    SectionAddress += ImageRecord->Segments[Index].Size;
   }
 
   //
@@ -1151,12 +1151,12 @@ Finish:
   @return image record
 **/
 STATIC
-PE_COFF_IMAGE_RECORD *
+UEFI_IMAGE_RECORD *
 FindImageRecord (
   IN EFI_PHYSICAL_ADDRESS  ImageBase
   )
 {
-  PE_COFF_IMAGE_RECORD       *ImageRecord;
+  UEFI_IMAGE_RECORD          *ImageRecord;
   LIST_ENTRY               *ImageRecordLink;
   LIST_ENTRY               *ImageRecordList;
 
@@ -1168,9 +1168,9 @@ FindImageRecord (
   {
     ImageRecord = CR (
                     ImageRecordLink,
-                    PE_COFF_IMAGE_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    PE_COFF_IMAGE_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
     if (ImageBase == ImageRecord->StartAddress)
@@ -1192,7 +1192,7 @@ RemoveImageRecord (
   IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
   )
 {
-  PE_COFF_IMAGE_RECORD              *ImageRecord;
+  UEFI_IMAGE_RECORD                 *ImageRecord;
 
   DEBUG ((DEBUG_VERBOSE, "RemoveImageRecord - 0x%x\n", RuntimeImage));
   DEBUG ((DEBUG_VERBOSE, "RemoveImageRecord - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase, RuntimeImage->ImageSize));

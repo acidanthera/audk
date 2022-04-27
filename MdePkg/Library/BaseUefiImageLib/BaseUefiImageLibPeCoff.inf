@@ -21,4 +21,12 @@
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  CacheMaintenanceLib
+  DebugLib
+  MemoryAllocationLib
   PeCoffLib2
+
+[FixedPcd]
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy

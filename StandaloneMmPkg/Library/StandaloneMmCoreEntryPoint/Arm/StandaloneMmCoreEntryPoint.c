@@ -333,7 +333,7 @@ _ModuleEntryPoint (
   VOID                            *TeData;
   UINT32                                  TeDataSize;
   UINT32                                  SectionIndex;
-  PE_COFF_IMAGE_RECORD                    *ImageRecord;
+  UEFI_IMAGE_RECORD                       *ImageRecord;
 
   // Get Secure Partition Manager Version Information
   Status = GetSpmVersion ();
@@ -374,18 +374,18 @@ _ModuleEntryPoint (
     goto finish;
   }
 
-  for (SectionIndex = 0; SectionIndex < ImageRecord->NumberOfSections; ++ SectionIndex) {
-    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) != 0) {
+  for (SectionIndex = 0; SectionIndex < ImageRecord->NumSegments; ++ SectionIndex) {
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) != 0) {
       ArmSetMemoryRegionNoExec (
-        ImageRecord->Sections[SectionIndex].Address,
-        ImageRecord->Sections[SectionIndex].Size
+        ImageRecord->Segments[SectionIndex].Address,
+        ImageRecord->Segments[SectionIndex].Size
         );
     }
 
-    if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) == 0) {
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) == 0) {
       ArmClearMemoryRegionReadOnly (
-        ImageRecord->Sections[SectionIndex].Address,
-        ImageRecord->Sections[SectionIndex].Size
+        ImageRecord->Segments[SectionIndex].Address,
+        ImageRecord->Segments[SectionIndex].Size
         );
     }
   }
