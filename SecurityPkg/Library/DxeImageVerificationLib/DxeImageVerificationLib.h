@@ -178,6 +178,10 @@ typedef struct {
   //
   UINTN                    OidLength;
   //
+  // GUID of the certificate type
+  //
+  CONST GUID               *CertType;
+  //
   // Pointer to Hash GetContentSize function
   //
   HASH_GET_CONTEXT_SIZE    GetContextSize;

@@ -45,11 +45,11 @@ UINT8  mHashOidValue[] = {
 
 HASH_TABLE  mHash[] = {
 #ifndef DISABLE_SHA1_DEPRECATED_INTERFACES
-  { L"SHA1",   20, &mHashOidValue[0],  5, Sha1GetContextSize,   Sha1Init,   Sha1Update,   Sha1Final  },
+  { L"SHA1",   20, &mHashOidValue[0],  5, &gEfiCertSha1Guid, Sha1GetContextSize,   Sha1Init,   Sha1Update,   Sha1Final  },
 #endif
-  { L"SHA256", 32, &mHashOidValue[14], 9, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
-  { L"SHA384", 48, &mHashOidValue[23], 9, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
-  { L"SHA512", 64, &mHashOidValue[32], 9, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
+  { L"SHA256", 32, &mHashOidValue[14], 9, &gEfiCertSha256Guid, Sha256GetContextSize, Sha256Init, Sha256Update, Sha256Final },
+  { L"SHA384", 48, &mHashOidValue[23], 9, &gEfiCertSha384Guid, Sha384GetContextSize, Sha384Init, Sha384Update, Sha384Final },
+  { L"SHA512", 64, &mHashOidValue[32], 9, &gEfiCertSha512Guid, Sha512GetContextSize, Sha512Init, Sha512Update, Sha512Final }
 };
 
 /**
@@ -224,17 +224,14 @@ GetImageType (
 BOOLEAN
 HashPeImage (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN  UINT32                    HashAlg,
+  IN  HASH_TABLE                   *HashAlg,
   UINT8                         ImageDigest[MAX_DIGEST_SIZE],
-  UINTN                         *ImageDigestSize,
-  OUT CONST EFI_GUID **CertType
+  UINTN                         *ImageDigestSize
   )
 {
   BOOLEAN                   Status;
   VOID                      *HashCtx;
   UINTN                     CtxSize;
-
-  ASSERT (HashAlg < HASHALG_MAX);
 
   HashCtx       = NULL;
   Status        = FALSE;
@@ -244,53 +241,30 @@ HashPeImage (
   //
   ZeroMem (ImageDigest, MAX_DIGEST_SIZE);
 
-  switch (HashAlg) {
- #ifndef DISABLE_SHA1_DEPRECATED_INTERFACES
-  case HASHALG_SHA1:
-    *CertType        = &gEfiCertSha1Guid;
-    break;
-#endif
-
-  case HASHALG_SHA256:
-    *CertType        = &gEfiCertSha256Guid;
-    break;
-
-  case HASHALG_SHA384:
-    *CertType        = &gEfiCertSha384Guid;
-    break;
-
-  case HASHALG_SHA512:
-    *CertType        = &gEfiCertSha512Guid;
-    break;
-
-    default:
-      return FALSE;
-  }
-
-  CtxSize      = mHash[HashAlg].GetContextSize ();
+  CtxSize      = HashAlg->GetContextSize ();
 
   HashCtx = AllocatePool (CtxSize);
   if (HashCtx == NULL) {
     return FALSE;
   }
 
-  Status = mHash[HashAlg].HashInit (HashCtx);
+  Status = HashAlg->HashInit (HashCtx);
 
   if (!Status) {
     goto Done;
   }
 
-  Status = UefiImageHashImageDefault (ImageContext, HashCtx, mHash[HashAlg].HashUpdate);
+  Status = UefiImageHashImageDefault (ImageContext, HashCtx, HashAlg->HashUpdate);
 
   if (!Status) {
-    DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image using %s.\n", mHash[HashAlg].Name));
+    DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image using %s.\n", HashAlg->Name));
     goto Done;
   }
 
-  ASSERT (mHash[HashAlg].DigestLength <= MAX_DIGEST_SIZE);
-  Status  = mHash[HashAlg].HashFinal(HashCtx, ImageDigest);
+  ASSERT (HashAlg->DigestLength <= MAX_DIGEST_SIZE);
+  Status  = HashAlg->HashFinal(HashCtx, ImageDigest);
 
-  *ImageDigestSize = mHash[HashAlg].DigestLength;
+  *ImageDigestSize = HashAlg->DigestLength;
 
 Done:
   if (HashCtx != NULL) {
@@ -364,9 +338,11 @@ HashPeImageByType (
   //
   // HASH PE Image based on Hash algorithm in PE/COFF Authenticode.
   //
-  if (!HashPeImage (ImageContext, Index, ImageDigest, ImageDigestSize, CertType)) {
+  if (!HashPeImage (ImageContext, &mHash[Index], ImageDigest, ImageDigestSize)) {
     return EFI_UNSUPPORTED;
   }
+
+  *CertType = mHash[Index].CertType;
 
   return EFI_SUCCESS;
 }
@@ -1480,10 +1456,12 @@ DxeImageVerificationHandler (
     // This image is not signed. The SHA256 hash value of the image must match a record in the security database "db",
     // and not be reflected in the security data base "dbx".
     //
-    if (!HashPeImage (ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize, &CertType)) {
+    if (!HashPeImage (ImageContext, &mHash[HASHALG_SHA256], ImageDigest, &ImageDigestSize)) {
       DEBUG ((DEBUG_INFO, "DxeImageVerificationLib: Failed to hash this image.\n"));
       goto Failed;
     }
+
+    CertType = &gEfiCertSha256Guid;
 
     DbStatus = IsSignatureFoundInDatabase (
                  EFI_IMAGE_SECURITY_DATABASE1,
