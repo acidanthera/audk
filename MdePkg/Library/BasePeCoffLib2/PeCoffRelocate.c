@@ -582,7 +582,7 @@ PeCoffRelocateImage (
       // EFI_IMAGE_REL_BASED_LOW are supposed to be handled. While PE reference
       // suggests to just add the high or low part of the displacement, there
       // are concerns about how it's supposed to deal with wraparounds.
-      // As neither LLD,
+      // As no known linker emits them, omit support.
       //
       Status = InternalApplyRelocation (
                  Context,
@@ -600,7 +600,7 @@ PeCoffRelocateImage (
     // This arithmetic cannot overflow because it has been checked that the
     // Image Base Relocation Block is in bounds of the Image buffer.
     //
-    RelocBlockOffset    += RelocBlockSize;
+    RelocBlockOffset += RelocBlockSize;
   }
   //
   // Verify the Relocation Directory size matches the contained data.
