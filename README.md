@@ -14,6 +14,10 @@ The usage of formal methods to design the new solution greatly helped restore th
 
 Please also refer to the work-in-progress EDK II Image Loader documentation available at [MdePkg/Library/BasePeCoffLib2/Documentation.md](MdePkg/Library/BasePeCoffLib2/Documentation.md)
 
+## Further abstraction
+
+To increase platform flexibility, a new layer of abstraction is introduced in the form of the library class ``UefiImageLib``, which can be found at [MdePkg/Include/Library/UefiImageLib.h](MdePkg/Include/Library/UefiImageLib.h). Currently, it is a subset of the APIs provided by ``BasePeCoffLib2`` that is expected to be compatible with most other common executable formats. As part of the RFC, the instance ``UefiImageLibPeCoff`` is provided, which is basically a shim for ``BasePeCoffLib2``. In the future, instances to support other file formats can be introduced without having to integrate them across the entire EDK II tree.
+
 ## Issues of the current solution
 * High level of maintenance cost due to convoluted function contracts
 * Error-prone design promoting the introduction of code bugs
@@ -37,19 +41,19 @@ Please also refer to the work-in-progress EDK II Image Loader documentation avai
 
 ## Further notes about the formal approach
 * A snapshot of the new Image Loader code will be provided with annotations and proving results
-* The snapshot will not be current and updating the old code is out of the scope of this project, however the functional changes are trivial
-* There will be aids to compare the updates over the last fully verified state (e.g. stripped versions of the code with diffs)
-* If accepted, the new Image Loader code should be developed further without updating the formal annotations, but with thorough review of important invariants and sufficient documentation
+* The snapshot will not be current and updating the old code is out of the scope of this project, however the functional changes should be manageable to review
 * We are currently investigating whether deploying the proving environment as a Docker container is feasible
+* There may be aids to compare the updates over the last fully verified state (e.g. stripped versions of the code with diffs)
+* If accepted, the new Image Loader code should be developed further without updating the formal annotations, but with thorough review of important invariants and sufficient documentation
 
 ## Current progress, future goals, and further notes
 * OVMF boots to Shell with SMM and Secure Boot enabled
+* Linux EmulatorPkg boots
 * Extended support for Image protection has been implemented
 * FFS and DebugTable enhancements have been implemented
 * Not all features have been implemented, e.g. RISC-V support
 * There are unrelated changes present to help testing and validation
 * Some validation is still absent
-* Build compatibility for out-of-tree packages is still absent
 
 ## BZs fixed by integrating the new Image Loader
 * https://bugzilla.tianocore.org/show_bug.cgi?id=1860
