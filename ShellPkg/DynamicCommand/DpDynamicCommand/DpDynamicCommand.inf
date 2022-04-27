@@ -51,7 +51,6 @@
   DevicePathLib
   PerformanceLib
   DxeServicesLib
-  #PeCoffGetEntryPointLib
 
 [Guids]
   gPerformanceProtocolGuid                                ## CONSUMES ## SystemTable

@@ -12,7 +12,6 @@
 #include <Library/UefiLib.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
-//#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/ArmDisassemblerLib.h>
 #include <Library/SerialPortLib.h>

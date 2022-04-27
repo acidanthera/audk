@@ -97,7 +97,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/ThunkPpiList.h>
 #include <Library/ThunkProtocolList.h>
 #include <Library/PeiServicesLib.h>
-//#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/EmuMagicPageLib.h>
 
 #include <Ppi/EmuThunk.h>

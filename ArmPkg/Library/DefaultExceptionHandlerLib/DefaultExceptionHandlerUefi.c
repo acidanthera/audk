@@ -7,7 +7,6 @@
 **/
 
 #include <Uefi.h>
-//#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/UefiLib.h>
 
 #include <Guid/DebugImageInfoTable.h>

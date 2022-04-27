@@ -60,7 +60,6 @@
   ThunkProtocolList
   PpiListLib
   PeiServicesLib
-  #PeCoffGetEntryPointLib
 
 [Ppis]
   gEfiPeiStatusCodePpiGuid                      # PPI ALWAYS_PRODUCED

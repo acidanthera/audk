@@ -39,7 +39,6 @@
   FspWrapperPlatformLib
   FspWrapperHobProcessLib
   UefiCpuLib
-  PeCoffGetEntryPointLib
   PeCoffExtraActionLib
   PerformanceLib
   FspWrapperApiLib

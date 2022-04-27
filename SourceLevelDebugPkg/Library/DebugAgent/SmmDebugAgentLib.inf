@@ -64,7 +64,6 @@
   TimerLib
   PrintLib
   PeCoffExtraActionLib
-  #PeCoffGetEntryPointLib
   SmmServicesTableLib
 
 [Guids]
