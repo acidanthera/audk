@@ -453,10 +453,10 @@ InternalCharacteristicsToAttributes (
 STATIC
 UINT8
 InternalInsertImageRecordSegmentPadding (
-  IN OUT UEFI_IMAGE_RECORD_SEGMENT        *RecordSection,
-  IN     UINT32                        EndAddress,
-  IN     UINT32                        NextAddress,
-  IN     UINT32                        Attributes
+  IN OUT UEFI_IMAGE_RECORD_SEGMENT  *RecordSection,
+  IN     UINT32                     EndAddress,
+  IN     UINT32                     NextAddress,
+  IN     UINT32                     Attributes
   )
 {
   ASSERT (RecordSection != NULL);
@@ -487,24 +487,24 @@ UefiImageLoaderGetImageRecord (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  UEFI_IMAGE_RECORD               *ImageRecord;
-  UINT32                          MaxNumRecordSegments;
-  UINT32                          NumRecordSegments;
-  UEFI_IMAGE_RECORD_SEGMENT       *RecordSegment;
-  UINTN                           ImageAddress;
-  UINT32                          SizeOfImage;
-  UINT32                          SectionAlignment;
-  CONST EFI_IMAGE_SECTION_HEADER  *Sections;
-  UINT16                          NumberOfSections;
-  UINT16                          SectionIndex;
-  CONST EFI_IMAGE_SECTION_HEADER  *Section;
-  UINT32                          SectionAddress;
-  UINT32                          SectionSize;
-  UINT32                          SectionCharacteristics;
-  UINT32                          StartAddress;
-  UINT32                          EndAddress;
-  UINT32                          Characteristics;
-  UINT32                          Attributes;
+  UEFI_IMAGE_RECORD              *ImageRecord;
+  UINT32                         MaxNumRecordSegments;
+  UINT32                         NumRecordSegments;
+  UEFI_IMAGE_RECORD_SEGMENT      *RecordSegment;
+  UINTN                          ImageAddress;
+  UINT32                         SizeOfImage;
+  UINT32                         SectionAlignment;
+  CONST EFI_IMAGE_SECTION_HEADER *Sections;
+  UINT16                         NumberOfSections;
+  UINT16                         SectionIndex;
+  CONST EFI_IMAGE_SECTION_HEADER *Section;
+  UINT32                         SectionAddress;
+  UINT32                         SectionSize;
+  UINT32                         SectionCharacteristics;
+  UINT32                         StartAddress;
+  UINT32                         EndAddress;
+  UINT32                         Characteristics;
+  UINT32                         Attributes;
 
   ASSERT (Context != NULL);
   //

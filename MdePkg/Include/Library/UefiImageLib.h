@@ -40,6 +40,10 @@ typedef struct {
   ///
   UINT32                       Signature;
   ///
+  /// The number of Image records. Must be at least 1.
+  ///
+  UINT32                       NumSegments;
+  ///
   /// A link to allow insertion of the Image record into a doubly-linked list.
   ///
   LIST_ENTRY                   Link;
@@ -52,10 +56,6 @@ typedef struct {
   /// plus the sum of Segments[i].Size for 0 <= i < NumSegments.
   ///
   UINTN                        EndAddress;
-  ///
-  /// The number of Image records. Must be at least 1.
-  ///
-  UINT32                       NumSegments;
   ///
   /// The Image record segments with their corresponding memory permission
   /// attributes. All Image record segments are contiguous and cover the entire
