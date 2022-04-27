@@ -445,6 +445,12 @@ UefiImageGetSizeOfImage (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
+// FIXME: Docs
+UINT32
+UefiImageGetSizeOfImageInplace (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 /**
   Retrieves the Image preferred load address.
 

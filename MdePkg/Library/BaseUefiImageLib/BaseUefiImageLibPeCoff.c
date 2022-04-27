@@ -237,6 +237,14 @@ UefiImageGetSizeOfImage (
   return PeCoffGetSizeOfImage (Context);
 }
 
+UINT32
+UefiImageGetSizeOfImageInplace (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetSizeOfImageInplace (Context);
+}
+
 UINT64
 UefiImageGetImageBase (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context

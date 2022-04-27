@@ -88,6 +88,32 @@ PeCoffGetSizeOfImage (
   return SizeOfImage;
 }
 
+UINT32
+PeCoffGetSizeOfImageInplace (
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  UINT32 SizeOfImage;
+
+  ASSERT (Context != NULL);
+  //
+  // In-place Image loading cannot force-load Debug data, thus omit its size.
+  //
+  SizeOfImage = Context->SizeOfImage;
+  //
+  // SizeOfImage is defined with the full Image header size pre-stripping. As
+  // XIP TE Images always have a stripped Image header, subtract the difference.
+  //
+  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
+    ASSERT (Context->TeStrippedOffset < SizeOfImage);
+    SizeOfImage -= Context->TeStrippedOffset;
+  } else {
+    ASSERT (Context->TeStrippedOffset == 0);
+  }
+
+  return SizeOfImage;
+}
+
 RETURN_STATUS
 PeCoffLoaderGetDestinationSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
