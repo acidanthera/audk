@@ -1069,6 +1069,7 @@ UefiImageLoaderRelocateImageExtraAction (
       // checking as the we can point to the PE32 image loaded by Tiano. This
       // step is only needed for source level debugging
       //
+      // FIXME: Fix ImageBase too
       DllEntryPoint = (VOID *)(UINTN)GetProcAddress (Library, "InitializeDriver");
     }
 

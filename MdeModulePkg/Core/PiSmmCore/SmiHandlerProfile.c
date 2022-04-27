@@ -313,16 +313,6 @@ GetSmmLoadedImage (
     RealImageBase      = (UINTN)LoadedImage->ImageBase;
     if (LoadedImagePrivate->Signature == EFI_SMM_DRIVER_ENTRY_SIGNATURE) {
       EntryPoint = LoadedImagePrivate->ImageEntryPoint;
-      // FIXME:
-      /*if ((EntryPoint != 0) && ((EntryPoint < (UINTN)LoadedImage->ImageBase) || (EntryPoint >= ((UINTN)LoadedImage->ImageBase + LoadedImage->ImageSize)))) {
-        //
-        // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-        // So patch ImageBuffer here to align the EntryPoint.
-        //
-        Status = InternalUefiImageGetEntryPoint (LoadedImage->ImageBase, &EntryPointInImage);
-        ASSERT_EFI_ERROR (Status);
-        RealImageBase = (UINTN)LoadedImage->ImageBase + EntryPoint - (UINTN)EntryPointInImage;
-      }*/
     }
 
     DEBUG ((DEBUG_INFO, "(0x%lx - 0x%lx", RealImageBase, LoadedImage->ImageSize));

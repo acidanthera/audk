@@ -319,16 +319,6 @@ BuildDriverInfo (
   DriverInfo->ImageSize      = UefiImageGetSizeOfImage (ImageContext);
   DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
-  // FIXME:
-  /*if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
-    //
-    // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-    // So patch ImageBuffer here to align the EntryPoint.
-    //
-    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
-    ASSERT_EFI_ERROR (Status);
-    DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  }*/
 
   DriverInfo->FileType          = FileType;
   DriverInfoData->AllocInfoList = (LIST_ENTRY *)(DriverInfoData + 1);
@@ -831,16 +821,6 @@ UnregisterSmramProfileImage (
   }
 
   DriverInfoData = NULL;
-  // FIXME:
-  /*if ((DriverEntry->ImageEntryPoint < ImageBase) || (DriverEntry->ImageEntryPoint >= (ImageBase + EFI_PAGES_TO_SIZE (DriverEntry->NumberOfPage)))) {
-    //
-    // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-    // So patch ImageBase here to align the EntryPoint.
-    //
-    Status = InternalUefiImageGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
-    ASSERT_EFI_ERROR (Status);
-    ImageBase = ImageBase + (UINTN)DriverEntry->ImageEntryPoint - (UINTN)EntryPointInImage;
-  }*/
 
   if (FileName != NULL) {
     DriverInfoData = GetMemoryProfileDriverInfoByFileNameAndAddress (ContextData, FileName, ImageBase);
