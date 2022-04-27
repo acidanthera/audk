@@ -21,4 +21,4 @@
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
-  PeCoffLib
+  PeCoffLib2

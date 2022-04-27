@@ -19,9 +19,9 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/PeCoffLib2.h>
 
-#include "BasePeCoffLibInternals.h"
+#include "BasePeCoffLib2Internals.h"
 
 /**
   Loads the Image sections into the memory space and initialises any padding

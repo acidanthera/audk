@@ -10,11 +10,11 @@
 
 [Defines]
   INF_VERSION    = 0x00010005
-  BASE_NAME      = BasePeCoffLib
+  BASE_NAME      = BasePeCoffLib2
   FILE_GUID      = 556f5d10-7309-4af4-b80a-8196bd60946e
   MODULE_TYPE    = BASE
   VERSION_STRING = 1.0
-  LIBRARY_CLASS  = BasePeCoffLib
+  LIBRARY_CLASS  = PeCoffLib2
 
 [Sources]
   BaseOverflow.c
@@ -48,5 +48,6 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
 
+# FIXME: Remove when solving the BaseOverflow design questions
 [BuildOptions]
   *_*_*_CC_FLAGS = -DPRODUCTION

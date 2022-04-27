@@ -8,8 +8,8 @@
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef BASE_PE_COFF_LIB_INTERNALS_H_
-#define BASE_PE_COFF_LIB_INTERNALS_H_
+#ifndef BASE_PE_COFF_LIB2_INTERNALS_H_
+#define BASE_PE_COFF_LIB2_INTERNALS_H_
 
 // FIXME: Upstream general variants of these macros.
 #define ALIGNOF           _Alignof

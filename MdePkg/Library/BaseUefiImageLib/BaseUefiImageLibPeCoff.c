@@ -8,7 +8,7 @@
 
 #include <Base.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
 
 RETURN_STATUS

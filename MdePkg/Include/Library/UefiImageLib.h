@@ -2,7 +2,7 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
-#include <Library/PeCoffLib.h>
+#include <Library/PeCoffLib2.h>
 
 // FIXME: Work on reasonable abstraction
 typedef PE_COFF_LOADER_IMAGE_CONTEXT   UEFI_IMAGE_LOADER_IMAGE_CONTEXT;

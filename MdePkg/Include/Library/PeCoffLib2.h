@@ -15,8 +15,8 @@
   SPDX-License-Identifier: BSD-3-Clause
 **/
 
-#ifndef PE_COFF_LIB_H_
-#define PE_COFF_LIB_H_
+#ifndef PE_COFF_LIB2_H_
+#define PE_COFF_LIB2_H_
 
 #include <IndustryStandard/PeImage.h>
 
@@ -790,4 +790,4 @@ PeCoffDebugPrintSectionTable (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-#endif // PE_COFF_LIB_H_
+#endif // PE_COFF_LIB2_H_

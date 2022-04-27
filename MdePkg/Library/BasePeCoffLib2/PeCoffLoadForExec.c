@@ -13,9 +13,9 @@
 #include <Library/DebugLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/PcdLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/PeCoffLib2.h>
 
-#include "BasePeCoffLibInternals.h"
+#include "BasePeCoffLib2Internals.h"
 
 // FIXME: Check Machine / Subsystem here?
 RETURN_STATUS
