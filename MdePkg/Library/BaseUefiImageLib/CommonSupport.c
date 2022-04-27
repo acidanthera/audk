@@ -1,3 +1,11 @@
+/** @file
+  Support for functions common to all Image formats.
+
+  Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
+
+  SPDX-License-Identifier: BSD-3-Clause
+**/
+
 #include <Base.h>
 #include <Uefi/UefiBaseType.h>
 #include <Uefi/UefiSpec.h>
