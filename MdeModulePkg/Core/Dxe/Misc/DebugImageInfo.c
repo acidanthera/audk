@@ -243,7 +243,7 @@ CoreNewDebugImageInfoEntry (
 
     Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
     if (!RETURN_ERROR (Status)) {
-      NormalImage->PdbPath = PdbPath;
+      NormalImage->PdbPath = AllocateCopyPool (PdbPathSize, PdbPath);
     }
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
@@ -288,6 +288,10 @@ CoreRemoveDebugImageInfoEntry (
       mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
       mDebugInfoTableHeader.TableSize--;
       Table[Index].NormalImage = NULL;
+
+      if (NormalImage->PdbPath != NULL) {
+        FreePool (NormalImage->PdbPath);
+      }
 
       CoreFreePool (NormalImage);
       break;
