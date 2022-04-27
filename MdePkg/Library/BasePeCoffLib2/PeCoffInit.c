@@ -31,7 +31,7 @@
 //
 
 /**
-  Verify the Image section Headers.
+  Verify the Image section Headers and initialise the Image memory space size.
 
   The first Image section must be the beginning of the memory space, or be
   contiguous to the aligned Image Headers.
@@ -39,18 +39,10 @@
   memory space space.
   The section data must be in bounds bounds of the file buffer.
 
-  @param[in,out] Context            The context describing the Image. Must have
-                                    been initialised by
-                                    PeCoffInitializeContext().
-  @param[in]     FileSize           The size, in Bytes, of Context->FileBuffer.
-  @param[out]    StartAddress       On output, the RVA of the first Image
-                                    section.
-  @param[out]    EndAddress         On output, the end RVA of the last Image
-                                    section.
-  @param[out]    AlignedEndAddress  If PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS
-                                    is enabled, on output, the aligned end RVA
-                                    of the last Image section.
-  FIXME: Can this be done nicer?
+  @param[in,out] Context       The context describing the Image. Must have been
+                               initialised by PeCoffInitializeContext().
+  @param[in]     FileSize      The size, in Bytes, of Context->FileBuffer.
+  @param[out]    StartAddress  On output, the RVA of the first Image section.
 
   @retval RETURN_SUCCESS  The Image section Headers are well-formed.
   @retval other           The Image section Headers are malformed.
@@ -60,9 +52,7 @@ RETURN_STATUS
 InternalVerifySections (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN     UINT32                        FileSize,
-  OUT    UINT32                        *StartAddress,
-  OUT    UINT32                        *EndAddress,
-  OUT    UINT32                        *AlignedEndAddress
+  OUT    UINT32                        *StartAddress
   )
 {
   BOOLEAN                        Overflow;
@@ -73,18 +63,9 @@ InternalVerifySections (
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
 
   ASSERT (Context != NULL);
-  ASSERT (Context->SizeOfHeaders >= Context->TeStrippedOffset);
+  ASSERT (Context->TeStrippedOffset <= Context->SizeOfHeaders);
   ASSERT (IS_POW2 (Context->SectionAlignment));
   ASSERT (StartAddress != NULL);
-  ASSERT (EndAddress != NULL);
-  //
-  // This argument is only needed if the policy permits unaligned,
-  // non-contiguous Image sections. Otherwise, *EndAddress is known to be
-  // aligned already.
-  //
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
-    ASSERT (AlignedEndAddress != NULL);
-  }
   //
   // Images without Sections have no usable data, disallow them.
   //
@@ -250,10 +231,12 @@ InternalVerifySections (
       }
     }
   }
-
-  *EndAddress = NextSectRva;
-
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
+  //
+  // Set SizeOfImage to the aligned end address of the last ImageSection.
+//
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
+    Context->SizeOfImage = NextSectRva;
+  } else {
     //
     // Because VirtualAddress is aligned by SectionAlignment for all Image
     // sections, and they are disjoint and ordered by VirtualAddress,
@@ -265,14 +248,14 @@ InternalVerifySections (
     Overflow = BaseOverflowAlignUpU32 (
                 NextSectRva,
                 Context->SectionAlignment,
-                AlignedEndAddress
+                &Context->SizeOfImage
                 );
     if (Overflow) {
       Context->SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
       Overflow = BaseOverflowAlignUpU32 (
                   NextSectRva,
                   Context->SectionAlignment,
-                  AlignedEndAddress
+                  &Context->SizeOfImage
                   );
       if (DEFAULT_PAGE_ALLOCATION_GRANULARITY < RUNTIME_PAGE_ALLOCATION_GRANULARITY
       && Overflow) {
@@ -280,7 +263,7 @@ InternalVerifySections (
         Overflow = BaseOverflowAlignUpU32 (
                     NextSectRva,
                     Context->SectionAlignment,
-                    AlignedEndAddress
+                    &Context->SizeOfImage
                     );
       }
 
@@ -392,7 +375,6 @@ InternalInitializeTe (
   BOOLEAN                   Overflow;
   CONST EFI_TE_IMAGE_HEADER *TeHdr;
   UINT32                    StartAddress;
-  UINT32                    SizeOfImage;
 
   ASSERT (Context != NULL);
   ASSERT (Context->ExeHdrOffset == 0);
@@ -462,30 +444,20 @@ InternalInitializeTe (
   Status = InternalVerifySections (
              Context,
              FileSize,
-             &StartAddress,
-             &SizeOfImage,
-             &SizeOfImage
+             &StartAddress
              );
   if (Status != RETURN_SUCCESS) {
     DEBUG_RAISE ();
     return Status;
   }
   //
-  // If unaligned, non-contiguous Image sections are permitted by the policy,
-  // ensure SizeOfImage can at least hold the aligned last Image section.
-  //
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
-    SizeOfImage = ALIGN_VALUE (SizeOfImage, Context->SectionAlignment);
-  }
-  //
   // Verify the Image entry point is in bounds of the Image buffer.
   //
-  if (TeHdr->AddressOfEntryPoint >= SizeOfImage) {
+  if (TeHdr->AddressOfEntryPoint >= Context->SizeOfImage) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
-  Context->SizeOfImage         = SizeOfImage;
   Context->Machine             = TeHdr->Machine;
   Context->Subsystem           = TeHdr->Subsystem;
   Context->ImageBase           = TeHdr->ImageBase;
@@ -538,8 +510,6 @@ InternalInitializePe (
   UINT32                                NumberOfRvaAndSizes;
   RETURN_STATUS                         Status;
   UINT32                                StartAddress;
-  UINT32                                MinSizeOfImage;
-  UINT32                                AlignedSizeOfImage;
 
   ASSERT (Context != NULL);
   ASSERT (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16) <= FileSize - Context->ExeHdrOffset);
@@ -554,9 +524,14 @@ InternalInitializePe (
     IS_ALIGNED (ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR), ALIGNOF (UINT16))
    && IS_ALIGNED (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR), ALIGNOF (UINT16)),
     "The following operation might be an unaligned access."
-  );
+    );
   //
   // Determine the type of and retrieve data from the PE Optional Header.
+  // Do not retrieve SizeOfImage as the value usually does not follow the
+  // specification. Even if the value is large enough to hold the last Image
+  // section, it may not be aligned, or it may be too large. Except for
+  // force-loaded debug data, our own concept, no data can possibly be loaded
+  // past the last Image section anyway.
   //
   switch (*(CONST UINT16 *) (CONST VOID *) OptHdrPtr) {
     case EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
@@ -583,7 +558,6 @@ InternalInitializePe (
 
       Context->ImageType           = PeCoffLoaderTypePe32;
       Context->Subsystem           = Pe32->Subsystem;
-      Context->SizeOfImage         = Pe32->SizeOfImage;
       Context->SizeOfHeaders       = Pe32->SizeOfHeaders;
       Context->ImageBase           = Pe32->ImageBase;
       Context->AddressOfEntryPoint = Pe32->AddressOfEntryPoint;
@@ -622,7 +596,6 @@ InternalInitializePe (
 
       Context->ImageType           = PeCoffLoaderTypePe32Plus;
       Context->Subsystem           = Pe32Plus->Subsystem;
-      Context->SizeOfImage         = Pe32Plus->SizeOfImage;
       Context->SizeOfHeaders       = Pe32Plus->SizeOfHeaders;
       Context->ImageBase           = Pe32Plus->ImageBase;
       Context->AddressOfEntryPoint = Pe32Plus->AddressOfEntryPoint;
@@ -801,29 +774,11 @@ InternalInitializePe (
   Status = InternalVerifySections (
              Context,
              FileSize,
-             &StartAddress,
-             &MinSizeOfImage,
-             &AlignedSizeOfImage
+             &StartAddress
              );
   if (Status != RETURN_SUCCESS) {
     DEBUG_RAISE ();
     return Status;
-  }
-  //
-  // Verify SizeOfImage fits all Image sections.
-  //
-  if (MinSizeOfImage > Context->SizeOfImage) {
-    DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
-  }
-  //
-  // If unaligned, non-contiguous Image sections are permitted by the policy,
-  // ensure SizeOfImage can at least hold the aligned last Image section.
-  //
-  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
-    if (Context->SizeOfImage < AlignedSizeOfImage) {
-      Context->SizeOfImage = AlignedSizeOfImage;
-    }
   }
   //
   // Verify the entry point is in bounds of the Image buffer.
