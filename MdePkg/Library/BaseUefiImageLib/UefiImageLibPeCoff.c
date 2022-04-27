@@ -72,10 +72,9 @@ UefiImageLoadImageInplace (
   return PeCoffLoadImageInplace (Context);
 }
 
-
 RETURN_STATUS
 UefiImageRelocateImageInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   return PeCoffRelocateImageInplace (Context);
