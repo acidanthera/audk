@@ -22,6 +22,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "HeapGuard.h"
 #include "IndustryStandard/PeImage2.h"
+#include "ProcessorBind.h"
 
 /**
   This function for GetMemoryMap() with properties table capability.
@@ -565,7 +566,7 @@ GetImageRecordByAddress (
                     PE_COFF_IMAGE_RECORD_SIGNATURE
                     );
 
-    if ((Buffer <= ImageRecord->Sections[0].Address) &&
+    if ((Buffer <= ImageRecord->StartAddress) &&
         (Buffer + Length >= ImageRecord->EndAddress))
     {
       return ImageRecord;
@@ -598,6 +599,7 @@ SetNewRecord (
   )
 {
   PE_COFF_IMAGE_RECORD_SECTION              *ImageRecordSection;
+  UINTN                                     SectionAddress;
   UINT32                                    Index;
   UINT32                                    NewRecordCount;
 
@@ -605,25 +607,27 @@ SetNewRecord (
   // Always create a new entry for non-PE image record
   //
   NewRecordCount    = 0;
-  if (ImageRecord->Sections[0].Address > OldRecord->PhysicalStart) {
+  if (ImageRecord->StartAddress > OldRecord->PhysicalStart) {
     NewRecord->Type = OldRecord->Type;
     NewRecord->PhysicalStart = OldRecord->PhysicalStart;
     NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->Sections[0].Address - OldRecord->PhysicalStart);
+    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - OldRecord->PhysicalStart);
     NewRecord->Attribute     = OldRecord->Attribute;
     NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
     NewRecordCount++;
   }
 
+  SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     ImageRecordSection = &ImageRecord->Sections[Index];
 
     NewRecord->Type          = OldRecord->Type;
-    NewRecord->PhysicalStart = ImageRecordSection->Address;
+    NewRecord->PhysicalStart = SectionAddress;
     NewRecord->VirtualStart  = 0;
     NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSection->Size);
     NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSection->Attributes;
 
+    SectionAddress += ImageRecordSection->Size;
     NewRecord= NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
   }
 
@@ -1037,7 +1041,7 @@ InsertSortImageRecord (
                     Link,
                     PE_COFF_IMAGE_RECORD_SIGNATURE
                     );
-    if (NewImageRecord->Sections[0].Address < ImageRecord->Sections[0].Address) {
+    if (NewImageRecord->StartAddress < ImageRecord->StartAddress) {
       break;
     }
 
@@ -1068,6 +1072,7 @@ InsertImageRecord (
   UINT32                                SectionAlignment;
   UINTN                                 Index;
   PE_COFF_IMAGE_RECORD                 *ImageRecord;
+  UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
 
@@ -1113,14 +1118,17 @@ InsertImageRecord (
 
   UefiImageDebugPrintSegments (ImageContext);
 
+  SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((
       DEBUG_VERBOSE,
       "  RecordSection'\n"
       ));
-    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) ImageRecord->Sections[Index].Address));
+    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%16xll\n", (UINT64) SectionAddress));
     DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Sections[Index].Size));
     DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Sections[Index].Attributes));
+
+    SectionAddress += ImageRecord->Sections[Index].Size;
   }
 
   //
@@ -1165,7 +1173,7 @@ FindImageRecord (
                     PE_COFF_IMAGE_RECORD_SIGNATURE
                     );
 
-    if (ImageBase == ImageRecord->Sections[0].Address)
+    if (ImageBase == ImageRecord->StartAddress)
     {
       return ImageRecord;
     }

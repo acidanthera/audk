@@ -257,8 +257,8 @@ STATIC
 UINT8
 InternalInsertImageRecordSectionPadding (
   IN OUT PE_COFF_IMAGE_RECORD_SECTION  *RecordSection,
-  IN     UINTN                         EndAddress,
-  IN     UINTN                         NextAddress,
+  IN     UINT32                        EndAddress,
+  IN     UINT32                        NextAddress,
   IN     UINT32                        Attributes
   )
 {
@@ -273,17 +273,13 @@ InternalInsertImageRecordSectionPadding (
   // the the permissions of the previous Image record section.
   //
   if (Attributes == (EFI_MEMORY_XP | EFI_MEMORY_RO)) {
-    RecordSection->Size += (UINT32) (NextAddress - EndAddress);
+    RecordSection->Size += NextAddress - EndAddress;
 
     return 0;
   }
 
   ++RecordSection;
-  RecordSection->Address    = EndAddress;
-  //
-  // This cast is safe because all RVAs are UINT32.
-  //
-  RecordSection->Size       = (UINT32) (NextAddress - EndAddress);
+  RecordSection->Size       = NextAddress - EndAddress;
   RecordSection->Attributes = EFI_MEMORY_XP | EFI_MEMORY_RO;
 
   return 1;
@@ -295,20 +291,21 @@ PeCoffLoaderGetImageRecord (
   )
 {
   PE_COFF_IMAGE_RECORD           *ImageRecord;
-  UINT32                         MaxRecordSectionsCount;
-  UINT32                         NumberOfRecordSections;
+  UINT32                         MaxNumRecordSections;
+  UINT32                         NumRecordSections;
   PE_COFF_IMAGE_RECORD_SECTION   *RecordSection;
   UINTN                          ImageAddress;
+  UINT32                         SizeOfImage;
   UINT32                         SectionAlignment;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT16                         NumberOfSections;
   UINT16                         SectionIndex;
   CONST EFI_IMAGE_SECTION_HEADER *Section;
-  UINTN                          SectionAddress;
+  UINT32                         SectionAddress;
   UINT32                         SectionSize;
   UINT32                         SectionCharacteristics;
-  UINTN                          StartAddress;
-  UINTN                          EndAddress;
+  UINT32                         StartAddress;
+  UINT32                         EndAddress;
   UINT32                         Characteristics;
   UINT32                         Attributes;
 
@@ -329,19 +326,19 @@ PeCoffLoaderGetImageRecord (
     // In case of contiguous Image sections, there can be two additional record
     // sections (Image Headers and trailer, e.g. debug information).
     //
-    MaxRecordSectionsCount = (UINT32) NumberOfSections + 2;
+    MaxNumRecordSections = (UINT32) NumberOfSections + 2;
   } else {
     //
     // In case of possibly non-contiguous Image sections, there can be a trailer
     // per Image section (the last Image section's trailer is the same as the
     // Image trailer), as well as additionally the Image Headers.
     //
-    MaxRecordSectionsCount = (UINT32) NumberOfSections * 2 + 1;
+    MaxNumRecordSections = (UINT32) NumberOfSections * 2 + 1;
   }
 
   ImageRecord = AllocatePool (
                   sizeof (*ImageRecord)
-                    + MaxRecordSectionsCount * sizeof (*ImageRecord->Sections)
+                    + MaxNumRecordSections * sizeof (*ImageRecord->Sections)
                   );
   if (ImageRecord == NULL) {
     DEBUG_RAISE ();
@@ -351,7 +348,6 @@ PeCoffLoaderGetImageRecord (
   ImageRecord->Signature = PE_COFF_IMAGE_RECORD_SIGNATURE;
   InitializeListHead (&ImageRecord->Link);
 
-  ImageAddress     = PeCoffLoaderGetImageAddress (Context);
   SectionAlignment = PeCoffGetSectionAlignment (Context);
   //
   // Map the Image Headers as read-only data. If the first Image section is
@@ -359,7 +355,7 @@ PeCoffLoaderGetImageRecord (
   // SectionAddress != StartAddress does not hold and these definitions will be
   // ignored.
   //
-  StartAddress    = ImageAddress;
+  StartAddress    = 0;
   EndAddress      = PeCoffGetSizeOfHeaders (Context);
   Characteristics = EFI_IMAGE_SCN_MEM_READ;
   Attributes      = EFI_MEMORY_XP | EFI_MEMORY_RO;
@@ -371,7 +367,7 @@ PeCoffLoaderGetImageRecord (
   // memory permission configuration is required. Headers and trailers treated
   // as read-only data.
   //
-  NumberOfRecordSections = 0;
+  NumRecordSections = 0;
   for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
     Section = Sections + SectionIndex;
     //
@@ -383,7 +379,7 @@ PeCoffLoaderGetImageRecord (
     //
     // These arithmetics are safe as guaranteed by PeCoffInitializeContext().
     //
-    SectionAddress = ImageAddress + Section->VirtualAddress;
+    SectionAddress = Section->VirtualAddress;
     SectionSize    = ALIGN_VALUE (Section->VirtualSize, SectionAlignment);
     SectionCharacteristics = Section->Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE);
     //
@@ -409,25 +405,21 @@ PeCoffLoaderGetImageRecord (
       //
       // Create an Image record section for the current memory permission range.
       //
-      RecordSection = &ImageRecord->Sections[NumberOfRecordSections];
-      RecordSection->Address    = StartAddress;
-      //
-      // This cast is safe because all RVAs are UINT32.
-      //
-      RecordSection->Size       = (UINT32) (EndAddress - StartAddress);
+      RecordSection = &ImageRecord->Sections[NumRecordSections];
+      RecordSection->Size       = EndAddress - StartAddress;
       RecordSection->Attributes = Attributes;
-      ++NumberOfRecordSections;
+      ++NumRecordSections;
       //
       // If the previous range is not adjacent to the current Image section,
       // report the padding as read-only data.
       //
       if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) != 0) {
-        NumberOfRecordSections += InternalInsertImageRecordSectionPadding (
-                                    RecordSection,
-                                    EndAddress,
-                                    SectionAddress,
-                                    Attributes
-                                    );
+        NumRecordSections += InternalInsertImageRecordSectionPadding (
+                               RecordSection,
+                               EndAddress,
+                               SectionAddress,
+                               Attributes
+                               );
       }
 
       StartAddress = SectionAddress;
@@ -446,18 +438,17 @@ PeCoffLoaderGetImageRecord (
   // If the loop never produced such, this is true for the Image Headers, which
   // cannot be empty.
   //
-  ASSERT (0 < EndAddress - StartAddress);
+  ASSERT (StartAddress < EndAddress);
   //
   // Create an Image record section for the last Image memory permission range.
   //
-  RecordSection = &ImageRecord->Sections[NumberOfRecordSections];
-  RecordSection->Address    = StartAddress;
-  //
-  // This cast is safe because all RVAs are UINT32.
-  //
-  RecordSection->Size       = (UINT32) (EndAddress - StartAddress);
+  RecordSection = &ImageRecord->Sections[NumRecordSections];
+  RecordSection->Size       = EndAddress - StartAddress;
   RecordSection->Attributes = Attributes;
-  ++NumberOfRecordSections;
+  ++NumRecordSections;
+
+  ImageAddress = PeCoffLoaderGetImageAddress (Context);
+  SizeOfImage  = PeCoffGetSizeOfImage (Context);
   //
   // The Image trailer, if existent, is treated as padding and as such is
   // reported as read-only data, as intended. Because it is not part of the
@@ -465,21 +456,22 @@ PeCoffLoaderGetImageRecord (
   // are guaranteed to be contiguously form the entire Image memory space or
   // not.
   //
-  NumberOfRecordSections += InternalInsertImageRecordSectionPadding (
-                              RecordSection,
-                              EndAddress,
-                              ImageAddress + PeCoffGetSizeOfImage (Context),
-                              Attributes
-                              );
+  NumRecordSections += InternalInsertImageRecordSectionPadding (
+                         RecordSection,
+                         EndAddress,
+                         SizeOfImage,
+                         Attributes
+                         );
 
-  ImageRecord->NumberOfSections = NumberOfRecordSections;
-  ImageRecord->EndAddress       = ImageAddress + PeCoffGetSizeOfImage (Context);
+  ImageRecord->NumberOfSections = NumRecordSections;
+  ImageRecord->StartAddress     = ImageAddress;
+  ImageRecord->EndAddress       = ImageAddress + SizeOfImage;
   //
   // Zero the remaining array entries to avoid uninitialised data.
   //
   ZeroMem (
-    ImageRecord->Sections + NumberOfRecordSections,
-    (MaxRecordSectionsCount - NumberOfRecordSections) * sizeof (*ImageRecord->Sections)
+    ImageRecord->Sections + NumRecordSections,
+    (MaxNumRecordSections - NumRecordSections) * sizeof (*ImageRecord->Sections)
     );
 
   return ImageRecord;

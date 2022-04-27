@@ -220,15 +220,19 @@ SetUefiImageProtectionAttributes (
   )
 {
   PE_COFF_IMAGE_RECORD_SECTION    *ImageRecordSection;
+  UINTN                           SectionAddress;
   UINT32                          Index;
 
+  SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumberOfSections; Index++) {
     ImageRecordSection = &ImageRecord->Sections[Index];
     SetUefiImageMemoryAttributes (
-      ImageRecordSection->Address,
+      SectionAddress,
       ImageRecordSection->Size,
       ImageRecordSection->Attributes
       );
+
+    SectionAddress += ImageRecordSection->Size;
   }
 }
 
@@ -296,6 +300,7 @@ ProtectUefiImage (
   UINT32                                SectionAlignment;
   UINTN                                 Index;
   PE_COFF_IMAGE_RECORD                 *ImageRecord;
+  UINTN                                SectionAddress;
   CONST CHAR8                          *PdbPointer;
   UINT32                               PdbSize;
   BOOLEAN                               IsAligned;
@@ -348,15 +353,20 @@ ProtectUefiImage (
 
   UefiImageDebugPrintSegments (ImageContext);
 
+  SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumberOfSections; ++Index) {
     DEBUG ((
-      DEBUG_VERBOSE,
+      DEBUG_ERROR,
       "  RecordSection\n"
       ));
-    DEBUG ((DEBUG_VERBOSE, "  Address              - 0x%016llx\n", (UINT64) ImageRecord->Sections[Index].Address));
-    DEBUG ((DEBUG_VERBOSE, "  Size                 - 0x%08x\n", ImageRecord->Sections[Index].Size));
-    DEBUG ((DEBUG_VERBOSE, "  Attributes           - 0x%08x\n", ImageRecord->Sections[Index].Attributes));
+    DEBUG ((DEBUG_ERROR, "  Address              - 0x%016llx\n", (UINT64) SectionAddress));
+    DEBUG ((DEBUG_ERROR, "  Size                 - 0x%08x\n", ImageRecord->Sections[Index].Size));
+    DEBUG ((DEBUG_ERROR, "  Attributes           - 0x%08x\n", ImageRecord->Sections[Index].Attributes));
+
+    SectionAddress += ImageRecord->Sections[Index].Size;
   }
+
+  ASSERT (FALSE);
 
   //
   // Record the image record in the list so we can undo the protections later
@@ -400,11 +410,11 @@ UnprotectUefiImage (
                     PE_COFF_IMAGE_RECORD_SIGNATURE
                     );
 
-    if (ImageRecord->Sections[0].Address == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
       // TODO: Revise for removal (e.g. CpuDxe integration)
       if (gCpu != NULL) {
-        SetUefiImageMemoryAttributes (ImageRecord->Sections[0].Address,
-                                      ImageRecord->EndAddress - ImageRecord->Sections[0].Address,
+        SetUefiImageMemoryAttributes (ImageRecord->StartAddress,
+                                      ImageRecord->EndAddress - ImageRecord->StartAddress,
                                       0);
       }
       RemoveEntryList (&ImageRecord->Link);

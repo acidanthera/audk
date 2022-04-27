@@ -156,10 +156,6 @@ typedef struct {
 ///
 typedef struct {
   ///
-  /// The start address of the Image record section in memory.
-  ///
-  UINTN  Address;
-  ///
   /// The size, in Bytes, of the Image record section.
   ///
   UINT32 Size;
@@ -189,10 +185,13 @@ typedef struct {
   /// A link to allow insertion of the Image record into a doubly-linked list.
   ///
   LIST_ENTRY                   Link;
-  // FIXME: Is this needed?
   ///
-  /// The end address of the Image memory space. Must be equal to
-  /// Sections[NumberOfSections - 1].Address + Sections[NumberOfSections - 1].Size.
+  /// The start address of the Image memory space.
+  ///
+  UINTN                        StartAddress;
+  ///
+  /// The end address of the Image memory space. Must be equal to StartAddress
+  /// plus the sum of Sections[i].Size for 0 <= i < NumberOfSections.
   ///
   UINTN                        EndAddress;
   ///
@@ -201,10 +200,9 @@ typedef struct {
   UINT32                       NumberOfSections;
   ///
   /// The Image record sections with their corresponding memory permission
-  /// attributes. Must be contiguous and cover the entire Image memory space.
-  /// The Image record sections are ordered in ascending order by Address. The
-  /// start address of the Image memory space can be retrieved by
-  /// Sections[0].Address.
+  /// attributes. All Image record sections are contiguous and cover the entire
+  /// Image memory space. The address of an Image record section can be
+  /// determined by adding the sum of all previous sizes to StartAddress.
   ///
   PE_COFF_IMAGE_RECORD_SECTION Sections[];
 } PE_COFF_IMAGE_RECORD;

@@ -36,6 +36,7 @@
 
 **/
 
+#include "ProcessorBind.h"
 #include "StandaloneMmCore.h"
 
 //
@@ -194,6 +195,7 @@ InternalProtectMmImage (
   )
 {
   PE_COFF_IMAGE_RECORD *ImageRecord;
+  UINTN                SectionAddress;
   UINT32               SectionIndex;
 
   if (UefiImageGetSegmentAlignment (ImageContext) < EFI_PAGE_SIZE) {
@@ -224,10 +226,11 @@ InternalProtectMmImage (
   //
   // Images are loaded into RW memory, thus only +X and -W need to be handled.
   //
+  SectionAddress = ImageRecord->StartAddress;
   for (SectionIndex = 0; SectionIndex < ImageRecord->NumberOfSections; ++ SectionIndex) {
     DEBUG ((DEBUG_INFO,
       "%a: Mapping segment of image at 0x%lx with %s-%s permissions and size 0x%x\n",
-      __FUNCTION__, ImageRecord->Sections[SectionIndex].Address,
+      __FUNCTION__, SectionAddress,
       (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0 ? "RO" : "RW",
       (ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) != 0 ? "XN" : "X",
       ImageRecord->Sections[SectionIndex].Size));
@@ -235,17 +238,19 @@ InternalProtectMmImage (
     // FIXME: What about their return values?
     if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_RO) != 0) {
       SetMemoryRegionReadOnly (
-        ImageRecord->Sections[SectionIndex].Address,
+        SectionAddress,
         ImageRecord->Sections[SectionIndex].Size
         );
     }
 
     if ((ImageRecord->Sections[SectionIndex].Attributes & EFI_MEMORY_XP) == 0) {
       ClearMemoryRegionNoExec (
-        ImageRecord->Sections[SectionIndex].Address,
+        SectionAddress,
         ImageRecord->Sections[SectionIndex].Size
         );
     }
+
+    SectionAddress += ImageRecord->Sections[SectionIndex].Size;
   }
 
   FreePool (ImageRecord);
