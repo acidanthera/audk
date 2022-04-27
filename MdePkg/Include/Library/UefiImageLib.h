@@ -492,12 +492,6 @@ UefiImageLoaderGetImageAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
-// FIXME: Docs
-UINTN
-UefiImageLoaderGetRvctSymbolsBaseAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
-  );
-
 /**
   Retrieve the Image entry point address.
 

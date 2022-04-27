@@ -646,12 +646,6 @@ PeCoffLoaderGetImageAddress (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-// FIXME: Docs
-UINTN
-PeCoffLoaderGetRvctSymbolsBaseAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
 /**
   Retrieve the Image entry point address.
 

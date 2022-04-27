@@ -121,7 +121,7 @@ UefiImageLoaderRelocateImageExtraAction (
   }
 
 #if (__ARMCC_VERSION < 500000)
-  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, UefiImageLoaderGetRvctSymbolsBaseAddress (ImageContext));
+  AsciiSPrint (Buffer, sizeof (Buffer), "load /a /ni /np \"%a\" &0x%08x\n", PdbPath, UefiImageLoaderGetImageAddress (ImageContext));
  #else
   AsciiSPrint (Buffer, sizeof (Buffer), "add-symbol-file %a -o 0x%08x\n", PdbPath, UefiImageLoaderGetImageAddress (ImageContext));
  #endif

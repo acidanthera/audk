@@ -359,14 +359,6 @@ UefiImageLoaderGetImageAddress (
 }
 
 UINTN
-UefiImageLoaderGetRvctSymbolsBaseAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  return PeCoffLoaderGetRvctSymbolsBaseAddress (Context);
-}
-
-UINTN
 UefiImageLoaderGetImageEntryPoint (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
