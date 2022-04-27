@@ -105,7 +105,7 @@ typedef struct {
 
 #define ROUNDUP8(x)  (((x) % 8 == 0) ? (x) : ((x) / 8 + 1) * 8)
 
-#define IS_ALIGNED(addr, size)  (((UINTN) (addr) & (size - 1)) == 0)
+#define ADDR_IS_ALIGNED(addr, size)   IS_ALIGNED ((UINTN) (addr), size)
 
 #define UFS_PASS_THRU_PRIVATE_DATA_FROM_THIS(a) \
   CR (a, \
