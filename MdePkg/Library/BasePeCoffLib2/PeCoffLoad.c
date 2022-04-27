@@ -178,6 +178,7 @@ PeCoffLoadImageInplaceNoBase (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
+  UINT32                         NumberOfSections;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT32                         AlignedSize;
   UINT16                         SectionIndex;
@@ -185,13 +186,11 @@ PeCoffLoadImageInplaceNoBase (
 
   ASSERT (Context != NULL);
 
-  Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
-               (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
-               );
+  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
   //
   // Verify all RVAs and raw file offsets are identical for XIP Images.
   //
-  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
+  for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
     AlignedSize = ALIGN_VALUE (
                     Sections[SectionIndex].VirtualSize,
                     Context->SectionAlignment

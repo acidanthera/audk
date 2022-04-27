@@ -426,7 +426,16 @@ UefiImageLoaderGetImageEntryPoint (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  return PeCoffLoaderGetImageEntryPoint (Context);
+  UINTN  ImageAddress;
+  UINT32 AddressOfEntryPoint;
+
+  ASSERT (Context != NULL);
+  ASSERT (Context->ImageBuffer != NULL);
+
+  ImageAddress        = PeCoffLoaderGetImageAddress (Context);
+  AddressOfEntryPoint = PeCoffGetAddressOfEntryPoint (Context);
+
+  return ImageAddress + AddressOfEntryPoint;
 }
 
 /**
@@ -837,7 +846,40 @@ UefiImageGetFixedAddress (
   OUT    UINT64                           *Address
   )
 {
-  return PeCoffGetFixedAddress (Context, Address);
+  CONST EFI_IMAGE_SECTION_HEADER *Sections;
+  UINT16                         NumberOfSections;
+  UINT16                         SectionIndex;
+  UINT64                         FixedAddress;
+
+  ASSERT (Address != NULL);
+  //
+  // If this feature is enabled, the build tool will save the address in the
+  // PointerToRelocations and PointerToLineNumbers fields of the first Image
+  // section header that doesn't hold code. The 64-bit value across those fields
+  // will be non-zero if and only if the module has been assigned an address.
+  //
+  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+  for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
+    if ((Sections[SectionIndex].Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
+      continue;
+    }
+
+    FixedAddress = ReadUnaligned64 (
+                     (CONST VOID *) &Sections[SectionIndex].PointerToRelocations
+                     );
+    if (FixedAddress != 0) {
+      if (!IS_ALIGNED (FixedAddress, Context->SectionAlignment)) {
+        return RETURN_UNSUPPORTED;
+      }
+
+      *Address = FixedAddress;
+      return RETURN_SUCCESS;
+    }
+
+    break;
+  }
+
+  return RETURN_NOT_FOUND;
 }
 
 VOID
