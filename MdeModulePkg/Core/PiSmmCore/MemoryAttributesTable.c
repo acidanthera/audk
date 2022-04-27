@@ -319,11 +319,10 @@ SetNewRecord (
 
   for (Index = 0;    Index < ImageRecord->NumberOfSections; ++Index) {
     ImageRecordSection = &ImageRecord->Sections[Index];
-    // FIXME:          Inconsistent with DXE?
     if  ((ImageRecordSection->Attributes & EFI_MEMORY_XP) == 0) {
-      NewRecord->Type          = EfiRuntimeServicesCode;
+      NewRecord->Type        = EfiRuntimeServicesCode;
     } else {
-      NewRecord->Type          = EfiRuntimeServicesData;
+      NewRecord->Type        = EfiRuntimeServicesData;
     }
     NewRecord->PhysicalStart = ImageRecordSection->Address;
     NewRecord->VirtualStart  = 0;
