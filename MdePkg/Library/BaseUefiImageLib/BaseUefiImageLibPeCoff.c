@@ -418,11 +418,11 @@ InternalCharacteristicsToAttributes (
   UINT32 Attributes;
 
   Attributes = 0;
-  if ((Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
-    Attributes |= EFI_MEMORY_XP;
-  }
   if ((Characteristics & EFI_IMAGE_SCN_MEM_READ) == 0) {
     Attributes |= EFI_MEMORY_RP;
+  }
+  if ((Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
+    Attributes |= EFI_MEMORY_XP;
   }
   if ((Characteristics & EFI_IMAGE_SCN_MEM_WRITE) == 0) {
     Attributes |= EFI_MEMORY_RO;
