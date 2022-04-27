@@ -387,41 +387,6 @@ PeCoffRelocateImage (
   );
 
 /**
-  Load the Image into the destination memory space, relocate Image for boot-time
-  usage, and perform environment-specific actions required to execute code from
-  the Image.
-
-  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
-  BaseAddress == PeCoffGetImageBase().
-
-  @param[in,out] Context             The context describing the Image. Must have
-                                     been initialised by
-                                     PeCoffInitializeContext().
-  @param[out]    Destination         The Image destination memory. Must be
-                                     allocated from page memory.
-  @param[in]     DestinationSize     The size, in Bytes, of Destination. Must be
-                                     at least as large as the size returned by
-                                     PeCoffLoaderGetDestinationSize().
-  @param[out]    RuntimeContext      If not NULL, on output, a buffer
-                                     bookkeeping data required for Image runtime
-                                     relocation.
-  @param[in]     RuntimeContextSize  The size, in Bytes, of RuntimeContext. Must
-                                     be at least as big as the size returned by
-                                     PeCoffLoaderGetRuntimeContextSize().
-
-  @retval RETURN_SUCCESS  The Image was loaded successfully.
-  @retval other           The Image could not be loaded successfully.
-**/
-RETURN_STATUS
-PeCoffLoadImageForExecution (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT    *Context,
-  OUT    VOID                            *Destination,
-  IN     UINT32                          DestinationSize,
-  OUT    PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
-  IN     UINT32                          RuntimeContextSize
-  );
-
-/**
   Relocate Image for Runtime usage.
 
   May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
@@ -439,31 +404,6 @@ PeCoffLoadImageForExecution (
 **/
 RETURN_STATUS
 PeCoffRelocateImageForRuntime (
-  IN OUT VOID                                  *Image,
-  IN     UINT32                                ImageSize,
-  IN     UINT64                                BaseAddress,
-  IN     CONST PE_COFF_LOADER_RUNTIME_CONTEXT  *RuntimeContext
-  );
-
-/**
-  Relocate Image for Runtime usage, and perform environment-specific actions
-  required to execute code from the Image.
-
-  May only be called when PeCoffGetRelocsStripped() returns FALSE, or with
-  BaseAddress == PeCoffGetImageBase().
-
-  @param[in,out] Image           The Image destination memory. Must have been
-                                 relocated by PeCoffRelocateImage().
-  @param[in]     ImageSize       The size, in Bytes, of Image.
-  @param[in]     BaseAddress     The address to relocate the Image to.
-  @param[in]     RuntimeContext  The Relocation context obtained by
-                                 PeCoffRelocateImage().
-
-  @retval RETURN_SUCCESS  The Image has been relocated successfully.
-  @retval other           The Image could not be relocated successfully.
-**/
-RETURN_STATUS
-PeCoffRelocateImageForRuntimeExecution (
   IN OUT VOID                                  *Image,
   IN     UINT32                                ImageSize,
   IN     UINT64                                BaseAddress,

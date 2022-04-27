@@ -8,6 +8,7 @@
 
 #include <Base.h>
 
+#include <Library/CacheMaintenanceLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
 
@@ -91,6 +92,7 @@ UefiImageRelocateImage (
            );
 }
 
+// FIXME: Check Subsystem here
 RETURN_STATUS
 UefiImageLoadImageForExecution (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *Context,
@@ -100,13 +102,37 @@ UefiImageLoadImageForExecution (
   IN     UINT32                             RuntimeContextSize
   )
 {
-  return PeCoffLoadImageForExecution (
-           Context,
-           Destination,
-           DestinationSize,
-           RuntimeContext,
-           RuntimeContextSize
-           );
+  RETURN_STATUS Status;
+  UINTN         BaseAddress;
+  UINTN         SizeOfImage;
+  //
+  // Load the Image into the memory space.
+  //
+  Status = PeCoffLoadImage (Context, Destination, DestinationSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+  //
+  // Relocate the Image to the address it has been loaded to.
+  //
+  BaseAddress = PeCoffLoaderGetImageAddress (Context);
+  Status = PeCoffRelocateImage (
+             Context,
+             BaseAddress,
+             RuntimeContext,
+             RuntimeContextSize
+             );
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+
+  SizeOfImage = PeCoffGetSizeOfImage (Context);
+  //
+  // Flush the instruction cache so the image data is written before execution.
+  //
+  InvalidateInstructionCacheRange ((VOID *) BaseAddress, SizeOfImage);
+
+  return RETURN_SUCCESS;
 }
 
 RETURN_STATUS
@@ -133,12 +159,25 @@ UefiImageRelocateImageForRuntimeExecution (
   IN     CONST UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RuntimeContext
   )
 {
-  return PeCoffRelocateImageForRuntimeExecution (
-           Image,
-           ImageSize,
-           BaseAddress,
-           RuntimeContext
-           );
+  RETURN_STATUS Status;
+  //
+  // Relocate the Image to the new address.
+  //
+  Status = PeCoffRelocateImageForRuntime (
+             Image,
+             ImageSize,
+             BaseAddress,
+             RuntimeContext
+             );
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+  //
+  // Flush the instruction cache so the image data is written before execution.
+  //
+  InvalidateInstructionCacheRange (Image, ImageSize);
+
+  return RETURN_SUCCESS;
 }
 
 VOID
