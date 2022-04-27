@@ -1004,6 +1004,14 @@ ExecuteSmmCoreFromSmram (
     return Status;
   }
 
+  //
+  // Stripped relocations are not supported for both fixed-address and dynamic
+  // loading.
+  //
+  if (PeCoffGetRelocsStripped (&gSmmCorePrivate->PiSmmCoreImageContext)) {
+    return EFI_UNSUPPORTED;
+  }
+
   Status = UefiImageLoaderGetDestinationSize (
              &gSmmCorePrivate->PiSmmCoreImageContext,
              &DestinationSize

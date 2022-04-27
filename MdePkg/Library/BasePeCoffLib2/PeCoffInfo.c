@@ -183,7 +183,6 @@ PeCoffGetSectionTable (
   return Context->NumberOfSections;
 }
 
-// FIXME: Put to use in the callers
 BOOLEAN
 PeCoffGetRelocsStripped (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context

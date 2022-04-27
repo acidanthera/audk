@@ -278,20 +278,20 @@ LoadAndRelocateUefiImage (
       return Status;
     }
 
+    Status = EFI_UNSUPPORTED;
+
     if ((PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0) && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
       Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, Private, &LoadAddress);
-      if (EFI_ERROR (Status)) {
-        DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
-        //
-        // The PEIM is not assigned valid address, try to allocate page to load it.
-        //
-        Status = PeiServicesAllocatePages (
-                   EfiBootServicesCode,
-                   EFI_SIZE_TO_PAGES (AlignImageSize),
-                   &LoadAddress
-                   );
+      if (!EFI_ERROR (Status)) {
+        if (LoadAddress != PeCoffGetImageBase (ImageContext) && PeCoffGetRelocsStripped (ImageContext)) {
+          Status = EFI_UNSUPPORTED;
+          DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
+        }
+      } else {
+        DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
       }
-    } else {
+    }
+    if (EFI_ERROR (Status) && !PeCoffGetRelocsStripped (ImageContext)) {
       Status = PeiServicesAllocatePages (
                  EfiBootServicesCode,
                  EFI_SIZE_TO_PAGES (AlignImageSize),

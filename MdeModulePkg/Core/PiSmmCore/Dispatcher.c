@@ -380,6 +380,17 @@ SmmLoadImage (
     return Status;
   }
 
+  //
+  // Stripped relocations are not supported for both fixed-address and dynamic
+  // loading.
+  //
+  if (PeCoffGetRelocsStripped (ImageContext)) {
+    if (Buffer != NULL) {
+      gBS->FreePool (Buffer);
+    }
+    return EFI_UNSUPPORTED;
+  }
+
   // FIXME: Context?
   //
   // Verify File Authentication through the Security2 Architectural Protocol

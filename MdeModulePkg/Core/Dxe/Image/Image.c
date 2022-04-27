@@ -641,20 +641,19 @@ CoreLoadPeImage (
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
       Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
 
-      if (EFI_ERROR (Status)) {
+      if (!EFI_ERROR (Status))  {
+        if (BufferAddress != PeCoffGetImageBase (ImageContext) && PeCoffGetRelocsStripped (ImageContext)) {
+          Status = EFI_UNSUPPORTED;
+          DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
+        }
+      } else {
         //
         // If the code memory is not ready, invoke CoreAllocatePage with AllocateAnyPages to load the driver.
         //
         DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since specified memory is not available.\n"));
-
-        Status = CoreAllocatePages (
-                   AllocateAnyPages,
-                   ImageCodeMemoryType,
-                   Image->NumberOfPages,
-                     &BufferAddress
-                   );
       }
-    } else {
+    }
+    if (EFI_ERROR (Status)) {
       if (UefiImageGetImageBase ((ImageContext) >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = CoreAllocatePages (
                    AllocateAddress,
