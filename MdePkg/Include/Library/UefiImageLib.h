@@ -447,13 +447,13 @@ UefiImageGetSegmentAlignment (
   @returns  The size of the Image memory space.
 **/
 UINT32
-UefiImageGetSizeOfImage (
+UefiImageGetImageSize (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
 // FIXME: Docs
 UINT32
-UefiImageGetSizeOfImageInplace (
+UefiImageGetImageSizeInplace (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
@@ -550,7 +550,7 @@ UefiImageDebugLocateImage (
   @param[out]    Address  On output, the fixed loading address of the Image.
                           *Address is guaranteed to by aligned by the Image
                           segment alignment, and thus the size returned by
-                          UefiImageGetSizeOfImage is sufficient to hold the
+                          UefiImageGetImageSize is sufficient to hold the
                           Image.
 
   @retval RETURN_SUCCESS      The Image has a fixed loading address.
