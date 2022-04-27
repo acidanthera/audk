@@ -85,6 +85,19 @@ BOOLEAN
   IN     UINTN       DataSize
   );
 
+// FIXME: Docs
+RETURN_STATUS
+UefiImageInitializeContextPreHash (
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN  CONST VOID                       *FileBuffer,
+  IN  UINT32                           FileSize
+  );
+
+RETURN_STATUS
+UefiImageInitializeContextPostHash (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 /**
   Verify the UEFI Image and initialise Context.
 

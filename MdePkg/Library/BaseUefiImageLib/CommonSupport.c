@@ -17,6 +17,23 @@
 #include "../BasePeCoffLib2/BaseOverflow.h"
 
 RETURN_STATUS
+UefiImageInitializeContext (
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN  CONST VOID                       *FileBuffer,
+  IN  UINT32                           FileSize
+  )
+{
+  RETURN_STATUS Status;
+
+  Status = UefiImageInitializeContextPreHash (Context, FileBuffer, FileSize);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+
+  return UefiImageInitializeContextPostHash (Context);
+}
+
+RETURN_STATUS
 UefiImageLoaderGetDestinationSize (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   OUT    UINT32                           *Size
@@ -24,22 +41,22 @@ UefiImageLoaderGetDestinationSize (
 {
   BOOLEAN Overflow;
   UINT32  AlignedSize;
-  UINT32  SectionAlignment;
+  UINT32  SegmentAlignment;
 
   ASSERT (Context != NULL);
   ASSERT (Size != NULL);
 
   AlignedSize      = UefiImageGetImageSize (Context);
-  SectionAlignment = UefiImageGetSegmentAlignment (Context);
+  SegmentAlignment = UefiImageGetSegmentAlignment (Context);
   //
-  // If the Image section alignment is larger than the UEFI page size,
+  // If the Image segment alignment is larger than the UEFI page size,
   // sufficient alignment cannot be guaranteed by the allocater. Allodate an
   // additional Image page to be able to manually align within the buffer.
   //
-  if (SectionAlignment > EFI_PAGE_SIZE) {
+  if (SegmentAlignment > EFI_PAGE_SIZE) {
     Overflow = BaseOverflowAddU32 (
                  AlignedSize,
-                 SectionAlignment - EFI_PAGE_SIZE,
+                 SegmentAlignment - EFI_PAGE_SIZE,
                  &AlignedSize
                  );
     if (Overflow) {

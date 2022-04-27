@@ -50,18 +50,16 @@ MeasureUefiImageAndExtend (
   )
 {
   EFI_STATUS                           Status;
-  EFI_IMAGE_SECTION_HEADER             *SectionHeader;
   VOID                                 *HashHandle;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
 
   Status        = EFI_UNSUPPORTED;
-  SectionHeader = NULL;
 
   // FIXME: Can this somehow be abstracted away?
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (
+  Status = UefiImageInitializeContextPreHash (
              &ImageContext,
              (VOID *) (UINTN) ImageAddress,
              (UINT32) ImageSize
@@ -71,7 +69,7 @@ MeasureUefiImageAndExtend (
     // The information can't be got from the invalid PeImage
     //
     DEBUG ((DEBUG_INFO, "Tcg2Dxe: PeImage invalid. Cannot retrieve image information.\n"));
-    goto Finish;
+    return Status;
   }
 
   //
@@ -82,27 +80,17 @@ MeasureUefiImageAndExtend (
 
   Status = HashStart (&HashHandle);
   if (EFI_ERROR (Status)) {
-    goto Finish;
+    return Status;
   }
 
   // FIXME: This is just an ugly wrapper, the types should match (UINTN <-> VOID *), fix the libs
   UefiImageHashImageDefault (NULL, HashHandle, HashUpdate);
   if (EFI_ERROR (Status)) {
-    goto Finish;
+    return Status;
   }
 
   //
   // 17.  Finalize the SHA hash.
   //
-  Status = HashCompleteAndExtend (HashHandle, PCRIndex, NULL, 0, DigestList);
-  if (EFI_ERROR (Status)) {
-    goto Finish;
-  }
-
-Finish:
-  if (SectionHeader != NULL) {
-    FreePool (SectionHeader);
-  }
-
-  return Status;
+  return HashCompleteAndExtend (HashHandle, PCRIndex, NULL, 0, DigestList);
 }

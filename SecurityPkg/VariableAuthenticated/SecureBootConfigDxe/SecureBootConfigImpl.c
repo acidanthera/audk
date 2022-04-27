@@ -1883,7 +1883,7 @@ EnrollImageSignatureToSigDB (
     goto ON_EXIT;
   }
 
-  Status = UefiImageInitializeContext (&ImageContext, ImageBase, (UINT32) ImageSize);
+  Status = UefiImageInitializeContextPreHash (&ImageContext, ImageBase, (UINT32) ImageSize);
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
   }

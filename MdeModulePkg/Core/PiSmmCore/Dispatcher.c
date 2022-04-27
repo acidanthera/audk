@@ -372,23 +372,12 @@ SmmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (ImageContext, Buffer, (UINT32) Size);
+  Status = UefiImageInitializeContextPreHash (ImageContext, Buffer, (UINT32) Size);
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);
     }
     return Status;
-  }
-
-  //
-  // Stripped relocations are not supported for both fixed-address and dynamic
-  // loading.
-  //
-  if (UefiImageGetRelocsStripped (ImageContext)) {
-    if (Buffer != NULL) {
-      gBS->FreePool (Buffer);
-    }
-    return EFI_UNSUPPORTED;
   }
 
   // FIXME: Context?
@@ -421,6 +410,19 @@ SmmLoadImage (
   if (EFI_ERROR (SecurityStatus) && (SecurityStatus != EFI_SECURITY_VIOLATION)) {
     Status = SecurityStatus;
     return Status;
+  }
+
+  Status = UefiImageInitializeContextPostHash (ImageContext);
+  if (RETURN_ERROR (Status)) {
+    return Status;
+  }
+
+  //
+  // Stripped relocations are not supported for both fixed-address and dynamic
+  // loading.
+  //
+  if (UefiImageGetRelocsStripped (ImageContext)) {
+    return EFI_UNSUPPORTED;
   }
 
   Status = UefiImageLoaderGetDestinationSize (ImageContext, &DstBufferSize);

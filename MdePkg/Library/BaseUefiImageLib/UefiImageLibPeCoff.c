@@ -27,13 +27,23 @@
 #include "PeCoffSupport.h"
 
 RETURN_STATUS
-UefiImageInitializeContext (
+UefiImageInitializeContextPreHash (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize
   )
 {
   return PeCoffInitializeContext (Context, FileBuffer, FileSize);
+}
+
+RETURN_STATUS
+UefiImageInitializeContextPostHash (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  ASSERT (Context != NULL);
+
+  return RETURN_SUCCESS;
 }
 
 BOOLEAN

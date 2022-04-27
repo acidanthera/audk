@@ -1232,7 +1232,7 @@ CoreLoadImageCommon (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
+  Status = UefiImageInitializeContextPreHash (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     return Status;
@@ -1291,6 +1291,11 @@ CoreLoadImageCommon (
 
     Status = SecurityStatus;
     Image  = NULL;
+    goto Done;
+  }
+
+  Status = UefiImageInitializeContextPostHash (&ImageContext);
+  if (RETURN_ERROR (Status)) {
     goto Done;
   }
 
