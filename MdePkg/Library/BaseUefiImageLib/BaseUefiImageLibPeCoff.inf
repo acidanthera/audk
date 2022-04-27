@@ -34,3 +34,4 @@
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe

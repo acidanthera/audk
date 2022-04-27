@@ -345,8 +345,11 @@ InternalDebugLocateImage (
       // is a part of, if existent. Allow one level of recursion to find a lower
       // Image Base including the DOS Image Header.
       //
-      if (Context->ImageType != PeCoffLoaderTypeTe
+      if ((PcdGetBool (PcdImageLoaderProhibitTe)
+        || Context->ImageType != PeCoffLoaderTypeTe)
        && Context->ExeHdrOffset == 0) {
+        ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
+
         DosStatus = InternalDebugLocateImage (
                       &DosContext,
                       Buffer - 4,
