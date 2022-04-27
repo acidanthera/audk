@@ -608,6 +608,16 @@ SmmLoadImage (
   SmmInsertImageRecord (&DriverEntry->SmmLoadedImage, ImageContext);
 
   //
+  // Register the image in the Debug Image Info Table if the attribute is set
+  //
+  SmmNewDebugImageInfoEntry (
+    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
+    &DriverEntry->SmmLoadedImage,
+    DriverEntry->SmmImageHandle,
+    ImageContext
+    );
+
+  //
   // Print the load address and the PDB file name if it is available
   //
 

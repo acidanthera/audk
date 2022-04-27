@@ -840,6 +840,19 @@ SmmCoreInstallLoadedImage (
 
   SmmInsertImageRecord (&mSmmCoreDriverEntry->SmmLoadedImage, &gSmmCorePrivate->PiSmmCoreImageContext);
 
+  //
+  // Create the aligned system table pointer structure that is used by external
+  // debuggers to locate the system table...  Also, install debug image info
+  // configuration table.
+  //
+  SmmInitializeDebugImageInfoTable ();
+  SmmNewDebugImageInfoEntry (
+    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
+    &mSmmCoreDriverEntry->SmmLoadedImage,
+    mSmmCoreDriverEntry->SmmImageHandle,
+    &gSmmCorePrivate->PiSmmCoreImageContext
+    );
+
   return;
 }
 
