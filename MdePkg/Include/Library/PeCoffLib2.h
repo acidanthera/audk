@@ -151,22 +151,9 @@ typedef struct {
 } PE_COFF_LOADER_IMAGE_CONTEXT;
 
 ///
-/// Image runtime context used to relocate the Image durinf runtime.
+/// Image runtime context used to relocate the Image during runtime.
 ///
-typedef struct {
-  ///
-  /// The RVA of the Relocation Directory.
-  ///
-  UINT32 RelocDirRva;
-  ///
-  /// The size, in Bytes, of the Relocation Directory.
-  ///
-  UINT32 RelocDirSize;
-  ///
-  /// Information bookkept during the initial Image relocation.
-  ///
-  UINT64 FixupData[];
-} PE_COFF_LOADER_RUNTIME_CONTEXT;
+typedef struct PE_COFF_LOADER_RUNTIME_CONTEXT_ PE_COFF_LOADER_RUNTIME_CONTEXT;
 
 /**
   Adds the digest of Data to HashContext. This function can be called multiple

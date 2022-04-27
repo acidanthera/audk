@@ -25,6 +25,21 @@
 #include "BaseOverflow.h"
 #include "BasePeCoffLib2Internals.h"
 
+struct PE_COFF_LOADER_RUNTIME_CONTEXT_ {
+  ///
+  /// The RVA of the Relocation Directory.
+  ///
+  UINT32 RelocDirRva;
+  ///
+  /// The size, in Bytes, of the Relocation Directory.
+  ///
+  UINT32 RelocDirSize;
+  ///
+  /// Information bookkept during the initial Image relocation.
+  ///
+  UINT64 FixupData[];
+};
+
 // FIXME: Add RISC-V support.
 /**
   Returns whether the Base Relocation type is supported by this loader.
