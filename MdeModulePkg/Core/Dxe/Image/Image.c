@@ -654,8 +654,8 @@ CoreLoadPeImage (
       }
     }
     if (EFI_ERROR (Status)) {
-      BufferAddress = UefiImageGetPreferredAddress ((ImageContext);
-      if (BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
+      BufferAddress = UefiImageGetPreferredAddress (ImageContext);
+      if ((BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = CoreAllocatePages (
                    AllocateAddress,
                    ImageCodeMemoryType,

@@ -25,7 +25,7 @@
 VOID
 EFIAPI
 UefiImageLoaderRelocateImageExtraAction (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
