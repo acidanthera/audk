@@ -12,7 +12,7 @@
 
 #include <Library/PeCoffLib2.h>
 
-#include "../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
+#include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
 
 #include "ImageTool.h"
 
