@@ -16,6 +16,8 @@
 
 #include "ImageTool.h"
 
+// FIXME: NumSegments <= MAX_UINT8
+
 #define PAGE(x)     ((x) & ~(uint64_t) 4095ULL)
 #define PAGE_OFF(x) ((x) & 4095U)
 
@@ -38,187 +40,6 @@ typedef struct {
   uint32_t                      DebugTableSize;
 } image_tool_ue_emit_context_t;
 
-bool EmitUeCheckToolImageHeaderInfo(image_tool_header_info_t *HeaderInfo)
-{
-  assert(HeaderInfo != NULL);
-
-  if (HeaderInfo->EntryPointAddress > MAX_UINT32) {
-    return false;
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImageSegment(
-  image_tool_segment_t *Segment,
-  uint32_t             *PreviousEndAddress
-  ) {
-  assert(Segment != NULL);
-  assert(PreviousEndAddress != NULL);
-
-  // FIXME: Add guarantee!
-  assert(Segment->DataSize <= Segment->ImageSize);
-
-  if (Segment->ImageAddress != *PreviousEndAddress) {
-    return false;
-  }
-
-  if (Segment->ImageSize > MAX_UINT32) {
-    return false;
-  }
-
-  assert(Segment->DataSize <= MAX_UINT32);
-
-  if (IS_ALIGNED(Segment->ImageSize, UE_SEGMENT_ALIGNMENT)) {
-    return false;
-  }
-
-  bool Overflow = BaseOverflowAddU32(
-    Segment->ImageAddress,
-    Segment->ImageSize,
-    PreviousEndAddress
-    );
-  if (Overflow) {
-    return false;
-  }
-
-  if (Segment->Write && Segment->Execute) {
-    return false;
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImageSegmentInfo(
-  image_tool_segment_info_t *SegmentInfo,
-  uint32_t                  *ImageSize
-  )
-{
-  assert(SegmentInfo != NULL);
-  assert(ImageSize != NULL);
-
-  if (!IS_POW2(SegmentInfo->SegmentAlignment)) {
-    return false;
-  }
-
-  if (SegmentInfo->NumSegments == 0) {
-    return false;
-  }
-
-  if (SegmentInfo->NumSegments > MAX_UINT8) {
-    return false;
-  }
-
-  *ImageSize = 0;
-  for (uint8_t Index = 0; (uint8_t) Index < SegmentInfo->NumSegments; ++Index) {
-    bool Result = EmitUeCheckToolImageSegment(
-      SegmentInfo->Segments + Index,
-      ImageSize
-      );
-    if (!Result) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImageReloc(
-  image_tool_reloc_t *Reloc,
-  uint32_t           ImageSize
-  )
-{
-  assert(Reloc != NULL);
-  assert(Reloc->Target < ImageSize);
-
-  return true;
-}
-
-bool EmitUeCheckToolImageRelocInfo(
-  image_tool_reloc_info_t *RelocInfo,
-  uint32_t                ImageSize
-  )
-{
-  assert(RelocInfo != NULL);
-  assert(!RelocInfo->RelocsStripped || RelocInfo->NumRelocs == 0);
-
-  if (RelocInfo->NumRelocs > MAX_UINT32 / sizeof(UINT16)) {
-    return false;
-  }
-
-  for (uint32_t Index = 0; (uint32_t) Index < RelocInfo->NumRelocs; ++Index) {
-    bool Result = EmitUeCheckToolImageReloc(
-      RelocInfo->Relocs + Index,
-      ImageSize
-      );
-    if (!Result) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImageHiiInfo(image_tool_hii_info_t *HiiInfo)
-{
-  assert(HiiInfo != NULL);
-
-  if (HiiInfo->DataSize > MAX_UINT32) {
-    return false;
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImageDebugInfo(image_tool_debug_info_t *DebugInfo)
-{
-  assert(DebugInfo != NULL);
-
-  if (DebugInfo->SymbolsPath != NULL) {
-    size_t SymbolsPathLen = strlen(DebugInfo->SymbolsPath);
-    if (SymbolsPathLen > MAX_UINT8) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-bool EmitUeCheckToolImage(image_tool_image_info_t *Image)
-{
-  assert(Image != NULL);
-
-  bool Result;
-
-  Result = EmitUeCheckToolImageHeaderInfo(&Image->HeaderInfo);
-  if (!Result) {
-    return false;
-  }
-
-  uint32_t ImageSize;
-  Result = EmitUeCheckToolImageSegmentInfo(&Image->SegmentInfo, &ImageSize);
-  if (!Result) {
-    return false;
-  }
-
-  Result = EmitUeCheckToolImageRelocInfo(&Image->RelocInfo, ImageSize);
-  if (!Result) {
-    return false;
-  }
-
-  Result = EmitUeCheckToolImageHiiInfo(&Image->HiiInfo);
-  if (!Result) {
-    return false;
-  }
-
-  Result = EmitUeCheckToolImageDebugInfo(&Image->DebugInfo);
-  if (!Result) {
-    return false;
-  }
-
-  return true;
-}
-
 bool EmitUeGetHeaderSizes(
   const image_tool_image_info_t *Image,
   image_tool_emit_ue_hdr_info_t *HdrInfo
@@ -226,8 +47,6 @@ bool EmitUeGetHeaderSizes(
 {
   assert(Image != NULL);
   assert(HdrInfo != NULL);
-
-  assert(Image->SegmentInfo.NumSegments <= MAX_UINT8);
 
   if (Image->RelocInfo.NumRelocs > 0) {
     ++HdrInfo->NumSections;
@@ -251,19 +70,25 @@ bool EmitUeGetHeaderSizes(
   return true;
 }
 
-bool EmitUeGetSegmentsSize(image_tool_image_info_t *Image, uint32_t *SegmentsSize) {
+bool EmitUeGetSegmentsSize(
+  const image_tool_image_info_t *Image,
+  uint32_t                      *SegmentsSize
+  ) {
   assert(Image != NULL);
   assert(SegmentsSize != NULL);
 
   *SegmentsSize = 0;
-  for (uint8_t Index = 0; (uint8_t) Index < Image->SegmentInfo.NumSegments; ++Index) {
+  for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     *SegmentsSize += Image->SegmentInfo.Segments[Index].DataSize;
   }
 
   return true;
 }
 
-bool EmitUeGetRelocSectionSize(image_tool_image_info_t *Image, uint32_t *RelocsSize)
+bool EmitUeGetRelocSectionSize(
+  const image_tool_image_info_t *Image,
+  uint32_t                      *RelocsSize
+  )
 {
   assert(Image != NULL);
   assert(RelocsSize != NULL);
@@ -280,7 +105,7 @@ bool EmitUeGetRelocSectionSize(image_tool_image_info_t *Image, uint32_t *RelocsS
   uint32_t BlockAddress = (uint32_t) PAGE(Image->RelocInfo.Relocs[0].Target);
   uint32_t BlockSize    = sizeof(UE_RELOCATION_BLOCK);
 
-  for (uint32_t Index = 0; Index < (uint32_t) Image->RelocInfo.NumRelocs; ++Index) {
+  for (uint32_t Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
     uint32_t RelocAddress = PAGE(Image->RelocInfo.Relocs[Index].Target);
     if (RelocAddress != BlockAddress) {
       BlockSize = ALIGN_VALUE(BlockSize, UE_RELOCATION_BLOCK_ALIGNMENT);
@@ -296,26 +121,28 @@ bool EmitUeGetRelocSectionSize(image_tool_image_info_t *Image, uint32_t *RelocsS
 
   RelocTableSize += BlockSize;
 
-  return !BaseOverflowAlignUpU32(
-    RelocTableSize,
-    UE_SECTION_ALIGNMENT,
-    RelocsSize
-    );
+  *RelocsSize = RelocTableSize;
+
+  return true;
 }
 
-bool EmitUeGetHiiSectionSize(image_tool_image_info_t *Image, uint32_t *HiiSize)
+bool EmitUeGetHiiSectionSize(
+  const image_tool_image_info_t *Image,
+  uint32_t                      *HiiSize
+  )
 {
   assert(Image != NULL);
   assert(HiiSize != NULL);
 
-  return !BaseOverflowAlignUpU32(
-    Image->HiiInfo.DataSize,
-    UE_SECTION_ALIGNMENT,
-    HiiSize
-    );
+  *HiiSize = Image->HiiInfo.DataSize;
+
+  return true;
 }
 
-bool EmitUeGetDebugSectionSize(image_tool_image_info_t *Image, uint32_t *DebugSize)
+bool EmitUeGetDebugSectionSize(
+  const image_tool_image_info_t *Image,
+  uint32_t                      *DebugSize
+  )
 {
   assert(Image != NULL);
   assert(DebugSize != NULL);
@@ -328,24 +155,22 @@ bool EmitUeGetDebugSectionSize(image_tool_image_info_t *Image, uint32_t *DebugSi
   *DebugSize = sizeof(UE_DEBUG_TABLE) + Image->SegmentInfo.NumSegments * sizeof(UE_SEGMENT_NAME);
 
   if (Image->DebugInfo.SymbolsPath != NULL) {
-    size_t SymbolsPathLen = strlen(Image->DebugInfo.SymbolsPath);
-    assert(SymbolsPathLen <= MAX_UINT8);
-    *DebugSize += SymbolsPathLen;
+    assert(Image->DebugInfo.SymbolsPathLen <= MAX_UINT8);
+    *DebugSize += Image->DebugInfo.SymbolsPathLen;
   }
 
-  return !BaseOverflowAlignUpU32(
-    *DebugSize,
-    UE_SECTION_ALIGNMENT,
-    DebugSize
-    );
+  return true;
 }
 
-bool EmitUeGetSectionsSize(image_tool_ue_emit_context_t *Context, uint32_t *SectionsSize)
+bool EmitUeGetSectionsSize(
+  image_tool_ue_emit_context_t *Context,
+  uint32_t                     *SectionsSize
+  )
 {
   assert(Context != NULL);
   assert(SectionsSize != NULL);
 
-  image_tool_image_info_t *Image = (image_tool_image_info_t *) Context->Image;
+  const image_tool_image_info_t *Image = Context->Image;
 
   bool Result = EmitUeGetRelocSectionSize(Image, &Context->RelocTableSize);
   if (!Result) {
@@ -353,15 +178,11 @@ bool EmitUeGetSectionsSize(image_tool_ue_emit_context_t *Context, uint32_t *Sect
     return false;
   }
 
-  assert(IS_ALIGNED(Context->RelocTableSize, UE_SECTION_ALIGNMENT));
-
   Result = EmitUeGetDebugSectionSize(Image, &Context->DebugTableSize);
   if (!Result) {
     raise();
     return false;
   }
-
-  assert(IS_ALIGNED(Context->DebugTableSize, UE_SECTION_ALIGNMENT));
 
   Result = EmitUeGetHiiSectionSize(Image, &Context->HiiTableSize);
   if (!Result) {
@@ -369,11 +190,42 @@ bool EmitUeGetSectionsSize(image_tool_ue_emit_context_t *Context, uint32_t *Sect
     return false;
   }
 
-  assert(IS_ALIGNED(Context->HiiTableSize, UE_SECTION_ALIGNMENT));
-
-  bool Overflow = BaseOverflowAddU32(
+  uint32_t AlignedRelocTableSize;
+  bool Overflow = BaseOverflowAlignUpU32(
     Context->RelocTableSize,
+    UE_SECTION_ALIGNMENT,
+    &AlignedRelocTableSize
+    );
+  if (Overflow) {
+    raise();
+    return false;
+  }
+
+  uint32_t AlignedDebugTableSize;
+  Overflow = BaseOverflowAlignUpU32(
     Context->DebugTableSize,
+    UE_SECTION_ALIGNMENT,
+    &AlignedDebugTableSize
+    );
+  if (Overflow) {
+    raise();
+    return false;
+  }
+
+  uint32_t AlignedHiiTableSize;
+  Overflow = BaseOverflowAlignUpU32(
+    Context->HiiTableSize,
+    UE_SECTION_ALIGNMENT,
+    &AlignedHiiTableSize
+    );
+  if (Overflow) {
+    raise();
+    return false;
+  }
+
+  Overflow = BaseOverflowAddU32(
+    AlignedRelocTableSize,
+    AlignedDebugTableSize,
     SectionsSize
     );
   if (Overflow) {
@@ -385,7 +237,7 @@ bool EmitUeGetSectionsSize(image_tool_ue_emit_context_t *Context, uint32_t *Sect
 
   Overflow = BaseOverflowAddU32(
     *SectionsSize,
-    Context->HiiTableSize,
+    AlignedHiiTableSize,
     SectionsSize
     );
   if (Overflow) {
@@ -413,7 +265,7 @@ uint8_t AlignmentToExponent(uint64_t Alignment)
 
 bool ToolImageEmitUeSegmentHeaders (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -423,14 +275,12 @@ bool ToolImageEmitUeSegmentHeaders (
 
   const image_tool_image_info_t *Image = Context->Image;
 
-  assert(Image->SegmentInfo.NumSegments <= MAX_UINT8);
-
   uint16_t SegmentHeadersSize = (uint16_t) (Image->SegmentInfo.NumSegments * sizeof (UE_SEGMENT));
   assert(SegmentHeadersSize <= *BufferSize);
 
   UE_SEGMENT *Segments = (void *) *Buffer;
 
-  for (uint8_t Index = 0; Index < (uint8_t) Image->SegmentInfo.NumSegments; ++Index) {
+  for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     // FIXME:
     Image->SegmentInfo.Segments[Index].ImageSize = ALIGN_VALUE(Image->SegmentInfo.Segments[Index].ImageSize, Image->SegmentInfo.SegmentAlignment);
 
@@ -463,7 +313,7 @@ bool ToolImageEmitUeSegmentHeaders (
 
 bool ToolImageEmitUeSectionHeaders (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -478,10 +328,14 @@ bool ToolImageEmitUeSectionHeaders (
 
     UE_SECTION *Section = (void *) *Buffer;
 
-    Section->FileInfo  = Context->RelocTableSize;
+    uint32_t AlignedRelocTableSize = ALIGN_VALUE(
+      Context->RelocTableSize,
+      UE_SECTION_ALIGNMENT
+      );
+    Section->FileInfo  = AlignedRelocTableSize;
     Section->FileInfo |= UeSectionIdRelocTable;
     assert(UE_SECTION_ID(Section->FileInfo) == UeSectionIdRelocTable);
-    assert(UE_SECTION_SIZE(Section->FileInfo) == Context->RelocTableSize);
+    assert(UE_SECTION_SIZE(Section->FileInfo) == AlignedRelocTableSize);
 
     *BufferSize        -= sizeof(UE_SECTION);
     *Buffer            += sizeof(UE_SECTION);
@@ -493,10 +347,14 @@ bool ToolImageEmitUeSectionHeaders (
 
     UE_SECTION *Section = (void *) *Buffer;
 
-    Section->FileInfo  = Context->DebugTableSize;
+    uint32_t AlignedDebugTableSize = ALIGN_VALUE(
+      Context->DebugTableSize,
+      UE_SECTION_ALIGNMENT
+      );
+    Section->FileInfo  = AlignedDebugTableSize;
     Section->FileInfo |= UeSectionIdDebugTable;
     assert(UE_SECTION_ID(Section->FileInfo) == UeSectionIdDebugTable);
-    assert(UE_SECTION_SIZE(Section->FileInfo) == Context->DebugTableSize);
+    assert(UE_SECTION_SIZE(Section->FileInfo) == AlignedDebugTableSize);
 
     *BufferSize        -= sizeof(UE_SECTION);
     *Buffer            += sizeof(UE_SECTION);
@@ -508,10 +366,14 @@ bool ToolImageEmitUeSectionHeaders (
 
     UE_SECTION *Section = (void *) *Buffer;
 
-    Section->FileInfo  = Context->HiiTableSize;
+    uint32_t AlignedHiiTableSize = ALIGN_VALUE(
+      Context->HiiTableSize,
+      UE_SECTION_ALIGNMENT
+      );
+    Section->FileInfo  = AlignedHiiTableSize;
     Section->FileInfo |= UeSectionIdHiiTable;
     assert(UE_SECTION_ID(Section->FileInfo) == UeSectionIdHiiTable);
-    assert(UE_SECTION_SIZE(Section->FileInfo) == Context->HiiTableSize);
+    assert(UE_SECTION_SIZE(Section->FileInfo) == AlignedHiiTableSize);
 
     *BufferSize        -= sizeof(UE_SECTION);
     *Buffer            += sizeof(UE_SECTION);
@@ -525,7 +387,7 @@ bool ToolImageEmitUeSectionHeaders (
 
 bool ToolImageEmitUeHeader (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -552,7 +414,7 @@ bool ToolImageEmitUeHeader (
 
   assert(UE_HEADER_ALIGNMENT(UeHdr->ImageInfo) == 1U << AlignmentExponent);
 
-  assert(0 < Image->SegmentInfo.NumSegments);
+  assert(Image->SegmentInfo.NumSegments > 0);
   UeHdr->LastSegmentIndex  = (UINT8) (Image->SegmentInfo.NumSegments - 1);
   UeHdr->NumSections       = Context->HdrInfo.NumSections;
   UeHdr->Subsystem         = Image->HeaderInfo.Subsystem;
@@ -563,6 +425,11 @@ bool ToolImageEmitUeHeader (
   assert(UeHdr->ImageInfo2 == UE_HEADER_UNSIGNED_SIZE(UeHdr->ImageInfo2));
 
   assert(UeHdr->Reserved == 0);
+
+  STATIC_ASSERT(
+    OFFSET_OF(UE_HEADER, Segments) == sizeof(UE_HEADER),
+    "The following code needs to be updated to consider padding."
+    );
 
   *BufferSize -= sizeof(UE_HEADER);
   *Buffer     += sizeof(UE_HEADER);
@@ -582,7 +449,7 @@ bool ToolImageEmitUeHeader (
 
 bool ToolImageEmitUeSegments (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -594,14 +461,12 @@ bool ToolImageEmitUeSegments (
 
   uint32_t SegmentsSize = 0;
 
-  assert(Image->SegmentInfo.NumSegments <= MAX_UINT8);
-
-  for (uint8_t Index = 0; Index < (uint8_t) Image->SegmentInfo.NumSegments; ++Index) {
+  for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     assert(Image->SegmentInfo.Segments[Index].DataSize <= *BufferSize);
 
     size_t DataSize = Image->SegmentInfo.Segments[Index].DataSize;
 
-    memcpy(*Buffer, Image->SegmentInfo.Segments[Index].Data, DataSize);
+    memmove(*Buffer, Image->SegmentInfo.Segments[Index].Data, DataSize);
 
     *BufferSize  -= DataSize;
     *Buffer      += DataSize;
@@ -618,7 +483,7 @@ bool ToolImageEmitUeSegments (
 
 bool ToolImageEmitUeRelocTable (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -647,7 +512,7 @@ bool ToolImageEmitUeRelocTable (
 
   RelocBlock->BlockInfo = BlockAddress;
 
-  for (uint32_t Index = 0; Index < (uint32_t) Image->RelocInfo.NumRelocs; ++Index) {
+  for (uint32_t Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
     uint32_t RelocAddress = PAGE(Image->RelocInfo.Relocs[Index].Target);
     if (RelocAddress != BlockAddress) {
       BlockSize = ALIGN_VALUE(BlockSize, UE_RELOCATION_BLOCK_ALIGNMENT);
@@ -688,6 +553,8 @@ bool ToolImageEmitUeRelocTable (
   *Buffer        += BlockSize;
   RelocTableSize += BlockSize;
 
+  assert(RelocTableSize == Context->RelocTableSize);
+
   uint32_t RelocTablePadding = ALIGN_VALUE_ADDEND(
     RelocTableSize,
     UE_SECTION_ALIGNMENT
@@ -695,18 +562,15 @@ bool ToolImageEmitUeRelocTable (
 
   assert(RelocTablePadding <= *BufferSize);
 
-  *BufferSize    -= RelocTablePadding;
-  *Buffer        += RelocTablePadding;
-  RelocTableSize += RelocTablePadding;
-
-  assert(RelocTableSize == Context->RelocTableSize);
+  *BufferSize -= RelocTablePadding;
+  *Buffer     += RelocTablePadding;
 
   return true;
 }
 
-bool ToolImageEmitDebugTable (
+bool ToolImageEmitUeDebugTable (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -729,23 +593,22 @@ bool ToolImageEmitDebugTable (
   *Buffer     += sizeof(UE_DEBUG_TABLE);
 
   if (Image->DebugInfo.SymbolsPath != NULL) {
-    size_t SymbolsPathSize = strlen(Image->DebugInfo.SymbolsPath);
-    assert(SymbolsPathSize <= MAX_UINT8);
-    DebugTable->SymbolsPathSize = (uint8_t) SymbolsPathSize;
+    assert(Image->DebugInfo.SymbolsPathLen <= MAX_UINT8);
+    DebugTable->SymbolsPathSize = (uint8_t) Image->DebugInfo.SymbolsPathLen;
 
-    assert(SymbolsPathSize <= *BufferSize);
+    assert(Image->DebugInfo.SymbolsPathLen <= *BufferSize);
 
-    DebugTableSize += SymbolsPathSize;
+    DebugTableSize += Image->DebugInfo.SymbolsPathLen;
 
-    memcpy(*Buffer, Image->DebugInfo.SymbolsPath, SymbolsPathSize);
+    memmove(*Buffer, Image->DebugInfo.SymbolsPath, Image->DebugInfo.SymbolsPathLen);
 
-    *BufferSize -= SymbolsPathSize;
-    *Buffer     += SymbolsPathSize;
+    *BufferSize -= Image->DebugInfo.SymbolsPathLen;
+    *Buffer     += Image->DebugInfo.SymbolsPathLen;
   } else {
     assert(DebugTable->SymbolsPathSize == 0);
   }
 
-  for (uint8_t Index = 0; Index < (uint8_t) Image->SegmentInfo.NumSegments; ++Index) {
+  for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     assert(sizeof(UE_SEGMENT_NAME) <= *BufferSize);
 
     DebugTableSize += sizeof(UE_SEGMENT_NAME);
@@ -762,6 +625,8 @@ bool ToolImageEmitDebugTable (
     *Buffer     += sizeof(*SectionName);
   }
 
+  assert(DebugTableSize == Context->DebugTableSize);
+
   uint32_t DebugTablePadding = ALIGN_VALUE_ADDEND(
     DebugTableSize,
     UE_SECTION_ALIGNMENT
@@ -772,16 +637,12 @@ bool ToolImageEmitDebugTable (
   *BufferSize -= DebugTablePadding;
   *Buffer     += DebugTablePadding;
 
-  DebugTableSize = DebugTableSize + DebugTablePadding;
-
-  assert(DebugTableSize == Context->DebugTableSize);
-
   return true;
 }
 
-bool ToolImageEmitHiiTable (
+bool ToolImageEmitUeHiiTable (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -795,21 +656,30 @@ bool ToolImageEmitHiiTable (
     return true;
   }
 
-  assert(Image->HiiInfo.DataSize <= Context->HiiTableSize);
-  assert(IS_ALIGNED(Context->HiiTableSize, UE_SECTION_ALIGNMENT));
+  assert(Image->HiiInfo.DataSize == Context->HiiTableSize);
   assert(Context->HiiTableSize <= *BufferSize);
 
-  memcpy(*Buffer, Image->HiiInfo.Data, Image->HiiInfo.DataSize);
+  memmove(*Buffer, Image->HiiInfo.Data, Image->HiiInfo.DataSize);
 
-  *BufferSize -= Context->HiiTableSize;
-  *Buffer     += Context->HiiTableSize;
+  *BufferSize -= Image->HiiInfo.DataSize;
+  *Buffer     += Image->HiiInfo.DataSize;
+
+  uint32_t HiiTablePadding = ALIGN_VALUE_ADDEND(
+    Image->HiiInfo.DataSize,
+    UE_SECTION_ALIGNMENT
+    );
+
+  assert(HiiTablePadding <= *BufferSize);
+
+  *BufferSize -= HiiTablePadding;
+  *Buffer     += HiiTablePadding;
 
   return true;
 }
 
 bool ToolImageEmitUeSections (
   const image_tool_ue_emit_context_t *Context,
-  unsigned char                      **Buffer,
+  uint8_t                            **Buffer,
   uint32_t                           *BufferSize
   )
 {
@@ -817,36 +687,32 @@ bool ToolImageEmitUeSections (
   assert(Buffer != NULL);
   assert(BufferSize != NULL);
 
-  uint32_t ExpectedSize = *BufferSize;
+  uint32_t OldBufferSize = *BufferSize;
 
   bool Result = ToolImageEmitUeRelocTable(Context, Buffer, BufferSize);
   if (!Result) {
     return false;
   }
 
-  ExpectedSize -= Context->RelocTableSize;
-  assert(ExpectedSize == *BufferSize);
-
-  Result = ToolImageEmitDebugTable(Context, Buffer, BufferSize);
+  Result = ToolImageEmitUeDebugTable(Context, Buffer, BufferSize);
   if (!Result) {
     return false;
   }
 
-  ExpectedSize -= Context->DebugTableSize;
-  assert(ExpectedSize == *BufferSize);
-
-  Result = ToolImageEmitHiiTable(Context, Buffer, BufferSize);
+  Result = ToolImageEmitUeHiiTable(Context, Buffer, BufferSize);
   if (!Result) {
     return false;
   }
 
-  ExpectedSize -= Context->HiiTableSize;
-  assert(ExpectedSize == *BufferSize);
+  assert(OldBufferSize - *BufferSize == Context->SectionsSize);
 
   return true;
 }
 
-void *ToolImageEmitUe(image_tool_image_info_t *Image, uint32_t *FileSize)
+void *ToolImageEmitUe(
+  const image_tool_image_info_t *Image,
+  uint32_t                      *FileSize
+  )
 {
   assert(Image != NULL);
   assert(FileSize != NULL);
@@ -920,7 +786,7 @@ void *ToolImageEmitUe(image_tool_image_info_t *Image, uint32_t *FileSize)
     return NULL;
   }
 
-  unsigned char *Buffer = FileBuffer;
+  uint8_t  *Buffer = FileBuffer;
   uint32_t RemainingSize = Context.UnsignedFileSize;
 
   uint32_t ExpectedSize = Context.UnsignedFileSize;

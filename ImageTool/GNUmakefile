@@ -1,22 +1,15 @@
-PROJECT = ImageTool
-PRODUCT = $(PROJECT)
-
-OBJS = ImageTool.o EmitUe.o ScanPe.o BaseOverflow.o PeCoffInit.o PeCoffInfo.o PeCoffHii.o PeCoffDebug.o UeImageLib.o
-
-VPATH = $(UDK_PATH)/MdePkg/Library/BasePeCoffLib2:$\
-				$(UDK_PATH)/MdePkg/Library/BaseUeImageLib
-
 ## @file
-# Copyright (c) 2020, PMheart. All rights reserved.
+# Copyright (c) 2021, Marvin Häuser. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 ##
 
-.DEFAULT_GOAL := all
+PROJECT = ImageTool
+PRODUCT = $(PROJECT)
 
-LCOV          ?= lcov
-GENHTML       ?= genhtml
-CC            ?= gcc
-MKDIR         := mkdir -p
+OBJS = ImageTool.o Image.o UeEmit.o PeEmit.o PeScan.o BaseOverflow.o PeCoffInit.o PeCoffInfo.o PeCoffLoad.o PeCoffHii.o PeCoffDebug.o UeImageLib.o
+
+VPATH = $(UDK_PATH)/MdePkg/Library/BasePeCoffLib2:$\
+				$(UDK_PATH)/MdePkg/Library/BaseUeImageLib
 
 UDK_PATH = ..
 OC_USER  = ../../Vendor/Acidanthera/OpenCorePkg
@@ -26,4 +19,4 @@ SANITIZE = 1
 
 include ../../Vendor/Acidanthera/OpenCorePkg/User/Makefile
 
-CFLAGS += -include Pcds.h
+CFLAGS += -include Pcds.h -Werror
