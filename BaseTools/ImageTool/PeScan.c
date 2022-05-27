@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdio.h>
 
 #include <Base.h>
 
@@ -68,9 +69,11 @@ bool ScanPeGetSegmentInfo (
 
   SegmentInfo->SegmentAlignment = PeCoffGetSectionAlignment(Context);
 
-  const EFI_IMAGE_SECTION_HEADER *Sections;
+  const EFI_IMAGE_SECTION_HEADER *Section;
   uint32_t                       NumSections;
-  NumSections = PeCoffGetSectionTable(Context, &Sections);
+  image_tool_segment_t           *ImageSegment;
+
+  NumSections = PeCoffGetSectionTable(Context, &Section);
 
   SegmentInfo->Segments = calloc(
     NumSections,
@@ -82,10 +85,8 @@ bool ScanPeGetSegmentInfo (
 
   const char *ImageBuffer = (char *) PeCoffLoaderGetImageAddress(Context);
 
-  uint32_t NumSegments = 0;
-  for (uint32_t Index = 0; Index < NumSections; ++Index) {
-    const EFI_IMAGE_SECTION_HEADER *Section = Sections + Index;
-    image_tool_segment_t *ImageSegment = SegmentInfo->Segments + Index;
+  ImageSegment = SegmentInfo->Segments;
+  for (uint32_t Index = 0; Index < NumSections; ++Index, ++Section, ++ImageSegment) {
 
     ImageSegment->Name = malloc(sizeof(Section->Name));
     if (ImageSegment->Name == NULL) {
@@ -133,8 +134,6 @@ bool ScanPeGetSegmentInfo (
         );
 
       ImageSegment->DataSize = Section->VirtualSize;
-      // FIXME: May leak name for trailing discarded
-      NumSegments = Index + 1;
     } else {
       assert(ImageSegment->DataSize == 0);
 
@@ -152,7 +151,7 @@ bool ScanPeGetSegmentInfo (
     }
   }
 
-  SegmentInfo->NumSegments = NumSegments;
+  SegmentInfo->NumSegments = NumSections;
 
   return true;
 }
@@ -398,7 +397,7 @@ bool ToolContextConstructPe(image_tool_image_info_t *Image, const void *File, si
     return false;
   }
 
-  void *Destination = malloc(DestinationSize);
+  void *Destination = malloc(DestinationSize + EFI_PAGE_SIZE);
   if (Destination == NULL) {
     return false;
   }
@@ -406,7 +405,7 @@ bool ToolContextConstructPe(image_tool_image_info_t *Image, const void *File, si
   uintptr_t Addend = ALIGN_VALUE_ADDEND ((uintptr_t)Destination, EFI_PAGE_SIZE);
   void *AlignedDest = (char *)Destination + Addend;
 
-  Status = PeCoffLoadImage(&Context, AlignedDest, DestinationSize - Addend);
+  Status = PeCoffLoadImage(&Context, AlignedDest, DestinationSize + EFI_PAGE_SIZE - Addend);
   if (RETURN_ERROR(Status)) {
     free(Destination);
     return false;

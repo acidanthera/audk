@@ -221,6 +221,10 @@ bool ImageConvertToXip(image_tool_image_info_t *Image)
     image_tool_segment_t *Segment = &SegmentInfo->Segments[Index];
     assert(Segment->DataSize <= Segment->ImageSize);
 
+    if (Segment->DataSize == 0) {
+      continue;
+    }
+
     void *Data = calloc(Segment->ImageSize, 1);
     if (Data == NULL) {
       raise();
@@ -248,7 +252,9 @@ void ToolImageDestruct(image_tool_image_info_t *Image)
 
   for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     free(Image->SegmentInfo.Segments[Index].Name);
-    free(Image->SegmentInfo.Segments[Index].Data);
+    if (Image->SegmentInfo.Segments[Index].DataSize != 0) {
+      free(Image->SegmentInfo.Segments[Index].Data);
+    }
   }
 
   free(Image->SegmentInfo.Segments);

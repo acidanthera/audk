@@ -27,10 +27,10 @@ void *ToolImageEmitUe(image_tool_image_info_t *Image, uint32_t *FileSize);
 bool ToolContextConstructPe(image_tool_image_info_t *Image, const void *File, size_t FileSize);
 bool CheckToolImage(image_tool_image_info_t *Image);
 
-int main(void)
+int main(int argc, char *argv[])
 {
   uint32_t PeSize;
-  void *Pe = UserReadFile("Pe.efi", &PeSize);
+  void *Pe = UserReadFile(argv[1], &PeSize);
   if (Pe == NULL) {
     raise();
     return -1;
@@ -76,7 +76,7 @@ int main(void)
   EFI_STATUS Status = UeInitializeContext(&UeContext, Ue, UeSize);
   printf("UE status - %llu\n", Status);*/
 
-  UserWriteFile("Ue.efi", Ue, UeSize);
+  UserWriteFile(argv[2], Ue, UeSize);
 
   free(Ue);
   Ue = NULL;

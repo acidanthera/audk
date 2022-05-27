@@ -464,6 +464,10 @@ bool ToolImageEmitUeSegments (
   for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     assert(Image->SegmentInfo.Segments[Index].DataSize <= *BufferSize);
 
+    if (Image->SegmentInfo.Segments[Index].DataSize == 0) {
+      continue;
+    }
+
     size_t DataSize = Image->SegmentInfo.Segments[Index].DataSize;
 
     memmove(*Buffer, Image->SegmentInfo.Segments[Index].Data, DataSize);
