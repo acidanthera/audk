@@ -1,15 +1,3 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
-
-#include <stdio.h>
-
-#include <Base.h>
-
-#include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
-
 #include "ImageTool.h"
 
 bool CheckToolImageSegment(

@@ -1,43 +1,23 @@
-#include <stdint.h>
-#include <stdbool.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <string.h>
-
-#include <stdio.h>
-
-#include <Base.h>
-
-#include <IndustryStandard/PeImage2.h>
-#include <IndustryStandard/UeImage.h>
-
-#include <Library/UeImageLib.h>
-
-#include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
-
 #include "ImageTool.h"
 
-#include <UserFile.h>
-
-void *ToolImageEmitPe(
-  const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
-  );
-void *ToolImageEmitUe(image_tool_image_info_t *Image, uint32_t *FileSize);
-bool ToolContextConstructPe(image_tool_image_info_t *Image, const void *File, size_t FileSize);
-bool CheckToolImage(image_tool_image_info_t *Image);
-
-int main(int argc, char *argv[])
+int main (int argc, char *argv[])
 {
+  void     *Pe;
   uint32_t PeSize;
-  void *Pe = UserReadFile(argv[1], &PeSize);
+  void     *Ue;
+  uint32_t UeSize;
+  bool     Result;
+  image_tool_image_info_t Image;
+
+  ElfToPe (argv[1], "Pe.efi");
+
+  Pe = UserReadFile ("Pe.efi", &PeSize);
   if (Pe == NULL) {
     raise();
     return -1;
   }
 
-  image_tool_image_info_t Image;
-  bool Result = ToolContextConstructPe(&Image, Pe, PeSize);
+  Result = ToolContextConstructPe(&Image, Pe, PeSize);
 
   free(Pe);
   Pe = NULL;
@@ -61,8 +41,7 @@ int main(int argc, char *argv[])
     return -1;
   }
 
-  uint32_t UeSize;
-  void *Ue = ToolImageEmitUe(&Image, &UeSize);
+  Ue = ToolImageEmitUe(&Image, &UeSize);
 
   if (Ue == NULL) {
     ToolImageDestruct(&Image);

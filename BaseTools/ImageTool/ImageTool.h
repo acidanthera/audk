@@ -1,9 +1,28 @@
 #ifndef IMAGE_TOOL_H
 #define IMAGE_TOOL_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stddef.h>
-#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#include <unistd.h>
+#include <errno.h>
+#include <assert.h>
+#include <getopt.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <fcntl.h>
+
+#include <Base.h>
+#include <IndustryStandard/PeImage2.h>
+#include <IndustryStandard/UeImage.h>
+#include <Library/PeCoffLib2.h>
+#include <Library/UeImageLib.h>
+#include <UserFile.h>
+#include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
 
 #define raise() assert(false)
 
@@ -73,7 +92,38 @@ typedef struct {
   image_tool_debug_info_t   DebugInfo;
 } image_tool_image_info_t;
 
-void ToolImageDestruct(image_tool_image_info_t *Image);
-bool ImageConvertToXip(image_tool_image_info_t *Image);
+void ToolImageDestruct (
+  image_tool_image_info_t *Image
+  );
+
+bool ImageConvertToXip (
+  image_tool_image_info_t *Image
+  );
+
+void *ToolImageEmitUe (
+  const image_tool_image_info_t *Image,
+  uint32_t                      *FileSize
+  );
+
+bool ToolContextConstructPe (
+  image_tool_image_info_t *Image,
+  const void              *File,
+  size_t                  FileSize
+  );
+
+bool CheckToolImage (
+  image_tool_image_info_t *Image
+  );
+
+void *ToolImageEmitPe (
+  const image_tool_image_info_t *Image,
+  uint32_t                      *FileSize
+  );
+
+VOID
+ElfToPe (
+	const char *elf_name,
+	const char *pe_name
+  );
 
 #endif // IMAGE_TOOL_H
