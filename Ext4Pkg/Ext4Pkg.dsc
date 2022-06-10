@@ -67,4 +67,4 @@
 ###################################################################################################
 
 [Components]
-  Features/Ext4Pkg/Ext4Dxe/Ext4Dxe.inf
+  Ext4Pkg/Ext4Dxe/Ext4Dxe.inf

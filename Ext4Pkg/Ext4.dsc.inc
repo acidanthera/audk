@@ -7,10 +7,10 @@
 ##
 
 [Defines]
-!include Features/Ext4Pkg/Ext4Defines.dsc.inc
+!include Ext4Pkg/Ext4Defines.dsc.inc
 
 [LibraryClasses]
-!include Features/Ext4Pkg/Ext4Libs.dsc.inc
+!include Ext4Pkg/Ext4Libs.dsc.inc
 
 [Components.common]
-!include Features/Ext4Pkg/Ext4Components.dsc.inc
+!include Ext4Pkg/Ext4Components.dsc.inc

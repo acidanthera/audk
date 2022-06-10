@@ -7,7 +7,7 @@
 ##
 
 !if $(EXT4_ENABLE) == TRUE
-  Features/Ext4Pkg/Ext4Dxe/Ext4Dxe.inf {
+  Ext4Pkg/Ext4Dxe/Ext4Dxe.inf {
     <PcdsFixedAtBuild>
       gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80000007
   }
