@@ -15,7 +15,7 @@ OC_USER  = ../../OpenCorePkg
 
 include $(OC_USER)/User/Makefile
 
-CFLAGS += -include Pcds.h -Werror
+CFLAGS += -include Pcds.h -Werror -D EFI_TARGET64
 
 VPATH  += ../../MdePkg/Library/BasePeCoffLib2:$\
 				  ../../MdePkg/Library/BaseUeImageLib
