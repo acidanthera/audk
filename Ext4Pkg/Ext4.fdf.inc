@@ -7,5 +7,5 @@
 ##
 
 !if $(EXT4_ENABLE) == TRUE
-  INF Features/Ext4Pkg/Ext4Dxe/Ext4Dxe.inf
+  INF Ext4Pkg/Ext4Dxe/Ext4Dxe.inf
 !endif
