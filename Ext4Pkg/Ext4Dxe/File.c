@@ -134,6 +134,131 @@ Ext4DirCanLookup (
 }
 
 /**
+  Reads a fast symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
+  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
+
+  @retval EFI_SUCCESS           Fast symlink was read.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+**/
+STATIC
+EFI_STATUS
+Ext4ReadFastSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR8           **AsciiSymlink,
+  OUT    UINTN           *AsciiSymlinkSize
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       *AsciiSymlinkTmp;
+
+  AsciiSymlinkTmp = AllocateZeroPool (EXT4_FAST_SYMLINK_SIZE);
+  if (AsciiSymlinkTmp == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
+    return Status;
+  }
+
+  CopyMem (AsciiSymlinkTmp, File->Inode->symlink, EXT4_FAST_SYMLINK_SIZE);
+
+  //
+  // Add null-terminator
+  //
+  AsciiSymlinkTmp[EXT4_FAST_SYMLINK_SIZE] = '\0';
+
+  *AsciiSymlink = AsciiSymlinkTmp;
+  *AsciiSymlinkSize = EXT4_FAST_SYMLINK_SIZE;
+
+  Status = EFI_SUCCESS;
+  return Status;
+}
+
+/**
+  Reads a slow symlink file.
+
+  @param[in]      Partition        Pointer to the ext4 partition.
+  @param[in]      File             Pointer to the open symlink file.
+  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
+  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
+
+  @retval EFI_SUCCESS           Slow symlink was read.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Slow symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
+**/
+STATIC
+EFI_STATUS
+Ext4ReadSlowSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR8           **AsciiSymlink,
+  OUT    UINTN           *AsciiSymlinkSize
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       *SymlinkTmp;
+  UINTN       SymlinkSizeTmp;
+  UINTN       SymlinkAllocateSize;
+
+  SymlinkSizeTmp = EXT4_INODE_SIZE(File->Inode);
+
+  //
+  // Allocate EXT4_INODE_SIZE + 1
+  //
+  if (EFI_PATH_MAX - SymlinkSizeTmp >= 1) {
+    SymlinkAllocateSize = SymlinkSizeTmp + 1;
+  } else {
+    Status = EFI_INVALID_PARAMETER;
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Error! Symlink path maximum length was hit!\n"
+      ));
+    return Status;
+  }
+
+  SymlinkTmp = AllocateZeroPool (SymlinkAllocateSize);
+  if (SymlinkTmp == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
+    return Status;
+  }
+
+  Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &SymlinkSizeTmp);
+  if (!EFI_ERROR (Status)) {
+    File->Position += SymlinkSizeTmp;
+  } else {
+    DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
+    FreePool (SymlinkTmp);
+    return Status;
+  }
+
+  //
+  // Add null-terminator
+  //
+  SymlinkTmp[SymlinkSizeTmp] = '\0';
+
+  if (SymlinkSizeTmp != EXT4_INODE_SIZE (File->Inode)
+      || SymlinkAllocateSize != AsciiStrSize (SymlinkTmp)) {
+    Status = EFI_VOLUME_CORRUPTED;
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
+      ));
+    return Status;
+  }
+
+  *AsciiSymlinkSize = SymlinkSizeTmp;
+  *AsciiSymlink = SymlinkTmp;
+
+  Status = EFI_SUCCESS;
+  return Status;
+}
+
+/**
   Reads a symlink file.
 
   @param[in]      Partition   Pointer to the ext4 partition.
@@ -170,60 +295,18 @@ Ext4ReadSymlink (
     return Status;
   }
 
-  SymlinkSize = File->Inode->i_size_lo;
-
-  //
-  // Allocate i_size_lo + 1
-  //
-  if (EFI_PATH_MAX - SymlinkSize >= 1) {
-    SymlinkAllocateSize = SymlinkSize + 1;
+  if (Ext4SymlinkIsFastSymlink(File)) {
+    Status = Ext4ReadFastSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
   } else {
-    Status = EFI_INVALID_PARAMETER;
-    DEBUG ((
-      DEBUG_FS,
-      "[ext4] Error! Symlink path maximum length was hit!\n"
-      ));
+    Status = Ext4ReadSlowSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
+  }
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_FS, "[ext4] Symlink read error with Status %r\n", Status));
     return Status;
   }
 
-  SymlinkTmp = AllocateZeroPool (SymlinkAllocateSize);
-  if (SymlinkTmp == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
-    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
-    return Status;
-  }
-
-  //
-  // If the filesize of the symlink is equal to or bigger than 60 the symlink
-  // is stored in a separate block, otherwise it is stored in the inode.
-  //
-  if (SymlinkSize < sizeof(File->Inode->symlink)) {
-    CopyMem (SymlinkTmp, File->Inode->symlink, SymlinkSize);
-  } else {
-    Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &SymlinkSize);
-    if (!EFI_ERROR (Status)) {
-      File->Position += SymlinkSize;
-    } else {
-      DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
-      FreePool (SymlinkTmp);
-      return Status;
-    }
-  }
-
-  //
-  // Add null-terminator
-  //
-  SymlinkTmp[SymlinkSize] = '\0';
-  
-  if (SymlinkSize != File->Inode->i_size_lo 
-      || SymlinkAllocateSize != AsciiStrSize(SymlinkTmp)) {
-    Status = EFI_VOLUME_CORRUPTED;
-    DEBUG ((
-      DEBUG_FS,
-      "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
-      ));
-    return Status;
-  }
+  SymlinkAllocateSize = SymlinkSize + 1;
 
   Symlink16Tmp = AllocateZeroPool (SymlinkAllocateSize * sizeof (CHAR16));
   if (Symlink16Tmp == NULL) {
@@ -399,11 +482,14 @@ Ext4Open (
       Status = Ext4Open ((EFI_FILE_PROTOCOL *) Current, NewHandle, Symlink, OpenMode, Attributes);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_FS, "[ext4] Error opening linked file %s\n", Symlink));
-        return Status;
         FreePool (Symlink);
+        return Status;
       }
       FreePool (Symlink);
-      return Status;
+      //
+      // Set File to newly opened
+      //
+      File = *(EXT4_FILE **)NewHandle;
     }
 
     if (Level != 0) {

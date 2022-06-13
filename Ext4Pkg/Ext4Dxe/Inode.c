@@ -270,6 +270,30 @@ Ext4FileIsSymlink (
 }
 
 /**
+   Detects if a symlink is a fast symlink.
+   @param[in]      File          Pointer to the opened file.
+
+   @return TRUE if file is a fast symlink.
+**/
+BOOLEAN
+Ext4SymlinkIsFastSymlink (
+  IN CONST EXT4_FILE  *File
+  )
+{
+  //
+  // REF: https://github.com/heatd/Onyx/blob/master/kernel/kernel/fs/ext2/symlink.cpp#L26
+  // Essentially, we're comparing the extended attribute blocks
+  // with the inode's i_blocks, and if it's zero we know the inode isn't storing
+  // the link in filesystem blocks, so we look to the ext2_inode->i_data.
+  //
+  INTN ExtAttrBlocks = File->Inode->i_file_acl ? (File->Partition->BlockSize >> 9) : 0;
+
+  return (File->Inode->i_blocks - ExtAttrBlocks == 0
+          && EXT4_INODE_SIZE(File->Inode) <= 60
+          );
+}
+
+/**
    Checks if a file is a regular file.
    @param[in]      File          Pointer to the opened file.
 

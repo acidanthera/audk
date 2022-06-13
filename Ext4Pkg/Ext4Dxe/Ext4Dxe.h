@@ -33,6 +33,7 @@
 
 #define EXT4_NAME_MAX  255
 #define EFI_PATH_MAX  4096
+#define EXT4_FAST_SYMLINK_SIZE 60
 
 #define EXT4_DRIVER_VERSION  0x0000
 
@@ -758,6 +759,17 @@ Ext4FileIsDir (
 **/
 BOOLEAN
 Ext4FileIsSymlink (
+  IN CONST EXT4_FILE  *File
+  );
+
+/**
+   Detects if a symlink is a fast symlink.
+   @param[in]      File          Pointer to the opened file.
+
+   @return TRUE if file is a fast symlink.
+**/
+BOOLEAN
+Ext4SymlinkIsFastSymlink (
   IN CONST EXT4_FILE  *File
   );
 
