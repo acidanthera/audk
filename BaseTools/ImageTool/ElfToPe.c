@@ -73,12 +73,6 @@
 ///
 #define EFI_IMAGE_ALIGN 0x1000
 
-struct elf_file {
-	void           *data;
-	UINT32         len;
-	const Elf_Ehdr *ehdr;
-};
-
 struct pe_section {
 	struct pe_section        *next;
 	EFI_IMAGE_SECTION_HEADER hdr;
@@ -109,7 +103,7 @@ static struct pe_header efi_pe_header = {
 		.CommonHeader.Signature  = EFI_IMAGE_NT_SIGNATURE,
 		.CommonHeader.FileHeader = {
 			.TimeDateStamp         = 0x10d1a884,
-			.SizeOfOptionalHeader  = sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR),
+			.SizeOfOptionalHeader  = sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR), // + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2; Only base relocation and debug directory
 			.Characteristics       = (EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE),
 		},
 		.Magic                   = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC,
@@ -117,29 +111,11 @@ static struct pe_header efi_pe_header = {
 		.MinorLinkerVersion      = 42,
 		.SectionAlignment        = EFI_IMAGE_ALIGN,
 		.FileAlignment           = EFI_FILE_ALIGN,
-		.SizeOfImage             = EFI_IMAGE_ALIGN,
-		.SizeOfHeaders           = sizeof (efi_pe_header),
+		.SizeOfImage             = EFI_IMAGE_ALIGN, // sizeof (efi_pe_header) ?
+		.SizeOfHeaders           = sizeof (efi_pe_header), // + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2; Only base relocation and debug directory
 		.NumberOfRvaAndSizes     = EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES,
 	},
 };
-
-static
-void *
-XCalloc (
-	size_t Length
-  )
-{
-	void *Result;
-
-	Result = calloc (1, Length);
-	if (Result == NULL) {
-		printf ("Could not allocate %zd bytes\n", Length);
-		raise ();
-    return NULL;
-	}
-
-	return Result;
-}
 
 static
 unsigned long
@@ -160,7 +136,7 @@ efi_image_align (
 }
 
 static
-void
+EFI_STATUS
 generate_pe_reloc (
 	struct pe_relocs **pe_reltab,
 	unsigned long    rva,
@@ -189,8 +165,7 @@ generate_pe_reloc (
 			break;
 		default:
 			printf ("Unsupported relocation size %zd\n", size);
-			raise ();
-	    return;
+	    return EFI_INVALID_PARAMETER;
 	}
 
   //
@@ -203,7 +178,11 @@ generate_pe_reloc (
 	}
 
 	if (pe_rel == NULL) {
-		pe_rel = XCalloc (sizeof (*pe_rel));
+		pe_rel = calloc (1, sizeof (*pe_rel));
+		if (pe_rel == NULL) {
+			printf ("Could not allocate memory for pe_rel\n");
+	    return EFI_OUT_OF_RESOURCES;
+		}
 
 		pe_rel->next      = *pe_reltab;
 		*pe_reltab        = pe_rel;
@@ -218,7 +197,11 @@ generate_pe_reloc (
 	} else {
 		pe_rel->total_relocs = pe_rel->total_relocs ? (pe_rel->total_relocs * 2) : 256;
 
-		relocs = XCalloc (pe_rel->total_relocs * sizeof (pe_rel->relocs[0]));
+		relocs = calloc (1, pe_rel->total_relocs * sizeof (pe_rel->relocs[0]));
+		if (relocs == NULL) {
+			printf ("Could not allocate memory for relocs\n");
+	    return EFI_OUT_OF_RESOURCES;
+		}
 
 		memcpy (relocs, pe_rel->relocs, pe_rel->used_relocs * sizeof (pe_rel->relocs[0]));
 
@@ -231,6 +214,8 @@ generate_pe_reloc (
 	//
 	pe_rel->relocs[pe_rel->used_relocs] = reloc;
 	++pe_rel->used_relocs;
+
+	return EFI_SUCCESS;
 }
 
 static
@@ -275,65 +260,62 @@ output_pe_reltab (
 static
 void
 ReadElfFile (
-	const char      *name,
-	struct elf_file *elf
+	const char *name,
+	Elf_Ehdr   **ehdr
   )
 {
 	static const unsigned char ident[] = {
 		ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS, ELFDATA2LSB
 	};
-	const Elf_Ehdr *ehdr;
 	const Elf_Shdr *shdr;
 	size_t         offset;
 	unsigned int   i;
+	UINT32         len;
 
-	elf->data = UserReadFile (name, &elf->len);
-  if (elf->data == NULL) {
+	*ehdr = (Elf_Ehdr *)UserReadFile (name, &len);
+  if (*ehdr == NULL) {
 		printf ("Could not open %s: %s\n", name, strerror (errno));
-    raise ();
     return;
   }
 
 	//
 	// Check header
 	//
-	ehdr = elf->data;
-	if ((elf->len < sizeof (*ehdr))
-	  || (memcmp (ident, ehdr->e_ident, sizeof (ident)) != 0)) {
+	if ((len < sizeof (**ehdr))
+	  || (memcmp (ident, (*ehdr)->e_ident, sizeof (ident)) != 0)) {
 		printf ("Invalid ELF header in file %s\n", name);
-		free (elf->data);
-		raise ();
+		free (*ehdr);
+		*ehdr = NULL;
     return;
 	}
-	elf->ehdr = ehdr;
 
 	//
 	// Check section headers
 	//
-	for (i = 0; i < ehdr->e_shnum; ++i) {
-		offset = ehdr->e_shoff + i * ehdr->e_shentsize;
+	for (i = 0; i < (*ehdr)->e_shnum; ++i) {
+		offset = (*ehdr)->e_shoff + i * (*ehdr)->e_shentsize;
 
-		if (elf->len < (offset + sizeof (*shdr))) {
+		if (len < (offset + sizeof (*shdr))) {
 			printf ("ELF section header is outside file %s\n", name);
-			free (elf->data);
-			raise ();
+			free (*ehdr);
+			*ehdr = NULL;
 	    return;
 		}
 
-		shdr = elf->data + offset;
+		shdr = (Elf_Shdr *)((UINT8 *)(*ehdr) + offset);
 
 		if ((shdr->sh_type != SHT_NOBITS)
-		  && ((elf->len < shdr->sh_offset) || ((elf->len - shdr->sh_offset) < shdr->sh_size))) {
+		  && ((len < shdr->sh_offset) || ((len - shdr->sh_offset) < shdr->sh_size))) {
 			printf ("ELF section %d points outside file %s\n", i, name);
-			free (elf->data);
-			raise ();
+			free (*ehdr);
+			*ehdr = NULL;
 	    return;
 		}
 
-		if (shdr->sh_link >= ehdr->e_shnum) {
+		if (shdr->sh_link >= (*ehdr)->e_shnum) {
 			printf ("ELF %d-th section's sh_link is out of range\n", i);
-			free (elf->data);
-			raise ();
+			free (*ehdr);
+			*ehdr = NULL;
 	    return;
 		}
 	}
@@ -342,41 +324,34 @@ ReadElfFile (
 static
 const char *
 GetElfString (
-	struct elf_file *elf,
-	unsigned int    section,
-	size_t          offset
+	const Elf_Ehdr *ehdr,
+	unsigned int   section,
+	size_t         offset
   )
 {
-	const Elf_Ehdr *ehdr;
 	const Elf_Shdr *shdr;
-	char           *string;
 	char           *last;
-
-  ehdr = elf->ehdr;
 
 	//
 	// Locate section header
 	//
 	if (section >= ehdr->e_shnum) {
 		printf ("Invalid ELF string section %d\n", section);
-		raise ();
     return NULL;
 	}
-	shdr = elf->data + ehdr->e_shoff + section * ehdr->e_shentsize;
+	shdr = (Elf_Shdr *)((UINT8 *)ehdr + ehdr->e_shoff + section * ehdr->e_shentsize);
 
 	//
 	// Sanity check section
 	//
 	if (shdr->sh_type != SHT_STRTAB) {
 		printf ("ELF section %d (type %d) is not a string table\n", section, shdr->sh_type);
-		raise ();
     return NULL;
 	}
 
-	last = elf->data + shdr->sh_offset + shdr->sh_size - 1;
+	last = (char *)((UINT8 *)ehdr + shdr->sh_offset + shdr->sh_size - 1);
 	if (*last != '\0') {
 		printf ("ELF section %d is not NUL-terminated\n", section);
-		raise ();
     return NULL;
 	}
 
@@ -385,52 +360,16 @@ GetElfString (
 	//
 	if (offset >= shdr->sh_size) {
 		printf ("Invalid ELF string offset %zd in section %d\n", offset, section);
-		raise ();
     return NULL;
 	}
-	string = elf->data + shdr->sh_offset + offset;
 
-	return string;
-}
-
-static
-void
-SetMachine (
-	struct elf_file *elf,
-	struct pe_header *pe_header
-  )
-{
-	const Elf_Ehdr *ehdr;
-	uint16_t       machine;
-
-	ehdr = elf->ehdr;
-
-	switch (ehdr->e_machine) {
-		case EM_386:
-			machine = EFI_IMAGE_MACHINE_IA32;
-			break;
-		case EM_X86_64:
-			machine = EFI_IMAGE_MACHINE_X64;
-			break;
-		case EM_ARM:
-			machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
-			break;
-		case EM_AARCH64:
-			machine = EFI_IMAGE_MACHINE_AARCH64;
-			break;
-		default:
-			printf ("Unknown ELF architecture %d\n", ehdr->e_machine);
-			raise ();
-	    return;
-	}
-
-	pe_header->nt.CommonHeader.FileHeader.Machine = machine;
+	return (char *)((UINT8 *)ehdr + shdr->sh_offset + offset);
 }
 
 static
 struct pe_section *
 ProcessSection (
-	struct elf_file  *elf,
+	const Elf_Ehdr   *ehdr,
 	const Elf_Shdr   *shdr,
 	struct pe_header *pe_header
   )
@@ -450,7 +389,10 @@ ProcessSection (
 	unsigned long     *applicable_start;
 	unsigned long     *applicable_end;
 
-	name = GetElfString (elf, elf->ehdr->e_shstrndx, shdr->sh_name);
+	name = GetElfString (ehdr, ehdr->e_shstrndx, shdr->sh_name);
+	if (name == NULL) {
+		return NULL;
+	}
 
 	//
 	// Extract current RVA limits from file header
@@ -470,7 +412,11 @@ ProcessSection (
 	//
 	section_memsz  = shdr->sh_size;
 	section_filesz = (shdr->sh_type == SHT_PROGBITS) ? efi_file_align (section_memsz) : 0;
-	new            = XCalloc (sizeof (*new) + section_filesz);
+	new            = calloc (1, sizeof (*new) + section_filesz);
+	if (new == NULL) {
+		printf ("Could not allocate memory for new\n");
+		return NULL;
+	}
 
 	//
 	// Fill in section header details
@@ -526,12 +472,11 @@ ProcessSection (
 			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
 	} else {
 		printf ("Unrecognised characteristics for section %s\n", name);
-		raise ();
 		return NULL;
 	}
 
 	if (shdr->sh_type == SHT_PROGBITS) {
-		memcpy (new->contents, elf->data + shdr->sh_offset, shdr->sh_size);
+		memcpy (new->contents, (UINT8 *)ehdr + shdr->sh_offset, shdr->sh_size);
 	}
 
 	//
@@ -581,9 +526,9 @@ ProcessSection (
 }
 
 static
-void
+EFI_STATUS
 ProcessReloc (
-	struct elf_file  *elf,
+	const Elf_Ehdr   *ehdr,
 	const Elf_Shdr   *shdr,
 	const Elf_Sym    *syms,
 	unsigned int     nsyms,
@@ -595,10 +540,11 @@ ProcessReloc (
 	unsigned int sym;
 	unsigned int mrel;
 	size_t       offset;
+	EFI_STATUS   Status;
 
 	type   = ELF_R_TYPE (rel->r_info);
 	sym    = ELF_R_SYM (rel->r_info);
-	mrel   = ELF_MREL (elf->ehdr->e_machine, type);
+	mrel   = ELF_MREL (ehdr->e_machine, type);
 	offset = shdr->sh_addr + rel->r_offset;
 
 	//
@@ -606,8 +552,7 @@ ProcessReloc (
 	//
 	if (sym >= nsyms) {
 		printf ("Symbol out of range\n");
-		raise ();
-		return;
+		return EFI_INVALID_PARAMETER;
 	}
 
 	if (syms[sym].st_shndx == SHN_ABS) {
@@ -615,7 +560,7 @@ ProcessReloc (
 		// Skip absolute symbols;
 		// the symbol value won't change when the object is loaded.
 		//
-		return;
+		return EFI_SUCCESS;
 	}
 
 	switch (mrel) {
@@ -633,12 +578,18 @@ ProcessReloc (
 			//
 			// Generate a 4-byte PE relocation
 			//
-			generate_pe_reloc (pe_reltab, offset, 4);
+			Status = generate_pe_reloc (pe_reltab, offset, 4);
+			if (EFI_ERROR (Status)) {
+				return Status;
+			}
 			break;
 		case ELF_MREL (EM_X86_64, R_X86_64_64) :
 		case ELF_MREL (EM_AARCH64, R_AARCH64_ABS64) :
 			/* Generate an 8-byte PE relocation */
-			generate_pe_reloc (pe_reltab, offset, 8);
+			Status = generate_pe_reloc (pe_reltab, offset, 8);
+			if (EFI_ERROR (Status)) {
+				return Status;
+			}
 			break;
 		case ELF_MREL (EM_386, R_386_PC32) :
 		case ELF_MREL (EM_ARM, R_ARM_CALL) :
@@ -664,14 +615,16 @@ ProcessReloc (
 			break;
 		default:
 			printf ("Unrecognised relocation type %d\n", type);
-			raise ();
+			return EFI_INVALID_PARAMETER;
 	}
+
+	return EFI_SUCCESS;
 }
 
 static
-void
+EFI_STATUS
 ProcessRelocs (
-	struct elf_file  *elf,
+	const Elf_Ehdr   *ehdr,
 	const Elf_Shdr   *shdr,
 	size_t           stride,
 	struct pe_relocs **pe_reltab
@@ -683,23 +636,30 @@ ProcessRelocs (
 	unsigned int   nsyms;
 	unsigned int   nrels;
 	unsigned int   i;
+	EFI_STATUS     Status;
 
 	//
 	// Identify symbol table
 	//
-	symtab = elf->data + elf->ehdr->e_shoff + shdr->sh_link * elf->ehdr->e_shentsize;
-	syms   = elf->data + symtab->sh_offset;
+	symtab = (Elf_Shdr *)((UINT8 *)ehdr + ehdr->e_shoff + shdr->sh_link * ehdr->e_shentsize);
+	syms   = (Elf_Sym *)((UINT8 *)ehdr + symtab->sh_offset);
 	nsyms  = symtab->sh_size / sizeof (syms[0]);
 
 	//
 	// Process each relocation
 	//
-	rel   = elf->data + shdr->sh_offset;
+	rel   = (Elf_Rel *)((UINT8 *)ehdr + shdr->sh_offset);
 	nrels = shdr->sh_size / stride;
 	for (i = 0; i < nrels; ++i) {
-		ProcessReloc (elf, shdr, syms, nsyms, rel, pe_reltab);
+		Status = ProcessReloc (ehdr, shdr, syms, nsyms, rel, pe_reltab);
+		if (EFI_ERROR (Status)) {
+			return Status;
+		}
+
 		rel = (const void * )rel + stride;
 	}
+
+	return EFI_SUCCESS;
 }
 
 static
@@ -719,7 +679,11 @@ CreateRelocSection (
 	//
 	section_memsz  = output_pe_reltab (pe_reltab, NULL);
 	section_filesz = efi_file_align (section_memsz);
-	reloc          = XCalloc (sizeof (*reloc) + section_filesz);
+	reloc          = calloc (1, sizeof (*reloc) + section_filesz);
+	if (reloc == NULL) {
+		printf ("Could not allocate memory for reloc\n");
+		return NULL;
+	}
 
 	//
 	// Fill in section header details
@@ -786,7 +750,11 @@ CreateDebugSection (
 	//
 	section_memsz  = sizeof (*contents);
 	section_filesz = efi_file_align (section_memsz);
-	debug          = XCalloc (sizeof (*debug) + section_filesz);
+	debug          = calloc (1, sizeof (*debug) + section_filesz);
+	if (debug == NULL) {
+		printf ("Could not allocate memory for debug\n");
+		return NULL;
+	}
 	contents       = (void *)debug->contents;
 
 	//
@@ -831,9 +799,9 @@ CreateDebugSection (
 static
 void
 WritePeFile (
-	struct pe_header *pe_header,
+	struct pe_header  *pe_header,
   struct pe_section *pe_sections,
-	FILE *pe
+	FILE              *pe
   )
 {
 	struct pe_section *section;
@@ -862,7 +830,6 @@ WritePeFile (
 	//
 	if (fwrite (pe_header, sizeof (*pe_header), 1, pe) != 1) {
 		printf ("Could not write PE header\n");
-		raise ();
 		return;
 	}
 
@@ -872,7 +839,6 @@ WritePeFile (
 	for (section = pe_sections; section != NULL; section = section->next) {
 		if (fwrite (&section->hdr, sizeof (section->hdr), 1, pe) != 1) {
 			printf ("Could not write section header\n");
-			raise ();
 			return;
 		}
 	}
@@ -883,14 +849,12 @@ WritePeFile (
 	for (section = pe_sections; section != NULL; section = section->next) {
 		if (fseek (pe, section->hdr.PointerToRawData, SEEK_SET) != 0) {
 			printf ("Could not seek to %x: %s\n", section->hdr.PointerToRawData, strerror (errno));
-			raise ();
 			return;
 		}
 
 		if ((section->hdr.SizeOfRawData != 0)
 		  && (fwrite (section->contents, section->hdr.SizeOfRawData, 1, pe) != 1)) {
 			printf ("Could not write section %.8s: %s\n", section->hdr.Name, strerror (errno));
-			raise ();
 			return;
 		}
 	}
@@ -905,7 +869,7 @@ basename (
 	char *basename;
 
 	basename = strrchr ( path, '/' );
-	return ( basename ? ( basename + 1 ) : path );
+	return (basename != NULL) ? (basename + 1) : path;
 }
 
 VOID
@@ -919,34 +883,56 @@ ElfToPe (
 	struct pe_section *pe_sections;
 	struct pe_section **next_pe_section;
 	struct pe_header  pe_header;
-	struct elf_file   elf;
+	Elf_Ehdr          *ehdr;
 	const Elf_Shdr    *shdr;
 	size_t            offset;
 	unsigned int      i;
 	FILE              *pe;
+	EFI_STATUS        Status;
 
+  ehdr            = NULL;
 	pe_reltab       = NULL;
 	pe_sections     = NULL;
 	next_pe_section = &pe_sections;
 
 	memcpy (pe_name_tmp, pe_name, sizeof (pe_name_tmp));
 
-	ReadElfFile (elf_name, &elf);
+	ReadElfFile (elf_name, &ehdr);
+	if (ehdr == NULL) {
+		return;
+	}
 
 	//
 	// Initialise the PE header
 	//
 	memcpy (&pe_header, &efi_pe_header, sizeof (pe_header));
-	SetMachine (&elf, &pe_header);
-	pe_header.nt.AddressOfEntryPoint = elf.ehdr->e_entry;
+	pe_header.nt.AddressOfEntryPoint = ehdr->e_entry;
 	pe_header.nt.Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+	switch (ehdr->e_machine) {
+		case EM_386:
+			pe_header.nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_IA32;
+			break;
+		case EM_X86_64:
+			pe_header.nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_X64;
+			break;
+		case EM_ARM:
+			pe_header.nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
+			break;
+		case EM_AARCH64:
+			pe_header.nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_AARCH64;
+			break;
+		default:
+			printf ("Unknown ELF architecture %d\n", ehdr->e_machine);
+			free (ehdr);
+			return;
+	}
 
 	//
 	// Process input sections
 	//
-	for (i = 0; i < elf.ehdr->e_shnum; ++i) {
-		offset = elf.ehdr->e_shoff + i * elf.ehdr->e_shentsize;
-		shdr   = elf.data + offset;
+	for (i = 0; i < ehdr->e_shnum; ++i) {
+		offset = ehdr->e_shoff + i * ehdr->e_shentsize;
+		shdr   = (Elf_Shdr *)((UINT8 *)ehdr + offset);
 
 		//
 		// Process section
@@ -955,18 +941,31 @@ ElfToPe (
       //
 			// Create output section
 			//
-			*(next_pe_section) = ProcessSection (&elf, shdr, &pe_header);
+			*next_pe_section = ProcessSection (ehdr, shdr, &pe_header);
+			if (*next_pe_section == NULL) {
+				free (ehdr);
+				return;
+			}
+
 			next_pe_section    = &(*next_pe_section)->next;
 		} else if (shdr->sh_type == SHT_REL) {
       //
 			// Process .rel relocations
 			//
-			ProcessRelocs (&elf, shdr, sizeof (Elf_Rel), &pe_reltab);
+			Status = ProcessRelocs (ehdr, shdr, sizeof (Elf_Rel), &pe_reltab);
+			if (EFI_ERROR (Status)) {
+				free (ehdr);
+				return;
+			}
 		} else if (shdr->sh_type == SHT_RELA) {
       //
 			// Process .rela relocations
 			//
-			ProcessRelocs (&elf, shdr, sizeof ( Elf_Rela ), &pe_reltab);
+			Status = ProcessRelocs (ehdr, shdr, sizeof (Elf_Rela), &pe_reltab);
+			if (EFI_ERROR (Status)) {
+				free (ehdr);
+				return;
+			}
 		}
 	}
 
@@ -982,13 +981,12 @@ ElfToPe (
 	pe = fopen (pe_name, "w");
 	if (pe == NULL) {
 		printf ("Could not open %s for writing: %s\n", pe_name, strerror (errno));
-		free (elf.data);
-		raise ();
+		free (ehdr);
 		return;
 	}
 
 	WritePeFile (&pe_header, pe_sections, pe);
 	fclose (pe);
 
-	free (elf.data);
+	free (ehdr);
 }
