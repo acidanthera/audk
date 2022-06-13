@@ -21,6 +21,7 @@
 #include <IndustryStandard/UeImage.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UeImageLib.h>
+#include <Library/BaseMemoryLib.h>
 #include <UserFile.h>
 #include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
 

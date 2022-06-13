@@ -73,6 +73,11 @@
 ///
 #define EFI_IMAGE_ALIGN 0x1000
 
+struct pe_header {
+	EFI_IMAGE_DOS_HEADER dos;
+	EFI_IMAGE_NT_HEADERS nt;
+};
+
 struct pe_section {
 	struct pe_section        *next;
 	EFI_IMAGE_SECTION_HEADER hdr;
@@ -88,56 +93,9 @@ struct pe_relocs {
 	uint16_t         *relocs;
 };
 
-struct pe_header {
-	EFI_IMAGE_DOS_HEADER dos;
-	uint8_t              padding[128];
-	EFI_IMAGE_NT_HEADERS nt;
-};
-
-static struct pe_header efi_pe_header = {
-	.dos = {
-		.e_magic                 = EFI_IMAGE_DOS_SIGNATURE,
-		.e_lfanew                = offsetof (typeof (efi_pe_header), nt),
-	},
-	.nt = {
-		.CommonHeader.Signature  = EFI_IMAGE_NT_SIGNATURE,
-		.CommonHeader.FileHeader = {
-			.TimeDateStamp         = 0x10d1a884,
-			.SizeOfOptionalHeader  = sizeof (EFI_IMAGE_NT_HEADERS64) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR), // + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2; Only base relocation and debug directory
-			.Characteristics       = (EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE),
-		},
-		.Magic                   = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC,
-		.MajorLinkerVersion      = 42,
-		.MinorLinkerVersion      = 42,
-		.SectionAlignment        = EFI_IMAGE_ALIGN,
-		.FileAlignment           = EFI_FILE_ALIGN,
-		.SizeOfImage             = EFI_IMAGE_ALIGN, // sizeof (efi_pe_header) ?
-		.SizeOfHeaders           = sizeof (efi_pe_header), // + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2; Only base relocation and debug directory
-		.NumberOfRvaAndSizes     = EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES,
-	},
-};
-
-static
-unsigned long
-efi_file_align (
-	unsigned long offset
-  )
-{
-	return ((offset + EFI_FILE_ALIGN - 1) & ~(EFI_FILE_ALIGN - 1));
-}
-
-static
-unsigned long
-efi_image_align (
-	unsigned long offset
-  )
-{
-	return ((offset + EFI_IMAGE_ALIGN - 1) & ~(EFI_IMAGE_ALIGN - 1));
-}
-
 static
 EFI_STATUS
-generate_pe_reloc (
+GeneratePeReloc (
 	struct pe_relocs **pe_reltab,
 	unsigned long    rva,
 	size_t           size
@@ -220,7 +178,7 @@ generate_pe_reloc (
 
 static
 size_t
-output_pe_reltab (
+OutputPeReltab (
 	struct pe_relocs *pe_reltab,
 	void             *buffer
   )
@@ -258,7 +216,7 @@ output_pe_reltab (
 }
 
 static
-void
+EFI_STATUS
 ReadElfFile (
 	const char *name,
 	Elf_Ehdr   **ehdr
@@ -275,7 +233,7 @@ ReadElfFile (
 	*ehdr = (Elf_Ehdr *)UserReadFile (name, &len);
   if (*ehdr == NULL) {
 		printf ("Could not open %s: %s\n", name, strerror (errno));
-    return;
+    return EFI_VOLUME_CORRUPTED;
   }
 
 	//
@@ -285,8 +243,7 @@ ReadElfFile (
 	  || (memcmp (ident, (*ehdr)->e_ident, sizeof (ident)) != 0)) {
 		printf ("Invalid ELF header in file %s\n", name);
 		free (*ehdr);
-		*ehdr = NULL;
-    return;
+    return EFI_VOLUME_CORRUPTED;
 	}
 
 	//
@@ -298,8 +255,7 @@ ReadElfFile (
 		if (len < (offset + sizeof (*shdr))) {
 			printf ("ELF section header is outside file %s\n", name);
 			free (*ehdr);
-			*ehdr = NULL;
-	    return;
+			return EFI_VOLUME_CORRUPTED;
 		}
 
 		shdr = (Elf_Shdr *)((UINT8 *)(*ehdr) + offset);
@@ -308,17 +264,17 @@ ReadElfFile (
 		  && ((len < shdr->sh_offset) || ((len - shdr->sh_offset) < shdr->sh_size))) {
 			printf ("ELF section %d points outside file %s\n", i, name);
 			free (*ehdr);
-			*ehdr = NULL;
-	    return;
+			return EFI_VOLUME_CORRUPTED;
 		}
 
 		if (shdr->sh_link >= (*ehdr)->e_shnum) {
 			printf ("ELF %d-th section's sh_link is out of range\n", i);
 			free (*ehdr);
-			*ehdr = NULL;
-	    return;
+			return EFI_VOLUME_CORRUPTED;
 		}
 	}
+
+	return EFI_SUCCESS;
 }
 
 static
@@ -411,7 +367,7 @@ ProcessSection (
 	// Allocate PE section
 	//
 	section_memsz  = shdr->sh_size;
-	section_filesz = (shdr->sh_type == SHT_PROGBITS) ? efi_file_align (section_memsz) : 0;
+	section_filesz = (shdr->sh_type == SHT_PROGBITS) ? ALIGN_VALUE (section_memsz, EFI_FILE_ALIGN) : 0;
 	new            = calloc (1, sizeof (*new) + section_filesz);
 	if (new == NULL) {
 		printf ("Could not allocate memory for new\n");
@@ -520,7 +476,7 @@ ProcessSection (
 	//
 	++pe_header->nt.CommonHeader.FileHeader.NumberOfSections;
 	pe_header->nt.SizeOfHeaders += sizeof (new->hdr);
-	pe_header->nt.SizeOfImage =	efi_image_align (data_end);
+	pe_header->nt.SizeOfImage =	ALIGN_VALUE (data_end, EFI_IMAGE_ALIGN);
 
 	return new;
 }
@@ -578,7 +534,7 @@ ProcessReloc (
 			//
 			// Generate a 4-byte PE relocation
 			//
-			Status = generate_pe_reloc (pe_reltab, offset, 4);
+			Status = GeneratePeReloc (pe_reltab, offset, 4);
 			if (EFI_ERROR (Status)) {
 				return Status;
 			}
@@ -586,7 +542,7 @@ ProcessReloc (
 		case ELF_MREL (EM_X86_64, R_X86_64_64) :
 		case ELF_MREL (EM_AARCH64, R_AARCH64_ABS64) :
 			/* Generate an 8-byte PE relocation */
-			Status = generate_pe_reloc (pe_reltab, offset, 8);
+			Status = GeneratePeReloc (pe_reltab, offset, 8);
 			if (EFI_ERROR (Status)) {
 				return Status;
 			}
@@ -677,8 +633,8 @@ CreateRelocSection (
 	//
 	// Allocate PE section
 	//
-	section_memsz  = output_pe_reltab (pe_reltab, NULL);
-	section_filesz = efi_file_align (section_memsz);
+	section_memsz  = OutputPeReltab (pe_reltab, NULL);
+	section_filesz = ALIGN_VALUE (section_memsz, EFI_FILE_ALIGN);
 	reloc          = calloc (1, sizeof (*reloc) + section_filesz);
 	if (reloc == NULL) {
 		printf ("Could not allocate memory for reloc\n");
@@ -699,14 +655,14 @@ CreateRelocSection (
 	//
 	// Copy section contents
 	//
-	output_pe_reltab (pe_reltab, reloc->contents);
+	OutputPeReltab (pe_reltab, reloc->contents);
 
 	//
 	// Update file header details
 	//
 	++pe_header->nt.CommonHeader.FileHeader.NumberOfSections;
 	pe_header->nt.SizeOfHeaders += sizeof (reloc->hdr);
-	pe_header->nt.SizeOfImage   += efi_image_align (section_memsz);
+	pe_header->nt.SizeOfImage   += ALIGN_VALUE (section_memsz, EFI_IMAGE_ALIGN);
 
 	relocdir = &pe_header->nt.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC];
 
@@ -749,7 +705,7 @@ CreateDebugSection (
 	// Allocate PE section
 	//
 	section_memsz  = sizeof (*contents);
-	section_filesz = efi_file_align (section_memsz);
+	section_filesz = ALIGN_VALUE (section_memsz, EFI_FILE_ALIGN);
 	debug          = calloc (1, sizeof (*debug) + section_filesz);
 	if (debug == NULL) {
 		printf ("Could not allocate memory for debug\n");
@@ -786,7 +742,7 @@ CreateDebugSection (
 	//
 	++pe_header->nt.CommonHeader.FileHeader.NumberOfSections;
 	pe_header->nt.SizeOfHeaders += sizeof (debug->hdr);
-	pe_header->nt.SizeOfImage   += efi_image_align (section_memsz);
+	pe_header->nt.SizeOfImage   += ALIGN_VALUE (section_memsz, EFI_IMAGE_ALIGN);
 
 	debugdir = &pe_header->nt.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
 
@@ -807,7 +763,7 @@ WritePeFile (
 	struct pe_section *section;
 	unsigned long     fpos;
 
-	pe_header->nt.SizeOfHeaders =	efi_file_align (pe_header->nt.SizeOfHeaders);
+	pe_header->nt.SizeOfHeaders =	ALIGN_VALUE (pe_header->nt.SizeOfHeaders, EFI_FILE_ALIGN);
   fpos                        = pe_header->nt.SizeOfHeaders;
 
 	//
@@ -817,7 +773,7 @@ WritePeFile (
 		if (section->hdr.SizeOfRawData != 0) {
 			section->hdr.PointerToRawData = fpos;
 			fpos                          += section->hdr.SizeOfRawData;
-			fpos                          = efi_file_align (fpos);
+			fpos                          = ALIGN_VALUE (fpos, EFI_FILE_ALIGN);
 		}
 
 		if (section->fixup != NULL) {
@@ -868,7 +824,7 @@ basename (
 {
 	char *basename;
 
-	basename = strrchr ( path, '/' );
+	basename = strrchr (path, '/');
 	return (basename != NULL) ? (basename + 1) : path;
 }
 
@@ -890,22 +846,40 @@ ElfToPe (
 	FILE              *pe;
 	EFI_STATUS        Status;
 
-  ehdr            = NULL;
 	pe_reltab       = NULL;
 	pe_sections     = NULL;
 	next_pe_section = &pe_sections;
 
 	memcpy (pe_name_tmp, pe_name, sizeof (pe_name_tmp));
 
-	ReadElfFile (elf_name, &ehdr);
-	if (ehdr == NULL) {
+	Status = ReadElfFile (elf_name, &ehdr);
+	if (EFI_ERROR (Status)) {
 		return;
 	}
 
 	//
 	// Initialise the PE header
 	//
-	memcpy (&pe_header, &efi_pe_header, sizeof (pe_header));
+	ZeroMem (&pe_header, sizeof (pe_header));
+	pe_header.dos.e_magic  = EFI_IMAGE_DOS_SIGNATURE;
+	pe_header.dos.e_lfanew = sizeof (EFI_IMAGE_DOS_HEADER);
+
+	pe_header.nt.CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
+	//
+  // Only base relocation and debug directory
+	//
+	pe_header.nt.CommonHeader.FileHeader.SizeOfOptionalHeader =
+	  sizeof (EFI_IMAGE_NT_HEADERS) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2;
+
+	pe_header.nt.CommonHeader.FileHeader.Characteristics =
+	  EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE;
+
+	pe_header.nt.Magic               = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
+	pe_header.nt.SectionAlignment    = EFI_IMAGE_ALIGN;
+	pe_header.nt.FileAlignment       = EFI_FILE_ALIGN;
+	pe_header.nt.SizeOfHeaders       = sizeof (pe_header) + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2;
+	pe_header.nt.NumberOfRvaAndSizes = 2; // EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES ?
+
 	pe_header.nt.AddressOfEntryPoint = ehdr->e_entry;
 	pe_header.nt.Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
 	switch (ehdr->e_machine) {
