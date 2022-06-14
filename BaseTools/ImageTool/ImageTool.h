@@ -90,7 +90,7 @@ typedef struct {
 
 typedef struct _PeSection {
 	PeSection               *next;
-	EFI_IMAGE_SECTION_HEADER hdr;
+	EFI_IMAGE_SECTION_HEADER PeShdr;
 	void                     (* fixup) (PeSection *section);
 	uint8_t                  contents[0];
 } PeSection;
