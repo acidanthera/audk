@@ -84,8 +84,8 @@ typedef struct _PeSection  PeSection;
 typedef struct _PeRelocs   PeRelocs;
 
 typedef struct {
-	EFI_IMAGE_DOS_HEADER dos;
-	EFI_IMAGE_NT_HEADERS nt;
+	EFI_IMAGE_DOS_HEADER Dos;
+	EFI_IMAGE_NT_HEADERS Nt;
 } PeHeader;
 
 typedef struct _PeSection {
