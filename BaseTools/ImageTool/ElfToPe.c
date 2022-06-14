@@ -18,93 +18,19 @@
  */
 
 #include "ImageTool.h"
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/ElfCommon.h"
-
-#undef ELF_R_TYPE
-#undef ELF_R_SYM
-
-#ifdef EFI_TARGET32
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf32.h"
-
-#define EFI_IMAGE_NT_HEADERS		         EFI_IMAGE_NT_HEADERS32
-#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC	 EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC
-#define EFI_IMAGE_FILE_MACHINE		       EFI_IMAGE_FILE_32BIT_MACHINE
-#define ELFCLASS                         ELFCLASS32
-#define Elf_Ehdr                         Elf32_Ehdr
-#define Elf_Shdr                         Elf32_Shdr
-#define Elf_Sym                          Elf32_Sym
-#define Elf_Rel                          Elf32_Rel
-#define Elf_Rela                         Elf32_Rela
-#define ELF_R_TYPE                       ELF32_R_TYPE
-#define ELF_R_SYM                        ELF32_R_SYM
-
-#elif defined(EFI_TARGET64)
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf64.h"
-
-#define EFI_IMAGE_NT_HEADERS		         EFI_IMAGE_NT_HEADERS64
-#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC
-#define EFI_IMAGE_FILE_MACHINE		       0
-#define ELFCLASS                         ELFCLASS64
-#define Elf_Ehdr                         Elf64_Ehdr
-#define Elf_Shdr                         Elf64_Shdr
-#define Elf_Sym                          Elf64_Sym
-#define Elf_Rel                          Elf64_Rel
-#define Elf_Rela                         Elf64_Rela
-#define ELF_R_TYPE                       ELF64_R_TYPE
-#define ELF_R_SYM                        ELF64_R_SYM
-
-#endif
-
-#define ELF_MREL( mach, type ) ( (mach) | ( (type) << 16 ) )
-
-///
-/// Provide constants missing on some platforms
-///
-#define R_AARCH64_NULL  0
-#define R_ARM_V4BX      40
-
-///
-/// Alignment of raw data sections in the image file
-///
-#define EFI_FILE_ALIGN  0x200
-
-///
-/// Alignment of sections when loaded into memory
-///
-#define EFI_IMAGE_ALIGN 0x1000
-
-struct pe_header {
-	EFI_IMAGE_DOS_HEADER dos;
-	EFI_IMAGE_NT_HEADERS nt;
-};
-
-struct pe_section {
-	struct pe_section        *next;
-	EFI_IMAGE_SECTION_HEADER hdr;
-	void                     (* fixup) (struct pe_section *section);
-	uint8_t                  contents[0];
-};
-
-struct pe_relocs {
-	struct pe_relocs *next;
-	unsigned long    start_rva;
-	unsigned int     used_relocs;
-	unsigned int     total_relocs;
-	uint16_t         *relocs;
-};
 
 static
 EFI_STATUS
 GeneratePeReloc (
-	struct pe_relocs **pe_reltab,
-	unsigned long    rva,
-	size_t           size
+	PeRelocs      **pe_reltab,
+	unsigned long rva,
+	size_t        size
   )
 {
-	unsigned long    start_rva;
-	uint16_t         reloc;
-	struct pe_relocs *pe_rel;
-	uint16_t         *relocs;
+	unsigned long start_rva;
+	uint16_t      reloc;
+	PeRelocs      *pe_rel;
+	uint16_t      *relocs;
 
 	//
 	// Construct
@@ -179,14 +105,14 @@ GeneratePeReloc (
 static
 size_t
 OutputPeReltab (
-	struct pe_relocs *pe_reltab,
-	void             *buffer
+	PeRelocs *pe_reltab,
+	void     *buffer
   )
 {
-	struct pe_relocs *pe_rel;
-	unsigned int     num_relocs;
-	size_t           size;
-	size_t           total_size;
+	PeRelocs     *pe_rel;
+	unsigned int num_relocs;
+	size_t       size;
+	size_t       total_size;
 
 	total_size = 0;
 
@@ -323,27 +249,27 @@ GetElfString (
 }
 
 static
-struct pe_section *
+PeSection *
 ProcessSection (
-	const Elf_Ehdr   *ehdr,
-	const Elf_Shdr   *shdr,
-	struct pe_header *pe_header
+	const Elf_Ehdr *ehdr,
+	const Elf_Shdr *shdr,
+	PeHeader       *pe_header
   )
 {
-	struct pe_section *new;
-	const char        *name;
-	size_t            name_len;
-	size_t            section_memsz;
-	size_t            section_filesz;
-	unsigned long     code_start;
-	unsigned long     code_end;
-	unsigned long     data_start;
-	unsigned long     data_mid;
-	unsigned long     data_end;
-	unsigned long     start;
-	unsigned long     end;
-	unsigned long     *applicable_start;
-	unsigned long     *applicable_end;
+	PeSection     *new;
+	const char    *name;
+	size_t        name_len;
+	size_t        section_memsz;
+	size_t        section_filesz;
+	unsigned long code_start;
+	unsigned long code_end;
+	unsigned long data_start;
+	unsigned long data_mid;
+	unsigned long data_end;
+	unsigned long start;
+	unsigned long end;
+	unsigned long *applicable_start;
+	unsigned long *applicable_end;
 
 	name = GetElfString (ehdr, ehdr->e_shstrndx, shdr->sh_name);
 	if (name == NULL) {
@@ -484,12 +410,12 @@ ProcessSection (
 static
 EFI_STATUS
 ProcessReloc (
-	const Elf_Ehdr   *ehdr,
-	const Elf_Shdr   *shdr,
-	const Elf_Sym    *syms,
-	unsigned int     nsyms,
-	const Elf_Rel    *rel,
-	struct pe_relocs **pe_reltab
+	const Elf_Ehdr *ehdr,
+	const Elf_Shdr *shdr,
+	const Elf_Sym  *syms,
+	unsigned int   nsyms,
+	const Elf_Rel  *rel,
+	PeRelocs       **pe_reltab
   )
 {
 	unsigned int type;
@@ -580,10 +506,10 @@ ProcessReloc (
 static
 EFI_STATUS
 ProcessRelocs (
-	const Elf_Ehdr   *ehdr,
-	const Elf_Shdr   *shdr,
-	size_t           stride,
-	struct pe_relocs **pe_reltab
+	const Elf_Ehdr *ehdr,
+	const Elf_Shdr *shdr,
+	size_t         stride,
+	PeRelocs       **pe_reltab
   )
 {
 	const Elf_Shdr *symtab;
@@ -619,13 +545,13 @@ ProcessRelocs (
 }
 
 static
-struct pe_section *
+PeSection *
 CreateRelocSection (
-	struct pe_header *pe_header,
-	struct pe_relocs *pe_reltab
+	PeHeader *pe_header,
+	PeRelocs *pe_reltab
   )
 {
-	struct pe_section        *reloc;
+	PeSection                *reloc;
 	size_t                   section_memsz;
 	size_t                   section_filesz;
 	EFI_IMAGE_DATA_DIRECTORY *relocdir;
@@ -675,7 +601,7 @@ CreateRelocSection (
 static
 void
 FixupDebugSection (
-	struct pe_section *debug
+	PeSection *debug
   )
 {
 	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *contents;
@@ -685,13 +611,13 @@ FixupDebugSection (
 }
 
 static
-struct pe_section *
+PeSection *
 CreateDebugSection (
-	struct pe_header *pe_header,
-	const char       *filename
+	PeHeader   *pe_header,
+	const char *filename
   )
 {
-	struct pe_section        *debug;
+	PeSection                *debug;
 	size_t                   section_memsz;
 	size_t                   section_filesz;
 	EFI_IMAGE_DATA_DIRECTORY *debugdir;
@@ -755,13 +681,13 @@ CreateDebugSection (
 static
 void
 WritePeFile (
-	struct pe_header  *pe_header,
-  struct pe_section *pe_sections,
-	FILE              *pe
+	PeHeader  *pe_header,
+  PeSection *pe_sections,
+	FILE      *pe
   )
 {
-	struct pe_section *section;
-	unsigned long     fpos;
+	PeSection     *section;
+	unsigned long fpos;
 
 	pe_header->nt.SizeOfHeaders =	ALIGN_VALUE (pe_header->nt.SizeOfHeaders, EFI_FILE_ALIGN);
   fpos                        = pe_header->nt.SizeOfHeaders;
@@ -835,16 +761,16 @@ ElfToPe (
   )
 {
 	char pe_name_tmp[strlen (pe_name) + 1];
-	struct pe_relocs  *pe_reltab;
-	struct pe_section *pe_sections;
-	struct pe_section **next_pe_section;
-	struct pe_header  pe_header;
-	Elf_Ehdr          *ehdr;
-	const Elf_Shdr    *shdr;
-	size_t            offset;
-	unsigned int      i;
-	FILE              *pe;
-	EFI_STATUS        Status;
+	PeRelocs       *pe_reltab;
+	PeSection      *pe_sections;
+	PeSection      **next_pe_section;
+	PeHeader       pe_header;
+	Elf_Ehdr       *ehdr;
+	const Elf_Shdr *shdr;
+	size_t         offset;
+	unsigned int   i;
+	FILE           *pe;
+	EFI_STATUS     Status;
 
 	pe_reltab       = NULL;
 	pe_sections     = NULL;

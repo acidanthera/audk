@@ -24,8 +24,84 @@
 #include <Library/BaseMemoryLib.h>
 #include <UserFile.h>
 #include "../../MdePkg/Library/BasePeCoffLib2/BaseOverflow.h"
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/ElfCommon.h"
+
+#undef ELF_R_TYPE
+#undef ELF_R_SYM
+
+#ifdef EFI_TARGET32
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf32.h"
+
+#define EFI_IMAGE_NT_HEADERS		         EFI_IMAGE_NT_HEADERS32
+#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC	 EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC
+#define EFI_IMAGE_FILE_MACHINE		       EFI_IMAGE_FILE_32BIT_MACHINE
+#define ELFCLASS                         ELFCLASS32
+#define Elf_Ehdr                         Elf32_Ehdr
+#define Elf_Shdr                         Elf32_Shdr
+#define Elf_Sym                          Elf32_Sym
+#define Elf_Rel                          Elf32_Rel
+#define Elf_Rela                         Elf32_Rela
+#define ELF_R_TYPE                       ELF32_R_TYPE
+#define ELF_R_SYM                        ELF32_R_SYM
+
+#elif defined(EFI_TARGET64)
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf64.h"
+
+#define EFI_IMAGE_NT_HEADERS		         EFI_IMAGE_NT_HEADERS64
+#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC
+#define EFI_IMAGE_FILE_MACHINE		       0
+#define ELFCLASS                         ELFCLASS64
+#define Elf_Ehdr                         Elf64_Ehdr
+#define Elf_Shdr                         Elf64_Shdr
+#define Elf_Sym                          Elf64_Sym
+#define Elf_Rel                          Elf64_Rel
+#define Elf_Rela                         Elf64_Rela
+#define ELF_R_TYPE                       ELF64_R_TYPE
+#define ELF_R_SYM                        ELF64_R_SYM
+#endif
+
+#define ELF_MREL( mach, type ) ( (mach) | ( (type) << 16 ) )
+
+///
+/// Provide constants missing on some platforms
+///
+#define R_AARCH64_NULL  0
+#define R_ARM_V4BX      40
+
+///
+/// Alignment of raw data sections in the image file
+///
+#define EFI_FILE_ALIGN  0x200
+
+///
+/// Alignment of sections when loaded into memory
+///
+#define EFI_IMAGE_ALIGN 0x1000
 
 #define raise() assert(false)
+
+typedef struct _PeSection  PeSection;
+typedef struct _PeRelocs   PeRelocs;
+
+typedef struct {
+	EFI_IMAGE_DOS_HEADER dos;
+	EFI_IMAGE_NT_HEADERS nt;
+} PeHeader;
+
+typedef struct _PeSection {
+	PeSection               *next;
+	EFI_IMAGE_SECTION_HEADER hdr;
+	void                     (* fixup) (PeSection *section);
+	uint8_t                  contents[0];
+} PeSection;
+
+typedef struct _PeRelocs {
+	PeRelocs     *next;
+	unsigned long start_rva;
+	unsigned int  used_relocs;
+	unsigned int  total_relocs;
+	uint16_t      *relocs;
+} PeRelocs;
 
 typedef struct {
   uint64_t PreferredAddress;
