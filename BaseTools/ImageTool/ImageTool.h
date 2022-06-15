@@ -78,6 +78,9 @@
 ///
 #define EFI_IMAGE_ALIGN 0x1000
 
+#define DIR_BASERELOC  0
+#define DIR_DEBUG      1
+
 #define raise() assert(false)
 
 typedef struct _PeSection  PeSection;
@@ -85,14 +88,14 @@ typedef struct _PeRelocs   PeRelocs;
 
 typedef struct {
 	EFI_IMAGE_DOS_HEADER Dos;
-	EFI_IMAGE_NT_HEADERS Nt;
+	EFI_IMAGE_NT_HEADERS *Nt;
 } PeHeader;
 
 typedef struct _PeSection {
 	PeSection               *next;
 	EFI_IMAGE_SECTION_HEADER PeShdr;
 	void                     (* fixup) (PeSection *section);
-	uint8_t                  contents[0];
+	UINT8                    contents[0];
 } PeSection;
 
 typedef struct _PeRelocs {

@@ -20,9 +20,9 @@
 #include "ImageTool.h"
 
 static
-void
+VOID
 FreeRelocs (
-	PeRelocs *PeRel
+	 IN PeRelocs *PeRel
   )
 {
   assert (PeRel != NULL);
@@ -41,15 +41,17 @@ FreeRelocs (
 static
 EFI_STATUS
 GeneratePeReloc (
-	PeRelocs **PeRelTab,
-	UINTN    Rva,
-	UINT32   RelocType
+	IN OUT PeRelocs **PeRelTab,
+	IN     UINTN    Rva,
+	IN     UINT32   RelocType
   )
 {
 	UINTN    PageRva;
 	UINT16   TypeOffset;
 	PeRelocs *PeRel;
 	UINT16   *Copy;
+
+	assert (PeRelTab != NULL);
 
 	PageRva = Rva & ~0xfff;
 	//
@@ -73,6 +75,7 @@ GeneratePeReloc (
 			printf ("Unsupported relocation type\n");
 			if (*PeRelTab != NULL) {
 				FreeRelocs (*PeRelTab);
+				*PeRelTab = NULL;
 			}
 	    return EFI_INVALID_PARAMETER;
 	}
@@ -92,6 +95,7 @@ GeneratePeReloc (
 			printf ("Could not allocate memory for PeRel\n");
 			if (*PeRelTab != NULL) {
 				FreeRelocs (*PeRelTab);
+				*PeRelTab = NULL;
 			}
 	    return EFI_OUT_OF_RESOURCES;
 		}
@@ -111,6 +115,7 @@ GeneratePeReloc (
 		if (Copy == NULL) {
 			printf ("Could not reallocate memory for TypeOffset array\n");
 			FreeRelocs (*PeRelTab);
+			*PeRelTab = NULL;
 	    return EFI_OUT_OF_RESOURCES;
 		}
 
@@ -132,58 +137,61 @@ GeneratePeReloc (
 }
 
 static
-size_t
+UINT32
 OutputPeReltab (
-	PeRelocs *PeRelTab,
-	void     *buffer
+	IN  PeRelocs *PeRelTab,
+	OUT VOID     *Buffer  OPTIONAL
   )
 {
-	PeRelocs     *pe_rel;
-	unsigned int num_relocs;
-	size_t       size;
-	size_t       total_size;
+	PeRelocs *PeRel;
+	UINT32   Used;
+	UINT32   BlockSize;
+	UINT32   SectionSize;
 
-	total_size = 0;
+	assert (PeRelTab != NULL);
 
-	for (pe_rel = PeRelTab; pe_rel != NULL; pe_rel = pe_rel->next) {
-		num_relocs = ((pe_rel->Used + 1) & ~1);
+	SectionSize = 0;
 
+	for (PeRel = PeRelTab; PeRel != NULL; PeRel = PeRel->next) {
 		//
-		// VirtualAddress + SizeOfBlock + num_relocs
+		// Each block must start on a 32-bit boundary.
 		//
-		size = sizeof (uint32_t) + sizeof (uint32_t)  + num_relocs * sizeof (uint16_t);
-		if (buffer != NULL) {
-			*((uint32_t *)(buffer + total_size)) = pe_rel->PageRva;
+		Used = ((PeRel->Used + 1U) & ~1U);
+		BlockSize = sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) + sizeof (*PeRel->TypeOffsets) * Used;
 
-			*((uint32_t *)(buffer + total_size + sizeof (uint32_t))) = size;
+		if (Buffer != NULL) {
+			*(UINT32 *)(Buffer + SectionSize) = PeRel->PageRva;
+			*(UINT32 *)(Buffer + SectionSize + sizeof (UINT32)) = BlockSize;
 
 			memcpy (
-				buffer + total_size + 2 * sizeof (uint32_t),
-				pe_rel->TypeOffsets,
-				num_relocs * sizeof (uint16_t)
+				Buffer + SectionSize + 2 * sizeof (UINT32),
+				PeRel->TypeOffsets,
+				Used * sizeof (*PeRel->TypeOffsets)
 			  );
 		}
 
-		total_size += size;
+		SectionSize += BlockSize;
 	}
 
-	return total_size;
+	return SectionSize;
 }
 
 static
 EFI_STATUS
 ReadElfFile (
-	const char *Name,
-	Elf_Ehdr   **Ehdr
+	IN  const char *Name,
+	OUT Elf_Ehdr   **Ehdr
   )
 {
 	static const unsigned char Ident[] = {
 		ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS, ELFDATA2LSB
 	};
 	const Elf_Shdr *Shdr;
-	size_t         Offset;
+	UINTN          Offset;
 	UINT32         Index;
 	UINT32         FileSize;
+
+	assert (Ehdr != NULL);
 
 	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
   if (*Ehdr == NULL) {
@@ -235,34 +243,34 @@ ReadElfFile (
 static
 const char *
 GetElfString (
-	const Elf_Ehdr *Ehdr,
-	unsigned int   section,
-	size_t         Offset
+	IN const Elf_Ehdr *Ehdr,
+	IN UINT32         Section,
+	IN UINT32         Offset
   )
 {
 	const Elf_Shdr *Shdr;
-	char           *last;
+	char           *Last;
 
 	//
 	// Locate section header
 	//
-	if (section >= Ehdr->e_shnum) {
-		printf ("Invalid ELF string section %d\n", section);
+	if (Section >= Ehdr->e_shnum) {
+		printf ("Invalid ELF string section %d\n", Section);
     return NULL;
 	}
-	Shdr = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + section * Ehdr->e_shentsize);
+	Shdr = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Section * Ehdr->e_shentsize);
 
 	//
 	// Sanity check section
 	//
 	if (Shdr->sh_type != SHT_STRTAB) {
-		printf ("ELF section %d (type %d) is not a string table\n", section, Shdr->sh_type);
+		printf ("ELF section %d (type %d) is not a string table\n", Section, Shdr->sh_type);
     return NULL;
 	}
 
-	last = (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
-	if (*last != '\0') {
-		printf ("ELF section %d is not NUL-terminated\n", section);
+	Last = (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
+	if (*Last != '\0') {
+		printf ("ELF section %d is not NUL-terminated\n", Section);
     return NULL;
 	}
 
@@ -270,7 +278,7 @@ GetElfString (
 	// Locate string
 	//
 	if (Offset >= Shdr->sh_size) {
-		printf ("Invalid ELF string offset %zd in section %d\n", Offset, section);
+		printf ("Invalid ELF string offset %d in section %d\n", Offset, Section);
     return NULL;
 	}
 
@@ -280,9 +288,9 @@ GetElfString (
 static
 PeSection *
 ProcessSection (
-	const Elf_Ehdr *Ehdr,
-	const Elf_Shdr *Shdr,
-	PeHeader       *PeH
+	IN     const Elf_Ehdr *Ehdr,
+	IN     const Elf_Shdr *Shdr,
+	IN OUT PeHeader       *PeH
   )
 {
 	PeSection  *PeS;
@@ -299,6 +307,10 @@ ProcessSection (
 	UINT32     *PeSectionStart;
 	UINT32     *PeSectionEnd;
 
+	assert (Ehdr != NULL);
+	assert (Shdr != NULL);
+	assert (PeH  != NULL);
+
 	PeSectionSize = 0;
 
 	Name = GetElfString (Ehdr, Ehdr->e_shstrndx, Shdr->sh_name);
@@ -309,23 +321,23 @@ ProcessSection (
 	//
 	// Extract current RVA limits from file header
 	//
-	CodeStart = PeH->Nt.BaseOfCode;
-	CodeEnd   = CodeStart + PeH->Nt.SizeOfCode;
+	CodeStart = PeH->Nt->BaseOfCode;
+	CodeEnd   = CodeStart + PeH->Nt->SizeOfCode;
 
 #if defined(EFI_TARGET32)
-	DataStart = PeH->Nt.BaseOfData;
+	DataStart = PeH->Nt->BaseOfData;
 #elif defined(EFI_TARGET64)
 	DataStart = CodeEnd;
 #endif
 
-	DataMid   = DataStart + PeH->Nt.SizeOfInitializedData;
-	DataEnd   = DataMid + PeH->Nt.SizeOfUninitializedData;
+	DataMid   = DataStart + PeH->Nt->SizeOfInitializedData;
+	DataEnd   = DataMid + PeH->Nt->SizeOfUninitializedData;
 
 	//
 	// Allocate PE section
 	//
 	if (Shdr->sh_type == SHT_PROGBITS) {
-		PeSectionSize = ALIGN_VALUE (Shdr->sh_size, PeH->Nt.FileAlignment);
+		PeSectionSize = ALIGN_VALUE (Shdr->sh_size, PeH->Nt->FileAlignment);
 	}
 
 	PeS = calloc (1, sizeof (*PeS) + PeSectionSize);
@@ -424,20 +436,20 @@ ProcessSection (
 	//
 	// Write RVA limits back to file header
 	//
-	PeH->Nt.BaseOfCode              = CodeStart;
-	PeH->Nt.SizeOfCode              = CodeEnd - CodeStart;
+	PeH->Nt->BaseOfCode              = CodeStart;
+	PeH->Nt->SizeOfCode              = CodeEnd - CodeStart;
 #if defined(EFI_TARGET32)
-	PeH->Nt.BaseOfData              = DataStart;
+	PeH->Nt->BaseOfData              = DataStart;
 #endif
-	PeH->Nt.SizeOfInitializedData   = DataMid - DataStart;
-	PeH->Nt.SizeOfUninitializedData = DataEnd - DataMid;
+	PeH->Nt->SizeOfInitializedData   = DataMid - DataStart;
+	PeH->Nt->SizeOfUninitializedData = DataEnd - DataMid;
 
 	//
 	// Update remaining file header fields
 	//
-	++PeH->Nt.CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt.SizeOfHeaders += sizeof (PeS->PeShdr);
-	PeH->Nt.SizeOfImage =	ALIGN_VALUE (DataEnd, PeH->Nt.SectionAlignment);
+	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
+	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
+	PeH->Nt->SizeOfImage =	ALIGN_VALUE (DataEnd, PeH->Nt->SectionAlignment);
 
 	return PeS;
 }
@@ -445,12 +457,12 @@ ProcessSection (
 static
 EFI_STATUS
 ProcessReloc (
-	const Elf_Ehdr *Ehdr,
-	const Elf_Shdr *Shdr,
-	const Elf_Sym  *SymTable,
-	UINT32         SymNumber,
-	const Elf_Rel  *Rel,
-	PeRelocs       **PeRelTab
+	IN     const Elf_Ehdr *Ehdr,
+	IN     const Elf_Shdr *Shdr,
+	IN     const Elf_Sym  *SymTable,
+	IN     UINT32         SymNumber,
+	IN     const Elf_Rel  *Rel,
+	IN OUT PeRelocs       **PeRelTab
   )
 {
 	UINT32     Type;
@@ -458,6 +470,12 @@ ProcessReloc (
 	UINT32     MachineRelocType;
 	UINTN      Offset;
 	EFI_STATUS Status;
+
+	assert (Ehdr     != NULL);
+	assert (Shdr     != NULL);
+	assert (SymTable != NULL);
+	assert (Rel      != NULL);
+	assert (PeRelTab != NULL);
 
 	Type             = ELF_R_TYPE (Rel->r_info);
 	SymIndex         = ELF_R_SYM (Rel->r_info);
@@ -543,10 +561,10 @@ ProcessReloc (
 static
 EFI_STATUS
 ProcessRelocs (
-	const Elf_Ehdr *Ehdr,
-	const Elf_Shdr *Shdr,
-	UINT32         EntrySize,
-	PeRelocs       **PeRelTab
+	IN     const Elf_Ehdr *Ehdr,
+	IN     const Elf_Shdr *Shdr,
+	IN     UINT32         EntrySize,
+	IN OUT PeRelocs       **PeRelTab
   )
 {
 	const Elf_Shdr *SymSec;
@@ -556,6 +574,10 @@ ProcessRelocs (
 	UINT32         RelNumber;
 	UINT32         Index;
 	EFI_STATUS     Status;
+
+	assert (Ehdr     != NULL);
+	assert (Shdr     != NULL);
+	assert (PeRelTab != NULL);
 
 	//
 	// Identify symbol table
@@ -575,7 +597,7 @@ ProcessRelocs (
 			return Status;
 		}
 
-		Rel = (const void *)Rel + EntrySize;
+		Rel = (Elf_Rel *)((UINT8 *)Rel + EntrySize);
 	}
 
 	return EFI_SUCCESS;
@@ -584,110 +606,112 @@ ProcessRelocs (
 static
 PeSection *
 CreateRelocSection (
-	PeHeader *PeH,
-	PeRelocs *PeRelTab
+	IN OUT PeHeader *PeH,
+	IN     PeRelocs *PeRelTab
   )
 {
-	PeSection                *reloc;
-	size_t                   section_memsz;
-	size_t                   section_filesz;
-	EFI_IMAGE_DATA_DIRECTORY *relocdir;
+	PeSection *PeS;
+	UINT32    SectionSize;
+	UINT32    RawDataSize;
+
+  assert (PeH      != NULL);
+	assert (PeRelTab != NULL);
 
 	//
 	// Allocate PE section
 	//
-	section_memsz  = OutputPeReltab (PeRelTab, NULL);
-	section_filesz = ALIGN_VALUE (section_memsz, EFI_FILE_ALIGN);
-	reloc          = calloc (1, sizeof (*reloc) + section_filesz);
-	if (reloc == NULL) {
-		printf ("Could not allocate memory for reloc\n");
+	SectionSize = OutputPeReltab (PeRelTab, NULL);
+	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
+	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
+	if (PeS == NULL) {
+		printf ("Could not allocate memory for Pe .reloc section\n");
 		return NULL;
 	}
 
 	//
 	// Fill in section header details
 	//
-	strncpy ((char *)reloc->PeShdr.Name, ".reloc", sizeof (reloc->PeShdr.Name));
-	reloc->PeShdr.VirtualSize     = section_memsz;
-	reloc->PeShdr.VirtualAddress  = PeH->Nt.SizeOfImage;
-	reloc->PeShdr.SizeOfRawData   = section_filesz;
-	reloc->PeShdr.Characteristics =
+	strncpy ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name));
+	PeS->PeShdr.VirtualSize     = SectionSize;
+	PeS->PeShdr.VirtualAddress  = PeH->Nt->SizeOfImage;
+	PeS->PeShdr.SizeOfRawData   = RawDataSize;
+	PeS->PeShdr.Characteristics =
 	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
 		EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
 
 	//
 	// Copy section contents
 	//
-	OutputPeReltab (PeRelTab, reloc->contents);
+	OutputPeReltab (PeRelTab, PeS->contents);
 
 	//
 	// Update file header details
 	//
-	++PeH->Nt.CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt.SizeOfHeaders += sizeof (reloc->PeShdr);
-	PeH->Nt.SizeOfImage   += ALIGN_VALUE (section_memsz, EFI_IMAGE_ALIGN);
+	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
+	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
+	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
-	relocdir = &PeH->Nt.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC];
+	PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = PeS->PeShdr.VirtualAddress;
+	PeH->Nt->DataDirectory[DIR_BASERELOC].Size           = SectionSize;
 
-	relocdir->VirtualAddress = reloc->PeShdr.VirtualAddress;
-	relocdir->Size           = section_memsz;
-
-	return reloc;
+	return PeS;
 }
 
 static
-void
+VOID
 FixupDebugSection (
 	PeSection *debug
   )
 {
 	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *contents;
 
-	contents = (void *)debug->contents;
+	contents = (VOID *)debug->contents;
 	contents->FileOffset += debug->PeShdr.PointerToRawData - debug->PeShdr.VirtualAddress;
 }
 
 static
 PeSection *
 CreateDebugSection (
-	PeHeader   *PeH,
-	const char *filename
+	IN OUT PeHeader   *PeH,
+	IN     const char *FileName
   )
 {
-	PeSection                *debug;
-	size_t                   section_memsz;
-	size_t                   section_filesz;
-	EFI_IMAGE_DATA_DIRECTORY *debugdir;
+	PeSection *PeS;
+	UINT32    SectionSize;
+	UINT32    RawDataSize;
 	struct {
 		EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     debug;
 		EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY rsds;
-		char                                name[strlen (filename) + 1];
+		char                                name[strlen (FileName) + 1];
 	} *contents;
+
+	assert (PeH      != NULL);
+	assert (FileName != NULL);
 
 	//
 	// Allocate PE section
 	//
-	section_memsz  = sizeof (*contents);
-	section_filesz = ALIGN_VALUE (section_memsz, EFI_FILE_ALIGN);
-	debug          = calloc (1, sizeof (*debug) + section_filesz);
-	if (debug == NULL) {
-		printf ("Could not allocate memory for debug\n");
+	SectionSize = sizeof (*contents);
+	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
+	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
+	if (PeS == NULL) {
+		printf ("Could not allocate memory for Pe .debug section\n");
 		return NULL;
 	}
-	contents       = (void *)debug->contents;
+	contents       = (VOID *)PeS->contents;
 
 	//
 	// Fill in section header details
 	//
-	strncpy ((char *)debug->PeShdr.Name, ".debug", sizeof (debug->PeShdr.Name));
+	strncpy ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name));
 
-	debug->PeShdr.VirtualSize     = section_memsz;
-	debug->PeShdr.VirtualAddress  = PeH->Nt.SizeOfImage;
-	debug->PeShdr.SizeOfRawData   = section_filesz;
-	debug->PeShdr.Characteristics =
+	PeS->PeShdr.VirtualSize     = SectionSize;
+	PeS->PeShdr.VirtualAddress  = PeH->Nt->SizeOfImage;
+	PeS->PeShdr.SizeOfRawData   = RawDataSize;
+	PeS->PeShdr.Characteristics =
 	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
 		EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
-	debug->fixup               = FixupDebugSection;
+	PeS->fixup               = FixupDebugSection;
 
 	//
 	// Create section contents
@@ -695,39 +719,41 @@ CreateDebugSection (
 	contents->debug.TimeDateStamp = 0x10d1a884;
 	contents->debug.Type          = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
 	contents->debug.SizeOfData    = sizeof (*contents) - sizeof (contents->debug);
-	contents->debug.RVA           = debug->PeShdr.VirtualAddress +	offsetof (typeof (*contents), rsds);
+	contents->debug.RVA           = PeS->PeShdr.VirtualAddress +	offsetof (typeof (*contents), rsds);
 	contents->debug.FileOffset    = contents->debug.RVA;
 	contents->rsds.Signature      = CODEVIEW_SIGNATURE_RSDS;
-	snprintf (contents->name, sizeof (contents->name), "%s", filename);
+	snprintf (contents->name, sizeof (contents->name), "%s", FileName);
 
 	//
 	// Update file header details
 	//
-	++PeH->Nt.CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt.SizeOfHeaders += sizeof (debug->PeShdr);
-	PeH->Nt.SizeOfImage   += ALIGN_VALUE (section_memsz, EFI_IMAGE_ALIGN);
+	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
+	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
+	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
-	debugdir = &PeH->Nt.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG];
+	PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = PeS->PeShdr.VirtualAddress;
+	PeH->Nt->DataDirectory[DIR_DEBUG].Size           = sizeof (contents->debug);
 
-	debugdir->VirtualAddress = debug->PeShdr.VirtualAddress;
-	debugdir->Size           = sizeof (contents->debug);
-
-	return debug;
+	return PeS;
 }
 
 static
-void
+VOID
 WritePeFile (
-	PeHeader  *PeH,
-  PeSection *PeSections,
-	FILE      *pe
+	IN  PeHeader  *PeH,
+  IN  PeSection *PeSections,
+	OUT FILE      *pe
   )
 {
 	PeSection     *section;
 	unsigned long fpos;
 
-	PeH->Nt.SizeOfHeaders =	ALIGN_VALUE (PeH->Nt.SizeOfHeaders, EFI_FILE_ALIGN);
-  fpos                        = PeH->Nt.SizeOfHeaders;
+	assert (PeH        != NULL);
+	assert (PeSections != NULL);
+	assert (pe         != NULL);
+
+	PeH->Nt->SizeOfHeaders =	ALIGN_VALUE (PeH->Nt->SizeOfHeaders, EFI_FILE_ALIGN);
+  fpos                        = PeH->Nt->SizeOfHeaders;
 
 	//
 	// Assign raw data pointers
@@ -782,19 +808,22 @@ WritePeFile (
 static
 const char *
 BaseName (
-	const char *Path
+	IN const char *Path
   )
 {
 	char *BaseName;
 
+	assert (Path != NULL);
+
 	BaseName = strrchr (Path, '/');
+
 	return (BaseName != NULL) ? (BaseName + 1) : Path;
 }
 
 static
-void
+VOID
 FreeSections (
-	PeSection *PeSections
+	IN PeSection *PeSections
   )
 {
 	assert (PeSections != NULL);
@@ -808,8 +837,8 @@ FreeSections (
 
 VOID
 ElfToPe (
-	const char *ElfName,
-	const char *PeName
+	IN const char *ElfName,
+	IN const char *PeName
   )
 {
 	PeRelocs       *PeRelTab;
@@ -822,6 +851,11 @@ ElfToPe (
 	UINT32         Index;
 	FILE           *Pe;
 	EFI_STATUS     Status;
+	UINT32         DataDirSize;
+	UINT32         NtSize;
+
+	assert (ElfName != NULL);
+	assert (PeName  != NULL);
 
 	PeRelTab      = NULL;
 	PeSections    = NULL;
@@ -836,45 +870,53 @@ ElfToPe (
 	// Initialise PE header
 	//
 	ZeroMem (&PeH, sizeof (PeH));
-	PeH.Dos.e_magic               = EFI_IMAGE_DOS_SIGNATURE;
-	PeH.Dos.e_lfanew              = sizeof (EFI_IMAGE_DOS_HEADER);
-	PeH.Nt.CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
+	PeH.Dos.e_magic  = EFI_IMAGE_DOS_SIGNATURE;
+	PeH.Dos.e_lfanew = sizeof (EFI_IMAGE_DOS_HEADER);
+
 	//
   // Only base relocation and debug directory
 	//
-	PeH.Nt.NumberOfRvaAndSizes = 2;
-	PeH.Nt.CommonHeader.FileHeader.SizeOfOptionalHeader =
-	  sizeof (EFI_IMAGE_NT_HEADERS) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) +
-		sizeof (EFI_IMAGE_DATA_DIRECTORY) * PeH.Nt.NumberOfRvaAndSizes;
+	NtSize = sizeof (EFI_IMAGE_NT_HEADERS) + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2;
+	PeH.Nt = calloc (1, NtSize);
+	if (PeH.Nt == NULL) {
+		printf ("Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
+		free (Ehdr);
+		return;
+	}
 
-	PeH.Nt.CommonHeader.FileHeader.Characteristics =
+	PeH.Nt->CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
+	PeH.Nt->NumberOfRvaAndSizes = 2;
+	DataDirSize = sizeof (EFI_IMAGE_DATA_DIRECTORY) * PeH.Nt->NumberOfRvaAndSizes;
+
+  PeH.Nt->CommonHeader.FileHeader.SizeOfOptionalHeader = DataDirSize +
+	  sizeof (EFI_IMAGE_NT_HEADERS) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR);
+
+	PeH.Nt->CommonHeader.FileHeader.Characteristics =
 	  EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE;
 
-	PeH.Nt.Magic               = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
-	PeH.Nt.SectionAlignment    = EFI_IMAGE_ALIGN;
-	PeH.Nt.FileAlignment       = EFI_FILE_ALIGN;
-	PeH.Nt.SizeOfHeaders       = sizeof (PeH) +
-	  sizeof (EFI_IMAGE_DATA_DIRECTORY) * PeH.Nt.NumberOfRvaAndSizes;
-	PeH.Nt.AddressOfEntryPoint = Ehdr->e_entry;
-	PeH.Nt.Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+	PeH.Nt->Magic               = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
+	PeH.Nt->SectionAlignment    = EFI_IMAGE_ALIGN;
+	PeH.Nt->FileAlignment       = EFI_FILE_ALIGN;
+	PeH.Nt->SizeOfHeaders       = sizeof (PeH.Dos) + NtSize;
+	PeH.Nt->AddressOfEntryPoint = Ehdr->e_entry;
+	PeH.Nt->Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
 
 	switch (Ehdr->e_machine) {
 		case EM_386:
-			PeH.Nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_IA32;
+			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_IA32;
 			break;
 		case EM_X86_64:
-			PeH.Nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_X64;
+			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_X64;
 			break;
 		case EM_ARM:
-			PeH.Nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
+			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
 			break;
 		case EM_AARCH64:
-			PeH.Nt.CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_AARCH64;
+			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_AARCH64;
 			break;
 		default:
 			printf ("Unknown ELF architecture %d\n", Ehdr->e_machine);
-			free (Ehdr);
-			return;
+			goto exit;
 	}
 
 	//
@@ -890,11 +932,7 @@ ElfToPe (
 			//
 			*NextPeSection = ProcessSection (Ehdr, Shdr, &PeH);
 			if (*NextPeSection == NULL) {
-				if (PeSections != NULL) {
-					FreeSections (PeSections);
-				}
-				free (Ehdr);
-				return;
+				goto exit;
 			}
 
 			NextPeSection = &(*NextPeSection)->next;
@@ -907,11 +945,7 @@ ElfToPe (
 			//
 			Status = ProcessRelocs (Ehdr, Shdr, sizeof (Elf_Rel), &PeRelTab);
 			if (EFI_ERROR (Status)) {
-				if (PeSections != NULL) {
-					FreeSections (PeSections);
-				}
-				free (Ehdr);
-				return;
+				goto exit;
 			}
 
 			continue;
@@ -923,20 +957,22 @@ ElfToPe (
 			//
 			Status = ProcessRelocs (Ehdr, Shdr, sizeof (Elf_Rela), &PeRelTab);
 			if (EFI_ERROR (Status)) {
-				if (PeSections != NULL) {
-					FreeSections (PeSections);
-				}
-				free (Ehdr);
-				return;
+				goto exit;
 			}
 		}
 	}
 
-	*(NextPeSection) = CreateRelocSection (&PeH, PeRelTab);
-	NextPeSection    = &(*NextPeSection)->next;
+	*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
+	if (*NextPeSection == NULL) {
+		goto exit;
+	}
 
-	*(NextPeSection) = CreateDebugSection (&PeH, BaseName (PeName));
-	NextPeSection    = &(*NextPeSection)->next;
+	NextPeSection = &(*NextPeSection)->next;
+
+	*NextPeSection = CreateDebugSection (&PeH, BaseName (PeName));
+	if (*NextPeSection == NULL) {
+		goto exit;
+	}
 
 	//
 	// Write out PE file
@@ -944,15 +980,19 @@ ElfToPe (
 	Pe = fopen (PeName, "w");
 	if (Pe == NULL) {
 		printf ("Could not open %s for writing: %s\n", PeName, strerror (errno));
-		FreeSections (PeSections);
-		free (Ehdr);
-		return;
+		goto exit;
 	}
 
 	WritePeFile (&PeH, PeSections, Pe);
 	fclose (Pe);
 
-	FreeRelocs (PeRelTab);
-	FreeSections (PeSections);
+exit:
+	if (PeRelTab != NULL) {
+		FreeRelocs (PeRelTab);
+	}
+	if (PeSections != NULL) {
+		FreeSections (PeSections);
+	}
+	free (PeH.Nt);
 	free (Ehdr);
 }
