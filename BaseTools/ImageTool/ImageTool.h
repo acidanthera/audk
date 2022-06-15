@@ -60,7 +60,7 @@
 #define ELF_R_SYM                        ELF64_R_SYM
 #endif
 
-#define ELF_MREL( mach, type ) ( (mach) | ( (type) << 16 ) )
+#define ELF_MREL(mach, type) ((mach) | ((type) << 16))
 
 ///
 /// Provide constants missing on some platforms
@@ -96,11 +96,11 @@ typedef struct _PeSection {
 } PeSection;
 
 typedef struct _PeRelocs {
-	PeRelocs     *next;
-	unsigned long start_rva;
-	unsigned int  used_relocs;
-	unsigned int  total_relocs;
-	uint16_t      *relocs;
+	PeRelocs *next;
+	UINTN    PageRva;
+	UINT32   Used;
+	UINT32   Total;
+	UINT16   *TypeOffsets;
 } PeRelocs;
 
 typedef struct {

@@ -20,84 +20,113 @@
 #include "ImageTool.h"
 
 static
-EFI_STATUS
-GeneratePeReloc (
-	PeRelocs      **PeRelTab,
-	unsigned long rva,
-	size_t        size
+void
+FreeRelocs (
+	PeRelocs *PeRel
   )
 {
-	unsigned long start_rva;
-	uint16_t      reloc;
-	PeRelocs      *pe_rel;
-	uint16_t      *relocs;
+  assert (PeRel != NULL);
 
+	if (PeRel->next != NULL) {
+		FreeRelocs (PeRel->next);
+	}
+
+	if (PeRel->TypeOffsets != NULL) {
+		free (PeRel->TypeOffsets);
+	}
+
+	free (PeRel);
+}
+
+static
+EFI_STATUS
+GeneratePeReloc (
+	PeRelocs **PeRelTab,
+	UINTN    Rva,
+	UINT32   RelocType
+  )
+{
+	UINTN    PageRva;
+	UINT16   TypeOffset;
+	PeRelocs *PeRel;
+	UINT16   *Copy;
+
+	PageRva = Rva & ~0xfff;
 	//
-	// Construct
+	// Get Offset
 	//
-	start_rva = rva & ~0xfff;
-	reloc     = rva & 0xfff;
-	switch (size) {
+	TypeOffset = Rva & 0xfff;
+	//
+	// Get Type
+	//
+	switch (RelocType) {
 		case 8:
-			reloc |= 0xa000;
+			TypeOffset |= EFI_IMAGE_REL_BASED_DIR64 << 12;
 			break;
 		case 4:
-			reloc |= 0x3000;
+			TypeOffset |= EFI_IMAGE_REL_BASED_HIGHLOW << 12;
 			break;
 		case 2:
-			reloc |= 0x2000;
+			TypeOffset |= EFI_IMAGE_REL_BASED_LOW << 12;
 			break;
 		default:
-			printf ("Unsupported relocation size %zd\n", size);
+			printf ("Unsupported relocation type\n");
+			if (*PeRelTab != NULL) {
+				FreeRelocs (*PeRelTab);
+			}
 	    return EFI_INVALID_PARAMETER;
 	}
 
   //
 	// Locate or create PE relocation table
 	//
-	for (pe_rel = *PeRelTab; pe_rel != NULL; pe_rel = pe_rel->next) {
-		if (pe_rel->start_rva == start_rva) {
+	for (PeRel = *PeRelTab; PeRel != NULL; PeRel = PeRel->next) {
+		if (PeRel->PageRva == PageRva) {
 			break;
 		}
 	}
 
-	if (pe_rel == NULL) {
-		pe_rel = calloc (1, sizeof (*pe_rel));
-		if (pe_rel == NULL) {
-			printf ("Could not allocate memory for pe_rel\n");
+	if (PeRel == NULL) {
+		PeRel = calloc (1, sizeof (*PeRel));
+		if (PeRel == NULL) {
+			printf ("Could not allocate memory for PeRel\n");
+			if (*PeRelTab != NULL) {
+				FreeRelocs (*PeRelTab);
+			}
 	    return EFI_OUT_OF_RESOURCES;
 		}
 
-		pe_rel->next      = *PeRelTab;
-		*PeRelTab         = pe_rel;
-		pe_rel->start_rva = start_rva;
+		PeRel->next    = *PeRelTab;
+		*PeRelTab      = PeRel;
+		PeRel->PageRva = PageRva;
 	}
 
 	//
 	// Expand relocation list if necessary
 	//
-	if (pe_rel->used_relocs < pe_rel->total_relocs) {
-		relocs = pe_rel->relocs;
-	} else {
-		pe_rel->total_relocs = pe_rel->total_relocs ? (pe_rel->total_relocs * 2) : 256;
+	if (PeRel->Used == PeRel->Total) {
+		PeRel->Total = (PeRel->Total != 0) ? (PeRel->Total * 2) : 256;
 
-		relocs = calloc (1, pe_rel->total_relocs * sizeof (pe_rel->relocs[0]));
-		if (relocs == NULL) {
-			printf ("Could not allocate memory for relocs\n");
+		Copy = calloc (1, PeRel->Total * sizeof (TypeOffset));
+		if (Copy == NULL) {
+			printf ("Could not reallocate memory for TypeOffset array\n");
+			FreeRelocs (*PeRelTab);
 	    return EFI_OUT_OF_RESOURCES;
 		}
 
-		memcpy (relocs, pe_rel->relocs, pe_rel->used_relocs * sizeof (pe_rel->relocs[0]));
+		if (PeRel->TypeOffsets != NULL) {
+			memcpy (Copy, PeRel->TypeOffsets, PeRel->Used * sizeof (TypeOffset));
+			free (PeRel->TypeOffsets);
+		}
 
-		free (pe_rel->relocs);
-		pe_rel->relocs = relocs;
+		PeRel->TypeOffsets = Copy;
 	}
 
 	//
 	// Store relocation
 	//
-	pe_rel->relocs[pe_rel->used_relocs] = reloc;
-	++pe_rel->used_relocs;
+	PeRel->TypeOffsets[PeRel->Used] = TypeOffset;
+	++PeRel->Used;
 
 	return EFI_SUCCESS;
 }
@@ -117,20 +146,20 @@ OutputPeReltab (
 	total_size = 0;
 
 	for (pe_rel = PeRelTab; pe_rel != NULL; pe_rel = pe_rel->next) {
-		num_relocs = ((pe_rel->used_relocs + 1) & ~1);
+		num_relocs = ((pe_rel->Used + 1) & ~1);
 
 		//
 		// VirtualAddress + SizeOfBlock + num_relocs
 		//
 		size = sizeof (uint32_t) + sizeof (uint32_t)  + num_relocs * sizeof (uint16_t);
 		if (buffer != NULL) {
-			*((uint32_t *)(buffer + total_size)) = pe_rel->start_rva;
+			*((uint32_t *)(buffer + total_size)) = pe_rel->PageRva;
 
 			*((uint32_t *)(buffer + total_size + sizeof (uint32_t))) = size;
 
 			memcpy (
 				buffer + total_size + 2 * sizeof (uint32_t),
-				pe_rel->relocs,
+				pe_rel->TypeOffsets,
 				num_relocs * sizeof (uint16_t)
 			  );
 		}
@@ -418,32 +447,32 @@ EFI_STATUS
 ProcessReloc (
 	const Elf_Ehdr *Ehdr,
 	const Elf_Shdr *Shdr,
-	const Elf_Sym  *syms,
-	unsigned int   nsyms,
-	const Elf_Rel  *rel,
+	const Elf_Sym  *SymTable,
+	UINT32         SymNumber,
+	const Elf_Rel  *Rel,
 	PeRelocs       **PeRelTab
   )
 {
-	unsigned int type;
-	unsigned int sym;
-	unsigned int mrel;
-	size_t       Offset;
-	EFI_STATUS   Status;
+	UINT32     Type;
+	UINT32     SymIndex;
+	UINT32     MachineRelocType;
+	UINTN      Offset;
+	EFI_STATUS Status;
 
-	type   = ELF_R_TYPE (rel->r_info);
-	sym    = ELF_R_SYM (rel->r_info);
-	mrel   = ELF_MREL (Ehdr->e_machine, type);
-	Offset = Shdr->sh_addr + rel->r_offset;
+	Type             = ELF_R_TYPE (Rel->r_info);
+	SymIndex         = ELF_R_SYM (Rel->r_info);
+	MachineRelocType = ELF_MREL (Ehdr->e_machine, Type);
+	Offset           = Shdr->sh_addr + Rel->r_offset;
 
 	//
 	// Look up symbol and process relocation
 	//
-	if (sym >= nsyms) {
-		printf ("Symbol out of range\n");
+	if (SymIndex >= SymNumber) {
+		printf ("Symbol is out of range\n");
 		return EFI_INVALID_PARAMETER;
 	}
 
-	if (syms[sym].st_shndx == SHN_ABS) {
+	if (SymTable[SymIndex].st_shndx == SHN_ABS) {
 		//
 		// Skip absolute symbols;
 		// the symbol value won't change when the object is loaded.
@@ -451,7 +480,7 @@ ProcessReloc (
 		return EFI_SUCCESS;
 	}
 
-	switch (mrel) {
+	switch (MachineRelocType) {
 		case ELF_MREL (EM_386, R_386_NONE) :
 		case ELF_MREL (EM_ARM, R_ARM_NONE) :
 		case ELF_MREL (EM_X86_64, R_X86_64_NONE) :
@@ -473,7 +502,9 @@ ProcessReloc (
 			break;
 		case ELF_MREL (EM_X86_64, R_X86_64_64) :
 		case ELF_MREL (EM_AARCH64, R_AARCH64_ABS64) :
-			/* Generate an 8-byte PE relocation */
+			//
+			// Generate an 8-byte PE relocation
+			//
 			Status = GeneratePeReloc (PeRelTab, Offset, 8);
 			if (EFI_ERROR (Status)) {
 				return Status;
@@ -502,7 +533,7 @@ ProcessReloc (
 			//
 			break;
 		default:
-			printf ("Unrecognised relocation type %d\n", type);
+			printf ("Unrecognised relocation type %d\n", Type);
 			return EFI_INVALID_PARAMETER;
 	}
 
@@ -514,37 +545,37 @@ EFI_STATUS
 ProcessRelocs (
 	const Elf_Ehdr *Ehdr,
 	const Elf_Shdr *Shdr,
-	size_t         stride,
+	UINT32         EntrySize,
 	PeRelocs       **PeRelTab
   )
 {
-	const Elf_Shdr *symtab;
-	const Elf_Sym  *syms;
-	const Elf_Rel  *rel;
-	unsigned int   nsyms;
-	unsigned int   nrels;
-	unsigned int   i;
+	const Elf_Shdr *SymSec;
+	const Elf_Sym  *SymTable;
+	const Elf_Rel  *Rel;
+	UINT32         SymNumber;
+	UINT32         RelNumber;
+	UINT32         Index;
 	EFI_STATUS     Status;
 
 	//
 	// Identify symbol table
 	//
-	symtab = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Shdr->sh_link * Ehdr->e_shentsize);
-	syms   = (Elf_Sym *)((UINT8 *)Ehdr + symtab->sh_offset);
-	nsyms  = symtab->sh_size / sizeof (syms[0]);
+	SymSec    = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Shdr->sh_link * Ehdr->e_shentsize);
+	SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
+	SymNumber = SymSec->sh_size / sizeof (*SymTable);
 
 	//
 	// Process each relocation
 	//
-	rel   = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
-	nrels = Shdr->sh_size / stride;
-	for (i = 0; i < nrels; ++i) {
-		Status = ProcessReloc (Ehdr, Shdr, syms, nsyms, rel, PeRelTab);
+	Rel       = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
+	RelNumber = Shdr->sh_size / EntrySize;
+	for (Index = 0; Index < RelNumber; ++Index) {
+		Status = ProcessReloc (Ehdr, Shdr, SymTable, SymNumber, Rel, PeRelTab);
 		if (EFI_ERROR (Status)) {
 			return Status;
 		}
 
-		rel = (const void * )rel + stride;
+		Rel = (const void *)Rel + EntrySize;
 	}
 
 	return EFI_SUCCESS;
@@ -921,6 +952,7 @@ ElfToPe (
 	WritePeFile (&PeH, PeSections, Pe);
 	fclose (Pe);
 
+	FreeRelocs (PeRelTab);
 	FreeSections (PeSections);
 	free (Ehdr);
 }
