@@ -72,7 +72,7 @@ GeneratePeReloc (
 			TypeOffset |= EFI_IMAGE_REL_BASED_LOW << 12;
 			break;
 		default:
-			printf ("Unsupported relocation type\n");
+			fprintf (stderr, "ImageTool: Unsupported relocation type\n");
 			if (*PeRelTab != NULL) {
 				FreeRelocs (*PeRelTab);
 				*PeRelTab = NULL;
@@ -92,7 +92,7 @@ GeneratePeReloc (
 	if (PeRel == NULL) {
 		PeRel = calloc (1, sizeof (*PeRel));
 		if (PeRel == NULL) {
-			printf ("Could not allocate memory for PeRel\n");
+			fprintf (stderr, "ImageTool: Could not allocate memory for PeRel\n");
 			if (*PeRelTab != NULL) {
 				FreeRelocs (*PeRelTab);
 				*PeRelTab = NULL;
@@ -113,7 +113,7 @@ GeneratePeReloc (
 
 		Copy = calloc (1, PeRel->Total * sizeof (TypeOffset));
 		if (Copy == NULL) {
-			printf ("Could not reallocate memory for TypeOffset array\n");
+			fprintf (stderr, "ImageTool: Could not reallocate memory for TypeOffset array\n");
 			FreeRelocs (*PeRelTab);
 			*PeRelTab = NULL;
 	    return EFI_OUT_OF_RESOURCES;
@@ -195,7 +195,7 @@ ReadElfFile (
 
 	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
   if (*Ehdr == NULL) {
-		printf ("Could not open %s: %s\n", Name, strerror (errno));
+		fprintf (stderr, "ImageTool: Could not open %s: %s\n", Name, strerror (errno));
     return EFI_VOLUME_CORRUPTED;
   }
 
@@ -204,7 +204,7 @@ ReadElfFile (
 	//
 	if ((FileSize < sizeof (**Ehdr))
 	  || (memcmp (Ident, (*Ehdr)->e_ident, sizeof (Ident)) != 0)) {
-		printf ("Invalid ELF header in file %s\n", Name);
+		fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
 		free (*Ehdr);
     return EFI_VOLUME_CORRUPTED;
 	}
@@ -216,7 +216,7 @@ ReadElfFile (
 		Offset = (*Ehdr)->e_shoff + Index * (*Ehdr)->e_shentsize;
 
 		if (FileSize < (Offset + sizeof (*Shdr))) {
-			printf ("ELF section header is outside file %s\n", Name);
+			fprintf (stderr, "ImageTool: ELF section header is outside file %s\n", Name);
 			free (*Ehdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
@@ -225,13 +225,13 @@ ReadElfFile (
 
 		if ((Shdr->sh_type != SHT_NOBITS)
 		  && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
-			printf ("ELF section %d points outside file %s\n", Index, Name);
+			fprintf (stderr, "ImageTool: ELF section %d points outside file %s\n", Index, Name);
 			free (*Ehdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
 
 		if (Shdr->sh_link >= (*Ehdr)->e_shnum) {
-			printf ("ELF %d-th section's sh_link is out of range\n", Index);
+			fprintf (stderr, "ImageTool: ELF %d-th section's sh_link is out of range\n", Index);
 			free (*Ehdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
@@ -255,7 +255,7 @@ GetElfString (
 	// Locate section header
 	//
 	if (Section >= Ehdr->e_shnum) {
-		printf ("Invalid ELF string section %d\n", Section);
+		fprintf (stderr, "ImageTool: Invalid ELF string section %d\n", Section);
     return NULL;
 	}
 	Shdr = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Section * Ehdr->e_shentsize);
@@ -264,13 +264,13 @@ GetElfString (
 	// Sanity check section
 	//
 	if (Shdr->sh_type != SHT_STRTAB) {
-		printf ("ELF section %d (type %d) is not a string table\n", Section, Shdr->sh_type);
+		fprintf (stderr, "ImageTool: ELF section %d (type %d) is not a string table\n", Section, Shdr->sh_type);
     return NULL;
 	}
 
 	Last = (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
 	if (*Last != '\0') {
-		printf ("ELF section %d is not NUL-terminated\n", Section);
+		fprintf (stderr, "ImageTool: ELF section %d is not NUL-terminated\n", Section);
     return NULL;
 	}
 
@@ -278,7 +278,7 @@ GetElfString (
 	// Locate string
 	//
 	if (Offset >= Shdr->sh_size) {
-		printf ("Invalid ELF string offset %d in section %d\n", Offset, Section);
+		fprintf (stderr, "ImageTool: Invalid ELF string offset %d in section %d\n", Offset, Section);
     return NULL;
 	}
 
@@ -342,7 +342,7 @@ ProcessSection (
 
 	PeS = calloc (1, sizeof (*PeS) + PeSectionSize);
 	if (PeS == NULL) {
-		printf ("Could not allocate memory for Pe section\n");
+		fprintf (stderr, "ImageTool: Could not allocate memory for Pe section\n");
 		return NULL;
 	}
 
@@ -399,7 +399,7 @@ ProcessSection (
 			EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA | EFI_IMAGE_SCN_MEM_NOT_PAGED |
 			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
 	} else {
-		printf ("Unrecognised characteristics for section %s\n", Name);
+		fprintf (stderr, "ImageTool: Unrecognised characteristics for section %s\n", Name);
 		free (PeS);
 		return NULL;
 	}
@@ -486,7 +486,7 @@ ProcessReloc (
 	// Look up symbol and process relocation
 	//
 	if (SymIndex >= SymNumber) {
-		printf ("Symbol is out of range\n");
+		fprintf (stderr, "ImageTool: Symbol is out of range\n");
 		return EFI_INVALID_PARAMETER;
 	}
 
@@ -551,7 +551,7 @@ ProcessReloc (
 			//
 			break;
 		default:
-			printf ("Unrecognised relocation type %d\n", Type);
+			fprintf (stderr, "ImageTool: Unrecognised relocation type %d\n", Type);
 			return EFI_INVALID_PARAMETER;
 	}
 
@@ -624,7 +624,7 @@ CreateRelocSection (
 	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
-		printf ("Could not allocate memory for Pe .reloc section\n");
+		fprintf (stderr, "ImageTool: Could not allocate memory for Pe .reloc section\n");
 		return NULL;
 	}
 
@@ -693,7 +693,7 @@ CreateDebugSection (
 	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
-		printf ("Could not allocate memory for Pe .debug section\n");
+		fprintf (stderr, "ImageTool: Could not allocate memory for Pe .debug section\n");
 		return NULL;
 	}
 
@@ -774,7 +774,7 @@ WritePeFile (
 	// Write DOS header
 	//
 	if (fwrite (PeH, sizeof (PeH->Dos), 1, Pe) != 1) {
-		printf ("Could not write PE DOS header\n");
+		fprintf (stderr, "ImageTool: Could not write PE DOS header\n");
 		return EFI_ABORTED;
 	}
 
@@ -782,7 +782,7 @@ WritePeFile (
 	// Write NT header
 	//
 	if (fwrite (PeH->Nt, NtSize, 1, Pe) != 1) {
-		printf ("Could not write PE NT header\n");
+		fprintf (stderr, "ImageTool: Could not write PE NT header\n");
 		return EFI_ABORTED;
 	}
 
@@ -791,7 +791,7 @@ WritePeFile (
 	//
 	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
 		if (fwrite (&PeS->PeShdr, sizeof (PeS->PeShdr), 1, Pe) != 1) {
-			printf ("Could not write section header\n");
+			fprintf (stderr, "ImageTool: Could not write section header\n");
 			return EFI_ABORTED;
 		}
 	}
@@ -801,13 +801,13 @@ WritePeFile (
 	//
 	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
 		if (fseek (Pe, PeS->PeShdr.PointerToRawData, SEEK_SET) != 0) {
-			printf ("Could not seek to %x: %s\n", PeS->PeShdr.PointerToRawData, strerror (errno));
+			fprintf (stderr, "ImageTool: Could not seek to %x: %s\n", PeS->PeShdr.PointerToRawData, strerror (errno));
 			return EFI_ABORTED;
 		}
 
 		if ((PeS->PeShdr.SizeOfRawData != 0)
 		  && (fwrite (PeS->Data, PeS->PeShdr.SizeOfRawData, 1, Pe) != 1)) {
-			printf ("Could not write section %.8s: %s\n", PeS->PeShdr.Name, strerror (errno));
+			fprintf (stderr, "ImageTool: Could not write section %.8s: %s\n", PeS->PeShdr.Name, strerror (errno));
 			return EFI_ABORTED;
 		}
 	}
@@ -889,7 +889,7 @@ ElfToPe (
 	NtSize = sizeof (EFI_IMAGE_NT_HEADERS) + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2;
 	PeH.Nt = calloc (1, NtSize);
 	if (PeH.Nt == NULL) {
-		printf ("Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
+		fprintf (stderr, "ImageTool: Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
 		free (Ehdr);
 		return EFI_OUT_OF_RESOURCES;
 	}
@@ -925,7 +925,7 @@ ElfToPe (
 			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_AARCH64;
 			break;
 		default:
-			printf ("Unknown ELF architecture %d\n", Ehdr->e_machine);
+			fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", Ehdr->e_machine);
 			Status = EFI_UNSUPPORTED;
 			goto exit;
 	}
@@ -974,13 +974,15 @@ ElfToPe (
 		}
 	}
 
-	*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
-	if (*NextPeSection == NULL) {
-		Status = EFI_ABORTED;
-		goto exit;
-	}
+  if (PeRelTab != NULL) {
+		*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
+		if (*NextPeSection == NULL) {
+			Status = EFI_ABORTED;
+			goto exit;
+		}
 
-	NextPeSection = &(*NextPeSection)->Next;
+		NextPeSection = &(*NextPeSection)->Next;
+	}
 
 	*NextPeSection = CreateDebugSection (&PeH, BaseName (PeName));
 	if (*NextPeSection == NULL) {
@@ -993,7 +995,7 @@ ElfToPe (
 	//
 	Pe = fopen (PeName, "w");
 	if (Pe == NULL) {
-		printf ("Could not open %s for writing: %s\n", PeName, strerror (errno));
+		fprintf (stderr, "ImageTool: Could not open %s for writing: %s\n", PeName, strerror (errno));
 		Status = EFI_ABORTED;
 		goto exit;
 	}
