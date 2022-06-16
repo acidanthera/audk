@@ -27,8 +27,8 @@ FreeRelocs (
 {
   assert (PeRel != NULL);
 
-	if (PeRel->next != NULL) {
-		FreeRelocs (PeRel->next);
+	if (PeRel->Next != NULL) {
+		FreeRelocs (PeRel->Next);
 	}
 
 	if (PeRel->TypeOffsets != NULL) {
@@ -83,7 +83,7 @@ GeneratePeReloc (
   //
 	// Locate or create PE relocation table
 	//
-	for (PeRel = *PeRelTab; PeRel != NULL; PeRel = PeRel->next) {
+	for (PeRel = *PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
 		if (PeRel->PageRva == PageRva) {
 			break;
 		}
@@ -100,7 +100,7 @@ GeneratePeReloc (
 	    return EFI_OUT_OF_RESOURCES;
 		}
 
-		PeRel->next    = *PeRelTab;
+		PeRel->Next    = *PeRelTab;
 		*PeRelTab      = PeRel;
 		PeRel->PageRva = PageRva;
 	}
@@ -152,7 +152,7 @@ OutputPeReltab (
 
 	SectionSize = 0;
 
-	for (PeRel = PeRelTab; PeRel != NULL; PeRel = PeRel->next) {
+	for (PeRel = PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
 		//
 		// Each block must start on a 32-bit boundary.
 		//
@@ -405,7 +405,7 @@ ProcessSection (
 	}
 
 	if (Shdr->sh_type == SHT_PROGBITS) {
-		memcpy (PeS->contents, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
+		memcpy (PeS->Data, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
 	}
 
 	//
@@ -642,7 +642,7 @@ CreateRelocSection (
 	//
 	// Copy section contents
 	//
-	OutputPeReltab (PeRelTab, PeS->contents);
+	OutputPeReltab (PeRelTab, PeS->Data);
 
 	//
 	// Update file header details
@@ -660,13 +660,15 @@ CreateRelocSection (
 static
 VOID
 FixupDebugSection (
-	PeSection *debug
+	PeSection *PeS
   )
 {
-	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *contents;
+	DebugData *Data;
 
-	contents = (VOID *)debug->contents;
-	contents->FileOffset += debug->PeShdr.PointerToRawData - debug->PeShdr.VirtualAddress;
+	assert (PeS != NULL);
+
+	Data = (DebugData *)PeS->Data;
+	Data->Dir.FileOffset += PeS->PeShdr.PointerToRawData - PeS->PeShdr.VirtualAddress;
 }
 
 static
@@ -679,11 +681,7 @@ CreateDebugSection (
 	PeSection *PeS;
 	UINT32    SectionSize;
 	UINT32    RawDataSize;
-	struct {
-		EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     debug;
-		EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY rsds;
-		char                                name[strlen (FileName) + 1];
-	} *contents;
+	DebugData *Data;
 
 	assert (PeH      != NULL);
 	assert (FileName != NULL);
@@ -691,14 +689,15 @@ CreateDebugSection (
 	//
 	// Allocate PE section
 	//
-	SectionSize = sizeof (*contents);
+	SectionSize = sizeof (*Data) + strlen (FileName) + 1;
 	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
 		printf ("Could not allocate memory for Pe .debug section\n");
 		return NULL;
 	}
-	contents       = (VOID *)PeS->contents;
+
+	Data = (DebugData *)PeS->Data;
 
 	//
 	// Fill in section header details
@@ -711,18 +710,18 @@ CreateDebugSection (
 	PeS->PeShdr.Characteristics =
 	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
 		EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
-	PeS->fixup               = FixupDebugSection;
+	PeS->Fixup                  = FixupDebugSection;
 
 	//
 	// Create section contents
 	//
-	contents->debug.TimeDateStamp = 0x10d1a884;
-	contents->debug.Type          = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
-	contents->debug.SizeOfData    = sizeof (*contents) - sizeof (contents->debug);
-	contents->debug.RVA           = PeS->PeShdr.VirtualAddress +	offsetof (typeof (*contents), rsds);
-	contents->debug.FileOffset    = contents->debug.RVA;
-	contents->rsds.Signature      = CODEVIEW_SIGNATURE_RSDS;
-	snprintf (contents->name, sizeof (contents->name), "%s", FileName);
+	Data->Dir.Type       = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
+	Data->Dir.SizeOfData = SectionSize - sizeof (Data->Dir);
+	Data->Dir.RVA        = PeS->PeShdr.VirtualAddress + sizeof (Data->Dir);
+	Data->Dir.FileOffset = Data->Dir.RVA;
+
+	Data->Rsds.Signature = CODEVIEW_SIGNATURE_RSDS;
+	snprintf (Data->Name, strlen (FileName) + 1, "%s", FileName);
 
 	//
 	// Update file header details
@@ -732,77 +731,88 @@ CreateDebugSection (
 	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
 	PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = PeS->PeShdr.VirtualAddress;
-	PeH->Nt->DataDirectory[DIR_DEBUG].Size           = sizeof (contents->debug);
+	PeH->Nt->DataDirectory[DIR_DEBUG].Size           = SectionSize;
 
 	return PeS;
 }
 
 static
-VOID
+EFI_STATUS
 WritePeFile (
-	IN  PeHeader  *PeH,
-  IN  PeSection *PeSections,
-	OUT FILE      *pe
+	IN OUT PeHeader  *PeH,
+	IN     UINT32    NtSize,
+  IN     PeSection *PeSections,
+	   OUT FILE      *Pe
   )
 {
-	PeSection     *section;
-	unsigned long fpos;
+	PeSection *PeS;
+	UINT32    Position;
 
 	assert (PeH        != NULL);
 	assert (PeSections != NULL);
-	assert (pe         != NULL);
+	assert (Pe         != NULL);
 
-	PeH->Nt->SizeOfHeaders =	ALIGN_VALUE (PeH->Nt->SizeOfHeaders, EFI_FILE_ALIGN);
-  fpos                        = PeH->Nt->SizeOfHeaders;
+	PeH->Nt->SizeOfHeaders = ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->FileAlignment);
+  Position               = PeH->Nt->SizeOfHeaders;
 
 	//
 	// Assign raw data pointers
 	//
-	for (section = PeSections; section != NULL; section = section->next) {
-		if (section->PeShdr.SizeOfRawData != 0) {
-			section->PeShdr.PointerToRawData = fpos;
-			fpos                          += section->PeShdr.SizeOfRawData;
-			fpos                          = ALIGN_VALUE (fpos, EFI_FILE_ALIGN);
+	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+		if (PeS->PeShdr.SizeOfRawData != 0) {
+			PeS->PeShdr.PointerToRawData = Position;
+
+			Position += PeS->PeShdr.SizeOfRawData;
 		}
 
-		if (section->fixup != NULL) {
-			section->fixup (section);
+		if (PeS->Fixup != NULL) {
+			PeS->Fixup (PeS);
 		}
 	}
 
 	//
-	// Write file header
+	// Write DOS header
 	//
-	if (fwrite (PeH, sizeof (*PeH), 1, pe) != 1) {
-		printf ("Could not write PE header\n");
-		return;
+	if (fwrite (PeH, sizeof (PeH->Dos), 1, Pe) != 1) {
+		printf ("Could not write PE DOS header\n");
+		return EFI_ABORTED;
+	}
+
+	//
+	// Write NT header
+	//
+	if (fwrite (PeH->Nt, NtSize, 1, Pe) != 1) {
+		printf ("Could not write PE NT header\n");
+		return EFI_ABORTED;
 	}
 
 	//
 	// Write section headers
 	//
-	for (section = PeSections; section != NULL; section = section->next) {
-		if (fwrite (&section->PeShdr, sizeof (section->PeShdr), 1, pe) != 1) {
+	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+		if (fwrite (&PeS->PeShdr, sizeof (PeS->PeShdr), 1, Pe) != 1) {
 			printf ("Could not write section header\n");
-			return;
+			return EFI_ABORTED;
 		}
 	}
 
 	//
 	// Write sections
 	//
-	for (section = PeSections; section != NULL; section = section->next) {
-		if (fseek (pe, section->PeShdr.PointerToRawData, SEEK_SET) != 0) {
-			printf ("Could not seek to %x: %s\n", section->PeShdr.PointerToRawData, strerror (errno));
-			return;
+	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+		if (fseek (Pe, PeS->PeShdr.PointerToRawData, SEEK_SET) != 0) {
+			printf ("Could not seek to %x: %s\n", PeS->PeShdr.PointerToRawData, strerror (errno));
+			return EFI_ABORTED;
 		}
 
-		if ((section->PeShdr.SizeOfRawData != 0)
-		  && (fwrite (section->contents, section->PeShdr.SizeOfRawData, 1, pe) != 1)) {
-			printf ("Could not write section %.8s: %s\n", section->PeShdr.Name, strerror (errno));
-			return;
+		if ((PeS->PeShdr.SizeOfRawData != 0)
+		  && (fwrite (PeS->Data, PeS->PeShdr.SizeOfRawData, 1, Pe) != 1)) {
+			printf ("Could not write section %.8s: %s\n", PeS->PeShdr.Name, strerror (errno));
+			return EFI_ABORTED;
 		}
 	}
+
+	return EFI_SUCCESS;
 }
 
 static
@@ -828,14 +838,14 @@ FreeSections (
 {
 	assert (PeSections != NULL);
 
-	if (PeSections->next != NULL) {
-		FreeSections (PeSections->next);
+	if (PeSections->Next != NULL) {
+		FreeSections (PeSections->Next);
 	}
 
 	free (PeSections);
 }
 
-VOID
+EFI_STATUS
 ElfToPe (
 	IN const char *ElfName,
 	IN const char *PeName
@@ -863,7 +873,7 @@ ElfToPe (
 
 	Status = ReadElfFile (ElfName, &Ehdr);
 	if (EFI_ERROR (Status)) {
-		return;
+		return Status;
 	}
 
 	//
@@ -881,7 +891,7 @@ ElfToPe (
 	if (PeH.Nt == NULL) {
 		printf ("Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
 		free (Ehdr);
-		return;
+		return EFI_OUT_OF_RESOURCES;
 	}
 
 	PeH.Nt->CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
@@ -916,6 +926,7 @@ ElfToPe (
 			break;
 		default:
 			printf ("Unknown ELF architecture %d\n", Ehdr->e_machine);
+			Status = EFI_UNSUPPORTED;
 			goto exit;
 	}
 
@@ -932,10 +943,11 @@ ElfToPe (
 			//
 			*NextPeSection = ProcessSection (Ehdr, Shdr, &PeH);
 			if (*NextPeSection == NULL) {
+				Status = EFI_ABORTED;
 				goto exit;
 			}
 
-			NextPeSection = &(*NextPeSection)->next;
+			NextPeSection = &(*NextPeSection)->Next;
 			continue;
 		}
 
@@ -964,13 +976,15 @@ ElfToPe (
 
 	*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
 	if (*NextPeSection == NULL) {
+		Status = EFI_ABORTED;
 		goto exit;
 	}
 
-	NextPeSection = &(*NextPeSection)->next;
+	NextPeSection = &(*NextPeSection)->Next;
 
 	*NextPeSection = CreateDebugSection (&PeH, BaseName (PeName));
 	if (*NextPeSection == NULL) {
+		Status = EFI_ABORTED;
 		goto exit;
 	}
 
@@ -980,10 +994,11 @@ ElfToPe (
 	Pe = fopen (PeName, "w");
 	if (Pe == NULL) {
 		printf ("Could not open %s for writing: %s\n", PeName, strerror (errno));
+		Status = EFI_ABORTED;
 		goto exit;
 	}
 
-	WritePeFile (&PeH, PeSections, Pe);
+	Status = WritePeFile (&PeH, NtSize, PeSections, Pe);
 	fclose (Pe);
 
 exit:
@@ -995,4 +1010,6 @@ exit:
 	}
 	free (PeH.Nt);
 	free (Ehdr);
+
+	return Status;
 }

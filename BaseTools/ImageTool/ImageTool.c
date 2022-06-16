@@ -2,14 +2,19 @@
 
 int main (int argc, char *argv[])
 {
-  void     *Pe;
-  uint32_t PeSize;
-  void     *Ue;
-  uint32_t UeSize;
-  bool     Result;
+  void       *Pe;
+  uint32_t   PeSize;
+  void       *Ue;
+  uint32_t   UeSize;
+  bool       Result;
+  EFI_STATUS Status;
   image_tool_image_info_t Image;
 
-  ElfToPe (argv[1], "Pe.efi");
+  Status = ElfToPe (argv[1], "Pe.efi");
+  if (EFI_ERROR (Status)) {
+    raise();
+    return -1;
+  }
 
   Pe = UserReadFile ("Pe.efi", &PeSize);
   if (Pe == NULL) {

@@ -92,19 +92,26 @@ typedef struct {
 } PeHeader;
 
 typedef struct _PeSection {
-	PeSection               *next;
+	PeSection               *Next;
 	EFI_IMAGE_SECTION_HEADER PeShdr;
-	void                     (* fixup) (PeSection *section);
-	UINT8                    contents[0];
+	VOID                     (* Fixup) (PeSection *PeS);
+	UINT8                    Data[0];
 } PeSection;
 
 typedef struct _PeRelocs {
-	PeRelocs *next;
+	PeRelocs *Next;
 	UINTN    PageRva;
 	UINT32   Used;
 	UINT32   Total;
 	UINT16   *TypeOffsets;
 } PeRelocs;
+
+typedef struct {
+	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     Dir;
+	EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY Rsds;
+	char                                Name[];
+} DebugData;
+
 
 typedef struct {
   uint64_t PreferredAddress;
@@ -200,7 +207,7 @@ void *ToolImageEmitPe (
   uint32_t                      *FileSize
   );
 
-VOID
+EFI_STATUS
 ElfToPe (
 	const char *elf_name,
 	const char *pe_name
