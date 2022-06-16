@@ -71,7 +71,7 @@
 ///
 /// Alignment of raw data sections in the image file
 ///
-#define EFI_FILE_ALIGN  0x200
+#define EFI_FILE_ALIGN  0x1000
 
 ///
 /// Alignment of sections when loaded into memory
