@@ -586,6 +586,10 @@ ProcessRelocs (
 	SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
 	SymNumber = SymSec->sh_size / sizeof (*SymTable);
 
+	if (SymNumber == 0) {
+		return EFI_SUCCESS;
+	}
+
 	//
 	// Process each relocation
 	//
