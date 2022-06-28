@@ -717,16 +717,161 @@ CreateDebugSection (
 }
 
 static
+PeSection *
+FindSection (
+	IN PeSection *PeSections,
+	IN UINT32    Index
+  )
+{
+	assert (PeSections != NULL);
+
+	if (PeSections->ElfIndex == (Index + 1)) {
+		return PeSections;
+	}
+
+	if (PeSections->Next != NULL) {
+	 	return FindSection (PeSections->Next, Index);
+	}
+
+	return NULL;
+}
+
+static
+EFI_STATUS
+ApplyRelocs (
+	IN Elf_Ehdr  *Ehdr,
+	IN PeSection *PeSections
+  )
+{
+	UINT32         Index;
+	const Elf_Shdr *RelShdr;
+	UINTN          Offset;
+	const Elf_Shdr *SecShdr;
+	PeSection      *PeSRel;
+	PeSection      *PeSSym;
+	UINT64         RelIdx;
+	const Elf_Shdr *SymtabShdr;
+  UINT8          *Symtab;
+	const Elf_Rela *Rel;
+	const Elf_Sym  *Sym;
+	const Elf_Shdr *SymShdr;
+	UINT8          *Targ;
+  // UINT64         GOTEntryRva;
+
+	assert (Ehdr       != NULL);
+	assert (PeSections != NULL);
+
+	for (Index = 0; Index < Ehdr->e_shnum; Index++) {
+		Offset  = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
+		RelShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+
+		if (RelShdr->sh_type != SHT_RELA) {
+			continue;
+		}
+
+		if (RelShdr->sh_info == 0) {
+			continue;
+		}
+
+		Offset  = Ehdr->e_shoff + RelShdr->sh_info * Ehdr->e_shentsize;
+		SecShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+
+		PeSRel = FindSection (PeSections, RelShdr->sh_info);
+		if (PeSRel == NULL) {
+			return EFI_NOT_FOUND;
+		}
+
+		//
+		// Determine the symbol table referenced by the relocation data.
+		//
+		Offset     = Ehdr->e_shoff + RelShdr->sh_link * Ehdr->e_shentsize;
+		SymtabShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+		Symtab     = (UINT8 *)Ehdr + SymtabShdr->sh_offset;
+
+		//
+		// Process all relocation entries for this section.
+		//
+		for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINT32) RelShdr->sh_entsize) {
+			Rel = (Elf_Rela *)((UINT8 *)Ehdr + RelShdr->sh_offset + RelIdx);
+
+			//
+			// Set pointer to symbol table entry associated with the relocation entry.
+			//
+			Sym = (Elf_Sym *)(Symtab + ELF_R_SYM(Rel->r_info) * SymtabShdr->sh_entsize);
+			if ((Sym->st_shndx == SHN_UNDEF) || (Sym->st_shndx >= Ehdr->e_shnum)) {
+				continue;
+			}
+
+			Offset  = Ehdr->e_shoff + Sym->st_shndx * Ehdr->e_shentsize;
+			SymShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+
+			Targ = PeSRel->Data + (Rel->r_offset - SecShdr->sh_addr);
+
+			PeSSym = FindSection (PeSections, Sym->st_shndx);
+			if (PeSSym == NULL) {
+				return EFI_NOT_FOUND;
+			}
+
+			if (Ehdr->e_machine == EM_X86_64) {
+				switch (ELF_R_TYPE(Rel->r_info)) {
+					case R_X86_64_NONE:
+						break;
+					case R_X86_64_64:
+						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress;
+						break;
+					case R_X86_64_32:
+						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress);
+						break;
+					case R_X86_64_32S:
+						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress);
+						break;
+					case R_X86_64_PLT32:
+					case R_X86_64_PC32:
+						*(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (PeSSym->PeShdr.VirtualAddress - SymShdr->sh_addr)
+							- (PeSRel->PeShdr.VirtualAddress - SecShdr->sh_addr));
+						break;
+					case R_X86_64_GOTPCREL:
+					case R_X86_64_GOTPCRELX:
+					case R_X86_64_REX_GOTPCRELX:
+						// GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
+						// FindElfGOTSectionFromGOTEntryElfRva(GOTEntryRva);
+						// *(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ
+						// 	+ (mCoffSectionsOffset[mGOTShindex] - mGOTShdr->sh_addr)
+						// 	- (PeSRel->Data - SecShdr->sh_addr));
+						//
+						// GOTEntryRva += (mCoffSectionsOffset[mGOTShindex] - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
+						// if (AccumulateCoffGOTEntries((UINT32)GOTEntryRva)) {
+						// 	//
+						// 	// Relocate GOT entry if it's the first time we run into it
+						// 	//
+						// 	Targ = mCoffFile + GOTEntryRva;
+						// 	*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + mCoffSectionsOffset[Sym->st_shndx];
+						// }
+						break;
+					default:
+						fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+						return EFI_UNSUPPORTED;
+				}
+			}
+		}
+	}
+
+	return EFI_SUCCESS;
+}
+
+static
 EFI_STATUS
 WritePeFile (
+	IN     Elf_Ehdr  *Ehdr,
 	IN OUT PeHeader  *PeH,
 	IN     UINT32    NtSize,
   IN     PeSection *PeSections,
 	   OUT FILE      *Pe
   )
 {
-	PeSection *PeS;
-	UINT32    Position;
+	EFI_STATUS Status;
+	PeSection  *PeS;
+	UINT32     Position;
 
 	assert (PeH        != NULL);
 	assert (PeSections != NULL);
@@ -783,6 +928,11 @@ WritePeFile (
 		if (PeS->Fixup != NULL) {
 			PeS->Fixup (PeS);
 		}
+	}
+
+	Status = ApplyRelocs (Ehdr, PeSections);
+	if (EFI_ERROR (Status)) {
+		return Status;
 	}
 
 	//
@@ -961,6 +1111,7 @@ ElfToPe (
 				goto exit;
 			}
 
+			(*NextPeSection)->ElfIndex = Index + 1;
 			NextPeSection = &(*NextPeSection)->Next;
 			continue;
 		}
@@ -1014,7 +1165,7 @@ ElfToPe (
 		goto exit;
 	}
 
-	Status = WritePeFile (&PeH, NtSize, PeSections, Pe);
+	Status = WritePeFile (Ehdr, &PeH, NtSize, PeSections, Pe);
 	fclose (Pe);
 
 exit:
