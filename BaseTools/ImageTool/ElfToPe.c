@@ -19,6 +19,27 @@
 
 #include "ImageTool.h"
 
+static Elf_Size mPeAlignment = 0x200;
+
+static
+BOOLEAN
+IsTextShdr (
+  Elf_Shdr *Shdr
+  )
+{
+  return (((Shdr->sh_flags & (SHF_EXECINSTR | SHF_ALLOC)) == (SHF_EXECINSTR | SHF_ALLOC)) ||
+          ((Shdr->sh_flags & (SHF_WRITE | SHF_ALLOC)) == SHF_ALLOC));
+}
+
+static
+BOOLEAN
+IsDataShdr (
+  Elf_Shdr *Shdr
+  )
+{
+  return ((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE));
+}
+
 static
 VOID
 FreeRelocs (
@@ -235,7 +256,20 @@ ReadElfFile (
 			free (*Ehdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
+
+		if (Shdr->sh_addralign <= mPeAlignment) {
+      continue;
+    }
+    if (IsTextShdr(Shdr) || IsDataShdr(Shdr)) {
+      mPeAlignment = Shdr->sh_addralign;
+    }
 	}
+
+	if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
+    fprintf (stderr, "ImageTool: Invalid section alignment\n");
+		free (*Ehdr);
+		return EFI_VOLUME_CORRUPTED;
+  }
 
 	return EFI_SUCCESS;
 }
@@ -318,6 +352,16 @@ ProcessSection (
 		return NULL;
 	}
 
+	if ((Shdr->sh_addralign != 0) && (Shdr->sh_addralign != 1)) {
+		//
+		// The alignment field is valid
+		//
+		if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
+			fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
+			return NULL;
+		}
+	}
+
 	//
 	// Extract current RVA limits from file header
 	//
@@ -356,7 +400,6 @@ ProcessSection (
 	memcpy (PeS->PeShdr.Name, Name, NameLength);
 
 	PeS->PeShdr.VirtualSize    = Shdr->sh_size;
-	PeS->PeShdr.VirtualAddress = Shdr->sh_addr;
 	PeS->PeShdr.SizeOfRawData  = PeSectionSize;
 
 	//
@@ -447,9 +490,14 @@ ProcessSection (
 	//
 	// Update remaining file header fields
 	//
+	if ((Ehdr->e_entry >= Shdr->sh_addr)
+	  && ((Ehdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
+		PeH.Nt->AddressOfEntryPoint = Ehdr->e_entry - Shdr->sh_addr + PeH->Nt->SizeOfImage;
+	}
+
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
 	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
-	PeH->Nt->SizeOfImage =	ALIGN_VALUE (DataEnd, PeH->Nt->SectionAlignment);
+	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
 
 	return PeS;
 }
@@ -637,7 +685,6 @@ CreateRelocSection (
 	//
 	strncpy ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name));
 	PeS->PeShdr.VirtualSize     = SectionSize;
-	PeS->PeShdr.VirtualAddress  = PeH->Nt->SizeOfImage;
 	PeS->PeShdr.SizeOfRawData   = RawDataSize;
 	PeS->PeShdr.Characteristics =
 	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
@@ -655,8 +702,7 @@ CreateRelocSection (
 	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
 	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
-	PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = PeS->PeShdr.VirtualAddress;
-	PeH->Nt->DataDirectory[DIR_BASERELOC].Size           = SectionSize;
+	PeH->Nt->DataDirectory[DIR_BASERELOC].Size = SectionSize;
 
 	return PeS;
 }
@@ -709,7 +755,6 @@ CreateDebugSection (
 	strncpy ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name));
 
 	PeS->PeShdr.VirtualSize     = SectionSize;
-	PeS->PeShdr.VirtualAddress  = PeH->Nt->SizeOfImage;
 	PeS->PeShdr.SizeOfRawData   = RawDataSize;
 	PeS->PeShdr.Characteristics =
 	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
@@ -721,7 +766,7 @@ CreateDebugSection (
 	//
 	Data->Dir.Type       = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
 	Data->Dir.SizeOfData = SectionSize - sizeof (Data->Dir);
-	Data->Dir.RVA        = PeS->PeShdr.VirtualAddress + sizeof (Data->Dir);
+	Data->Dir.RVA        = sizeof (Data->Dir);
 	Data->Dir.FileOffset = Data->Dir.RVA;
 
 	Data->Rsds.Signature = CODEVIEW_SIGNATURE_RSDS;
@@ -734,8 +779,7 @@ CreateDebugSection (
 	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
 	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
-	PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = PeS->PeShdr.VirtualAddress;
-	PeH->Nt->DataDirectory[DIR_DEBUG].Size           = SectionSize;
+	PeH->Nt->DataDirectory[DIR_DEBUG].Size = SectionSize;
 
 	return PeS;
 }
@@ -759,12 +803,25 @@ WritePeFile (
 	PeH->Nt->SizeOfHeaders = ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->FileAlignment);
   Position               = PeH->Nt->SizeOfHeaders;
 
+	PeH->Nt->SizeOfImage        += ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->SectionAlignment);
+	PeH.Nt->AddressOfEntryPoint += PeH->Nt->SizeOfHeaders;
+
 	//
 	// Assign raw data pointers
 	//
 	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
 		if (PeS->PeShdr.SizeOfRawData != 0) {
 			PeS->PeShdr.PointerToRawData = Position;
+			PeS->PeShdr.VirtualAddress   = Position;
+
+			if (strncmp ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name)) == 0) {
+				PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = Position;
+			}
+
+			if (strncmp ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name)) == 0) {
+				PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = Position;
+				((DebugData *)PeS->Data)->Dir.RVA += Position;
+			}
 
 			Position += PeS->PeShdr.SizeOfRawData;
 		}
@@ -909,10 +966,9 @@ ElfToPe (
 	  EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE;
 
 	PeH.Nt->Magic               = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
-	PeH.Nt->SectionAlignment    = EFI_IMAGE_ALIGN;
-	PeH.Nt->FileAlignment       = EFI_FILE_ALIGN;
+	PeH.Nt->SectionAlignment    = mPeAlignment;
+	PeH.Nt->FileAlignment       = mPeAlignment;
 	PeH.Nt->SizeOfHeaders       = sizeof (PeH.Dos) + NtSize;
-	PeH.Nt->AddressOfEntryPoint = Ehdr->e_entry;
 	PeH.Nt->Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
 
 	switch (Ehdr->e_machine) {

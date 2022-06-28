@@ -41,6 +41,7 @@
 #define Elf_Sym                          Elf32_Sym
 #define Elf_Rel                          Elf32_Rel
 #define Elf_Rela                         Elf32_Rela
+#define Elf_Size                         Elf32_Size
 #define ELF_R_TYPE                       ELF32_R_TYPE
 #define ELF_R_SYM                        ELF32_R_SYM
 
@@ -56,27 +57,18 @@
 #define Elf_Sym                          Elf64_Sym
 #define Elf_Rel                          Elf64_Rel
 #define Elf_Rela                         Elf64_Rela
+#define Elf_Size                         Elf64_Size
 #define ELF_R_TYPE                       ELF64_R_TYPE
 #define ELF_R_SYM                        ELF64_R_SYM
 #endif
 
 #define ELF_MREL(mach, type) ((mach) | ((type) << 16))
-
+#define MAX_PE_ALIGNMENT     0x10000
 ///
 /// Provide constants missing on some platforms
 ///
 #define R_AARCH64_NULL  0
 #define R_ARM_V4BX      40
-
-///
-/// Alignment of raw data sections in the image file
-///
-#define EFI_FILE_ALIGN  0x1000
-
-///
-/// Alignment of sections when loaded into memory
-///
-#define EFI_IMAGE_ALIGN 0x1000
 
 #define DIR_BASERELOC  0
 #define DIR_DEBUG      1
