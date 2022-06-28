@@ -24,7 +24,7 @@ static Elf_Size mPeAlignment = 0x200;
 static
 BOOLEAN
 IsTextShdr (
-  Elf_Shdr *Shdr
+  IN const Elf_Shdr *Shdr
   )
 {
   return (((Shdr->sh_flags & (SHF_EXECINSTR | SHF_ALLOC)) == (SHF_EXECINSTR | SHF_ALLOC)) ||
@@ -34,7 +34,7 @@ IsTextShdr (
 static
 BOOLEAN
 IsDataShdr (
-  Elf_Shdr *Shdr
+  IN const Elf_Shdr *Shdr
   )
 {
   return ((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE));
@@ -331,15 +331,6 @@ ProcessSection (
 	const char *Name;
 	UINTN      NameLength;
 	UINT32     PeSectionSize;
-	UINT32     CodeStart;
-	UINT32     CodeEnd;
-	UINT32     DataStart;
-	UINT32     DataMid;
-	UINT32     DataEnd;
-	UINT32     Start;
-	UINT32     End;
-	UINT32     *PeSectionStart;
-	UINT32     *PeSectionEnd;
 
 	assert (Ehdr != NULL);
 	assert (Shdr != NULL);
@@ -361,21 +352,6 @@ ProcessSection (
 			return NULL;
 		}
 	}
-
-	//
-	// Extract current RVA limits from file header
-	//
-	CodeStart = PeH->Nt->BaseOfCode;
-	CodeEnd   = CodeStart + PeH->Nt->SizeOfCode;
-
-#if defined(EFI_TARGET32)
-	DataStart = PeH->Nt->BaseOfData;
-#elif defined(EFI_TARGET64)
-	DataStart = CodeEnd;
-#endif
-
-	DataMid   = DataStart + PeH->Nt->SizeOfInitializedData;
-	DataEnd   = DataMid + PeH->Nt->SizeOfUninitializedData;
 
 	//
 	// Allocate PE section
@@ -403,14 +379,12 @@ ProcessSection (
 	PeS->PeShdr.SizeOfRawData  = PeSectionSize;
 
 	//
-	// Fill in section characteristics and update RVA limits
+	// Fill in section characteristics
 	//
 	if ((Shdr->sh_type == SHT_PROGBITS) && ((Shdr->sh_flags & SHF_EXECINSTR) != 0)) {
 		//
 		// .text section
 		//
-		PeSectionStart         = &CodeStart;
-		PeSectionEnd           = &CodeEnd;
 		PeS->PeShdr.Characteristics =
 		  EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_NOT_PAGED |
 			EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ;
@@ -418,8 +392,6 @@ ProcessSection (
 		//
 		// .data section
 		//
-		PeSectionStart         = &DataStart;
-		PeSectionEnd           = &DataMid;
 		PeS->PeShdr.Characteristics =
 			EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_NOT_PAGED |
 			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
@@ -427,8 +399,6 @@ ProcessSection (
 		//
 		// .rodata section
 		//
-		PeSectionStart         = &DataStart;
-		PeSectionEnd           = &DataMid;
 		PeS->PeShdr.Characteristics =
 			EFI_IMAGE_SCN_CNT_INITIALIZED_DATA |
 			EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
@@ -436,8 +406,6 @@ ProcessSection (
 		//
 		// .bss section
 		//
-		PeSectionStart         = &DataMid;
-		PeSectionEnd           = &DataEnd;
 		PeS->PeShdr.Characteristics =
 			EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA | EFI_IMAGE_SCN_MEM_NOT_PAGED |
 			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
@@ -452,47 +420,11 @@ ProcessSection (
 	}
 
 	//
-	// Update RVA limits
-	//
-	Start = PeS->PeShdr.VirtualAddress;
-	End   = Start + PeS->PeShdr.VirtualSize;
-	if ( (*PeSectionStart == 0) || (*PeSectionStart >= Start)) {
-		*PeSectionStart = Start;
-	}
-
-	if (*PeSectionEnd < End) {
-		*PeSectionEnd = End;
-	}
-
-	if (DataStart < CodeEnd) {
-		DataStart = CodeEnd;
-	}
-
-	if (DataMid < DataStart) {
-		DataMid = DataStart;
-	}
-
-	if (DataEnd < DataMid) {
-		DataEnd = DataMid;
-	}
-
-	//
-	// Write RVA limits back to file header
-	//
-	PeH->Nt->BaseOfCode              = CodeStart;
-	PeH->Nt->SizeOfCode              = CodeEnd - CodeStart;
-#if defined(EFI_TARGET32)
-	PeH->Nt->BaseOfData              = DataStart;
-#endif
-	PeH->Nt->SizeOfInitializedData   = DataMid - DataStart;
-	PeH->Nt->SizeOfUninitializedData = DataEnd - DataMid;
-
-	//
 	// Update remaining file header fields
 	//
 	if ((Ehdr->e_entry >= Shdr->sh_addr)
 	  && ((Ehdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
-		PeH.Nt->AddressOfEntryPoint = Ehdr->e_entry - Shdr->sh_addr + PeH->Nt->SizeOfImage;
+		PeH->Nt->AddressOfEntryPoint = Ehdr->e_entry - Shdr->sh_addr + PeH->Nt->SizeOfImage;
 	}
 
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
@@ -803,8 +735,8 @@ WritePeFile (
 	PeH->Nt->SizeOfHeaders = ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->FileAlignment);
   Position               = PeH->Nt->SizeOfHeaders;
 
-	PeH->Nt->SizeOfImage        += ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->SectionAlignment);
-	PeH.Nt->AddressOfEntryPoint += PeH->Nt->SizeOfHeaders;
+	PeH->Nt->SizeOfImage         += ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->SectionAlignment);
+	PeH->Nt->AddressOfEntryPoint += PeH->Nt->SizeOfHeaders;
 
 	//
 	// Assign raw data pointers
@@ -821,6 +753,28 @@ WritePeFile (
 			if (strncmp ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name)) == 0) {
 				PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = Position;
 				((DebugData *)PeS->Data)->Dir.RVA += Position;
+			}
+
+			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
+				if (PeH->Nt->BaseOfCode == 0) {
+					PeH->Nt->BaseOfCode = Position;
+				}
+				PeH->Nt->SizeOfCode += PeS->PeShdr.VirtualSize;
+			}
+
+#if defined(EFI_TARGET32)
+			if ((PeS->PeShdr.Characteristics & (EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA)) != 0) {
+				if (PeH->Nt->BaseOfData == 0) {
+					PeH->Nt->BaseOfData = Position;
+				}
+			}
+#endif
+			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_INITIALIZED_DATA) != 0) {
+				PeH->Nt->SizeOfInitializedData += PeS->PeShdr.VirtualSize;
+			}
+
+			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0) {
+				PeH->Nt->SizeOfUninitializedData += PeS->PeShdr.VirtualSize;
 			}
 
 			Position += PeS->PeShdr.SizeOfRawData;
