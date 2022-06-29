@@ -57,6 +57,24 @@ GetShdrByIndex (
   return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
 }
 
+static
+const char *
+GetSectionName (
+	IN const Elf_Ehdr *Ehdr,
+	IN UINT32         Offset
+  )
+{
+	const Elf_Shdr *Shdr;
+
+  Shdr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
+
+	if (Offset >= Shdr->sh_size) {
+		fprintf (stderr, "ImageTool: Invalid ELF string offset %d\n", Offset);
+    return NULL;
+	}
+
+	return (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Offset);
+}
 
 static
 VOID
@@ -229,7 +247,9 @@ ReadElfFile (
 	UINTN          Offset;
 	UINT32         Index;
 	UINT32         FileSize;
+  char           *Last;
 
+  assert (Name != NULL);
 	assert (Ehdr != NULL);
 
 	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
@@ -290,6 +310,26 @@ ReadElfFile (
     }
 	}
 
+  if ((*Ehdr)->e_shstrndx >= (*Ehdr)->e_shnum) {
+		fprintf (stderr, "ImageTool: Invalid section name string table\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+  Shdr = GetShdrByIndex (*Ehdr, (*Ehdr)->e_shstrndx);
+
+	if (Shdr->sh_type != SHT_STRTAB) {
+		fprintf (stderr, "ImageTool: ELF string table section has wrong type\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+
+	Last = (char *)((UINT8 *)*Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
+	if (*Last != '\0') {
+		fprintf (stderr, "ImageTool: ELF string table section is not NUL-terminated\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+
 	if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
     fprintf (stderr, "ImageTool: Invalid section alignment\n");
 		free (*Ehdr);
@@ -297,51 +337,6 @@ ReadElfFile (
   }
 
 	return EFI_SUCCESS;
-}
-
-static
-const char *
-GetElfString (
-	IN const Elf_Ehdr *Ehdr,
-	IN UINT32         Section,
-	IN UINT32         Offset
-  )
-{
-	const Elf_Shdr *Shdr;
-	char           *Last;
-
-	//
-	// Locate section header
-	//
-	if (Section >= Ehdr->e_shnum) {
-		fprintf (stderr, "ImageTool: Invalid ELF string section %d\n", Section);
-    return NULL;
-	}
-  Shdr = GetShdrByIndex (Ehdr, Section);
-
-	//
-	// Sanity check section
-	//
-	if (Shdr->sh_type != SHT_STRTAB) {
-		fprintf (stderr, "ImageTool: ELF section %d (type %d) is not a string table\n", Section, Shdr->sh_type);
-    return NULL;
-	}
-
-	Last = (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
-	if (*Last != '\0') {
-		fprintf (stderr, "ImageTool: ELF section %d is not NUL-terminated\n", Section);
-    return NULL;
-	}
-
-	//
-	// Locate string
-	//
-	if (Offset >= Shdr->sh_size) {
-		fprintf (stderr, "ImageTool: Invalid ELF string offset %d in section %d\n", Offset, Section);
-    return NULL;
-	}
-
-	return (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Offset);
 }
 
 static
@@ -363,7 +358,7 @@ ProcessSection (
 
 	PeSectionSize = 0;
 
-	Name = GetElfString (Ehdr, Ehdr->e_shstrndx, Shdr->sh_name);
+	Name = GetSectionName (Ehdr, Shdr->sh_name);
 	if (Name == NULL) {
 		return NULL;
 	}
