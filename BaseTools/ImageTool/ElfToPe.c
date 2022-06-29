@@ -41,6 +41,24 @@ IsDataShdr (
 }
 
 static
+Elf_Shdr *
+GetShdrByIndex (
+  IN const Elf_Ehdr *Ehdr,
+  IN UINT32         Index
+  )
+{
+  UINTN Offset;
+
+  assert (Ehdr != NULL);
+  assert (Index < Ehdr->e_shnum);
+
+  Offset = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
+
+  return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+}
+
+
+static
 VOID
 FreeRelocs (
 	 IN PeRelocs *PeRel
@@ -257,6 +275,13 @@ ReadElfFile (
 			return EFI_VOLUME_CORRUPTED;
 		}
 
+    if (((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL))
+      && (Shdr->sh_info >= (*Ehdr)->e_shnum)) {
+			fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
+			free (*Ehdr);
+			return EFI_VOLUME_CORRUPTED;
+		}
+
 		if (Shdr->sh_addralign <= mPeAlignment) {
       continue;
     }
@@ -292,7 +317,7 @@ GetElfString (
 		fprintf (stderr, "ImageTool: Invalid ELF string section %d\n", Section);
     return NULL;
 	}
-	Shdr = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Section * Ehdr->e_shentsize);
+  Shdr = GetShdrByIndex (Ehdr, Section);
 
 	//
 	// Sanity check section
@@ -562,7 +587,7 @@ ProcessRelocs (
 	//
 	// Identify symbol table
 	//
-	SymSec    = (Elf_Shdr *)((UINT8 *)Ehdr + Ehdr->e_shoff + Shdr->sh_link * Ehdr->e_shentsize);
+  SymSec    = GetShdrByIndex (Ehdr, Shdr->sh_link);
 	SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
 	SymNumber = SymSec->sh_size / sizeof (*SymTable);
 
@@ -745,7 +770,6 @@ ApplyRelocs (
 {
 	UINT32         Index;
 	const Elf_Shdr *RelShdr;
-	UINTN          Offset;
 	const Elf_Shdr *SecShdr;
 	PeSection      *PeSRel;
 	PeSection      *PeSSym;
@@ -762,8 +786,7 @@ ApplyRelocs (
 	assert (PeSections != NULL);
 
 	for (Index = 0; Index < Ehdr->e_shnum; Index++) {
-		Offset  = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
-		RelShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+    RelShdr = GetShdrByIndex (Ehdr, Index);
 
 		if (RelShdr->sh_type != SHT_RELA) {
 			continue;
@@ -773,8 +796,7 @@ ApplyRelocs (
 			continue;
 		}
 
-		Offset  = Ehdr->e_shoff + RelShdr->sh_info * Ehdr->e_shentsize;
-		SecShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+    SecShdr = GetShdrByIndex (Ehdr, RelShdr->sh_info);
 
 		PeSRel = FindSection (PeSections, RelShdr->sh_info);
 		if (PeSRel == NULL) {
@@ -784,8 +806,7 @@ ApplyRelocs (
 		//
 		// Determine the symbol table referenced by the relocation data.
 		//
-		Offset     = Ehdr->e_shoff + RelShdr->sh_link * Ehdr->e_shentsize;
-		SymtabShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+    SymtabShdr = GetShdrByIndex (Ehdr, RelShdr->sh_link);
 		Symtab     = (UINT8 *)Ehdr + SymtabShdr->sh_offset;
 
 		//
@@ -802,8 +823,7 @@ ApplyRelocs (
 				continue;
 			}
 
-			Offset  = Ehdr->e_shoff + Sym->st_shndx * Ehdr->e_shentsize;
-			SymShdr = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+      SymShdr = GetShdrByIndex (Ehdr, Sym->st_shndx);
 
 			Targ = PeSRel->Data + (Rel->r_offset - SecShdr->sh_addr);
 
@@ -1022,7 +1042,6 @@ ElfToPe (
 	PeHeader       PeH;
 	Elf_Ehdr       *Ehdr;
 	const Elf_Shdr *Shdr;
-	UINTN          Offset;
 	UINT32         Index;
 	FILE           *Pe;
 	EFI_STATUS     Status;
@@ -1098,8 +1117,7 @@ ElfToPe (
 	// Process Elf sections
 	//
 	for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
-		Offset = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
-		Shdr   = (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+    Shdr = GetShdrByIndex (Ehdr, Index);
 
 		if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
       //
