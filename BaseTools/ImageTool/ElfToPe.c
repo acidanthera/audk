@@ -77,6 +77,21 @@ GetSectionName (
 }
 
 static
+const char *
+BaseName (
+	IN const char *Path
+  )
+{
+	char *BaseName;
+
+	assert (Path != NULL);
+
+	BaseName = strrchr (Path, '/');
+
+	return (BaseName != NULL) ? (BaseName + 1) : Path;
+}
+
+static
 VOID
 FreeRelocs (
 	 IN PeRelocs *PeRel
@@ -93,6 +108,21 @@ FreeRelocs (
 	}
 
 	free (PeRel);
+}
+
+static
+VOID
+FreeSections (
+	IN PeSection *PeSections
+  )
+{
+	assert (PeSections != NULL);
+
+	if (PeSections->Next != NULL) {
+		FreeSections (PeSections->Next);
+	}
+
+	free (PeSections);
 }
 
 static
@@ -231,112 +261,6 @@ OutputPeReltab (
 	}
 
 	return SectionSize;
-}
-
-static
-EFI_STATUS
-ReadElfFile (
-	IN  const char *Name,
-	OUT Elf_Ehdr   **Ehdr
-  )
-{
-	static const unsigned char Ident[] = {
-		ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS, ELFDATA2LSB
-	};
-	const Elf_Shdr *Shdr;
-	UINTN          Offset;
-	UINT32         Index;
-	UINT32         FileSize;
-  char           *Last;
-
-  assert (Name != NULL);
-	assert (Ehdr != NULL);
-
-	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
-  if (*Ehdr == NULL) {
-		fprintf (stderr, "ImageTool: Could not open %s: %s\n", Name, strerror (errno));
-    return EFI_VOLUME_CORRUPTED;
-  }
-
-	//
-	// Check header
-	//
-	if ((FileSize < sizeof (**Ehdr))
-	  || (memcmp (Ident, (*Ehdr)->e_ident, sizeof (Ident)) != 0)) {
-		fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
-		free (*Ehdr);
-    return EFI_VOLUME_CORRUPTED;
-	}
-
-	//
-	// Check section headers
-	//
-	for (Index = 0; Index < (*Ehdr)->e_shnum; ++Index) {
-		Offset = (*Ehdr)->e_shoff + Index * (*Ehdr)->e_shentsize;
-
-		if (FileSize < (Offset + sizeof (*Shdr))) {
-			fprintf (stderr, "ImageTool: ELF section header is outside file %s\n", Name);
-			free (*Ehdr);
-			return EFI_VOLUME_CORRUPTED;
-		}
-
-		Shdr = (Elf_Shdr *)((UINT8 *)(*Ehdr) + Offset);
-
-		if ((Shdr->sh_type != SHT_NOBITS)
-		  && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
-			fprintf (stderr, "ImageTool: ELF section %d points outside file %s\n", Index, Name);
-			free (*Ehdr);
-			return EFI_VOLUME_CORRUPTED;
-		}
-
-		if (Shdr->sh_link >= (*Ehdr)->e_shnum) {
-			fprintf (stderr, "ImageTool: ELF %d-th section's sh_link is out of range\n", Index);
-			free (*Ehdr);
-			return EFI_VOLUME_CORRUPTED;
-		}
-
-    if (((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL))
-      && (Shdr->sh_info >= (*Ehdr)->e_shnum)) {
-			fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
-			free (*Ehdr);
-			return EFI_VOLUME_CORRUPTED;
-		}
-
-		if (Shdr->sh_addralign <= mPeAlignment) {
-      continue;
-    }
-    if (IsTextShdr(Shdr) || IsDataShdr(Shdr)) {
-      mPeAlignment = Shdr->sh_addralign;
-    }
-	}
-
-  if ((*Ehdr)->e_shstrndx >= (*Ehdr)->e_shnum) {
-		fprintf (stderr, "ImageTool: Invalid section name string table\n");
-    free (*Ehdr);
-    return EFI_VOLUME_CORRUPTED;
-	}
-  Shdr = GetShdrByIndex (*Ehdr, (*Ehdr)->e_shstrndx);
-
-	if (Shdr->sh_type != SHT_STRTAB) {
-		fprintf (stderr, "ImageTool: ELF string table section has wrong type\n");
-    free (*Ehdr);
-    return EFI_VOLUME_CORRUPTED;
-	}
-
-	Last = (char *)((UINT8 *)*Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
-	if (*Last != '\0') {
-		fprintf (stderr, "ImageTool: ELF string table section is not NUL-terminated\n");
-    free (*Ehdr);
-    return EFI_VOLUME_CORRUPTED;
-	}
-
-	if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
-    fprintf (stderr, "ImageTool: Invalid section alignment\n");
-		free (*Ehdr);
-		return EFI_VOLUME_CORRUPTED;
-  }
-
-	return EFI_SUCCESS;
 }
 
 static
@@ -996,33 +920,109 @@ WritePeFile (
 }
 
 static
-const char *
-BaseName (
-	IN const char *Path
+EFI_STATUS
+ReadElfFile (
+	IN  const char *Name,
+	OUT Elf_Ehdr   **Ehdr
   )
 {
-	char *BaseName;
+	static const unsigned char Ident[] = {
+		ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS, ELFDATA2LSB
+	};
+	const Elf_Shdr *Shdr;
+	UINTN          Offset;
+	UINT32         Index;
+	UINT32         FileSize;
+  char           *Last;
 
-	assert (Path != NULL);
+  assert (Name != NULL);
+	assert (Ehdr != NULL);
 
-	BaseName = strrchr (Path, '/');
+	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
+  if (*Ehdr == NULL) {
+		fprintf (stderr, "ImageTool: Could not open %s: %s\n", Name, strerror (errno));
+    return EFI_VOLUME_CORRUPTED;
+  }
 
-	return (BaseName != NULL) ? (BaseName + 1) : Path;
-}
-
-static
-VOID
-FreeSections (
-	IN PeSection *PeSections
-  )
-{
-	assert (PeSections != NULL);
-
-	if (PeSections->Next != NULL) {
-		FreeSections (PeSections->Next);
+	//
+	// Check header
+	//
+	if ((FileSize < sizeof (**Ehdr))
+	  || (memcmp (Ident, (*Ehdr)->e_ident, sizeof (Ident)) != 0)) {
+		fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
+		free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
 	}
 
-	free (PeSections);
+	//
+	// Check section headers
+	//
+	for (Index = 0; Index < (*Ehdr)->e_shnum; ++Index) {
+		Offset = (*Ehdr)->e_shoff + Index * (*Ehdr)->e_shentsize;
+
+		if (FileSize < (Offset + sizeof (*Shdr))) {
+			fprintf (stderr, "ImageTool: ELF section header is outside file %s\n", Name);
+			free (*Ehdr);
+			return EFI_VOLUME_CORRUPTED;
+		}
+
+		Shdr = (Elf_Shdr *)((UINT8 *)(*Ehdr) + Offset);
+
+		if ((Shdr->sh_type != SHT_NOBITS)
+		  && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
+			fprintf (stderr, "ImageTool: ELF section %d points outside file %s\n", Index, Name);
+			free (*Ehdr);
+			return EFI_VOLUME_CORRUPTED;
+		}
+
+		if (Shdr->sh_link >= (*Ehdr)->e_shnum) {
+			fprintf (stderr, "ImageTool: ELF %d-th section's sh_link is out of range\n", Index);
+			free (*Ehdr);
+			return EFI_VOLUME_CORRUPTED;
+		}
+
+    if (((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL))
+      && (Shdr->sh_info >= (*Ehdr)->e_shnum)) {
+			fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
+			free (*Ehdr);
+			return EFI_VOLUME_CORRUPTED;
+		}
+
+		if (Shdr->sh_addralign <= mPeAlignment) {
+      continue;
+    }
+    if (IsTextShdr(Shdr) || IsDataShdr(Shdr)) {
+      mPeAlignment = Shdr->sh_addralign;
+    }
+	}
+
+  if ((*Ehdr)->e_shstrndx >= (*Ehdr)->e_shnum) {
+		fprintf (stderr, "ImageTool: Invalid section name string table\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+  Shdr = GetShdrByIndex (*Ehdr, (*Ehdr)->e_shstrndx);
+
+	if (Shdr->sh_type != SHT_STRTAB) {
+		fprintf (stderr, "ImageTool: ELF string table section has wrong type\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+
+	Last = (char *)((UINT8 *)*Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
+	if (*Last != '\0') {
+		fprintf (stderr, "ImageTool: ELF string table section is not NUL-terminated\n");
+    free (*Ehdr);
+    return EFI_VOLUME_CORRUPTED;
+	}
+
+	if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
+    fprintf (stderr, "ImageTool: Invalid section alignment\n");
+		free (*Ehdr);
+		return EFI_VOLUME_CORRUPTED;
+  }
+
+	return EFI_SUCCESS;
 }
 
 EFI_STATUS
