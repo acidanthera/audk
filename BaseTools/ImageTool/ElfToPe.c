@@ -20,6 +20,7 @@
 #include "ImageTool.h"
 
 static Elf_Size mPeAlignment = 0x200;
+static PeOffset *mPeSectionOffsets = NULL;
 
 static
 BOOLEAN
@@ -102,6 +103,7 @@ CreateSection (
   IN     const char     *Name,
   IN 	   BOOLEAN        (*Filter)(const Elf_Shdr *),
   IN     UINT32         Flags,
+  IN     UINT8          Type,
 	IN OUT PeHeader       *PeH
   )
 {
@@ -151,6 +153,8 @@ CreateSection (
 	//
 	// Fill in section header details
 	//
+  PeS->Type = Type;
+
 	NameLength = strlen (Name);
 	if (NameLength > sizeof (PeS->PeShdr.Name)) {
 		NameLength = sizeof (PeS->PeShdr.Name);
@@ -173,6 +177,9 @@ CreateSection (
   	}
 
     if (Filter (Shdr)) {
+      mPeSectionOffsets[Index].Type   = Type;
+      mPeSectionOffsets[Index].Offset = Pointer;
+
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (PeS->Data + Pointer, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
         Pointer += ALIGN_VALUE (Shdr->sh_size, Shdr->sh_addralign);
@@ -410,7 +417,7 @@ ProcessRelocs (
 	UINT32         SymNumber;
 	UINT32         RelNumber;
   UINT32         SIndex;
-	UINT32         Index;
+	UINT32         RIndex;
   UINT32         EntrySize;
 	EFI_STATUS     Status;
 
@@ -445,7 +452,7 @@ ProcessRelocs (
     //
     Rel       = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
     RelNumber = Shdr->sh_size / EntrySize;
-    for (Index = 0; Index < RelNumber; ++Index) {
+    for (RIndex = 0; RIndex < RelNumber; ++RIndex) {
       Status = ProcessReloc (Ehdr, Shdr, SymTable, SymNumber, Rel, PeRelTab);
       if (EFI_ERROR (Status)) {
         return Status;
@@ -554,17 +561,17 @@ static
 PeSection *
 FindSection (
 	IN PeSection *PeSections,
-	IN UINT32    Index
+	IN UINT8    Type
   )
 {
+  PeSection *PeS;
+
 	assert (PeSections != NULL);
 
-	if (PeSections->ElfIndex == (Index + 1)) {
-		return PeSections;
-	}
-
-	if (PeSections->Next != NULL) {
-	 	return FindSection (PeSections->Next, Index);
+  for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+    if (PeS->Type == Type) {
+      return PeS;
+    }
 	}
 
 	return NULL;
@@ -580,14 +587,15 @@ ApplyRelocs (
 	UINT32         Index;
 	const Elf_Shdr *RelShdr;
 	const Elf_Shdr *SecShdr;
+  UINT32         SecOffset;
 	PeSection      *PeSRel;
-	PeSection      *PeSSym;
-	UINT64         RelIdx;
+	UINTN          RelIdx;
 	const Elf_Shdr *SymtabShdr;
   UINT8          *Symtab;
 	const Elf_Rela *Rel;
 	const Elf_Sym  *Sym;
 	const Elf_Shdr *SymShdr;
+  UINT32         SymOffset;
 	UINT8          *Targ;
   // UINT64         GOTEntryRva;
 
@@ -597,20 +605,16 @@ ApplyRelocs (
 	for (Index = 0; Index < Ehdr->e_shnum; Index++) {
     RelShdr = GetShdrByIndex (Ehdr, Index);
 
-		if (RelShdr->sh_type != SHT_RELA) {
-			continue;
-		}
+    if (RelShdr->sh_type != SHT_RELA) {
+      continue;
+    }
 
 		if (RelShdr->sh_info == 0) {
 			continue;
 		}
 
     SecShdr = GetShdrByIndex (Ehdr, RelShdr->sh_info);
-
-		PeSRel = FindSection (PeSections, RelShdr->sh_info);
-		if (PeSRel == NULL) {
-			return EFI_NOT_FOUND;
-		}
+    SecOffset = mPeSectionOffsets[RelShdr->sh_info].Offset;
 
 		//
 		// Determine the symbol table referenced by the relocation data.
@@ -618,10 +622,15 @@ ApplyRelocs (
     SymtabShdr = GetShdrByIndex (Ehdr, RelShdr->sh_link);
 		Symtab     = (UINT8 *)Ehdr + SymtabShdr->sh_offset;
 
+    PeSRel = FindSection (PeSections, mPeSectionOffsets[RelShdr->sh_info].Type);
+		if (PeSRel == NULL) {
+			return EFI_NOT_FOUND;
+		}
+
 		//
 		// Process all relocation entries for this section.
 		//
-		for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINT32) RelShdr->sh_entsize) {
+		for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += RelShdr->sh_entsize) {
 			Rel = (Elf_Rela *)((UINT8 *)Ehdr + RelShdr->sh_offset + RelIdx);
 
 			//
@@ -632,32 +641,28 @@ ApplyRelocs (
 				continue;
 			}
 
-      SymShdr = GetShdrByIndex (Ehdr, Sym->st_shndx);
+      SymShdr   = GetShdrByIndex (Ehdr, Sym->st_shndx);
+      SymOffset = mPeSectionOffsets[Sym->st_shndx].Offset;
 
-			Targ = PeSRel->Data + (Rel->r_offset - SecShdr->sh_addr);
-
-			PeSSym = FindSection (PeSections, Sym->st_shndx);
-			if (PeSSym == NULL) {
-				return EFI_NOT_FOUND;
-			}
+			Targ = PeSRel->Data + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
 			if (Ehdr->e_machine == EM_X86_64) {
 				switch (ELF_R_TYPE(Rel->r_info)) {
 					case R_X86_64_NONE:
 						break;
 					case R_X86_64_64:
-						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress;
+						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
 						break;
 					case R_X86_64_32:
-						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress);
+						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + SymOffset);
 						break;
 					case R_X86_64_32S:
-						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + PeSSym->PeShdr.VirtualAddress);
+						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + SymOffset);
 						break;
 					case R_X86_64_PLT32:
 					case R_X86_64_PC32:
-						*(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (PeSSym->PeShdr.VirtualAddress - SymShdr->sh_addr)
-							- (PeSRel->PeShdr.VirtualAddress - SecShdr->sh_addr));
+						*(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (SymOffset - SymShdr->sh_addr)
+							- (SecOffset - SecShdr->sh_addr));
 						break;
 					case R_X86_64_GOTPCREL:
 					case R_X86_64_GOTPCRELX:
@@ -665,16 +670,16 @@ ApplyRelocs (
 						// GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
 						// FindElfGOTSectionFromGOTEntryElfRva(GOTEntryRva);
 						// *(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ
-						// 	+ (mCoffSectionsOffset[mGOTShindex] - mGOTShdr->sh_addr)
+						// 	+ (mPeSectionOffsets[mGOTShindex] - mGOTShdr->sh_addr)
 						// 	- (PeSRel->Data - SecShdr->sh_addr));
 						//
-						// GOTEntryRva += (mCoffSectionsOffset[mGOTShindex] - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
+						// GOTEntryRva += (mPeSectionOffsets[mGOTShindex] - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
 						// if (AccumulateCoffGOTEntries((UINT32)GOTEntryRva)) {
 						// 	//
 						// 	// Relocate GOT entry if it's the first time we run into it
 						// 	//
 						// 	Targ = mCoffFile + GOTEntryRva;
-						// 	*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + mCoffSectionsOffset[Sym->st_shndx];
+						// 	*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
 						// }
 						break;
 					default:
@@ -720,18 +725,18 @@ WritePeFile (
 			PeS->PeShdr.PointerToRawData = Position;
 			PeS->PeShdr.VirtualAddress   = Position;
 
-      if (strncmp ((char *)PeS->PeShdr.Name, ".text", sizeof (PeS->PeShdr.Name)) == 0) {
+      if (PeS->Type == TEXT_SECTION) {
         PeH->Nt->BaseOfCode = Position;
 				PeH->Nt->SizeOfCode = PeS->PeShdr.SizeOfRawData;
 			}
 
 #if defined(EFI_TARGET32)
-      if (strncmp ((char *)PeS->PeShdr.Name, ".data", sizeof (PeS->PeShdr.Name)) == 0) {
+      if (PeS->Type == DATA_SECTION) {
         PeH->Nt->BaseOfData = Position;
 			}
 #endif
 
-			if (strncmp ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name)) == 0) {
+			if (PeS->Type == RELOC_SECTION) {
 				PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = Position;
 			}
 
@@ -892,6 +897,13 @@ ReadElfFile (
 		return EFI_VOLUME_CORRUPTED;
   }
 
+  mPeSectionOffsets = calloc (1, (*Ehdr)->e_shnum * sizeof (PeOffset));
+  if (mPeSectionOffsets == NULL) {
+		fprintf (stderr, "ImageTool: Could not allocate memory for mPeSectionOffsets\n");
+		free (*Ehdr);
+		return EFI_OUT_OF_RESOURCES;
+	}
+
 	return EFI_SUCCESS;
 }
 
@@ -985,6 +997,7 @@ ElfToPe (
     ".text",
     IsTextShdr,
     EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ,
+    TEXT_SECTION,
     &PeH
     );
   if (*NextPeSection == NULL) {
@@ -999,6 +1012,7 @@ ElfToPe (
     ".data",
     IsDataShdr,
     EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_READ,
+    DATA_SECTION,
     &PeH
     );
   if (*NextPeSection == NULL) {

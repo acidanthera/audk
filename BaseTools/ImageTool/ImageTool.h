@@ -72,6 +72,12 @@
 
 #define DIR_BASERELOC  0
 
+enum {
+	TEXT_SECTION  = 0,
+	DATA_SECTION  = 1,
+	RELOC_SECTION = 2
+};
+
 #define raise() assert(false)
 
 typedef struct _PeSection  PeSection;
@@ -84,10 +90,15 @@ typedef struct {
 
 typedef struct _PeSection {
 	PeSection                *Next;
-	UINT32                   ElfIndex;
 	EFI_IMAGE_SECTION_HEADER PeShdr;
+	UINT8                    Type;
 	UINT8                    Data[0];
 } PeSection;
+
+typedef struct _PeOffset {
+	UINT8  Type;
+	UINT32 Offset;
+} PeOffset;
 
 typedef struct _PeRelocs {
 	PeRelocs *Next;
