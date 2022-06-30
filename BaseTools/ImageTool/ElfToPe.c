@@ -27,6 +27,8 @@ IsTextShdr (
   IN const Elf_Shdr *Shdr
   )
 {
+  assert (Shdr != NULL);
+
   return (((Shdr->sh_flags & (SHF_EXECINSTR | SHF_ALLOC)) == (SHF_EXECINSTR | SHF_ALLOC)) ||
           ((Shdr->sh_flags & (SHF_WRITE | SHF_ALLOC)) == SHF_ALLOC));
 }
@@ -37,6 +39,8 @@ IsDataShdr (
   IN const Elf_Shdr *Shdr
   )
 {
+  assert (Shdr != NULL);
+
   return ((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE));
 }
 
@@ -55,25 +59,6 @@ GetShdrByIndex (
   Offset = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
 
   return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
-}
-
-static
-const char *
-GetSectionName (
-	IN const Elf_Ehdr *Ehdr,
-	IN UINT32         Offset
-  )
-{
-	const Elf_Shdr *Shdr;
-
-  Shdr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
-
-	if (Offset >= Shdr->sh_size) {
-		fprintf (stderr, "ImageTool: Invalid ELF string offset %d\n", Offset);
-    return NULL;
-	}
-
-	return (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Offset);
 }
 
 static
@@ -265,44 +250,50 @@ OutputPeReltab (
 
 static
 PeSection *
-ProcessSection (
+CreateSection (
 	IN     const Elf_Ehdr *Ehdr,
-	IN     const Elf_Shdr *Shdr,
+  IN     const char     *Name,
+  IN 	   BOOLEAN        (*Filter)(const Elf_Shdr *),
+  IN     UINT32         Flags,
 	IN OUT PeHeader       *PeH
   )
 {
-	PeSection  *PeS;
-	const char *Name;
-	UINTN      NameLength;
-	UINT32     PeSectionSize;
+  const Elf_Shdr *Shdr;
+	PeSection      *PeS;
+	UINT32         PeSectionSize;
+  UINT32         Index;
+  UINTN          NameLength;
+  UINT32         Pointer;
 
-	assert (Ehdr != NULL);
-	assert (Shdr != NULL);
-	assert (PeH  != NULL);
+	assert (Ehdr   != NULL);
+	assert (Name   != NULL);
+  assert (Filter != NULL);
+	assert (PeH    != NULL);
 
 	PeSectionSize = 0;
+  Pointer       = 0;
 
-	Name = GetSectionName (Ehdr, Shdr->sh_name);
-	if (Name == NULL) {
-		return NULL;
+  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Ehdr, Index);
+
+    if (Filter (Shdr)) {
+      if ((Shdr->sh_addralign != 0) && (Shdr->sh_addralign != 1)) {
+        //
+        // The alignment field is valid
+        //
+        if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
+          fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
+          return NULL;
+        }
+      }
+
+      if ((Shdr->sh_type == SHT_PROGBITS) || (Shdr->sh_type == SHT_NOBITS)) {
+        PeSectionSize += ALIGN_VALUE (Shdr->sh_size, Shdr->sh_addralign);
+      }
+    }
 	}
 
-	if ((Shdr->sh_addralign != 0) && (Shdr->sh_addralign != 1)) {
-		//
-		// The alignment field is valid
-		//
-		if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
-			fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
-			return NULL;
-		}
-	}
-
-	//
-	// Allocate PE section
-	//
-	if (Shdr->sh_type == SHT_PROGBITS) {
-		PeSectionSize = ALIGN_VALUE (Shdr->sh_size, PeH->Nt->FileAlignment);
-	}
+  PeSectionSize = ALIGN_VALUE (PeSectionSize, PeH->Nt->FileAlignment);
 
 	PeS = calloc (1, sizeof (*PeS) + PeSectionSize);
 	if (PeS == NULL) {
@@ -319,58 +310,36 @@ ProcessSection (
 	}
 	memcpy (PeS->PeShdr.Name, Name, NameLength);
 
-	PeS->PeShdr.VirtualSize    = Shdr->sh_size;
-	PeS->PeShdr.SizeOfRawData  = PeSectionSize;
+	PeS->PeShdr.VirtualSize     = PeSectionSize;
+	PeS->PeShdr.SizeOfRawData   = PeSectionSize;
+	PeS->PeShdr.Characteristics = Flags;
 
-	//
-	// Fill in section characteristics
-	//
-	if ((Shdr->sh_type == SHT_PROGBITS) && ((Shdr->sh_flags & SHF_EXECINSTR) != 0)) {
-		//
-		// .text section
-		//
-		PeS->PeShdr.Characteristics =
-		  EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_NOT_PAGED |
-			EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ;
-	} else if ((Shdr->sh_type == SHT_PROGBITS) && ((Shdr->sh_flags & SHF_WRITE) != 0)) {
-		//
-		// .data section
-		//
-		PeS->PeShdr.Characteristics =
-			EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_NOT_PAGED |
-			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
-	} else if (Shdr->sh_type == SHT_PROGBITS) {
-		//
-		// .rodata section
-		//
-		PeS->PeShdr.Characteristics =
-			EFI_IMAGE_SCN_CNT_INITIALIZED_DATA |
-			EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
-	} else if (Shdr->sh_type == SHT_NOBITS) {
-		//
-		// .bss section
-		//
-		PeS->PeShdr.Characteristics =
-			EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA | EFI_IMAGE_SCN_MEM_NOT_PAGED |
-			EFI_IMAGE_SCN_MEM_READ | EFI_IMAGE_SCN_MEM_WRITE;
-	} else {
-		fprintf (stderr, "ImageTool: Unrecognised characteristics for section %s\n", Name);
-		free (PeS);
-		return NULL;
-	}
+  //
+  // Copy necessary sections, set AddressOfEntryPoint in PE section.
+  //
+  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Ehdr, Index);
 
-	if (Shdr->sh_type == SHT_PROGBITS) {
-		memcpy (PeS->Data, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
+    if ((Ehdr->e_entry >= Shdr->sh_addr)
+  	  && ((Ehdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
+  		PeH->Nt->AddressOfEntryPoint = Pointer + (Ehdr->e_entry - Shdr->sh_addr);
+  	}
+
+    if (Filter (Shdr)) {
+      if (Shdr->sh_type == SHT_PROGBITS) {
+        memcpy (PeS->Data + Pointer, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
+        Pointer += ALIGN_VALUE (Shdr->sh_size, Shdr->sh_addralign);
+      }
+
+      if (Shdr->sh_type == SHT_NOBITS) {
+        Pointer += ALIGN_VALUE (Shdr->sh_size, Shdr->sh_addralign);
+      }
+    }
 	}
 
 	//
 	// Update remaining file header fields
 	//
-	if ((Ehdr->e_entry >= Shdr->sh_addr)
-	  && ((Ehdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
-		PeH->Nt->AddressOfEntryPoint = Ehdr->e_entry - Shdr->sh_addr + PeH->Nt->SizeOfImage;
-	}
-
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
 	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
 	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
@@ -830,6 +799,17 @@ WritePeFile (
 			PeS->PeShdr.PointerToRawData = Position;
 			PeS->PeShdr.VirtualAddress   = Position;
 
+      if (strncmp ((char *)PeS->PeShdr.Name, ".text", sizeof (PeS->PeShdr.Name)) == 0) {
+        PeH->Nt->BaseOfCode = Position;
+				PeH->Nt->SizeOfCode = PeS->PeShdr.SizeOfRawData;
+			}
+
+#if defined(EFI_TARGET32)
+      if (strncmp ((char *)PeS->PeShdr.Name, ".data", sizeof (PeS->PeShdr.Name)) == 0) {
+        PeH->Nt->BaseOfData = Position;
+			}
+#endif
+
 			if (strncmp ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name)) == 0) {
 				PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = Position;
 			}
@@ -837,28 +817,6 @@ WritePeFile (
 			if (strncmp ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name)) == 0) {
 				PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = Position;
 				((DebugData *)PeS->Data)->Dir.RVA += Position;
-			}
-
-			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
-				if (PeH->Nt->BaseOfCode == 0) {
-					PeH->Nt->BaseOfCode = Position;
-				}
-				PeH->Nt->SizeOfCode += PeS->PeShdr.VirtualSize;
-			}
-
-#if defined(EFI_TARGET32)
-			if ((PeS->PeShdr.Characteristics & (EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA)) != 0) {
-				if (PeH->Nt->BaseOfData == 0) {
-					PeH->Nt->BaseOfData = Position;
-				}
-			}
-#endif
-			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_INITIALIZED_DATA) != 0) {
-				PeH->Nt->SizeOfInitializedData += PeS->PeShdr.VirtualSize;
-			}
-
-			if ((PeS->PeShdr.Characteristics & EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA) != 0) {
-				PeH->Nt->SizeOfUninitializedData += PeS->PeShdr.VirtualSize;
 			}
 
 			Position += PeS->PeShdr.SizeOfRawData;
@@ -1083,11 +1041,12 @@ ElfToPe (
 	PeH.Nt->CommonHeader.FileHeader.Characteristics =
 	  EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE;
 
-	PeH.Nt->Magic               = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
-	PeH.Nt->SectionAlignment    = mPeAlignment;
-	PeH.Nt->FileAlignment       = mPeAlignment;
-	PeH.Nt->SizeOfHeaders       = sizeof (PeH.Dos) + NtSize;
-	PeH.Nt->Subsystem           = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+	PeH.Nt->Magic                   = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
+	PeH.Nt->SectionAlignment        = mPeAlignment;
+	PeH.Nt->FileAlignment           = mPeAlignment;
+	PeH.Nt->SizeOfHeaders           = sizeof (PeH.Dos) + NtSize;
+	PeH.Nt->Subsystem               = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+  PeH.Nt->SizeOfUninitializedData = 0;
 
 	switch (Ehdr->e_machine) {
 		case EM_386:
@@ -1111,23 +1070,38 @@ ElfToPe (
 	//
 	// Process Elf sections
 	//
+  *NextPeSection = CreateSection (
+    Ehdr,
+    ".text",
+    IsTextShdr,
+    EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ,
+    &PeH
+    );
+  if (*NextPeSection == NULL) {
+    Status = EFI_ABORTED;
+    goto exit;
+  }
+
+  NextPeSection = &(*NextPeSection)->Next;
+
+  *NextPeSection = CreateSection (
+    Ehdr,
+    ".data",
+    IsDataShdr,
+    EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_READ,
+    &PeH
+    );
+  if (*NextPeSection == NULL) {
+    Status = EFI_ABORTED;
+    goto exit;
+  }
+
+  PeH.Nt->SizeOfInitializedData = (*NextPeSection)->PeShdr.SizeOfRawData;
+
+  NextPeSection = &(*NextPeSection)->Next;
+
 	for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Ehdr, Index);
-
-		if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
-      //
-			// Create output section
-			//
-			*NextPeSection = ProcessSection (Ehdr, Shdr, &PeH);
-			if (*NextPeSection == NULL) {
-				Status = EFI_ABORTED;
-				goto exit;
-			}
-
-			(*NextPeSection)->ElfIndex = Index + 1;
-			NextPeSection = &(*NextPeSection)->Next;
-			continue;
-		}
 
 		if (Shdr->sh_type == SHT_REL) {
       //
