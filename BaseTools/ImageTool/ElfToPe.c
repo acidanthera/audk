@@ -501,9 +501,8 @@ OutputPeReltab (
 static
 PeSection *
 CreateRelocSection (
-  IN     const Elf_Ehdr *Ehdr,
-	IN OUT PeHeader       *PeH,
-	IN     PeRelocs       **PeRelTab
+	IN OUT PeHeader *PeH,
+	IN     PeRelocs *PeRelTab
   )
 {
 	PeSection *PeS;
@@ -513,14 +512,10 @@ CreateRelocSection (
   assert (PeH      != NULL);
 	assert (PeRelTab != NULL);
 
-  if (EFI_ERROR (ProcessRelocs (Ehdr, PeRelTab))) {
-    return NULL;
-  }
-
 	//
 	// Allocate PE section
 	//
-	SectionSize = OutputPeReltab (*PeRelTab, NULL);
+	SectionSize = OutputPeReltab (PeRelTab, NULL);
 	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
@@ -541,7 +536,7 @@ CreateRelocSection (
 	//
 	// Copy section contents
 	//
-	OutputPeReltab (*PeRelTab, PeS->Data);
+	OutputPeReltab (PeRelTab, PeS->Data);
 
 	//
 	// Update file header details
@@ -1015,11 +1010,18 @@ ElfToPe (
 
   NextPeSection = &(*NextPeSection)->Next;
 
-	*NextPeSection = CreateRelocSection (Ehdr, &PeH, &PeRelTab);
-	if (*NextPeSection == NULL) {
-		Status = EFI_ABORTED;
-		goto exit;
-	}
+  Status = ProcessRelocs (Ehdr, &PeRelTab);
+  if (EFI_ERROR (Status)) {
+    goto exit;
+  }
+
+  if (PeRelTab != NULL) {
+  	*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
+  	if (*NextPeSection == NULL) {
+  		Status = EFI_ABORTED;
+  		goto exit;
+  	}
+  }
 
 	//
 	// Write out PE file
