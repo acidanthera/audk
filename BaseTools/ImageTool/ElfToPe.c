@@ -96,144 +96,6 @@ FreeSections (
 }
 
 static
-EFI_STATUS
-GeneratePeReloc (
-	IN OUT PeRelocs **PeRelTab,
-	IN     UINTN    Rva,
-	IN     UINT32   RelocType
-  )
-{
-	UINTN    PageRva;
-	UINT16   TypeOffset;
-	PeRelocs *PeRel;
-	UINT16   *Copy;
-
-	assert (PeRelTab != NULL);
-
-	PageRva = Rva & ~0xfff;
-	//
-	// Get Offset
-	//
-	TypeOffset = Rva & 0xfff;
-	//
-	// Get Type
-	//
-	switch (RelocType) {
-		case 8:
-			TypeOffset |= EFI_IMAGE_REL_BASED_DIR64 << 12;
-			break;
-		case 4:
-			TypeOffset |= EFI_IMAGE_REL_BASED_HIGHLOW << 12;
-			break;
-		case 2:
-			TypeOffset |= EFI_IMAGE_REL_BASED_LOW << 12;
-			break;
-		default:
-			fprintf (stderr, "ImageTool: Unsupported relocation type\n");
-			if (*PeRelTab != NULL) {
-				FreeRelocs (*PeRelTab);
-				*PeRelTab = NULL;
-			}
-	    return EFI_INVALID_PARAMETER;
-	}
-
-  //
-	// Locate or create PE relocation table
-	//
-	for (PeRel = *PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
-		if (PeRel->PageRva == PageRva) {
-			break;
-		}
-	}
-
-	if (PeRel == NULL) {
-		PeRel = calloc (1, sizeof (*PeRel));
-		if (PeRel == NULL) {
-			fprintf (stderr, "ImageTool: Could not allocate memory for PeRel\n");
-			if (*PeRelTab != NULL) {
-				FreeRelocs (*PeRelTab);
-				*PeRelTab = NULL;
-			}
-	    return EFI_OUT_OF_RESOURCES;
-		}
-
-		PeRel->Next    = *PeRelTab;
-		*PeRelTab      = PeRel;
-		PeRel->PageRva = PageRva;
-	}
-
-	//
-	// Expand relocation list if necessary
-	//
-	if (PeRel->Used == PeRel->Total) {
-		PeRel->Total = (PeRel->Total != 0) ? (PeRel->Total * 2) : 256;
-
-		Copy = calloc (1, PeRel->Total * sizeof (TypeOffset));
-		if (Copy == NULL) {
-			fprintf (stderr, "ImageTool: Could not reallocate memory for TypeOffset array\n");
-			FreeRelocs (*PeRelTab);
-			*PeRelTab = NULL;
-	    return EFI_OUT_OF_RESOURCES;
-		}
-
-		if (PeRel->TypeOffsets != NULL) {
-			memcpy (Copy, PeRel->TypeOffsets, PeRel->Used * sizeof (TypeOffset));
-			free (PeRel->TypeOffsets);
-		}
-
-		PeRel->TypeOffsets = Copy;
-	}
-
-	//
-	// Store relocation
-	//
-	PeRel->TypeOffsets[PeRel->Used] = TypeOffset;
-	++PeRel->Used;
-
-	return EFI_SUCCESS;
-}
-
-static
-UINT32
-OutputPeReltab (
-	IN  PeRelocs *PeRelTab,
-	OUT VOID     *Buffer  OPTIONAL
-  )
-{
-	PeRelocs *PeRel;
-	UINT32   Used;
-	UINT32   BlockSize;
-	UINT32   SectionSize;
-
-	assert (PeRelTab != NULL);
-
-	SectionSize = 0;
-
-	for (PeRel = PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
-		//
-		// Each block must start on a 32-bit boundary.
-		//
-		Used = ((PeRel->Used + 1U) & ~1U);
-		BlockSize = sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) + sizeof (*PeRel->TypeOffsets) * Used;
-
-		if (Buffer != NULL) {
-			*(UINT32 *)(Buffer + SectionSize) = PeRel->PageRva;
-			*(UINT32 *)(Buffer + SectionSize + sizeof (UINT32)) = BlockSize;
-
-			memcpy (
-				Buffer + SectionSize + 2 * sizeof (UINT32),
-				PeRel->TypeOffsets,
-				Used * sizeof (*PeRel->TypeOffsets)
-			  );
-		}
-
-		SectionSize += BlockSize;
-	}
-
-	return SectionSize;
-}
-
-static
 PeSection *
 CreateSection (
 	IN     const Elf_Ehdr *Ehdr,
@@ -330,6 +192,104 @@ CreateSection (
 	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
 
 	return PeS;
+}
+
+static
+EFI_STATUS
+GeneratePeReloc (
+	IN OUT PeRelocs **PeRelTab,
+	IN     UINTN    Rva,
+	IN     UINT32   RelocType
+  )
+{
+	UINTN    PageRva;
+	UINT16   TypeOffset;
+	PeRelocs *PeRel;
+	UINT16   *Copy;
+
+	assert (PeRelTab != NULL);
+
+	PageRva = Rva & ~0xfff;
+	//
+	// Get Offset
+	//
+	TypeOffset = Rva & 0xfff;
+	//
+	// Get Type
+	//
+	switch (RelocType) {
+		case 8:
+			TypeOffset |= EFI_IMAGE_REL_BASED_DIR64 << 12;
+			break;
+		case 4:
+			TypeOffset |= EFI_IMAGE_REL_BASED_HIGHLOW << 12;
+			break;
+		case 2:
+			TypeOffset |= EFI_IMAGE_REL_BASED_LOW << 12;
+			break;
+		default:
+			fprintf (stderr, "ImageTool: Unsupported relocation type\n");
+			if (*PeRelTab != NULL) {
+				FreeRelocs (*PeRelTab);
+				*PeRelTab = NULL;
+			}
+	    return EFI_INVALID_PARAMETER;
+	}
+
+  //
+	// Locate or create PE relocation table
+	//
+	for (PeRel = *PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
+		if (PeRel->PageRva == PageRva) {
+			break;
+		}
+	}
+
+	if (PeRel == NULL) {
+		PeRel = calloc (1, sizeof (*PeRel));
+		if (PeRel == NULL) {
+			fprintf (stderr, "ImageTool: Could not allocate memory for PeRel\n");
+			if (*PeRelTab != NULL) {
+				FreeRelocs (*PeRelTab);
+				*PeRelTab = NULL;
+			}
+	    return EFI_OUT_OF_RESOURCES;
+		}
+
+		PeRel->Next    = *PeRelTab;
+		*PeRelTab      = PeRel;
+		PeRel->PageRva = PageRva;
+	}
+
+	//
+	// Expand relocation list if necessary
+	//
+	if (PeRel->Used == PeRel->Total) {
+		PeRel->Total = (PeRel->Total != 0) ? (PeRel->Total * 2) : 256;
+
+		Copy = calloc (1, PeRel->Total * sizeof (TypeOffset));
+		if (Copy == NULL) {
+			fprintf (stderr, "ImageTool: Could not reallocate memory for TypeOffset array\n");
+			FreeRelocs (*PeRelTab);
+			*PeRelTab = NULL;
+	    return EFI_OUT_OF_RESOURCES;
+		}
+
+		if (PeRel->TypeOffsets != NULL) {
+			memcpy (Copy, PeRel->TypeOffsets, PeRel->Used * sizeof (TypeOffset));
+			free (PeRel->TypeOffsets);
+		}
+
+		PeRel->TypeOffsets = Copy;
+	}
+
+	//
+	// Store relocation
+	//
+	PeRel->TypeOffsets[PeRel->Used] = TypeOffset;
+	++PeRel->Used;
+
+	return EFI_SUCCESS;
 }
 
 static
@@ -483,6 +443,46 @@ ProcessRelocs (
 	}
 
 	return EFI_SUCCESS;
+}
+
+static
+UINT32
+OutputPeReltab (
+	IN  PeRelocs *PeRelTab,
+	OUT VOID     *Buffer  OPTIONAL
+  )
+{
+	PeRelocs *PeRel;
+	UINT32   Used;
+	UINT32   BlockSize;
+	UINT32   SectionSize;
+
+	assert (PeRelTab != NULL);
+
+	SectionSize = 0;
+
+	for (PeRel = PeRelTab; PeRel != NULL; PeRel = PeRel->Next) {
+		//
+		// Each block must start on a 32-bit boundary.
+		//
+		Used = ((PeRel->Used + 1U) & ~1U);
+		BlockSize = sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) + sizeof (*PeRel->TypeOffsets) * Used;
+
+		if (Buffer != NULL) {
+			*(UINT32 *)(Buffer + SectionSize) = PeRel->PageRva;
+			*(UINT32 *)(Buffer + SectionSize + sizeof (UINT32)) = BlockSize;
+
+			memcpy (
+				Buffer + SectionSize + 2 * sizeof (UINT32),
+				PeRel->TypeOffsets,
+				Used * sizeof (*PeRel->TypeOffsets)
+			  );
+		}
+
+		SectionSize += BlockSize;
+	}
+
+	return SectionSize;
 }
 
 static

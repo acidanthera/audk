@@ -71,7 +71,6 @@
 #define R_ARM_V4BX      40
 
 #define DIR_BASERELOC  0
-#define DIR_DEBUG      1
 
 #define raise() assert(false)
 
@@ -87,7 +86,6 @@ typedef struct _PeSection {
 	PeSection                *Next;
 	UINT32                   ElfIndex;
 	EFI_IMAGE_SECTION_HEADER PeShdr;
-	VOID                     (* Fixup) (PeSection *PeS);
 	UINT8                    Data[0];
 } PeSection;
 
