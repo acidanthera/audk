@@ -400,46 +400,59 @@ static
 EFI_STATUS
 ProcessRelocs (
 	IN     const Elf_Ehdr *Ehdr,
-	IN     const Elf_Shdr *Shdr,
-	IN     UINT32         EntrySize,
 	IN OUT PeRelocs       **PeRelTab
   )
 {
 	const Elf_Shdr *SymSec;
+  const Elf_Shdr *Shdr;
 	const Elf_Sym  *SymTable;
 	const Elf_Rel  *Rel;
 	UINT32         SymNumber;
 	UINT32         RelNumber;
+  UINT32         SIndex;
 	UINT32         Index;
+  UINT32         EntrySize;
 	EFI_STATUS     Status;
 
 	assert (Ehdr     != NULL);
 	assert (Shdr     != NULL);
 	assert (PeRelTab != NULL);
 
-	//
-	// Identify symbol table
-	//
-  SymSec    = GetShdrByIndex (Ehdr, Shdr->sh_link);
-	SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
-	SymNumber = SymSec->sh_size / sizeof (*SymTable);
+  for (SIndex = 0; SIndex < Ehdr->e_shnum; ++SIndex) {
+    Shdr = GetShdrByIndex (Ehdr, SIndex);
 
-	if (SymNumber == 0) {
-		return EFI_SUCCESS;
-	}
+		if (Shdr->sh_type == SHT_REL) {
+      EntrySize = sizeof (Elf_Rel);
+		} else if (Shdr->sh_type == SHT_RELA) {
+      EntrySize = sizeof (Elf_Rela);
+		} else {
+      continue;
+    }
 
-	//
-	// Process each relocation
-	//
-	Rel       = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
-	RelNumber = Shdr->sh_size / EntrySize;
-	for (Index = 0; Index < RelNumber; ++Index) {
-		Status = ProcessReloc (Ehdr, Shdr, SymTable, SymNumber, Rel, PeRelTab);
-		if (EFI_ERROR (Status)) {
-			return Status;
-		}
+    //
+    // Identify symbol table
+    //
+    SymSec    = GetShdrByIndex (Ehdr, Shdr->sh_link);
+    SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
+    SymNumber = SymSec->sh_size / sizeof (*SymTable);
 
-		Rel = (Elf_Rel *)((UINT8 *)Rel + EntrySize);
+    if (SymNumber == 0) {
+      continue;
+    }
+
+    //
+    // Process each relocation
+    //
+    Rel       = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
+    RelNumber = Shdr->sh_size / EntrySize;
+    for (Index = 0; Index < RelNumber; ++Index) {
+      Status = ProcessReloc (Ehdr, Shdr, SymTable, SymNumber, Rel, PeRelTab);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
+
+      Rel = (Elf_Rel *)((UINT8 *)Rel + EntrySize);
+    }
 	}
 
 	return EFI_SUCCESS;
@@ -488,8 +501,9 @@ OutputPeReltab (
 static
 PeSection *
 CreateRelocSection (
-	IN OUT PeHeader *PeH,
-	IN     PeRelocs *PeRelTab
+  IN     const Elf_Ehdr *Ehdr,
+	IN OUT PeHeader       *PeH,
+	IN     PeRelocs       **PeRelTab
   )
 {
 	PeSection *PeS;
@@ -499,10 +513,14 @@ CreateRelocSection (
   assert (PeH      != NULL);
 	assert (PeRelTab != NULL);
 
+  if (EFI_ERROR (ProcessRelocs (Ehdr, PeRelTab))) {
+    return NULL;
+  }
+
 	//
 	// Allocate PE section
 	//
-	SectionSize = OutputPeReltab (PeRelTab, NULL);
+	SectionSize = OutputPeReltab (*PeRelTab, NULL);
 	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
@@ -523,7 +541,7 @@ CreateRelocSection (
 	//
 	// Copy section contents
 	//
-	OutputPeReltab (PeRelTab, PeS->Data);
+	OutputPeReltab (*PeRelTab, PeS->Data);
 
 	//
 	// Update file header details
@@ -893,8 +911,6 @@ ElfToPe (
 	PeSection      **NextPeSection;
 	PeHeader       PeH;
 	Elf_Ehdr       *Ehdr;
-	const Elf_Shdr *Shdr;
-	UINT32         Index;
 	FILE           *Pe;
 	EFI_STATUS     Status;
 	UINT32         DataDirSize;
@@ -999,40 +1015,10 @@ ElfToPe (
 
   NextPeSection = &(*NextPeSection)->Next;
 
-	for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex (Ehdr, Index);
-
-		if (Shdr->sh_type == SHT_REL) {
-      //
-			// Process .rel relocations
-			//
-			Status = ProcessRelocs (Ehdr, Shdr, sizeof (Elf_Rel), &PeRelTab);
-			if (EFI_ERROR (Status)) {
-				goto exit;
-			}
-
-			continue;
-		}
-
-		if (Shdr->sh_type == SHT_RELA) {
-      //
-			// Process .rela relocations
-			//
-			Status = ProcessRelocs (Ehdr, Shdr, sizeof (Elf_Rela), &PeRelTab);
-			if (EFI_ERROR (Status)) {
-				goto exit;
-			}
-		}
-	}
-
-  if (PeRelTab != NULL) {
-		*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
-		if (*NextPeSection == NULL) {
-			Status = EFI_ABORTED;
-			goto exit;
-		}
-
-		NextPeSection = &(*NextPeSection)->Next;
+	*NextPeSection = CreateRelocSection (Ehdr, &PeH, &PeRelTab);
+	if (*NextPeSection == NULL) {
+		Status = EFI_ABORTED;
+		goto exit;
 	}
 
 	//
