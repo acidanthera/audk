@@ -62,21 +62,6 @@ GetShdrByIndex (
 }
 
 static
-const char *
-BaseName (
-	IN const char *Path
-  )
-{
-	char *BaseName;
-
-	assert (Path != NULL);
-
-	BaseName = strrchr (Path, '/');
-
-	return (BaseName != NULL) ? (BaseName + 1) : Path;
-}
-
-static
 VOID
 FreeRelocs (
 	 IN PeRelocs *PeRel
@@ -553,83 +538,6 @@ CreateRelocSection (
 }
 
 static
-VOID
-FixupDebugSection (
-	PeSection *PeS
-  )
-{
-	DebugData *Data;
-
-	assert (PeS != NULL);
-
-	Data = (DebugData *)PeS->Data;
-	Data->Dir.FileOffset += PeS->PeShdr.PointerToRawData - PeS->PeShdr.VirtualAddress;
-}
-
-static
-PeSection *
-CreateDebugSection (
-	IN OUT PeHeader   *PeH,
-	IN     const char *FileName
-  )
-{
-	PeSection *PeS;
-	UINT32    SectionSize;
-	UINT32    RawDataSize;
-	DebugData *Data;
-
-	assert (PeH      != NULL);
-	assert (FileName != NULL);
-
-	//
-	// Allocate PE section
-	//
-	SectionSize = sizeof (*Data) + strlen (FileName) + 1;
-	RawDataSize = ALIGN_VALUE (SectionSize, PeH->Nt->FileAlignment);
-	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
-	if (PeS == NULL) {
-		fprintf (stderr, "ImageTool: Could not allocate memory for Pe .debug section\n");
-		return NULL;
-	}
-
-	Data = (DebugData *)PeS->Data;
-
-	//
-	// Fill in section header details
-	//
-	strncpy ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name));
-
-	PeS->PeShdr.VirtualSize     = SectionSize;
-	PeS->PeShdr.SizeOfRawData   = RawDataSize;
-	PeS->PeShdr.Characteristics =
-	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
-		EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
-	PeS->Fixup                  = FixupDebugSection;
-
-	//
-	// Create section contents
-	//
-	Data->Dir.Type       = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
-	Data->Dir.SizeOfData = SectionSize - sizeof (Data->Dir);
-	Data->Dir.RVA        = sizeof (Data->Dir);
-	Data->Dir.FileOffset = Data->Dir.RVA;
-
-	Data->Rsds.Signature = CODEVIEW_SIGNATURE_RSDS;
-	snprintf (Data->Name, strlen (FileName) + 1, "%s", FileName);
-
-	//
-	// Update file header details
-	//
-	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
-	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
-
-	PeH->Nt->DataDirectory[DIR_DEBUG].Size = SectionSize;
-
-	return PeS;
-}
-
-static
 PeSection *
 FindSection (
 	IN PeSection *PeSections,
@@ -814,16 +722,7 @@ WritePeFile (
 				PeH->Nt->DataDirectory[DIR_BASERELOC].VirtualAddress = Position;
 			}
 
-			if (strncmp ((char *)PeS->PeShdr.Name, ".debug", sizeof (PeS->PeShdr.Name)) == 0) {
-				PeH->Nt->DataDirectory[DIR_DEBUG].VirtualAddress = Position;
-				((DebugData *)PeS->Data)->Dir.RVA += Position;
-			}
-
 			Position += PeS->PeShdr.SizeOfRawData;
-		}
-
-		if (PeS->Fixup != NULL) {
-			PeS->Fixup (PeS);
 		}
 	}
 
@@ -1021,9 +920,9 @@ ElfToPe (
 	PeH.Dos.e_lfanew = sizeof (EFI_IMAGE_DOS_HEADER);
 
 	//
-  // Only base relocation and debug directory
+  // Only base relocation directory
 	//
-	NtSize = sizeof (EFI_IMAGE_NT_HEADERS) + sizeof (EFI_IMAGE_DATA_DIRECTORY) * 2;
+	NtSize = sizeof (EFI_IMAGE_NT_HEADERS) + sizeof (EFI_IMAGE_DATA_DIRECTORY);
 	PeH.Nt = calloc (1, NtSize);
 	if (PeH.Nt == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
@@ -1032,7 +931,7 @@ ElfToPe (
 	}
 
 	PeH.Nt->CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
-	PeH.Nt->NumberOfRvaAndSizes = 2;
+	PeH.Nt->NumberOfRvaAndSizes = 1;
 	DataDirSize = sizeof (EFI_IMAGE_DATA_DIRECTORY) * PeH.Nt->NumberOfRvaAndSizes;
 
   PeH.Nt->CommonHeader.FileHeader.SizeOfOptionalHeader = DataDirSize +
@@ -1134,12 +1033,6 @@ ElfToPe (
 		}
 
 		NextPeSection = &(*NextPeSection)->Next;
-	}
-
-	*NextPeSection = CreateDebugSection (&PeH, BaseName (PeName));
-	if (*NextPeSection == NULL) {
-		Status = EFI_ABORTED;
-		goto exit;
 	}
 
 	//
