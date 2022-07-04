@@ -58,7 +58,7 @@ Ext4InitialiseUnicodeCollationInternal (
   CHAR8                           *BestLanguage;
 
   Iso639Language = (BOOLEAN)(ProtocolGuid == &gEfiUnicodeCollationProtocolGuid);
-  RetStatus = EFI_UNSUPPORTED;
+  RetStatus      = EFI_UNSUPPORTED;
   GetEfiGlobalVariable2 (VariableName, (VOID **)&Language, NULL);
 
   Status = gBS->LocateHandleBuffer (
@@ -96,7 +96,7 @@ Ext4InitialiseUnicodeCollationInternal (
     if (BestLanguage != NULL) {
       FreePool (BestLanguage);
       gUnicodeCollationInterface = Uci;
-      RetStatus = EFI_SUCCESS;
+      RetStatus                  = EFI_SUCCESS;
       break;
     }
   }

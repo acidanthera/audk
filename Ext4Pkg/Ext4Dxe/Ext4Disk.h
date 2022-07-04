@@ -130,16 +130,16 @@
 
 #define EXT4_FEATURE_RO_COMPAT_SPARSE_SUPER   0x0001
 #define EXT4_FEATURE_RO_COMPAT_LARGE_FILE     0x0002
-#define EXT4_FEATURE_RO_COMPAT_BTREE_DIR      0x0004     // Unused
+#define EXT4_FEATURE_RO_COMPAT_BTREE_DIR      0x0004// Unused
 #define EXT4_FEATURE_RO_COMPAT_HUGE_FILE      0x0008
 #define EXT4_FEATURE_RO_COMPAT_GDT_CSUM       0x0010
 #define EXT4_FEATURE_RO_COMPAT_DIR_NLINK      0x0020
 #define EXT4_FEATURE_RO_COMPAT_EXTRA_ISIZE    0x0040
-#define EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT   0x0080     // Not implemented in ext4
+#define EXT4_FEATURE_RO_COMPAT_HAS_SNAPSHOT   0x0080// Not implemented in ext4
 #define EXT4_FEATURE_RO_COMPAT_QUOTA          0x0100
 #define EXT4_FEATURE_RO_COMPAT_BIGALLOC       0x0200
 #define EXT4_FEATURE_RO_COMPAT_METADATA_CSUM  0x0400
-#define EXT4_FEATURE_RO_COMPAT_REPLICA        0x0800     // Not used
+#define EXT4_FEATURE_RO_COMPAT_REPLICA        0x0800// Not used
 
 // We explicitly don't recognise this, so we get read only.
 #define EXT4_FEATURE_RO_COMPAT_READONLY  0x1000
@@ -149,7 +149,7 @@
  * Absolutely needed features:
  *    1) Every incompat, because we might want to mount root filesystems
  *    2) Relevant RO_COMPATs(I'm not sure of what to do wrt quota, project)
-**/
+ **/
 
 #define EXT4_INO_TYPE_FIFO       0x1000
 #define EXT4_INO_TYPE_CHARDEV    0x2000
@@ -259,7 +259,7 @@ typedef struct {
   UINT64    s_mmp_block;
   UINT32    s_raid_stride_width;
   UINT8     s_log_groups_per_flex;
-  UINT8     s_checksum_type;   // Only valid value is 1 - CRC32C
+  UINT8     s_checksum_type; // Only valid value is 1 - CRC32C
   UINT16    s_reserved_pad;
   UINT64    s_kbytes_written;
 
@@ -283,7 +283,7 @@ typedef struct {
   UINT32    s_usr_quota_inum;
   UINT32    s_grp_quota_inum;
   UINT32    s_overhead_blocks;
-  UINT32    s_backup_bgs[2];    // sparse_super2
+  UINT32    s_backup_bgs[2]; // sparse_super2
   UINT8     s_encrypt_algos[4];
   UINT8     s_encrypt_pw_salt[16];
   UINT32    s_lpf_ino;
@@ -293,7 +293,10 @@ typedef struct {
   UINT32    s_checksum;
 } EXT4_SUPERBLOCK;
 
-STATIC_ASSERT (sizeof (EXT4_SUPERBLOCK) == 1024, "ext4 superblock struct has incorrect size");
+STATIC_ASSERT (
+  sizeof (EXT4_SUPERBLOCK) == 1024,
+  "ext4 superblock struct has incorrect size"
+  );
 
 typedef struct {
   UINT32    bg_block_bitmap_lo;
@@ -355,7 +358,8 @@ typedef struct _Ext4_I_OSD2_Hurd {
 } EXT4_OSD2_HURD;
 
 typedef union {
-  // Note: Toolchain-specific defines (such as "linux") stops us from using simpler names down here.
+  // Note: Toolchain-specific defines (such as "linux") stops us from using
+  // simpler names down here.
   EXT4_OSD2_LINUX    data_linux;
   EXT4_OSD2_HURD     data_hurd;
 } EXT4_OSD2;
@@ -421,7 +425,8 @@ typedef struct {
 typedef struct {
   // This index covers logical blocks from 'ei_block'
   UINT32    ei_block;
-  // Block of the next level of the extent tree, similarly split in a high and low portion.
+  // Block of the next level of the extent tree, similarly split in a high and
+  // low portion.
   UINT32    ei_leaf_lo;
   UINT16    ei_leaf_hi;
 
@@ -454,8 +459,9 @@ typedef struct {
 /**
  * EXT4 has this feature called uninitialized extents:
  * An extent has a maximum of 32768 blocks (2^15 or 1 << 15).
- * When we find an extent with > 32768 blocks, this extent is called uninitialized.
- * Long story short, it's an extent that behaves as a file hole but has blocks already allocated.
+ * When we find an extent with > 32768 blocks, this extent is called
+ * uninitialized. Long story short, it's an extent that behaves as a file hole
+ * but has blocks already allocated.
  */
 #define EXT4_EXTENT_MAX_INITIALIZED  (1 << 15)
 
@@ -464,5 +470,7 @@ typedef UINT32  EXT4_INO_NR;
 
 // 2 is always the root inode number in ext4
 #define EXT4_ROOT_INODE_NR  2
+
+#define EXT4_BLOCK_FILE_HOLE  0
 
 #endif

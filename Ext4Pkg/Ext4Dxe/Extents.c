@@ -1,7 +1,7 @@
 /** @file
   Extent related routines
 
-  Copyright (c) 2021 Pedro Falcato All rights reserved.
+  Copyright (c) 2021 - 2022 Pedro Falcato All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -244,12 +244,8 @@ Ext4GetExtent (
 
   DEBUG ((DEBUG_FS, "[ext4] Looking up extent for block %lu\n", LogicalBlock));
 
-  if (!(Inode->i_flags & EXT4_EXTENTS_FL)) {
-    return EFI_UNSUPPORTED;
-  }
-
   // ext4 does not have support for logical block numbers bigger than UINT32_MAX
-  if (LogicalBlock > (UINT32)- 1) {
+  if (LogicalBlock > (UINT32)-1) {
     return EFI_NO_MAPPING;
   }
 
@@ -259,6 +255,17 @@ Ext4GetExtent (
     *Extent = *Ext;
 
     return EFI_SUCCESS;
+  }
+
+  if (!(Inode->i_flags & EXT4_EXTENTS_FL)) {
+    // If this is an older ext2/ext3 filesystem, emulate Ext4GetExtent using the block map
+    Status = Ext4GetBlocks (Partition, File, LogicalBlock, Extent);
+
+    if (!EFI_ERROR (Status)) {
+      Ext4CacheExtents (File, Extent, 1);
+    }
+
+    return Status;
   }
 
   // Slow path, we'll need to read from disk and (try to) cache those extents.
@@ -332,7 +339,7 @@ Ext4GetExtent (
     return EFI_NO_MAPPING;
   }
 
-  if (!(LogicalBlock >= Ext->ee_block && Ext->ee_block + Ext4GetExtentLength (Ext) > LogicalBlock)) {
+  if (!((LogicalBlock >= Ext->ee_block) && (Ext->ee_block + Ext4GetExtentLength (Ext) > LogicalBlock))) {
     // This extent does not cover the block
     if (Buffer != NULL) {
       FreePool (Buffer);
@@ -378,7 +385,7 @@ Ext4ExtentsMapStructCompare (
   Extent1 = UserStruct1;
   Extent2 = UserStruct2;
 
-  return Extent1->ee_block < Extent2->ee_block ? - 1 :
+  return Extent1->ee_block < Extent2->ee_block ? -1 :
          Extent1->ee_block > Extent2->ee_block ? 1 : 0;
 }
 
@@ -413,11 +420,11 @@ Ext4ExtentsMapKeyCompare (
   Extent = UserStruct;
   Block  = (UINT32)(UINTN)StandaloneKey;
 
-  if (Block >= Extent->ee_block && Block < Extent->ee_block + Ext4GetExtentLength (Extent)) {
+  if ((Block >= Extent->ee_block) && (Block < Extent->ee_block + Ext4GetExtentLength (Extent))) {
     return 0;
   }
 
-  return Block < Extent->ee_block ? - 1 :
+  return Block < Extent->ee_block ? -1 :
          Block > Extent->ee_block ? 1 : 0;
 }
 

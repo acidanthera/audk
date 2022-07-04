@@ -121,7 +121,7 @@ Ext4RetrieveDirent (
 
   Off = 0;
 
-  Inode = Directory->Inode;
+  Inode      = Directory->Inode;
   DirInoSize = EXT4_INODE_SIZE (Inode);
 
   DivU64x32Remainder (DirInoSize, Partition->BlockSize, &BlockRemainder);
@@ -141,7 +141,7 @@ Ext4RetrieveDirent (
     }
 
     for (BlockOffset = 0; BlockOffset < Partition->BlockSize; ) {
-      Entry = (EXT4_DIR_ENTRY *)(Buf + BlockOffset);
+      Entry          = (EXT4_DIR_ENTRY *)(Buf + BlockOffset);
       RemainingBlock = Partition->BlockSize - BlockOffset;
       // Check if the minimum directory entry fits inside [BlockOffset, EndOfBlock]
       if (RemainingBlock < EXT4_MIN_DIR_ENTRY_LEN) {
@@ -154,7 +154,7 @@ Ext4RetrieveDirent (
         return EFI_VOLUME_CORRUPTED;
       }
 
-      if (Entry->name_len > RemainingBlock || Entry->rec_len > RemainingBlock) {
+      if ((Entry->name_len > RemainingBlock) || (Entry->rec_len > RemainingBlock)) {
         // Corrupted filesystem
         FreePool (Buf);
         return EFI_VOLUME_CORRUPTED;
@@ -191,8 +191,9 @@ Ext4RetrieveDirent (
         continue;
       }
 
-      if (Entry->name_len == StrLen (Name) &&
-          !Ext4StrCmpInsensitive (DirentUcs2Name, (CHAR16 *)Name)) {
+      if ((Entry->name_len == StrLen (Name)) &&
+          !Ext4StrCmpInsensitive (DirentUcs2Name, (CHAR16 *)Name))
+      {
         ToCopy = MIN (Entry->rec_len, sizeof (EXT4_DIR_ENTRY));
 
         CopyMem (Result, Entry, ToCopy);
@@ -595,7 +596,7 @@ Ext4AddDentry (
 **/
 EXT4_DENTRY *
 Ext4CreateDentry (
-  IN CONST CHAR16              *Name,
+  IN CONST CHAR16     *Name,
   IN OUT EXT4_DENTRY  *Parent  OPTIONAL
   )
 {

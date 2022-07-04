@@ -91,7 +91,8 @@ Ext4IsLastPathSegment (
 STATIC
 BOOLEAN
 Ext4ApplyPermissions (
-  IN OUT EXT4_FILE *File, IN UINT64 OpenMode
+  IN OUT EXT4_FILE  *File,
+  IN UINT64         OpenMode
   )
 {
   UINT16  NeededPerms;
@@ -446,7 +447,7 @@ Ext4Open (
 
     Status = Ext4OpenFile (Current, PathSegment, Partition, EFI_FILE_MODE_READ, &File);
 
-    if (EFI_ERROR (Status) && Status != EFI_NOT_FOUND) {
+    if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
       return Status;
     } else if (Status == EFI_NOT_FOUND) {
       // We explicitly ignore the EFI_FILE_MODE_CREATE flag, since we don't have write support
@@ -551,7 +552,7 @@ Ext4CloseInternal (
   IN EXT4_FILE  *File
   )
 {
-  if (File == File->Partition->Root && !File->Partition->Unmounting) {
+  if ((File == File->Partition->Root) && !File->Partition->Unmounting) {
     return EFI_SUCCESS;
   }
 
@@ -617,7 +618,7 @@ Ext4ReadFile (
   EXT4_PARTITION  *Partition;
   EFI_STATUS      Status;
 
-  File = (EXT4_FILE *)This;
+  File      = (EXT4_FILE *)This;
   Partition = File->Partition;
 
   ASSERT (Ext4FileIsOpenable (File));
@@ -734,12 +735,12 @@ Ext4SetPosition (
   File = (EXT4_FILE *)This;
 
   // Only seeks to 0 (so it resets the ReadDir operation) are allowed
-  if (Ext4FileIsDir (File) && Position != 0) {
+  if (Ext4FileIsDir (File) && (Position != 0)) {
     return EFI_UNSUPPORTED;
   }
 
   // -1 (0xffffff.......) seeks to the end of the file
-  if (Position == (UINT64)- 1) {
+  if (Position == (UINT64)-1) {
     Position = EXT4_INODE_SIZE (File->Inode);
   }
 
@@ -792,7 +793,7 @@ Ext4GetFileInfo (
   Ext4FileMTime (File, &Info->ModificationTime);
   Ext4FileCreateTime (File, &Info->LastAccessTime);
   Info->Attribute = 0;
-  Info->Size = NeededLength;
+  Info->Size      = NeededLength;
 
   if (Ext4FileIsDir (File)) {
     Info->Attribute |= EFI_FILE_DIRECTORY;
@@ -902,7 +903,7 @@ Ext4GetFilesystemInfo (
                  Part->SuperBlock.s_free_blocks_count_hi
                  );
 
-  Info->BlockSize = Part->BlockSize;
+  Info->BlockSize  = Part->BlockSize;
   Info->Size       = NeededLength;
   Info->ReadOnly   = Part->ReadOnly;
   Info->VolumeSize = MultU64x32 (TotalBlocks, Part->BlockSize);
@@ -1033,7 +1034,7 @@ Ext4DuplicateFile (
   EFI_STATUS      Status;
 
   Partition = Original->Partition;
-  File = AllocateZeroPool (sizeof (EXT4_FILE));
+  File      = AllocateZeroPool (sizeof (EXT4_FILE));
 
   if (File == NULL) {
     return NULL;

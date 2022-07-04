@@ -1,7 +1,7 @@
 /** @file
   Common header for the driver
 
-  Copyright (c) 2021 Pedro Falcato All rights reserved.
+  Copyright (c) 2021 - 2022 Pedro Falcato All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -18,16 +18,16 @@
 #include <Protocol/DiskIo2.h>
 #include <Protocol/SimpleFileSystem.h>
 
-#include <Library/PcdLib.h>
-#include <Library/DebugLib.h>
-#include <Library/UefiLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/UefiDriverEntryPoint.h>
-#include <Library/UefiBootServicesTableLib.h>
-#include <Library/UefiRuntimeServicesTableLib.h>
 #include <Library/OrderedCollectionLib.h>
+#include <Library/PcdLib.h>
+#include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiDriverEntryPoint.h>
+#include <Library/UefiLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 #include "Ext4Disk.h"
 
@@ -42,7 +42,8 @@
 
    @param[in]        DeviceHandle     Handle to the block device.
    @param[in]        DiskIo           Pointer to an EFI_DISK_IO_PROTOCOL.
-   @param[in opt]    DiskIo2          Pointer to an EFI_DISK_IO2_PROTOCOL, if supported.
+   @param[in opt]    DiskIo2          Pointer to an EFI_DISK_IO2_PROTOCOL,
+if supported.
    @param[in]        BlockIo          Pointer to an EFI_BLOCK_IO_PROTOCOL.
 
    @retval EFI_SUCCESS      The opening was successful.
@@ -56,8 +57,8 @@ Ext4OpenPartition (
   IN EFI_BLOCK_IO_PROTOCOL           *BlockIo
   );
 
-typedef struct _Ext4File EXT4_FILE;
-typedef struct _Ext4_Dentry EXT4_DENTRY;
+typedef struct _Ext4File     EXT4_FILE;
+typedef struct _Ext4_Dentry  EXT4_DENTRY;
 
 typedef struct _Ext4_PARTITION {
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL    Interface;
@@ -90,12 +91,12 @@ typedef struct _Ext4_PARTITION {
 
 /**
    This structure represents a directory entry inside our directory entry tree.
-   For now, it will be used as a way to track file names inside our opening code,
-   but it may very well be used as a directory cache in the future.
+   For now, it will be used as a way to track file names inside our opening
+   code, but it may very well be used as a directory cache in the future.
    Because it's not being used as a directory cache right now,
    an EXT4_DENTRY structure is not necessarily unique name-wise in the list of
-   children. Therefore, the dentry tree does not accurately reflect the filesystem
-   structure.
+   children. Therefore, the dentry tree does not accurately reflect the
+   filesystem structure.
  */
 struct _Ext4_Dentry {
   UINTN                  RefCount;
@@ -106,7 +107,7 @@ struct _Ext4_Dentry {
   LIST_ENTRY             ListNode;
 };
 
-#define EXT4_DENTRY_FROM_DENTRY_LIST(Node)  BASE_CR (Node, EXT4_DENTRY, ListNode)
+#define EXT4_DENTRY_FROM_DENTRY_LIST(Node)  BASE_CR(Node, EXT4_DENTRY, ListNode)
 
 /**
    Creates a new dentry object.
@@ -120,7 +121,7 @@ struct _Ext4_Dentry {
 EXT4_DENTRY *
 Ext4CreateDentry (
   IN CONST CHAR16     *Name,
-  IN OUT EXT4_DENTRY  *Parent  OPTIONAL
+  IN OUT EXT4_DENTRY  *Parent OPTIONAL
   );
 
 /**
@@ -149,7 +150,8 @@ Ext4UnrefDentry (
 /**
    Opens and parses the superblock.
 
-   @param[out]     Partition Partition structure to fill with filesystem details.
+   @param[out]     Partition Partition structure to fill with filesystem
+details.
    @retval EFI_SUCCESS       Parsing was succesful and the partition is a
                              valid ext4 partition.
 **/
@@ -221,15 +223,15 @@ Ext4ReadDiskIo (
 **/
 EFI_STATUS
 Ext4ReadBlocks (
-  IN  EXT4_PARTITION  *Partition,
-  OUT VOID            *Buffer,
-  IN  UINTN           NumberBlocks,
-  IN  EXT4_BLOCK_NR   BlockNumber
+  IN EXT4_PARTITION  *Partition,
+  OUT VOID           *Buffer,
+  IN UINTN           NumberBlocks,
+  IN EXT4_BLOCK_NR   BlockNumber
   );
 
 /**
-   Allocates a buffer and reads blocks from the partition's disk using the DISK_IO protocol.
-   This function is deprecated and will be removed in the future.
+   Allocates a buffer and reads blocks from the partition's disk using the
+DISK_IO protocol. This function is deprecated and will be removed in the future.
 
    @param[in]  Partition      Pointer to the opened ext4 partition.
    @param[in]  NumberBlocks   Length of the read, in filesystem blocks.
@@ -246,13 +248,15 @@ Ext4AllocAndReadBlocks (
   );
 
 /**
-   Checks if the opened partition has the 64-bit feature (see EXT4_FEATURE_INCOMPAT_64BIT).
+   Checks if the opened partition has the 64-bit feature (see
+EXT4_FEATURE_INCOMPAT_64BIT).
 
    @param[in]  Partition      Pointer to the opened ext4 partition.
 
    @return TRUE if EXT4_FEATURE_INCOMPAT_64BIT is enabled, else FALSE.
 **/
-#define EXT4_IS_64_BIT(Partition)  ((Partition->FeaturesIncompat & EXT4_FEATURE_INCOMPAT_64BIT) != 0)
+#define EXT4_IS_64_BIT(Partition)                                              \
+  ((Partition->FeaturesIncompat & EXT4_FEATURE_INCOMPAT_64BIT) != 0)
 
 /**
    Composes an EXT4_BLOCK_NR safely, from two halfs.
@@ -263,8 +267,8 @@ Ext4AllocAndReadBlocks (
 
    @return The block number formed by Low, and if 64 bit is enabled, High.
 **/
-#define EXT4_BLOCK_NR_FROM_HALFS(Partition, Low, High) \
-  EXT4_IS_64_BIT (Partition) ? (Low | LShiftU64 (High, 32)) : Low
+#define EXT4_BLOCK_NR_FROM_HALFS(Partition, Low, High)                         \
+  EXT4_IS_64_BIT(Partition) ? (Low | LShiftU64(High, 32)) : Low
 
 /**
    Retrieves a block group descriptor of the ext4 filesystem.
@@ -285,15 +289,16 @@ Ext4GetBlockGroupDesc (
 
    @param[in]    Partition  Pointer to the opened partition.
    @param[in]    InodeNum   Number of the desired Inode
-   @param[out]   OutIno     Pointer to where it will be stored a pointer to the read inode.
+   @param[out]   OutIno     Pointer to where it will be stored a pointer to the
+read inode.
 
    @return Status of the inode read.
 **/
 EFI_STATUS
 Ext4ReadInode (
-  IN  EXT4_PARTITION  *Partition,
-  IN  EXT4_INO_NR     InodeNum,
-  OUT EXT4_INODE      **OutIno
+  IN EXT4_PARTITION  *Partition,
+  IN EXT4_INO_NR     InodeNum,
+  OUT EXT4_INODE     **OutIno
   );
 
 /**
@@ -304,7 +309,8 @@ Ext4ReadInode (
 
    @return The number of bytes.
 **/
-#define EXT4_BLOCK_TO_BYTES(Partition, Block)  MultU64x32 (Block, Partition->BlockSize)
+#define EXT4_BLOCK_TO_BYTES(Partition, Block)                                  \
+  MultU64x32(Block, Partition->BlockSize)
 
 /**
    Reads from an EXT4 inode.
@@ -313,17 +319,18 @@ Ext4ReadInode (
    @param[out]     Buffer        Pointer to the buffer.
    @param[in]      Offset        Offset of the read.
    @param[in out]  Length        Pointer to the length of the buffer, in bytes.
-                                 After a succesful read, it's updated to the number of read bytes.
+                                 After a succesful read, it's updated to the
+number of read bytes.
 
    @return Status of the read operation.
 **/
 EFI_STATUS
 Ext4Read (
-  IN     EXT4_PARTITION  *Partition,
-  IN     EXT4_FILE       *File,
-  OUT    VOID            *Buffer,
-  IN     UINT64          Offset,
-  IN OUT UINTN           *Length
+  IN EXT4_PARTITION  *Partition,
+  IN EXT4_FILE       *File,
+  OUT VOID           *Buffer,
+  IN UINT64          Offset,
+  IN OUT UINTN       *Length
   );
 
 /**
@@ -333,24 +340,27 @@ Ext4Read (
 
    @return The size of the inode, in bytes.
 **/
-#define EXT4_INODE_SIZE(Inode)  (LShiftU64 (Inode->i_size_hi, 32) | Inode->i_size_lo)
+#define EXT4_INODE_SIZE(Inode)                                                 \
+  (LShiftU64(Inode->i_size_hi, 32) | Inode->i_size_lo)
 
 /**
    Retrieves an extent from an EXT4 inode.
    @param[in]      Partition     Pointer to the opened EXT4 partition.
    @param[in]      File          Pointer to the opened file.
-   @param[in]      LogicalBlock  Block number which the returned extent must cover.
-   @param[out]     Extent        Pointer to the output buffer, where the extent will be copied to.
+   @param[in]      LogicalBlock  Block number which the returned extent must
+cover.
+   @param[out]     Extent        Pointer to the output buffer, where the extent
+will be copied to.
 
    @retval EFI_SUCCESS        Retrieval was succesful.
    @retval EFI_NO_MAPPING     Block has no mapping.
 **/
 EFI_STATUS
 Ext4GetExtent (
-  IN  EXT4_PARTITION  *Partition,
-  IN  EXT4_FILE       *File,
-  IN  EXT4_BLOCK_NR   LogicalBlock,
-  OUT EXT4_EXTENT     *Extent
+  IN EXT4_PARTITION  *Partition,
+  IN EXT4_FILE       *File,
+  IN EXT4_BLOCK_NR   LogicalBlock,
+  OUT EXT4_EXTENT    *Extent
   );
 
 struct _Ext4File {
@@ -371,7 +381,8 @@ struct _Ext4File {
   EXT4_DENTRY           *Dentry;
 };
 
-#define EXT4_FILE_FROM_OPEN_FILES_NODE(Node)  BASE_CR (Node, EXT4_FILE, OpenFilesListNode)
+#define EXT4_FILE_FROM_OPEN_FILES_NODE(Node)                                   \
+  BASE_CR(Node, EXT4_FILE, OpenFilesListNode)
 
 /**
    Retrieves a directory entry.
@@ -385,9 +396,9 @@ struct _Ext4File {
 **/
 EFI_STATUS
 Ext4RetrieveDirent (
-  IN  EXT4_FILE       *Directory,
-  IN  CONST CHAR16    *NameUnicode,
-  IN  EXT4_PARTITION  *Partition,
+  IN EXT4_FILE        *Directory,
+  IN CONST CHAR16     *NameUnicode,
+  IN EXT4_PARTITION   *Partition,
   OUT EXT4_DIR_ENTRY  *Result
   );
 
@@ -404,11 +415,11 @@ Ext4RetrieveDirent (
 **/
 EFI_STATUS
 Ext4OpenFile (
-  IN  EXT4_FILE       *Directory,
-  IN  CONST CHAR16    *Name,
-  IN  EXT4_PARTITION  *Partition,
-  IN  UINT64          OpenMode,
-  OUT EXT4_FILE       **OutFile
+  IN EXT4_FILE       *Directory,
+  IN CONST CHAR16    *Name,
+  IN EXT4_PARTITION  *Partition,
+  IN UINT64          OpenMode,
+  OUT EXT4_FILE      **OutFile
   );
 
 /**
@@ -424,11 +435,11 @@ Ext4OpenFile (
 **/
 EFI_STATUS
 Ext4OpenDirent (
-  IN  EXT4_PARTITION  *Partition,
-  IN  UINT64          OpenMode,
-  OUT EXT4_FILE       **OutFile,
-  IN  EXT4_DIR_ENTRY  *Entry,
-  IN  EXT4_FILE       *Directory
+  IN EXT4_PARTITION  *Partition,
+  IN UINT64          OpenMode,
+  OUT EXT4_FILE      **OutFile,
+  IN EXT4_DIR_ENTRY  *Entry,
+  IN EXT4_FILE       *Directory
   );
 
 /**
@@ -449,20 +460,22 @@ Ext4AllocateInode (
   Open the root directory on a volume.
 
   @param[in]   This A pointer to the volume to open the root directory.
-  @param[out]  Root A pointer to the location to return the opened file handle for the
-                    root directory.
+  @param[out]  Root A pointer to the location to return the opened file handle
+for the root directory.
 
   @retval EFI_SUCCESS          The device was opened.
-  @retval EFI_UNSUPPORTED      This volume does not support the requested file system type.
+  @retval EFI_UNSUPPORTED      This volume does not support the requested file
+system type.
   @retval EFI_NO_MEDIA         The device has no medium.
   @retval EFI_DEVICE_ERROR     The device reported an error.
   @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
   @retval EFI_ACCESS_DENIED    The service denied access to the file.
-  @retval EFI_OUT_OF_RESOURCES The volume was not opened due to lack of resources.
-  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the medium is no
-                               longer supported. Any existing file handles for this volume are
-                               no longer valid. To access the files on the new medium, the
-                               volume must be reopened with OpenVolume().
+  @retval EFI_OUT_OF_RESOURCES The volume was not opened due to lack of
+resources.
+  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the
+medium is no longer supported. Any existing file handles for this volume are no
+longer valid. To access the files on the new medium, the volume must be reopened
+with OpenVolume().
 
 **/
 EFI_STATUS
@@ -503,30 +516,32 @@ Ext4CloseInternal (
 /**
   Opens a new file relative to the source file's location.
 
-  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                         handle to the source location. This would typically be an open
-                         handle to a directory.
-  @param[out] NewHandle  A pointer to the location to return the opened handle for the new
-                         file.
-  @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
-                         The file name may contain the following path modifiers: "\", ".",
-                         and "..".
-  @param[in]  OpenMode   The mode to open the file. The only valid combinations that the
-                         file may be opened with are: Read, Read/Write, or Create/Read/Write.
-  @param[in]  Attributes Only valid for EFI_FILE_MODE_CREATE, in which case these are the
-                         attribute bits for the newly created file.
+  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the
+file handle to the source location. This would typically be an open handle to a
+directory.
+  @param[out] NewHandle  A pointer to the location to return the opened handle
+for the new file.
+  @param[in]  FileName   The Null-terminated string of the name of the file to
+be opened. The file name may contain the following path modifiers: "\", ".", and
+"..".
+  @param[in]  OpenMode   The mode to open the file. The only valid combinations
+that the file may be opened with are: Read, Read/Write, or Create/Read/Write.
+  @param[in]  Attributes Only valid for EFI_FILE_MODE_CREATE, in which case
+these are the attribute bits for the newly created file.
 
   @retval EFI_SUCCESS          The file was opened.
-  @retval EFI_NOT_FOUND        The specified file could not be found on the device.
+  @retval EFI_NOT_FOUND        The specified file could not be found on the
+device.
   @retval EFI_NO_MEDIA         The device has no medium.
-  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the medium is no
-                               longer supported.
+  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the
+medium is no longer supported.
   @retval EFI_DEVICE_ERROR     The device reported an error.
   @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
-  @retval EFI_WRITE_PROTECTED  An attempt was made to create a file, or open a file for write
-                               when the media is write-protected.
+  @retval EFI_WRITE_PROTECTED  An attempt was made to create a file, or open a
+file for write when the media is write-protected.
   @retval EFI_ACCESS_DENIED    The service denied access to the file.
-  @retval EFI_OUT_OF_RESOURCES Not enough resources were available to open the file.
+  @retval EFI_OUT_OF_RESOURCES Not enough resources were available to open the
+file.
   @retval EFI_VOLUME_FULL      The volume is full.
 
 **/
@@ -543,8 +558,8 @@ Ext4Open (
 /**
   Closes a specified file handle.
 
-  @param[in]  This          A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                            handle to close.
+  @param[in]  This          A pointer to the EFI_FILE_PROTOCOL instance that is
+the file handle to close.
 
   @retval EFI_SUCCESS   The file was closed.
 
@@ -558,11 +573,13 @@ Ext4Close (
 /**
   Close and delete the file handle.
 
-  @param[in]  This                     A pointer to the EFI_FILE_PROTOCOL instance that is the
-                                       handle to the file to delete.
+  @param[in]  This                     A pointer to the EFI_FILE_PROTOCOL
+instance that is the handle to the file to delete.
 
-  @retval EFI_SUCCESS              The file was closed and deleted, and the handle was closed.
-  @retval EFI_WARN_DELETE_FAILURE  The handle was closed, but the file was not deleted.
+  @retval EFI_SUCCESS              The file was closed and deleted, and the
+handle was closed.
+  @retval EFI_WARN_DELETE_FAILURE  The handle was closed, but the file was not
+deleted.
 
 **/
 EFI_STATUS
@@ -574,21 +591,23 @@ Ext4Delete (
 /**
   Reads data from a file.
 
-  @param[in]      This             A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                                   handle to read data from.
-  @param[in out]  BufferSize       On input, the size of the Buffer. On output, the amount of data
-                                   returned in Buffer. In both cases, the size is measured in bytes.
+  @param[in]      This             A pointer to the EFI_FILE_PROTOCOL instance
+that is the file handle to read data from.
+  @param[in out]  BufferSize       On input, the size of the Buffer. On output,
+the amount of data returned in Buffer. In both cases, the size is measured in
+bytes.
   @param[out]     Buffer           The buffer into which the data is read.
 
   @retval EFI_SUCCESS          Data was read.
   @retval EFI_NO_MEDIA         The device has no medium.
   @retval EFI_DEVICE_ERROR     The device reported an error.
   @retval EFI_DEVICE_ERROR     An attempt was made to read from a deleted file.
-  @retval EFI_DEVICE_ERROR     On entry, the current file position is beyond the end of the file.
+  @retval EFI_DEVICE_ERROR     On entry, the current file position is beyond the
+end of the file.
   @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
-  @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current directory
-                               entry. BufferSize has been updated with the size
-                               needed to complete the request.
+  @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current
+directory entry. BufferSize has been updated with the size needed to complete
+the request.
 
 **/
 EFI_STATUS
@@ -602,10 +621,10 @@ Ext4ReadFile (
 /**
   Writes data to a file.
 
-  @param[in]      This        A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                              handle to write data to.
-  @param[in out]  BufferSize  On input, the size of the Buffer. On output, the amount of data
-                              actually written. In both cases, the size is measured in bytes.
+  @param[in]      This        A pointer to the EFI_FILE_PROTOCOL instance that
+is the file handle to write data to.
+  @param[in out]  BufferSize  On input, the size of the Buffer. On output, the
+amount of data actually written. In both cases, the size is measured in bytes.
   @param[in]      Buffer      The buffer of data to write.
 
   @retval EFI_SUCCESS          Data was written.
@@ -630,13 +649,15 @@ Ext4WriteFile (
 /**
   Returns a file's current position.
 
-  @param[in]   This            A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                               handle to get the current position on.
-  @param[out]  Position        The address to return the file's current position value.
+  @param[in]   This            A pointer to the EFI_FILE_PROTOCOL instance that
+is the file handle to get the current position on.
+  @param[out]  Position        The address to return the file's current position
+value.
 
   @retval EFI_SUCCESS      The position was returned.
   @retval EFI_UNSUPPORTED  The request is not valid on open directories.
-  @retval EFI_DEVICE_ERROR An attempt was made to get the position from a deleted file.
+  @retval EFI_DEVICE_ERROR An attempt was made to get the position from a
+deleted file.
 
 **/
 EFI_STATUS
@@ -649,14 +670,16 @@ Ext4GetPosition (
 /**
   Sets a file's current position.
 
-  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that is the
-                              file handle to set the requested position on.
-  @param[in] Position        The byte position from the start of the file to set.
+  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that
+is the file handle to set the requested position on.
+  @param[in] Position        The byte position from the start of the file to
+set.
 
   @retval EFI_SUCCESS      The position was set.
   @retval EFI_UNSUPPORTED  The seek request for nonzero is not valid on open
                            directories.
-  @retval EFI_DEVICE_ERROR An attempt was made to set the position of a deleted file.
+  @retval EFI_DEVICE_ERROR An attempt was made to set the position of a deleted
+file.
 
 **/
 EFI_STATUS
@@ -669,21 +692,22 @@ Ext4SetPosition (
 /**
   Returns information about a file.
 
-  @param[in]      This            A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                                  handle the requested information is for.
-  @param[in]      InformationType The type identifier for the information being requested.
-  @param[in out]  BufferSize      On input, the size of Buffer. On output, the amount of data
-                                  returned in Buffer. In both cases, the size is measured in bytes.
-  @param[out]     Buffer          A pointer to the data buffer to return. The buffer's type is
-                                  indicated by InformationType.
+  @param[in]      This            A pointer to the EFI_FILE_PROTOCOL instance
+that is the file handle the requested information is for.
+  @param[in]      InformationType The type identifier for the information being
+requested.
+  @param[in out]  BufferSize      On input, the size of Buffer. On output, the
+amount of data returned in Buffer. In both cases, the size is measured in bytes.
+  @param[out]     Buffer          A pointer to the data buffer to return. The
+buffer's type is indicated by InformationType.
 
   @retval EFI_SUCCESS          The information was returned.
   @retval EFI_UNSUPPORTED      The InformationType is not known.
   @retval EFI_NO_MEDIA         The device has no medium.
   @retval EFI_DEVICE_ERROR     The device reported an error.
   @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
-  @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current directory entry.
-                               BufferSize has been updated with the size needed to complete
+  @retval EFI_BUFFER_TOO_SMALL The BufferSize is too small to read the current
+directory entry. BufferSize has been updated with the size needed to complete
                                the request.
 **/
 EFI_STATUS
@@ -698,35 +722,36 @@ Ext4GetInfo (
 /**
   Sets information about a file.
 
-  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that is the file
-                              handle the information is for.
+  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that
+is the file handle the information is for.
   @param[in]  InformationType The type identifier for the information being set.
   @param[in]  BufferSize      The size, in bytes, of Buffer.
-  @param[in]  Buffer          A pointer to the data buffer to write. The buffer's type is
-                              indicated by InformationType.
+  @param[in]  Buffer          A pointer to the data buffer to write. The
+buffer's type is indicated by InformationType.
 
   @retval EFI_SUCCESS          The information was set.
   @retval EFI_UNSUPPORTED      The InformationType is not known.
   @retval EFI_NO_MEDIA         The device has no medium.
   @retval EFI_DEVICE_ERROR     The device reported an error.
   @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
-  @retval EFI_WRITE_PROTECTED  InformationType is EFI_FILE_INFO_ID and the media is
-                               read-only.
-  @retval EFI_WRITE_PROTECTED  InformationType is EFI_FILE_PROTOCOL_SYSTEM_INFO_ID
-                               and the media is read only.
-  @retval EFI_WRITE_PROTECTED  InformationType is EFI_FILE_SYSTEM_VOLUME_LABEL_ID
-                               and the media is read-only.
-  @retval EFI_ACCESS_DENIED    An attempt is made to change the name of a file to a
-                               file that is already present.
-  @retval EFI_ACCESS_DENIED    An attempt is being made to change the EFI_FILE_DIRECTORY
-                               Attribute.
-  @retval EFI_ACCESS_DENIED    An attempt is being made to change the size of a directory.
-  @retval EFI_ACCESS_DENIED    InformationType is EFI_FILE_INFO_ID and the file was opened
-                               read-only and an attempt is being made to modify a field
-                               other than Attribute.
+  @retval EFI_WRITE_PROTECTED  InformationType is EFI_FILE_INFO_ID and the media
+is read-only.
+  @retval EFI_WRITE_PROTECTED  InformationType is
+EFI_FILE_PROTOCOL_SYSTEM_INFO_ID and the media is read only.
+  @retval EFI_WRITE_PROTECTED  InformationType is
+EFI_FILE_SYSTEM_VOLUME_LABEL_ID and the media is read-only.
+  @retval EFI_ACCESS_DENIED    An attempt is made to change the name of a file
+to a file that is already present.
+  @retval EFI_ACCESS_DENIED    An attempt is being made to change the
+EFI_FILE_DIRECTORY Attribute.
+  @retval EFI_ACCESS_DENIED    An attempt is being made to change the size of a
+directory.
+  @retval EFI_ACCESS_DENIED    InformationType is EFI_FILE_INFO_ID and the file
+was opened read-only and an attempt is being made to modify a field other than
+Attribute.
   @retval EFI_VOLUME_FULL      The volume is full.
-  @retval EFI_BAD_BUFFER_SIZE  BufferSize is smaller than the size of the type indicated
-                               by InformationType.
+  @retval EFI_BAD_BUFFER_SIZE  BufferSize is smaller than the size of the type
+indicated by InformationType.
 
 **/
 EFI_STATUS
@@ -784,8 +809,8 @@ Ext4FileIsReg (
   IN CONST EXT4_FILE  *File
   );
 
-// In EFI we can't open FIFO pipes, UNIX sockets, character/block devices since these concepts are
-// at the kernel level and are OS dependent.
+// In EFI we can't open FIFO pipes, UNIX sockets, character/block devices since
+// these concepts are at the kernel level and are OS dependent.
 
 /**
    Checks if a file is openable.
@@ -798,9 +823,9 @@ Ext4FileIsReg (
 **/
 #define Ext4FileIsOpenable(File)  (Ext4FileIsReg (File) || Ext4FileIsDir (File) || Ext4FileIsSymlink (File))
 
-#define EXT4_INODE_HAS_FIELD(Inode, \
-                             Field)  (Inode->i_extra_isize + EXT4_GOOD_OLD_INODE_SIZE >= OFFSET_OF (EXT4_INODE, Field) + \
-                                      sizeof (((EXT4_INODE *)NULL)->Field))
+#define EXT4_INODE_HAS_FIELD(Inode, Field)                                     \
+  (Inode->i_extra_isize + EXT4_GOOD_OLD_INODE_SIZE >=                          \
+   OFFSET_OF(EXT4_INODE, Field) + sizeof(((EXT4_INODE *)NULL)->Field))
 
 /**
    Calculates the physical space used by a file.
@@ -839,8 +864,8 @@ Ext4FileMTime (
    Gets the file's creation time, if possible.
    @param[in]      File   Pointer to the opened file.
    @param[out]     Time   Pointer to an EFI_TIME structure.
-                          In the case where the the creation time isn't recorded,
-                          Time is zeroed.
+                          In the case where the the creation time isn't
+recorded, Time is zeroed.
 **/
 VOID
 Ext4FileCreateTime (
@@ -849,8 +874,9 @@ Ext4FileCreateTime (
   );
 
 /**
-   Initialises Unicode collation, which is needed for case-insensitive string comparisons
-   within the driver (a good example of an application of this is filename comparison).
+   Initialises Unicode collation, which is needed for case-insensitive string
+comparisons within the driver (a good example of an application of this is
+filename comparison).
 
    @param[in]      DriverHandle    Handle to the driver image.
 
@@ -863,8 +889,8 @@ Ext4InitialiseUnicodeCollation (
   );
 
 /**
-   Does a case-insensitive string comparison. Refer to EFI_UNICODE_COLLATION_PROTOCOL's StriColl
-   for more details.
+   Does a case-insensitive string comparison. Refer to
+EFI_UNICODE_COLLATION_PROTOCOL's StriColl for more details.
 
    @param[in]      Str1   Pointer to a null terminated string.
    @param[in]      Str2   Pointer to a null terminated string.
@@ -883,7 +909,8 @@ Ext4StrCmpInsensitive (
    Retrieves the filename of the directory entry and converts it to UTF-16/UCS-2
 
    @param[in]      Entry   Pointer to a EXT4_DIR_ENTRY.
-   @param[out]      Ucs2FileName   Pointer to an array of CHAR16's, of size EXT4_NAME_MAX + 1.
+   @param[out]      Ucs2FileName   Pointer to an array of CHAR16's, of size
+EXT4_NAME_MAX + 1.
 
    @retval EFI_SUCCESS   Unicode collation was successfully initialised.
    @retval !EFI_SUCCESS  Failure.
@@ -895,7 +922,8 @@ Ext4GetUcs2DirentName (
   );
 
 /**
-   Retrieves information about the file and stores it in the EFI_FILE_INFO format.
+   Retrieves information about the file and stores it in the EFI_FILE_INFO
+format.
 
    @param[in]      File           Pointer to an opened file.
    @param[out]     Info           Pointer to a EFI_FILE_INFO.
@@ -905,9 +933,9 @@ Ext4GetUcs2DirentName (
 **/
 EFI_STATUS
 Ext4GetFileInfo (
-  IN     EXT4_FILE      *File,
-  OUT    EFI_FILE_INFO  *Info,
-  IN OUT UINTN          *BufferSize
+  IN EXT4_FILE       *File,
+  OUT EFI_FILE_INFO  *Info,
+  IN OUT UINTN       *BufferSize
   );
 
 /**
@@ -917,8 +945,8 @@ Ext4GetFileInfo (
    @param[in]      File        Pointer to the open directory.
    @param[out]     Buffer      Pointer to the output buffer.
    @param[in]      Offset      Initial directory position.
-   @param[in out] OutLength    Pointer to a UINTN that contains the length of the buffer,
-                               and the length of the actual EFI_FILE_INFO after the call.
+   @param[in out] OutLength    Pointer to a UINTN that contains the length of
+the buffer, and the length of the actual EFI_FILE_INFO after the call.
 
    @return Result of the operation.
 **/
@@ -971,38 +999,6 @@ Ext4InitExtentsMap (
 VOID
 Ext4FreeExtentsMap (
   IN EXT4_FILE  *File
-  );
-
-/**
-   Calculates the CRC32c checksum of the given buffer.
-
-   @param[in]      Buffer        Pointer to the buffer.
-   @param[in]      Length        Length of the buffer, in bytes.
-   @param[in]      InitialValue  Initial value of the CRC.
-
-   @return The CRC32c checksum.
-**/
-UINT32
-CalculateCrc32c (
-  IN CONST VOID  *Buffer,
-  IN UINTN       Length,
-  IN UINT32      InitialValue
-  );
-
-/**
-   Calculates the CRC16 checksum of the given buffer.
-
-   @param[in]      Buffer        Pointer to the buffer.
-   @param[in]      Length        Length of the buffer, in bytes.
-   @param[in]      InitialValue  Initial value of the CRC.
-
-   @return The CRC16 checksum.
-**/
-UINT16
-CalculateCrc16 (
-  IN CONST VOID  *Buffer,
-  IN UINTN       Length,
-  IN UINT16      InitialValue
   );
 
 /**
@@ -1101,7 +1097,7 @@ Ext4CalculateBlockGroupDescChecksum (
 
    @return TRUE if all features are supported, else FALSE.
 **/
-#define EXT4_HAS_RO_COMPAT(Partition, RoCompatFeatureSet) \
+#define EXT4_HAS_RO_COMPAT(Partition, RoCompatFeatureSet)                      \
   ((Partition->FeaturesRoCompat & RoCompatFeatureSet) == RoCompatFeatureSet)
 
 /**
@@ -1111,7 +1107,7 @@ Ext4CalculateBlockGroupDescChecksum (
 
    @return TRUE if all features are supported, else FALSE.
 **/
-#define EXT4_HAS_COMPAT(Partition, CompatFeatureSet) \
+#define EXT4_HAS_COMPAT(Partition, CompatFeatureSet)                           \
   ((Partition->FeaturesCompat & CompatFeatureSet) == CompatFeatureSet)
 
 /**
@@ -1121,10 +1117,11 @@ Ext4CalculateBlockGroupDescChecksum (
 
    @return TRUE if all features are supported, else FALSE.
 **/
-#define EXT4_HAS_INCOMPAT(Partition, IncompatFeatureSet) \
+#define EXT4_HAS_INCOMPAT(Partition, IncompatFeatureSet)                       \
   ((Partition->FeaturesIncompat & IncompatFeatureSet) == IncompatFeatureSet)
 
-// Note: Might be a good idea to provide generic Ext4Has$feature() through macros.
+// Note: Might be a good idea to provide generic Ext4Has$feature() through
+// macros.
 
 /**
    Checks if metadata_csum is enabled on the partition.
@@ -1132,8 +1129,8 @@ Ext4CalculateBlockGroupDescChecksum (
 
    @return TRUE if the metadata_csum is supported, else FALSE.
 **/
-#define EXT4_HAS_METADATA_CSUM(Partition) \
-  EXT4_HAS_RO_COMPAT (Partition, EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)
+#define EXT4_HAS_METADATA_CSUM(Partition)                                      \
+  EXT4_HAS_RO_COMPAT(Partition, EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)
 
 /**
    Checks if gdt_csum is enabled on the partition.
@@ -1141,8 +1138,8 @@ Ext4CalculateBlockGroupDescChecksum (
 
    @return TRUE if the gdt_csum is supported, else FALSE.
 **/
-#define EXT4_HAS_GDT_CSUM(Partition) \
-  EXT4_HAS_RO_COMPAT (Partition, EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)
+#define EXT4_HAS_GDT_CSUM(Partition)                                           \
+  EXT4_HAS_RO_COMPAT(Partition, EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)
 
 /**
    Retrieves the volume name.
@@ -1182,10 +1179,12 @@ Ext4SuperblockCheckMagic (
 
    @returns True if uninitialized, else false.
 **/
-#define EXT4_EXTENT_IS_UNINITIALIZED(Extent) ((Extent)->ee_len > EXT4_EXTENT_MAX_INITIALIZED)
+#define EXT4_EXTENT_IS_UNINITIALIZED(Extent)                                   \
+  ((Extent)->ee_len > EXT4_EXTENT_MAX_INITIALIZED)
 
 /**
-   Retrieves the extent's length, dealing with uninitialized extents in the process.
+   Retrieves the extent's length, dealing with uninitialized extents in the
+process.
 
    @param[in] Extent      Pointer to the EXT4_EXTENT
 
@@ -1194,6 +1193,24 @@ Ext4SuperblockCheckMagic (
 EXT4_BLOCK_NR
 Ext4GetExtentLength (
   IN CONST EXT4_EXTENT  *Extent
+  );
+
+/**
+   Retrieves an extent from an EXT2/3 inode (with a blockmap).
+   @param[in]      Partition     Pointer to the opened EXT4 partition.
+   @param[in]      File          Pointer to the opened file.
+   @param[in]      LogicalBlock  Block number which the returned extent must cover.
+   @param[out]     Extent        Pointer to the output buffer, where the extent will be copied to.
+
+   @retval EFI_SUCCESS        Retrieval was succesful.
+   @retval EFI_NO_MAPPING     Block has no mapping.
+**/
+EFI_STATUS
+Ext4GetBlocks (
+  IN  EXT4_PARTITION  *Partition,
+  IN  EXT4_FILE       *File,
+  IN  EXT4_BLOCK_NR   LogicalBlock,
+  OUT EXT4_EXTENT     *Extent
   );
 
 #endif

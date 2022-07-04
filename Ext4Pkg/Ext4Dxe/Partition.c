@@ -50,12 +50,12 @@ Ext4OpenPartition (
 
   Part->Interface.Revision   = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION;
   Part->Interface.OpenVolume = Ext4OpenVolume;
-  Status = gBS->InstallMultipleProtocolInterfaces (
-                  &DeviceHandle,
-                  &gEfiSimpleFileSystemProtocolGuid,
-                  &Part->Interface,
-                  NULL
-                  );
+  Status                     = gBS->InstallMultipleProtocolInterfaces (
+                                      &DeviceHandle,
+                                      &gEfiSimpleFileSystemProtocolGuid,
+                                      &Part->Interface,
+                                      NULL
+                                      );
 
   if (EFI_ERROR (Status)) {
     FreePool (Part);
