@@ -377,10 +377,7 @@ typedef struct _Ext4Inode {
   UINT32       i_blocks;
   UINT32       i_flags;
   UINT32       i_os_spec;
-  union {
-    UINT32       i_data[EXT4_NR_BLOCKS];
-    CHAR8        symlink[60];
-  };
+  UINT32       i_data[EXT4_NR_BLOCKS];
   UINT32       i_generation;
   UINT32       i_file_acl;
   UINT32       i_size_hi;

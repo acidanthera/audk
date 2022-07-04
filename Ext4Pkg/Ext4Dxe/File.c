@@ -164,7 +164,7 @@ Ext4ReadFastSymlink (
     return Status;
   }
 
-  CopyMem (AsciiSymlinkTmp, File->Inode->symlink, EXT4_FAST_SYMLINK_SIZE);
+  CopyMem (AsciiSymlinkTmp, (CONST CHAR8 *) File->Inode->i_data, EXT4_FAST_SYMLINK_SIZE);
 
   //
   // Add null-terminator
