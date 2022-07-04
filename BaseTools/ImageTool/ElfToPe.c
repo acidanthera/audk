@@ -129,11 +129,11 @@ FindElfGOTSectionFromGOTEntryElfRva (
 // Stores locations of GOT entries in COFF image. Returns TRUE if GOT entry is new.
 // Simple implementation as number of GOT entries is expected to be low.
 //
-// BOOLEAN
 static
 EFI_STATUS
 AccumulateCoffGOTEntries (
-  IN UINT32 GOTCoffEntry
+  IN UINT32  GOTCoffEntry,
+  IN BOOLEAN *New
   )
 {
   UINT32 Index;
@@ -141,7 +141,7 @@ AccumulateCoffGOTEntries (
   if (mGOTCoffEntries != NULL) {
     for (Index = 0; Index < mGOTNumCoffEntries; ++Index) {
       if (mGOTCoffEntries[Index] == GOTCoffEntry) {
-        // return FALSE;
+        *New = FALSE;
         return EFI_SUCCESS;
       }
     }
@@ -172,7 +172,7 @@ AccumulateCoffGOTEntries (
   mGOTCoffEntries[mGOTNumCoffEntries] = GOTCoffEntry;
   ++mGOTNumCoffEntries;
 
-  // return TRUE;
+  *New = TRUE;
   return EFI_SUCCESS;
 }
 
@@ -650,44 +650,64 @@ CreateRelocSection (
 }
 
 static
-PeSection *
-FindSection (
-	IN PeSection *PeSections,
-	IN UINT8    Type
+UINT32
+FindAddress (
+  IN  PeHeader  *PeH,
+  IN  PeSection *PeSections,
+	IN  UINT32    Index,
+  OUT UINT8     **SectionData,
+  OUT UINT32    *WOffset
   )
 {
+  UINT32    ROffset;
   PeSection *PeS;
 
-	assert (PeSections != NULL);
+  assert (PeH         != NULL);
+  assert (PeSections  != NULL);
+  assert (SectionData != NULL);
+  assert (WOffset     != NULL);
+
+  ROffset  = mPeSectionOffsets[Index].Offset;
+  *WOffset = PeH->Nt->SizeOfHeaders + ROffset;
 
   for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
-    if (PeS->Type == Type) {
-      return PeS;
+    if (mPeSectionOffsets[Index].Type == PeS->Type) {
+      *SectionData = PeS->Data;
+      break;
     }
-	}
 
-	return NULL;
+    *WOffset += PeSections->PeShdr.SizeOfRawData;
+  }
+
+	return ROffset;
 }
 
 static
 EFI_STATUS
 ApplyRelocs (
+  IN PeHeader  *PeH,
 	IN PeSection *PeSections
   )
 {
 	UINT32         Index;
 	const Elf_Shdr *RelShdr;
 	const Elf_Shdr *SecShdr;
+  UINT8          *SecData;
   UINT32         SecOffset;
-	PeSection      *PeSRel;
+  UINT32         WSecOffset;
 	UINTN          RelIdx;
 	const Elf_Rela *Rel;
 	const Elf_Sym  *Sym;
 	const Elf_Shdr *SymShdr;
-  UINT32         SymOffset;
+  UINT8          *SymData;
+  UINT32         WSymOffset;
 	UINT8          *Targ;
   UINT64         GOTEntryRva;
+  UINT8          *GOTData;
+  UINT32         GOTOffset;
+  UINT32         WGOTOffset;
   EFI_STATUS     Status;
+  BOOLEAN        NewGOTEntry;
 
 	assert (PeSections != NULL);
 
@@ -703,11 +723,7 @@ ApplyRelocs (
 		}
 
     SecShdr   = GetShdrByIndex (RelShdr->sh_info);
-    SecOffset = mPeSectionOffsets[RelShdr->sh_info].Offset;
-    PeSRel    = FindSection (PeSections, mPeSectionOffsets[RelShdr->sh_info].Type);
-		if (PeSRel == NULL) {
-			return EFI_NOT_FOUND;
-		}
+    SecOffset = FindAddress (PeH, PeSections, RelShdr->sh_info, &SecData, &WSecOffset);
 
 		//
 		// Process all relocation entries for this section.
@@ -724,27 +740,26 @@ ApplyRelocs (
 			}
 
       SymShdr   = GetShdrByIndex (Sym->st_shndx);
-      SymOffset = mPeSectionOffsets[Sym->st_shndx].Offset;
+      FindAddress (PeH, PeSections, Sym->st_shndx, &SymData, &WSymOffset);
 
-			Targ = PeSRel->Data + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
+			Targ = SecData + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
 			if (mEhdr->e_machine == EM_X86_64) {
 				switch (ELF_R_TYPE(Rel->r_info)) {
 					case R_X86_64_NONE:
 						break;
 					case R_X86_64_64:
-						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
+						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
 						break;
 					case R_X86_64_32:
-						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + SymOffset);
+						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
 						break;
 					case R_X86_64_32S:
-						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + SymOffset);
+						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
 						break;
 					case R_X86_64_PLT32:
 					case R_X86_64_PC32:
-						*(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (SymOffset - SymShdr->sh_addr)
-							- (SecOffset - SecShdr->sh_addr));
+            *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr));
 						break;
 					case R_X86_64_GOTPCREL:
 					case R_X86_64_GOTPCRELX:
@@ -755,19 +770,22 @@ ApplyRelocs (
               return Status;
             }
 
-						// *(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (mPeSectionOffsets[mGOTShIndex].Offset - mGOTShdr->sh_addr) - (PeSRel->Data - SecShdr->sh_addr));
-
-						GOTEntryRva += (mPeSectionOffsets[mGOTShIndex].Offset - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
-            Status = AccumulateCoffGOTEntries((UINT32)GOTEntryRva);
+            GOTOffset = FindAddress (PeH, PeSections, mGOTShIndex, &GOTData, &WGOTOffset);
+						*(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (WGOTOffset - WSecOffset) - (mGOTShdr->sh_addr - SecShdr->sh_addr));
+            //
+            // ELF Rva -> PE Rva
+            //
+						GOTEntryRva += (GOTOffset - mGOTShdr->sh_addr);
+            Status = AccumulateCoffGOTEntries((UINT32)GOTEntryRva, &NewGOTEntry);
             if (EFI_ERROR (Status)) {
               return Status;
             }
 
-						//
-						// Relocate GOT entry if it's the first time we run into it
-						//
-						// Targ = mCoffFile + GOTEntryRva;
-						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
+            if (NewGOTEntry) {
+              Targ = GOTData + GOTEntryRva;
+              *(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
+            }
+
 						break;
 					default:
 						fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
@@ -830,7 +848,7 @@ WritePeFile (
 		}
 	}
 
-	Status = ApplyRelocs (PeSections);
+	Status = ApplyRelocs (PeH, PeSections);
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
