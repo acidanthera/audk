@@ -23,6 +23,12 @@ static Elf_Ehdr *mEhdr             = NULL;
 static Elf_Size mPeAlignment       = 0x200;
 static PeOffset *mPeSectionOffsets = NULL;
 
+static Elf_Shdr *mGOTShdr          = NULL;
+static UINT32   mGOTShIndex        = 0;
+static UINT32   *mGOTCoffEntries   = NULL;
+static UINT32   mGOTMaxCoffEntries = 0;
+static UINT32   mGOTNumCoffEntries = 0;
+
 static
 BOOLEAN
 IsTextShdr (
@@ -75,6 +81,99 @@ GetSymbol (
   Symtab    = (UINT8 *)mEhdr + TableShdr->sh_offset;
 
   return (Elf_Sym *)(Symtab + SymbolIndex * TableShdr->sh_entsize);
+}
+
+//
+// Find the ELF section hosting the GOT from an ELF Rva of a single GOT entry.
+// Normally, GOT is placed in ELF .text section, so assume once we find,
+// in which section the GOT is, all GOT entries are there, and just verify this.
+//
+static
+EFI_STATUS
+FindElfGOTSectionFromGOTEntryElfRva (
+  IN Elf_Addr GOTEntryElfRva
+  )
+{
+  UINT32   Index;
+  Elf_Shdr *Shdr;
+
+  if (mGOTShdr != NULL) {
+    if ((GOTEntryElfRva >= mGOTShdr->sh_addr)
+      && ((GOTEntryElfRva - mGOTShdr->sh_addr) < mGOTShdr->sh_size)) {
+      return EFI_SUCCESS;
+    }
+
+    fprintf (stderr, "ImageTool: GOT entries found in multiple sections\n");
+
+    return EFI_UNSUPPORTED;
+  }
+
+  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex(Index);
+
+    if ((GOTEntryElfRva >= Shdr->sh_addr)
+      && ((GOTEntryElfRva - Shdr->sh_addr) < Shdr->sh_size)) {
+      mGOTShdr    = Shdr;
+      mGOTShIndex = Index;
+
+      return EFI_SUCCESS;
+    }
+  }
+
+  fprintf (stderr, "ImageTool: ElfRva 0x%016LX for GOT entry not found in any section\n", GOTEntryElfRva);
+
+  return EFI_NOT_FOUND;
+}
+
+//
+// Stores locations of GOT entries in COFF image. Returns TRUE if GOT entry is new.
+// Simple implementation as number of GOT entries is expected to be low.
+//
+// BOOLEAN
+static
+EFI_STATUS
+AccumulateCoffGOTEntries (
+  IN UINT32 GOTCoffEntry
+  )
+{
+  UINT32 Index;
+
+  if (mGOTCoffEntries != NULL) {
+    for (Index = 0; Index < mGOTNumCoffEntries; ++Index) {
+      if (mGOTCoffEntries[Index] == GOTCoffEntry) {
+        // return FALSE;
+        return EFI_SUCCESS;
+      }
+    }
+
+    if (mGOTNumCoffEntries == mGOTMaxCoffEntries) {
+      mGOTCoffEntries = (UINT32*)realloc (mGOTCoffEntries, 2 * mGOTMaxCoffEntries * sizeof (*mGOTCoffEntries));
+      if (mGOTCoffEntries == NULL) {
+        fprintf (stderr, "ImageTool: Could not reallocate memory for mGOTCoffEntries\n");
+    		return EFI_OUT_OF_RESOURCES;
+      }
+
+      mGOTMaxCoffEntries *= 2;
+    }
+  }
+
+  if (mGOTCoffEntries == NULL) {
+
+    mGOTCoffEntries = (UINT32*)calloc (1, 5 * sizeof (*mGOTCoffEntries));
+    if (mGOTCoffEntries == NULL) {
+      fprintf (stderr, "ImageTool: Could not allocate memory for mGOTCoffEntries\n");
+  		return EFI_OUT_OF_RESOURCES;
+    }
+
+    mGOTMaxCoffEntries = 5;
+    mGOTNumCoffEntries = 0;
+  }
+
+  mGOTCoffEntries[mGOTNumCoffEntries] = GOTCoffEntry;
+  ++mGOTNumCoffEntries;
+
+  // return TRUE;
+  return EFI_SUCCESS;
 }
 
 static
@@ -587,7 +686,8 @@ ApplyRelocs (
 	const Elf_Shdr *SymShdr;
   UINT32         SymOffset;
 	UINT8          *Targ;
-  // UINT64         GOTEntryRva;
+  UINT64         GOTEntryRva;
+  EFI_STATUS     Status;
 
 	assert (PeSections != NULL);
 
@@ -649,20 +749,25 @@ ApplyRelocs (
 					case R_X86_64_GOTPCREL:
 					case R_X86_64_GOTPCRELX:
 					case R_X86_64_REX_GOTPCRELX:
-						// GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
-						// FindElfGOTSectionFromGOTEntryElfRva(GOTEntryRva);
-						// *(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ
-						// 	+ (mPeSectionOffsets[mGOTShindex] - mGOTShdr->sh_addr)
-						// 	- (PeSRel->Data - SecShdr->sh_addr));
+						GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
+						Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
+            if (EFI_ERROR (Status)) {
+              return Status;
+            }
+
+						// *(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (mPeSectionOffsets[mGOTShIndex].Offset - mGOTShdr->sh_addr) - (PeSRel->Data - SecShdr->sh_addr));
+
+						GOTEntryRva += (mPeSectionOffsets[mGOTShIndex].Offset - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
+            Status = AccumulateCoffGOTEntries((UINT32)GOTEntryRva);
+            if (EFI_ERROR (Status)) {
+              return Status;
+            }
+
 						//
-						// GOTEntryRva += (mPeSectionOffsets[mGOTShindex] - mGOTShdr->sh_addr);  // ELF Rva -> COFF Rva
-						// if (AccumulateCoffGOTEntries((UINT32)GOTEntryRva)) {
-						// 	//
-						// 	// Relocate GOT entry if it's the first time we run into it
-						// 	//
-						// 	Targ = mCoffFile + GOTEntryRva;
-						// 	*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
-						// }
+						// Relocate GOT entry if it's the first time we run into it
+						//
+						// Targ = mCoffFile + GOTEntryRva;
+						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + SymOffset;
 						break;
 					default:
 						fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));

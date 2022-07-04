@@ -42,6 +42,7 @@
 #define Elf_Rel                          Elf32_Rel
 #define Elf_Rela                         Elf32_Rela
 #define Elf_Size                         Elf32_Size
+#define Elf_Addr                         Elf32_Addr
 #define ELF_R_TYPE                       ELF32_R_TYPE
 #define ELF_R_SYM                        ELF32_R_SYM
 
@@ -58,6 +59,7 @@
 #define Elf_Rel                          Elf64_Rel
 #define Elf_Rela                         Elf64_Rela
 #define Elf_Size                         Elf64_Size
+#define Elf_Addr                         Elf64_Addr
 #define ELF_R_TYPE                       ELF64_R_TYPE
 #define ELF_R_SYM                        ELF64_R_SYM
 #endif
