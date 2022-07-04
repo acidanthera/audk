@@ -63,6 +63,23 @@ GetShdrByIndex (
 }
 
 static
+Elf_Sym *
+GetSymbol (
+  IN const Elf_Ehdr *Ehdr,
+  IN UINT32         TableIndex,
+  IN UINT32         SymbolIndex
+  )
+{
+  const Elf_Shdr *TableShdr;
+  UINT8          *Symtab;
+
+  TableShdr = GetShdrByIndex (Ehdr, TableIndex);
+  Symtab    = (UINT8 *)Ehdr + TableShdr->sh_offset;
+
+  return (Elf_Sym *)(Symtab + SymbolIndex * TableShdr->sh_entsize);
+}
+
+static
 VOID
 FreeRelocs (
 	 IN PeRelocs *PeRel
@@ -303,39 +320,47 @@ static
 EFI_STATUS
 ProcessReloc (
 	IN     const Elf_Ehdr *Ehdr,
-	IN     const Elf_Shdr *Shdr,
-	IN     const Elf_Sym  *SymTable,
-	IN     UINT32         SymNumber,
+	IN     const Elf_Shdr *RelShdr,
 	IN     const Elf_Rel  *Rel,
 	IN OUT PeRelocs       **PeRelTab
   )
 {
 	UINT32     Type;
-	UINT32     SymIndex;
 	UINT32     MachineRelocType;
 	UINTN      Offset;
 	EFI_STATUS Status;
+  Elf_Sym    *Sym;
+  UINT32     SymTotal;
+  Elf_Shdr   *TableShdr;
 
 	assert (Ehdr     != NULL);
-	assert (Shdr     != NULL);
-	assert (SymTable != NULL);
+	assert (RelShdr  != NULL);
 	assert (Rel      != NULL);
 	assert (PeRelTab != NULL);
 
 	Type             = ELF_R_TYPE (Rel->r_info);
-	SymIndex         = ELF_R_SYM (Rel->r_info);
 	MachineRelocType = ELF_MREL (Ehdr->e_machine, Type);
-	Offset           = Shdr->sh_addr + Rel->r_offset;
+	Offset           = RelShdr->sh_addr + Rel->r_offset;
+
+  //
+  // Identify symbol table
+  //
+  TableShdr = GetShdrByIndex (Ehdr, RelShdr->sh_link);
+  Sym       = GetSymbol (Ehdr, RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
+  SymTotal  = TableShdr->sh_size / sizeof (*Sym);
+  if (SymTotal == 0) {
+    return EFI_SUCCESS;
+  }
 
 	//
 	// Look up symbol and process relocation
 	//
-	if (SymIndex >= SymNumber) {
+	if (ELF_R_SYM (Rel->r_info) >= SymTotal) {
 		fprintf (stderr, "ImageTool: Symbol is out of range\n");
 		return EFI_INVALID_PARAMETER;
 	}
 
-	if (SymTable[SymIndex].st_shndx == SHN_ABS) {
+	if (Sym->st_shndx == SHN_ABS) {
 		//
 		// Skip absolute symbols;
 		// the symbol value won't change when the object is loaded.
@@ -410,55 +435,31 @@ ProcessRelocs (
 	IN OUT PeRelocs       **PeRelTab
   )
 {
-	const Elf_Shdr *SymSec;
-  const Elf_Shdr *Shdr;
-	const Elf_Sym  *SymTable;
+  const Elf_Shdr *RelShdr;
 	const Elf_Rel  *Rel;
-	UINT32         SymNumber;
-	UINT32         RelNumber;
   UINT32         SIndex;
-	UINT32         RIndex;
-  UINT32         EntrySize;
+  UINTN          RIndex;
 	EFI_STATUS     Status;
 
 	assert (Ehdr     != NULL);
-	assert (Shdr     != NULL);
 	assert (PeRelTab != NULL);
 
   for (SIndex = 0; SIndex < Ehdr->e_shnum; ++SIndex) {
-    Shdr = GetShdrByIndex (Ehdr, SIndex);
+    RelShdr = GetShdrByIndex (Ehdr, SIndex);
 
-		if (Shdr->sh_type == SHT_REL) {
-      EntrySize = sizeof (Elf_Rel);
-		} else if (Shdr->sh_type == SHT_RELA) {
-      EntrySize = sizeof (Elf_Rela);
-		} else {
-      continue;
-    }
-
-    //
-    // Identify symbol table
-    //
-    SymSec    = GetShdrByIndex (Ehdr, Shdr->sh_link);
-    SymTable  = (Elf_Sym *)((UINT8 *)Ehdr + SymSec->sh_offset);
-    SymNumber = SymSec->sh_size / sizeof (*SymTable);
-
-    if (SymNumber == 0) {
+		if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
     }
 
     //
     // Process each relocation
     //
-    Rel       = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset);
-    RelNumber = Shdr->sh_size / EntrySize;
-    for (RIndex = 0; RIndex < RelNumber; ++RIndex) {
-      Status = ProcessReloc (Ehdr, Shdr, SymTable, SymNumber, Rel, PeRelTab);
+    for (RIndex = 0; RIndex < RelShdr->sh_size; RIndex += RelShdr->sh_entsize) {
+      Rel    = (Elf_Rel *)((UINT8 *)Ehdr + RelShdr->sh_offset + RIndex);
+      Status = ProcessReloc (Ehdr, RelShdr, Rel, PeRelTab);
       if (EFI_ERROR (Status)) {
         return Status;
       }
-
-      Rel = (Elf_Rel *)((UINT8 *)Rel + EntrySize);
     }
 	}
 
@@ -590,8 +591,6 @@ ApplyRelocs (
   UINT32         SecOffset;
 	PeSection      *PeSRel;
 	UINTN          RelIdx;
-	const Elf_Shdr *SymtabShdr;
-  UINT8          *Symtab;
 	const Elf_Rela *Rel;
 	const Elf_Sym  *Sym;
 	const Elf_Shdr *SymShdr;
@@ -613,16 +612,9 @@ ApplyRelocs (
 			continue;
 		}
 
-    SecShdr = GetShdrByIndex (Ehdr, RelShdr->sh_info);
+    SecShdr   = GetShdrByIndex (Ehdr, RelShdr->sh_info);
     SecOffset = mPeSectionOffsets[RelShdr->sh_info].Offset;
-
-		//
-		// Determine the symbol table referenced by the relocation data.
-		//
-    SymtabShdr = GetShdrByIndex (Ehdr, RelShdr->sh_link);
-		Symtab     = (UINT8 *)Ehdr + SymtabShdr->sh_offset;
-
-    PeSRel = FindSection (PeSections, mPeSectionOffsets[RelShdr->sh_info].Type);
+    PeSRel    = FindSection (PeSections, mPeSectionOffsets[RelShdr->sh_info].Type);
 		if (PeSRel == NULL) {
 			return EFI_NOT_FOUND;
 		}
@@ -636,7 +628,7 @@ ApplyRelocs (
 			//
 			// Set pointer to symbol table entry associated with the relocation entry.
 			//
-			Sym = (Elf_Sym *)(Symtab + ELF_R_SYM(Rel->r_info) * SymtabShdr->sh_entsize);
+      Sym = GetSymbol (Ehdr, RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
 			if ((Sym->st_shndx == SHN_UNDEF) || (Sym->st_shndx >= Ehdr->e_shnum)) {
 				continue;
 			}
