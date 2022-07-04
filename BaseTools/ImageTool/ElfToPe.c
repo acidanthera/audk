@@ -19,7 +19,8 @@
 
 #include "ImageTool.h"
 
-static Elf_Size mPeAlignment = 0x200;
+static Elf_Ehdr *mEhdr             = NULL;
+static Elf_Size mPeAlignment       = 0x200;
 static PeOffset *mPeSectionOffsets = NULL;
 
 static
@@ -48,33 +49,30 @@ IsDataShdr (
 static
 Elf_Shdr *
 GetShdrByIndex (
-  IN const Elf_Ehdr *Ehdr,
-  IN UINT32         Index
+  IN UINT32 Index
   )
 {
   UINTN Offset;
 
-  assert (Ehdr != NULL);
-  assert (Index < Ehdr->e_shnum);
+  assert (Index < mEhdr->e_shnum);
 
-  Offset = Ehdr->e_shoff + Index * Ehdr->e_shentsize;
+  Offset = mEhdr->e_shoff + Index * mEhdr->e_shentsize;
 
-  return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
+  return (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
 }
 
 static
 Elf_Sym *
 GetSymbol (
-  IN const Elf_Ehdr *Ehdr,
-  IN UINT32         TableIndex,
-  IN UINT32         SymbolIndex
+  IN UINT32 TableIndex,
+  IN UINT32 SymbolIndex
   )
 {
   const Elf_Shdr *TableShdr;
   UINT8          *Symtab;
 
-  TableShdr = GetShdrByIndex (Ehdr, TableIndex);
-  Symtab    = (UINT8 *)Ehdr + TableShdr->sh_offset;
+  TableShdr = GetShdrByIndex (TableIndex);
+  Symtab    = (UINT8 *)mEhdr + TableShdr->sh_offset;
 
   return (Elf_Sym *)(Symtab + SymbolIndex * TableShdr->sh_entsize);
 }
@@ -116,12 +114,11 @@ FreeSections (
 static
 PeSection *
 CreateSection (
-	IN     const Elf_Ehdr *Ehdr,
-  IN     const char     *Name,
-  IN 	   BOOLEAN        (*Filter)(const Elf_Shdr *),
-  IN     UINT32         Flags,
-  IN     UINT8          Type,
-	IN OUT PeHeader       *PeH
+  IN     const char *Name,
+  IN 	   BOOLEAN    (*Filter)(const Elf_Shdr *),
+  IN     UINT32     Flags,
+  IN     UINT8      Type,
+	IN OUT PeHeader   *PeH
   )
 {
   const Elf_Shdr *Shdr;
@@ -131,7 +128,6 @@ CreateSection (
   UINTN          NameLength;
   UINT32         Pointer;
 
-	assert (Ehdr   != NULL);
 	assert (Name   != NULL);
   assert (Filter != NULL);
 	assert (PeH    != NULL);
@@ -139,8 +135,8 @@ CreateSection (
 	PeSectionSize = 0;
   Pointer       = 0;
 
-  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex (Ehdr, Index);
+  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Index);
 
     if (Filter (Shdr)) {
       if ((Shdr->sh_addralign != 0) && (Shdr->sh_addralign != 1)) {
@@ -185,12 +181,12 @@ CreateSection (
   //
   // Copy necessary sections, set AddressOfEntryPoint in PE section.
   //
-  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex (Ehdr, Index);
+  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Index);
 
-    if ((Ehdr->e_entry >= Shdr->sh_addr)
-  	  && ((Ehdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
-  		PeH->Nt->AddressOfEntryPoint = Pointer + (Ehdr->e_entry - Shdr->sh_addr);
+    if ((mEhdr->e_entry >= Shdr->sh_addr)
+  	  && ((mEhdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
+  		PeH->Nt->AddressOfEntryPoint = Pointer + (mEhdr->e_entry - Shdr->sh_addr);
   	}
 
     if (Filter (Shdr)) {
@@ -198,7 +194,7 @@ CreateSection (
       mPeSectionOffsets[Index].Offset = Pointer;
 
       if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (PeS->Data + Pointer, (UINT8 *)Ehdr + Shdr->sh_offset, Shdr->sh_size);
+        memcpy (PeS->Data + Pointer, (UINT8 *)mEhdr + Shdr->sh_offset, Shdr->sh_size);
         Pointer += ALIGN_VALUE (Shdr->sh_size, Shdr->sh_addralign);
       }
 
@@ -319,7 +315,6 @@ GeneratePeReloc (
 static
 EFI_STATUS
 ProcessReloc (
-	IN     const Elf_Ehdr *Ehdr,
 	IN     const Elf_Shdr *RelShdr,
 	IN     const Elf_Rel  *Rel,
 	IN OUT PeRelocs       **PeRelTab
@@ -333,20 +328,19 @@ ProcessReloc (
   UINT32     SymTotal;
   Elf_Shdr   *TableShdr;
 
-	assert (Ehdr     != NULL);
 	assert (RelShdr  != NULL);
 	assert (Rel      != NULL);
 	assert (PeRelTab != NULL);
 
 	Type             = ELF_R_TYPE (Rel->r_info);
-	MachineRelocType = ELF_MREL (Ehdr->e_machine, Type);
+	MachineRelocType = ELF_MREL (mEhdr->e_machine, Type);
 	Offset           = RelShdr->sh_addr + Rel->r_offset;
 
   //
   // Identify symbol table
   //
-  TableShdr = GetShdrByIndex (Ehdr, RelShdr->sh_link);
-  Sym       = GetSymbol (Ehdr, RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
+  TableShdr = GetShdrByIndex (RelShdr->sh_link);
+  Sym       = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
   SymTotal  = TableShdr->sh_size / sizeof (*Sym);
   if (SymTotal == 0) {
     return EFI_SUCCESS;
@@ -431,8 +425,7 @@ ProcessReloc (
 static
 EFI_STATUS
 ProcessRelocs (
-	IN     const Elf_Ehdr *Ehdr,
-	IN OUT PeRelocs       **PeRelTab
+	IN OUT PeRelocs **PeRelTab
   )
 {
   const Elf_Shdr *RelShdr;
@@ -441,11 +434,10 @@ ProcessRelocs (
   UINTN          RIndex;
 	EFI_STATUS     Status;
 
-	assert (Ehdr     != NULL);
 	assert (PeRelTab != NULL);
 
-  for (SIndex = 0; SIndex < Ehdr->e_shnum; ++SIndex) {
-    RelShdr = GetShdrByIndex (Ehdr, SIndex);
+  for (SIndex = 0; SIndex < mEhdr->e_shnum; ++SIndex) {
+    RelShdr = GetShdrByIndex (SIndex);
 
 		if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
@@ -455,8 +447,8 @@ ProcessRelocs (
     // Process each relocation
     //
     for (RIndex = 0; RIndex < RelShdr->sh_size; RIndex += RelShdr->sh_entsize) {
-      Rel    = (Elf_Rel *)((UINT8 *)Ehdr + RelShdr->sh_offset + RIndex);
-      Status = ProcessReloc (Ehdr, RelShdr, Rel, PeRelTab);
+      Rel    = (Elf_Rel *)((UINT8 *)mEhdr + RelShdr->sh_offset + RIndex);
+      Status = ProcessReloc (RelShdr, Rel, PeRelTab);
       if (EFI_ERROR (Status)) {
         return Status;
       }
@@ -581,7 +573,6 @@ FindSection (
 static
 EFI_STATUS
 ApplyRelocs (
-	IN Elf_Ehdr  *Ehdr,
 	IN PeSection *PeSections
   )
 {
@@ -598,11 +589,10 @@ ApplyRelocs (
 	UINT8          *Targ;
   // UINT64         GOTEntryRva;
 
-	assert (Ehdr       != NULL);
 	assert (PeSections != NULL);
 
-	for (Index = 0; Index < Ehdr->e_shnum; Index++) {
-    RelShdr = GetShdrByIndex (Ehdr, Index);
+	for (Index = 0; Index < mEhdr->e_shnum; Index++) {
+    RelShdr = GetShdrByIndex (Index);
 
     if (RelShdr->sh_type != SHT_RELA) {
       continue;
@@ -612,7 +602,7 @@ ApplyRelocs (
 			continue;
 		}
 
-    SecShdr   = GetShdrByIndex (Ehdr, RelShdr->sh_info);
+    SecShdr   = GetShdrByIndex (RelShdr->sh_info);
     SecOffset = mPeSectionOffsets[RelShdr->sh_info].Offset;
     PeSRel    = FindSection (PeSections, mPeSectionOffsets[RelShdr->sh_info].Type);
 		if (PeSRel == NULL) {
@@ -623,22 +613,22 @@ ApplyRelocs (
 		// Process all relocation entries for this section.
 		//
 		for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += RelShdr->sh_entsize) {
-			Rel = (Elf_Rela *)((UINT8 *)Ehdr + RelShdr->sh_offset + RelIdx);
+			Rel = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
 
 			//
 			// Set pointer to symbol table entry associated with the relocation entry.
 			//
-      Sym = GetSymbol (Ehdr, RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
-			if ((Sym->st_shndx == SHN_UNDEF) || (Sym->st_shndx >= Ehdr->e_shnum)) {
+      Sym = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
+			if ((Sym->st_shndx == SHN_UNDEF) || (Sym->st_shndx >= mEhdr->e_shnum)) {
 				continue;
 			}
 
-      SymShdr   = GetShdrByIndex (Ehdr, Sym->st_shndx);
+      SymShdr   = GetShdrByIndex (Sym->st_shndx);
       SymOffset = mPeSectionOffsets[Sym->st_shndx].Offset;
 
 			Targ = PeSRel->Data + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
-			if (Ehdr->e_machine == EM_X86_64) {
+			if (mEhdr->e_machine == EM_X86_64) {
 				switch (ELF_R_TYPE(Rel->r_info)) {
 					case R_X86_64_NONE:
 						break;
@@ -688,7 +678,6 @@ ApplyRelocs (
 static
 EFI_STATUS
 WritePeFile (
-	IN     Elf_Ehdr  *Ehdr,
 	IN OUT PeHeader  *PeH,
 	IN     UINT32    NtSize,
   IN     PeSection *PeSections,
@@ -736,7 +725,7 @@ WritePeFile (
 		}
 	}
 
-	Status = ApplyRelocs (Ehdr, PeSections);
+	Status = ApplyRelocs (PeSections);
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
@@ -789,8 +778,7 @@ WritePeFile (
 static
 EFI_STATUS
 ReadElfFile (
-	IN  const char *Name,
-	OUT Elf_Ehdr   **Ehdr
+	IN const char *Name
   )
 {
 	static const unsigned char Ident[] = {
@@ -803,10 +791,9 @@ ReadElfFile (
   char           *Last;
 
   assert (Name != NULL);
-	assert (Ehdr != NULL);
 
-	*Ehdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
-  if (*Ehdr == NULL) {
+	mEhdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
+  if (mEhdr == NULL) {
 		fprintf (stderr, "ImageTool: Could not open %s: %s\n", Name, strerror (errno));
     return EFI_VOLUME_CORRUPTED;
   }
@@ -814,44 +801,44 @@ ReadElfFile (
 	//
 	// Check header
 	//
-	if ((FileSize < sizeof (**Ehdr))
-	  || (memcmp (Ident, (*Ehdr)->e_ident, sizeof (Ident)) != 0)) {
+	if ((FileSize < sizeof (*mEhdr))
+	  || (memcmp (Ident, mEhdr->e_ident, sizeof (Ident)) != 0)) {
 		fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
-		free (*Ehdr);
+		free (mEhdr);
     return EFI_VOLUME_CORRUPTED;
 	}
 
 	//
 	// Check section headers
 	//
-	for (Index = 0; Index < (*Ehdr)->e_shnum; ++Index) {
-		Offset = (*Ehdr)->e_shoff + Index * (*Ehdr)->e_shentsize;
+	for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
+		Offset = mEhdr->e_shoff + Index * mEhdr->e_shentsize;
 
 		if (FileSize < (Offset + sizeof (*Shdr))) {
 			fprintf (stderr, "ImageTool: ELF section header is outside file %s\n", Name);
-			free (*Ehdr);
+			free (mEhdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
 
-		Shdr = (Elf_Shdr *)((UINT8 *)(*Ehdr) + Offset);
+		Shdr = (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
 
 		if ((Shdr->sh_type != SHT_NOBITS)
 		  && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
 			fprintf (stderr, "ImageTool: ELF section %d points outside file %s\n", Index, Name);
-			free (*Ehdr);
+			free (mEhdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
 
-		if (Shdr->sh_link >= (*Ehdr)->e_shnum) {
+		if (Shdr->sh_link >= mEhdr->e_shnum) {
 			fprintf (stderr, "ImageTool: ELF %d-th section's sh_link is out of range\n", Index);
-			free (*Ehdr);
+			free (mEhdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
 
     if (((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL))
-      && (Shdr->sh_info >= (*Ehdr)->e_shnum)) {
+      && (Shdr->sh_info >= mEhdr->e_shnum)) {
 			fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
-			free (*Ehdr);
+			free (mEhdr);
 			return EFI_VOLUME_CORRUPTED;
 		}
 
@@ -863,36 +850,36 @@ ReadElfFile (
     }
 	}
 
-  if ((*Ehdr)->e_shstrndx >= (*Ehdr)->e_shnum) {
+  if (mEhdr->e_shstrndx >= mEhdr->e_shnum) {
 		fprintf (stderr, "ImageTool: Invalid section name string table\n");
-    free (*Ehdr);
+    free (mEhdr);
     return EFI_VOLUME_CORRUPTED;
 	}
-  Shdr = GetShdrByIndex (*Ehdr, (*Ehdr)->e_shstrndx);
+  Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
 
 	if (Shdr->sh_type != SHT_STRTAB) {
 		fprintf (stderr, "ImageTool: ELF string table section has wrong type\n");
-    free (*Ehdr);
+    free (mEhdr);
     return EFI_VOLUME_CORRUPTED;
 	}
 
-	Last = (char *)((UINT8 *)*Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
+	Last = (char *)((UINT8 *)mEhdr + Shdr->sh_offset + Shdr->sh_size - 1);
 	if (*Last != '\0') {
 		fprintf (stderr, "ImageTool: ELF string table section is not NUL-terminated\n");
-    free (*Ehdr);
+    free (mEhdr);
     return EFI_VOLUME_CORRUPTED;
 	}
 
 	if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
     fprintf (stderr, "ImageTool: Invalid section alignment\n");
-		free (*Ehdr);
+		free (mEhdr);
 		return EFI_VOLUME_CORRUPTED;
   }
 
-  mPeSectionOffsets = calloc (1, (*Ehdr)->e_shnum * sizeof (PeOffset));
+  mPeSectionOffsets = calloc (1, mEhdr->e_shnum * sizeof (PeOffset));
   if (mPeSectionOffsets == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for mPeSectionOffsets\n");
-		free (*Ehdr);
+		free (mEhdr);
 		return EFI_OUT_OF_RESOURCES;
 	}
 
@@ -905,15 +892,14 @@ ElfToPe (
 	IN const char *PeName
   )
 {
-	PeRelocs       *PeRelTab;
-	PeSection      *PeSections;
-	PeSection      **NextPeSection;
-	PeHeader       PeH;
-	Elf_Ehdr       *Ehdr;
-	FILE           *Pe;
-	EFI_STATUS     Status;
-	UINT32         DataDirSize;
-	UINT32         NtSize;
+	PeRelocs   *PeRelTab;
+	PeSection  *PeSections;
+	PeSection  **NextPeSection;
+	PeHeader   PeH;
+	FILE       *Pe;
+	EFI_STATUS Status;
+	UINT32     DataDirSize;
+	UINT32     NtSize;
 
 	assert (ElfName != NULL);
 	assert (PeName  != NULL);
@@ -922,7 +908,7 @@ ElfToPe (
 	PeSections    = NULL;
 	NextPeSection = &PeSections;
 
-	Status = ReadElfFile (ElfName, &Ehdr);
+	Status = ReadElfFile (ElfName);
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
@@ -941,7 +927,7 @@ ElfToPe (
 	PeH.Nt = calloc (1, NtSize);
 	if (PeH.Nt == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
-		free (Ehdr);
+		free (mEhdr);
 		return EFI_OUT_OF_RESOURCES;
 	}
 
@@ -962,7 +948,7 @@ ElfToPe (
 	PeH.Nt->Subsystem               = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
   PeH.Nt->SizeOfUninitializedData = 0;
 
-	switch (Ehdr->e_machine) {
+	switch (mEhdr->e_machine) {
 		case EM_386:
 			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_IA32;
 			break;
@@ -976,7 +962,7 @@ ElfToPe (
 			PeH.Nt->CommonHeader.FileHeader.Machine = EFI_IMAGE_MACHINE_AARCH64;
 			break;
 		default:
-			fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", Ehdr->e_machine);
+			fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", mEhdr->e_machine);
 			Status = EFI_UNSUPPORTED;
 			goto exit;
 	}
@@ -985,7 +971,6 @@ ElfToPe (
 	// Process Elf sections
 	//
   *NextPeSection = CreateSection (
-    Ehdr,
     ".text",
     IsTextShdr,
     EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ,
@@ -1000,7 +985,6 @@ ElfToPe (
   NextPeSection = &(*NextPeSection)->Next;
 
   *NextPeSection = CreateSection (
-    Ehdr,
     ".data",
     IsDataShdr,
     EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_READ,
@@ -1016,7 +1000,7 @@ ElfToPe (
 
   NextPeSection = &(*NextPeSection)->Next;
 
-  Status = ProcessRelocs (Ehdr, &PeRelTab);
+  Status = ProcessRelocs (&PeRelTab);
   if (EFI_ERROR (Status)) {
     goto exit;
   }
@@ -1039,7 +1023,7 @@ ElfToPe (
 		goto exit;
 	}
 
-	Status = WritePeFile (Ehdr, &PeH, NtSize, PeSections, Pe);
+	Status = WritePeFile (&PeH, NtSize, PeSections, Pe);
 	fclose (Pe);
 
 exit:
@@ -1050,7 +1034,7 @@ exit:
 		FreeSections (PeSections);
 	}
 	free (PeH.Nt);
-	free (Ehdr);
+	free (mEhdr);
 
 	return Status;
 }
