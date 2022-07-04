@@ -354,10 +354,10 @@ Ext4ReadSymlink (
 /**
   Opens a new file relative to the source file's location.
 
-  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
+  @param[in]  Source     A pointer to the EXT4_FILE instance that is the file
                          handle to the source location. This would typically be an open
                          handle to a directory.
-  @param[out] NewHandle  A pointer to the location to return the opened handle for the new
+  @param[out] FoundFile  A pointer to the location to return the opened handle for the new
                          file.
   @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
                          The file name may contain the following path modifiers: "\", ".",
@@ -382,10 +382,9 @@ Ext4ReadSymlink (
 
 **/
 EFI_STATUS
-EFIAPI
-Ext4Open (
-  IN EFI_FILE_PROTOCOL   *This,
-  OUT EFI_FILE_PROTOCOL  **NewHandle,
+Ext4OpenInternal (
+  IN EXT4_FILE           *Source,
+  OUT EXT4_FILE          **FoundFile,
   IN CHAR16              *FileName,
   IN UINT64              OpenMode,
   IN UINT64              Attributes
@@ -400,11 +399,11 @@ Ext4Open (
   CHAR16          *Symlink;
   EFI_STATUS      Status;
 
-  Current   = (EXT4_FILE *)This;
+  Current   = Source;
   Partition = Current->Partition;
   Level     = 0;
 
-  DEBUG ((DEBUG_FS, "[ext4] Ext4Open %s\n", FileName));
+  DEBUG ((DEBUG_FS, "[ext4] Ext4OpenInternal %s\n", FileName));
   // If the path starts with a backslash, we treat the root directory as the base directory
   if (FileName[0] == L'\\') {
     FileName++;
@@ -412,6 +411,11 @@ Ext4Open (
   }
 
   while (FileName[0] != L'\0') {
+    if (Partition->Root->Symloops > SYMLOOP_MAX) {
+      DEBUG ((DEBUG_FS, "[ext4] Symloop limit is hit !\n"));
+      return EFI_ACCESS_DENIED;
+    }
+
     // Discard leading path separators
     while (FileName[0] == L'\\') {
       FileName++;
@@ -466,6 +470,7 @@ Ext4Open (
     // Reading symlink and then trying to follow it
     //
     if (Ext4FileIsSymlink (File)) {
+      Partition->Root->Symloops++;
       DEBUG ((DEBUG_FS, "[ext4] File %s is symlink, trying to read it\n", PathSegment));
       Status = Ext4ReadSymlink (Partition, File, &Symlink);
       if (EFI_ERROR (Status)) {
@@ -480,7 +485,7 @@ Ext4Open (
       //
       // Open linked file by recursive call of Ext4OpenFile
       //
-      Status = Ext4Open ((EFI_FILE_PROTOCOL *) Current, NewHandle, Symlink, OpenMode, Attributes);
+      Status = Ext4OpenInternal (Current, FoundFile, Symlink, OpenMode, Attributes);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_FS, "[ext4] Error opening linked file %s\n", Symlink));
         FreePool (Symlink);
@@ -490,7 +495,7 @@ Ext4Open (
       //
       // Set File to newly opened
       //
-      File = *(EXT4_FILE **)NewHandle;
+      File = *FoundFile;
     }
 
     if (Level != 0) {
@@ -516,10 +521,71 @@ Ext4Open (
     return EFI_ACCESS_DENIED;
   }
 
-  *NewHandle = &Current->Protocol;
+  *FoundFile = Current;
 
   DEBUG ((DEBUG_FS, "[ext4] Opened filename %s\n", Current->Dentry->Name));
   return EFI_SUCCESS;
+}
+
+/**
+  Opens a new file relative to the source file's location.
+  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
+                         handle to the source location. This would typically be an open
+                         handle to a directory.
+  @param[out] NewHandle  A pointer to the location to return the opened handle for the new
+                         file.
+  @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
+                         The file name may contain the following path modifiers: "\", ".",
+                         and "..".
+  @param[in]  OpenMode   The mode to open the file. The only valid combinations that the
+                         file may be opened with are: Read, Read/Write, or Create/Read/Write.
+  @param[in]  Attributes Only valid for EFI_FILE_MODE_CREATE, in which case these are the
+                         attribute bits for the newly created file.
+  @retval EFI_SUCCESS          The file was opened.
+  @retval EFI_NOT_FOUND        The specified file could not be found on the device.
+  @retval EFI_NO_MEDIA         The device has no medium.
+  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the medium is no
+                               longer supported.
+  @retval EFI_DEVICE_ERROR     The device reported an error.
+  @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+  @retval EFI_WRITE_PROTECTED  An attempt was made to create a file, or open a file for write
+                               when the media is write-protected.
+  @retval EFI_ACCESS_DENIED    The service denied access to the file.
+  @retval EFI_OUT_OF_RESOURCES Not enough resources were available to open the file.
+  @retval EFI_VOLUME_FULL      The volume is full.
+**/
+EFI_STATUS
+EFIAPI
+Ext4Open (
+  IN EFI_FILE_PROTOCOL   *This,
+  OUT EFI_FILE_PROTOCOL  **NewHandle,
+  IN CHAR16              *FileName,
+  IN UINT64              OpenMode,
+  IN UINT64              Attributes
+  )
+{
+  EFI_STATUS      Status;
+  EXT4_FILE       *FoundFile;
+  EXT4_PARTITION  *Partition = ((EXT4_FILE *) This)->Partition;
+
+  //
+  // Reset Symloops counter
+  //
+  Partition->Root->Symloops = 0;
+
+  Status = Ext4OpenInternal (
+    (EXT4_FILE *) This,
+    &FoundFile,
+    FileName,
+    OpenMode,
+    Attributes
+    );
+
+  if (!EFI_ERROR (Status)) {
+    *NewHandle = &FoundFile->Protocol;
+  }
+
+  return Status;
 }
 
 /**
