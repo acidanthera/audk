@@ -19,9 +19,10 @@
 
 #include "ImageTool.h"
 
-static Elf_Ehdr *mEhdr             = NULL;
-static Elf_Size mPeAlignment       = 0x200;
-static PeOffset *mPeSectionOffsets = NULL;
+static Elf_Ehdr *mEhdr              = NULL;
+static Elf_Size mPeAlignment        = 0x200;
+static PeOffset *mPeSectionOffsets  = NULL;
+static BOOLEAN  mRelocSectionExists = FALSE;
 
 static Elf_Shdr *mGOTShdr          = NULL;
 static UINT32   mGOTShIndex        = 0;
@@ -340,7 +341,6 @@ CreateSection (
 	// Update remaining file header fields
 	//
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
 	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
 
 	return PeS;
@@ -624,7 +624,6 @@ CreateRelocSection (
 	// Update file header details
 	//
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
-	PeH->Nt->SizeOfHeaders += sizeof (PeS->PeShdr);
 	PeH->Nt->SizeOfImage   += ALIGN_VALUE (SectionSize, PeH->Nt->SectionAlignment);
 
 	PeH->Nt->DataDirectory[DIR_BASERELOC].Size = SectionSize;
@@ -788,8 +787,7 @@ WritePeFile (
 	assert (PeSections != NULL);
 	assert (Pe         != NULL);
 
-	PeH->Nt->SizeOfHeaders = ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->FileAlignment);
-  Position               = PeH->Nt->SizeOfHeaders;
+  Position = PeH->Nt->SizeOfHeaders;
 
 	PeH->Nt->SizeOfImage         += ALIGN_VALUE (PeH->Nt->SizeOfHeaders, PeH->Nt->SectionAlignment);
 	PeH->Nt->AddressOfEntryPoint += PeH->Nt->SizeOfHeaders;
@@ -885,6 +883,12 @@ ReadElfFile (
 	UINT32         Index;
 	UINT32         FileSize;
   char           *Last;
+
+  const Elf_Shdr *RelShdr;
+  const Elf_Shdr *SecShdr;
+	const Elf_Rel  *Rel;
+  UINT32         SIndex;
+  UINTN          RIndex;
 
   assert (Name != NULL);
 
@@ -1000,6 +1004,35 @@ ReadElfFile (
 		return EFI_OUT_OF_RESOURCES;
 	}
 
+  for (SIndex = 0; SIndex < mEhdr->e_shnum; ++SIndex) {
+    RelShdr = GetShdrByIndex (SIndex);
+
+    if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
+      continue;
+    }
+
+    SecShdr = GetShdrByIndex (RelShdr->sh_info);
+
+    if ((!IsTextShdr (SecShdr)) && (!IsDataShdr (SecShdr))) {
+      continue;
+    }
+
+    for (RIndex = 0; RIndex < RelShdr->sh_size; RIndex += RelShdr->sh_entsize) {
+      Rel = (Elf_Rel *)((UINT8 *)mEhdr + RelShdr->sh_offset + RIndex);
+#if defined(EFI_TARGET64)
+      if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
+        || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)) {
+        mRelocSectionExists = TRUE;
+      }
+#endif
+#if defined(EFI_TARGET32)
+      if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
+        mRelocSectionExists = TRUE;
+      }
+#endif
+    }
+  }
+
 	return EFI_SUCCESS;
 }
 
@@ -1058,10 +1091,16 @@ ElfToPe (
 	PeH.Nt->CommonHeader.FileHeader.Characteristics =
 	  EFI_IMAGE_FILE_DLL | EFI_IMAGE_FILE_MACHINE | EFI_IMAGE_FILE_EXECUTABLE_IMAGE;
 
-	PeH.Nt->Magic                   = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
-	PeH.Nt->SectionAlignment        = mPeAlignment;
-	PeH.Nt->FileAlignment           = mPeAlignment;
-	PeH.Nt->SizeOfHeaders           = sizeof (PeH.Dos) + NtSize;
+	PeH.Nt->Magic            = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
+	PeH.Nt->SectionAlignment = mPeAlignment;
+	PeH.Nt->FileAlignment    = mPeAlignment;
+	PeH.Nt->SizeOfHeaders    = sizeof (PeH.Dos) + NtSize + 2 * sizeof (PeSections->PeShdr);
+
+  if (mRelocSectionExists) {
+    PeH.Nt->SizeOfHeaders += sizeof (PeSections->PeShdr);
+  }
+  PeH.Nt->SizeOfHeaders = ALIGN_VALUE (PeH.Nt->SizeOfHeaders, PeH.Nt->FileAlignment);
+
 	PeH.Nt->Subsystem               = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
   PeH.Nt->SizeOfUninitializedData = 0;
 
@@ -1084,9 +1123,6 @@ ElfToPe (
 			goto exit;
 	}
 
-	//
-	// Process Elf sections
-	//
   *NextPeSection = CreateSection (
     ".text",
     IsTextShdr,
@@ -1115,19 +1151,19 @@ ElfToPe (
 
   PeH.Nt->SizeOfInitializedData = (*NextPeSection)->PeShdr.SizeOfRawData;
 
-  NextPeSection = &(*NextPeSection)->Next;
+  if (mRelocSectionExists) {
+    NextPeSection = &(*NextPeSection)->Next;
 
-  Status = ProcessRelocs (&PeH, PeSections, &PeRelTab);
-  if (EFI_ERROR (Status)) {
-    goto exit;
-  }
+    Status = ProcessRelocs (&PeH, PeSections, &PeRelTab);
+    if (EFI_ERROR (Status)) {
+      goto exit;
+    }
 
-  if (PeRelTab != NULL) {
-  	*NextPeSection = CreateRelocSection (&PeH, PeRelTab);
-  	if (*NextPeSection == NULL) {
-  		Status = EFI_ABORTED;
-  		goto exit;
-  	}
+    *NextPeSection = CreateRelocSection (&PeH, PeRelTab);
+    if (*NextPeSection == NULL) {
+      Status = EFI_ABORTED;
+      goto exit;
+    }
   }
 
 	//
