@@ -123,7 +123,7 @@ Ext4GetBlockPath (
       break;
     default:
       // EXT4_TYPE_BAD_BLOCK
-      return -1;
+      return (UINTN)-1;
   }
 
   return Type + 1;
@@ -228,18 +228,18 @@ Ext4GetBlocks (
 
   Inode = File->Inode;
 
-  BlockPathLength = Ext4GetBlockPath (Partition, LogicalBlock, BlockPath);
+  BlockPathLength = Ext4GetBlockPath (Partition, (UINT32) LogicalBlock & MAX_UINT32, BlockPath);
 
   if (BlockPathLength == (UINTN)-1) {
     // Bad logical block (out of range)
     return EFI_NO_MAPPING;
   }
 
-  Extent->ee_block = LogicalBlock;
+  Extent->ee_block = (UINT32) LogicalBlock & MAX_UINT32;
 
   if (BlockPathLength == 1) {
     // Fast path for blocks 0 - 12 that skips allocations
-    Ext4GetExtentInBlockMap (Inode->i_data, EXT4_DBLOCKS, BlockPath[0], Extent);
+    Ext4GetExtentInBlockMap (Inode->i_data, EXT4_DBLOCKS, (UINT32) BlockPath[0] & MAX_UINT32, Extent);
 
     return EFI_SUCCESS;
   }
@@ -251,7 +251,7 @@ Ext4GetBlocks (
 
   // Note the BlockPathLength - 1 so we don't end up reading the final block
   for (Index = 0; Index < BlockPathLength - 1; Index++) {
-    BlockIndex = BlockPath[Index];
+    BlockIndex = (UINT32) BlockPath[Index] & MAX_UINT32;
 
     if (Index == 0) {
       Block = Inode->i_data[BlockIndex];
@@ -272,7 +272,13 @@ Ext4GetBlocks (
     }
   }
 
-  Ext4GetExtentInBlockMap (Buffer, Partition->BlockSize / sizeof (UINT32), BlockPath[BlockPathLength - 1], Extent);
+  Ext4GetExtentInBlockMap (
+    Buffer,
+    Partition->BlockSize / sizeof (UINT32),
+    (UINT32) BlockPath[BlockPathLength - 1] & MAX_UINT32,
+    Extent
+    );
+
   FreePool (Buffer);
 
   return EFI_SUCCESS;

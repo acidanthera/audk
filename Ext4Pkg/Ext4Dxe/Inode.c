@@ -152,7 +152,7 @@ Ext4Read (
       } else {
         // Uninitialized extents behave exactly the same as file holes, except they have
         // blocks already allocated to them.
-        HoleLen = (Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff;
+        HoleLen = (UINTN) ((Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff) & MAX_UINTN;
       }
 
       WasRead = HoleLen > RemainingRead ? RemainingRead : HoleLen;
