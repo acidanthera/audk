@@ -123,7 +123,7 @@ Ext4GetBlockPath (
       break;
     default:
       // EXT4_TYPE_BAD_BLOCK
-      return -1;
+      return (UINTN)-1;
   }
 
   return Type + 1;
@@ -224,7 +224,7 @@ Ext4GetBlocks (
   UINT32         *Buffer;
   EFI_STATUS     Status;
   UINT32         Block;
-  UINT32         BlockIndex;
+  UINT64         BlockIndex;
 
   Inode = File->Inode;
 
