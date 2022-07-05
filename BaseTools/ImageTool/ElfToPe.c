@@ -30,6 +30,13 @@ static UINT32   *mGOTCoffEntries   = NULL;
 static UINT32   mGOTMaxCoffEntries = 0;
 static UINT32   mGOTNumCoffEntries = 0;
 
+EFI_STATUS
+ApplyRelocs (
+  IN PeHeader  *PeH,
+	IN PeSection *PeSections,
+  IN BOOLEAN   (*Filter)(const Elf_Shdr *)
+  );
+
 static
 BOOLEAN
 IsTextShdr (
@@ -245,15 +252,17 @@ FreeSections (
 }
 
 static
-PeSection *
+EFI_STATUS
 CreateSection (
   IN     const char *Name,
   IN 	   BOOLEAN    (*Filter)(const Elf_Shdr *),
   IN     UINT32     Flags,
   IN     UINT8      Type,
-	IN OUT PeHeader   *PeH
+	IN OUT PeHeader   *PeH,
+  IN OUT PeSection  **PeSections
   )
 {
+  EFI_STATUS     Status;
   const Elf_Shdr *Shdr;
 	PeSection      *PeS;
 	UINT32         PeSectionSize;
@@ -261,9 +270,10 @@ CreateSection (
   UINTN          NameLength;
   UINT32         Pointer;
 
-	assert (Name   != NULL);
-  assert (Filter != NULL);
-	assert (PeH    != NULL);
+	assert (Name       != NULL);
+  assert (Filter     != NULL);
+  assert (PeH        != NULL);
+	assert (PeSections != NULL);
 
 	PeSectionSize = 0;
   Pointer       = 0;
@@ -278,7 +288,7 @@ CreateSection (
         //
         if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
           fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
-          return NULL;
+          return EFI_VOLUME_CORRUPTED;
         }
       }
 
@@ -293,7 +303,7 @@ CreateSection (
 	PeS = calloc (1, sizeof (*PeS) + PeSectionSize);
 	if (PeS == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for Pe section\n");
-		return NULL;
+		return EFI_OUT_OF_RESOURCES;
 	}
 
 	//
@@ -343,7 +353,12 @@ CreateSection (
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
 	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
 
-	return PeS;
+  PeS->Next   = *PeSections;
+  *PeSections = PeS;
+
+  Status = ApplyRelocs (PeH, *PeSections, Filter);
+
+	return Status;
 }
 
 static
@@ -351,7 +366,7 @@ EFI_STATUS
 GeneratePeReloc (
 	IN OUT PeRelocs **PeRelTab,
 	IN     UINTN    Rva,
-	IN     UINT8    RelocType
+	IN     UINT16   RelocType
   )
 {
 	UINTN    PageRva;
@@ -581,10 +596,11 @@ OutputPeReltab (
 }
 
 static
-PeSection *
+EFI_STATUS
 CreateRelocSection (
-	IN OUT PeHeader *PeH,
-	IN     PeRelocs *PeRelTab
+	IN OUT PeHeader  *PeH,
+	IN     PeRelocs  *PeRelTab,
+  IN OUT PeSection **PeSections
   )
 {
 	PeSection *PeS;
@@ -602,7 +618,7 @@ CreateRelocSection (
 	PeS         = calloc (1, sizeof (*PeS) + RawDataSize);
 	if (PeS == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for Pe .reloc section\n");
-		return NULL;
+		return EFI_OUT_OF_RESOURCES;
 	}
 
 	//
@@ -628,14 +644,18 @@ CreateRelocSection (
 
 	PeH->Nt->DataDirectory[DIR_BASERELOC].Size = SectionSize;
 
-	return PeS;
+  PeS->Next   = *PeSections;
+  *PeSections = PeS;
+
+	return EFI_SUCCESS;
 }
 
-static
+
 EFI_STATUS
 ApplyRelocs (
   IN PeHeader  *PeH,
-	IN PeSection *PeSections
+	IN PeSection *PeSections,
+  IN BOOLEAN   (*Filter)(const Elf_Shdr *)
   )
 {
 	UINT32         Index;
@@ -663,16 +683,9 @@ ApplyRelocs (
 	for (Index = 0; Index < mEhdr->e_shnum; Index++) {
     RelShdr = GetShdrByIndex (Index);
 
-#if defined(EFI_TARGET64)
-    if (RelShdr->sh_type != SHT_RELA) {
+    if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
     }
-#endif
-#if defined(EFI_TARGET32)
-    if (RelShdr->sh_type != SHT_REL) {
-      continue;
-    }
-#endif
 
 		if (RelShdr->sh_info == 0) {
 			continue;
@@ -680,6 +693,17 @@ ApplyRelocs (
 
     SecShdr   = GetShdrByIndex (RelShdr->sh_info);
     SecOffset = FindAddress (PeH, PeSections, RelShdr->sh_info, &SecData, &WSecOffset);
+
+#if defined(EFI_TARGET64)
+    if ((RelShdr->sh_type != SHT_RELA) || (!(*Filter)(SecShdr))) {
+      continue;
+    }
+#endif
+#if defined(EFI_TARGET32)
+    if ((RelShdr->sh_type != SHT_REL) || (!(*Filter)(SecShdr))) {
+      continue;
+    }
+#endif
 
 		//
 		// Process all relocation entries for this section.
@@ -779,7 +803,6 @@ WritePeFile (
 	   OUT FILE      *Pe
   )
 {
-	EFI_STATUS Status;
 	PeSection  *PeS;
 	UINT32     Position;
 
@@ -819,11 +842,6 @@ WritePeFile (
 		}
 	}
 
-	Status = ApplyRelocs (PeH, PeSections);
-	if (EFI_ERROR (Status)) {
-		return Status;
-	}
-
 	//
 	// Write DOS header
 	//
@@ -853,6 +871,8 @@ WritePeFile (
 	//
 	// Write sections
 	//
+  // TODO: Reorder Sections
+  //
 	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
 		if (fseek (Pe, PeS->PeShdr.PointerToRawData, SEEK_SET) != 0) {
 			fprintf (stderr, "ImageTool: Could not seek to %x: %s\n", PeS->PeShdr.PointerToRawData, strerror (errno));
@@ -1044,7 +1064,6 @@ ElfToPe (
 {
 	PeRelocs   *PeRelTab;
 	PeSection  *PeSections;
-	PeSection  **NextPeSection;
 	PeHeader   PeH;
 	FILE       *Pe;
 	EFI_STATUS Status;
@@ -1054,9 +1073,8 @@ ElfToPe (
 	assert (ElfName != NULL);
 	assert (PeName  != NULL);
 
-	PeRelTab      = NULL;
-	PeSections    = NULL;
-	NextPeSection = &PeSections;
+	PeRelTab   = NULL;
+	PeSections = NULL;
 
 	Status = ReadElfFile (ElfName);
 	if (EFI_ERROR (Status)) {
@@ -1123,45 +1141,40 @@ ElfToPe (
 			goto exit;
 	}
 
-  *NextPeSection = CreateSection (
+  Status = CreateSection (
     ".text",
     IsTextShdr,
     EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ,
     TEXT_SECTION,
-    &PeH
+    &PeH,
+    &PeSections
     );
-  if (*NextPeSection == NULL) {
-    Status = EFI_ABORTED;
+  if (EFI_ERROR (Status)) {
     goto exit;
   }
 
-  NextPeSection = &(*NextPeSection)->Next;
-
-  *NextPeSection = CreateSection (
+  Status = CreateSection (
     ".data",
     IsDataShdr,
     EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_READ,
     DATA_SECTION,
-    &PeH
+    &PeH,
+    &PeSections
     );
-  if (*NextPeSection == NULL) {
-    Status = EFI_ABORTED;
+  if (EFI_ERROR (Status)) {
     goto exit;
   }
 
-  PeH.Nt->SizeOfInitializedData = (*NextPeSection)->PeShdr.SizeOfRawData;
+  PeH.Nt->SizeOfInitializedData = PeSections->PeShdr.SizeOfRawData;
 
   if (mRelocSectionExists) {
-    NextPeSection = &(*NextPeSection)->Next;
-
     Status = ProcessRelocs (&PeH, PeSections, &PeRelTab);
     if (EFI_ERROR (Status)) {
       goto exit;
     }
 
-    *NextPeSection = CreateRelocSection (&PeH, PeRelTab);
-    if (*NextPeSection == NULL) {
-      Status = EFI_ABORTED;
+    Status = CreateRelocSection (&PeH, PeRelTab, &PeSections);
+    if (EFI_ERROR (Status)) {
       goto exit;
     }
   }
