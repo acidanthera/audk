@@ -64,15 +64,8 @@
 #define ELF_R_SYM                        ELF64_R_SYM
 #endif
 
-#define ELF_MREL(mach, type) ((mach) | ((type) << 16))
-#define MAX_PE_ALIGNMENT     0x10000
-///
-/// Provide constants missing on some platforms
-///
-#define R_AARCH64_NULL  0
-#define R_ARM_V4BX      40
-
-#define DIR_BASERELOC  0
+#define MAX_PE_ALIGNMENT 0x10000
+#define DIR_BASERELOC    0
 
 enum {
 	TEXT_SECTION  = 0,

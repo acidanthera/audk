@@ -83,6 +83,39 @@ GetSymbol (
   return (Elf_Sym *)(Symtab + SymbolIndex * TableShdr->sh_entsize);
 }
 
+static
+UINT32
+FindAddress (
+  IN  PeHeader  *PeH,
+  IN  PeSection *PeSections,
+	IN  UINT32    Index,
+  OUT UINT8     **SectionData,
+  OUT UINT32    *WOffset
+  )
+{
+  UINT32    ROffset;
+  PeSection *PeS;
+
+  assert (PeH         != NULL);
+  assert (PeSections  != NULL);
+  assert (SectionData != NULL);
+  assert (WOffset     != NULL);
+
+  ROffset  = mPeSectionOffsets[Index].Offset;
+  *WOffset = PeH->Nt->SizeOfHeaders + ROffset;
+
+  for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+    if (mPeSectionOffsets[Index].Type == PeS->Type) {
+      *SectionData = PeS->Data;
+      break;
+    }
+
+    *WOffset += PeSections->PeShdr.SizeOfRawData;
+  }
+
+	return ROffset;
+}
+
 //
 // Find the ELF section hosting the GOT from an ELF Rva of a single GOT entry.
 // Normally, GOT is placed in ELF .text section, so assume once we find,
@@ -318,7 +351,7 @@ EFI_STATUS
 GeneratePeReloc (
 	IN OUT PeRelocs **PeRelTab,
 	IN     UINTN    Rva,
-	IN     UINT32   RelocType
+	IN     UINT8    RelocType
   )
 {
 	UINTN    PageRva;
@@ -336,24 +369,7 @@ GeneratePeReloc (
 	//
 	// Get Type
 	//
-	switch (RelocType) {
-		case 8:
-			TypeOffset |= EFI_IMAGE_REL_BASED_DIR64 << 12;
-			break;
-		case 4:
-			TypeOffset |= EFI_IMAGE_REL_BASED_HIGHLOW << 12;
-			break;
-		case 2:
-			TypeOffset |= EFI_IMAGE_REL_BASED_LOW << 12;
-			break;
-		default:
-			fprintf (stderr, "ImageTool: Unsupported relocation type\n");
-			if (*PeRelTab != NULL) {
-				FreeRelocs (*PeRelTab);
-				*PeRelTab = NULL;
-			}
-	    return EFI_INVALID_PARAMETER;
-	}
+  TypeOffset |= RelocType << 12;
 
   //
 	// Locate or create PE relocation table
@@ -412,128 +428,49 @@ GeneratePeReloc (
 }
 
 static
-EFI_STATUS
-ProcessReloc (
-	IN     const Elf_Shdr *RelShdr,
-	IN     const Elf_Rel  *Rel,
-	IN OUT PeRelocs       **PeRelTab
+VOID
+EmitGOTRelocations (
+  IN OUT PeRelocs **PeRelTab
   )
 {
-	UINT32     Type;
-	UINT32     MachineRelocType;
-	UINTN      Offset;
-	EFI_STATUS Status;
-  Elf_Sym    *Sym;
-  UINT32     SymTotal;
-  Elf_Shdr   *TableShdr;
+  UINT32 Index;
 
-	assert (RelShdr  != NULL);
-	assert (Rel      != NULL);
-	assert (PeRelTab != NULL);
-
-	Type             = ELF_R_TYPE (Rel->r_info);
-	MachineRelocType = ELF_MREL (mEhdr->e_machine, Type);
-	Offset           = RelShdr->sh_addr + Rel->r_offset;
-
-  //
-  // Identify symbol table
-  //
-  TableShdr = GetShdrByIndex (RelShdr->sh_link);
-  Sym       = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
-  SymTotal  = TableShdr->sh_size / sizeof (*Sym);
-  if (SymTotal == 0) {
-    return EFI_SUCCESS;
+  if (mGOTCoffEntries == NULL) {
+    return;
   }
 
-	//
-	// Look up symbol and process relocation
-	//
-	if (ELF_R_SYM (Rel->r_info) >= SymTotal) {
-		fprintf (stderr, "ImageTool: Symbol is out of range\n");
-		return EFI_INVALID_PARAMETER;
-	}
+  for (Index = 0; Index < mGOTNumCoffEntries; ++Index) {
+    GeneratePeReloc (PeRelTab, mGOTCoffEntries[Index], EFI_IMAGE_REL_BASED_DIR64);
+  }
 
-	if (Sym->st_shndx == SHN_ABS) {
-		//
-		// Skip absolute symbols;
-		// the symbol value won't change when the object is loaded.
-		//
-		return EFI_SUCCESS;
-	}
+  free (mGOTCoffEntries);
 
-	switch (MachineRelocType) {
-		case ELF_MREL (EM_386, R_386_NONE) :
-		case ELF_MREL (EM_ARM, R_ARM_NONE) :
-		case ELF_MREL (EM_X86_64, R_X86_64_NONE) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_NONE) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_NULL) :
-			//
-			// Ignore dummy relocations used by REQUIRE_SYMBOL()
-			//
-			break;
-		case ELF_MREL (EM_386, R_386_32) :
-		case ELF_MREL (EM_ARM, R_ARM_ABS32) :
-			//
-			// Generate a 4-byte PE relocation
-			//
-			Status = GeneratePeReloc (PeRelTab, Offset, 4);
-			if (EFI_ERROR (Status)) {
-				return Status;
-			}
-			break;
-		case ELF_MREL (EM_X86_64, R_X86_64_64) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_ABS64) :
-			//
-			// Generate an 8-byte PE relocation
-			//
-			Status = GeneratePeReloc (PeRelTab, Offset, 8);
-			if (EFI_ERROR (Status)) {
-				return Status;
-			}
-			break;
-		case ELF_MREL (EM_386, R_386_PC32) :
-		case ELF_MREL (EM_ARM, R_ARM_CALL) :
-		case ELF_MREL (EM_ARM, R_ARM_REL32) :
-		case ELF_MREL (EM_ARM, R_ARM_THM_PC22) :
-		case ELF_MREL (EM_ARM, R_ARM_THM_JUMP24) :
-		case ELF_MREL (EM_ARM, R_ARM_V4BX) :
-		case ELF_MREL (EM_X86_64, R_X86_64_PC32) :
-		case ELF_MREL (EM_X86_64, R_X86_64_PLT32) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_CALL26) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_JUMP26) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_ADR_PREL_LO21) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_ADR_PREL_PG_HI21) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_ADD_ABS_LO12_NC) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_LDST8_ABS_LO12_NC) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_LDST16_ABS_LO12_NC) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_LDST32_ABS_LO12_NC) :
-		case ELF_MREL (EM_AARCH64, R_AARCH64_LDST64_ABS_LO12_NC) :
-			//
-			// Skip PC-relative relocations;
-			// all relative offsets remain unaltered when the object is loaded.
-			//
-			break;
-		default:
-			fprintf (stderr, "ImageTool: Unrecognised relocation type %d\n", Type);
-			return EFI_INVALID_PARAMETER;
-	}
-
-	return EFI_SUCCESS;
+  mGOTCoffEntries = NULL;
+  mGOTMaxCoffEntries = 0;
+  mGOTNumCoffEntries = 0;
 }
 
 static
 EFI_STATUS
 ProcessRelocs (
-	IN OUT PeRelocs **PeRelTab
+  IN     PeHeader  *PeH,
+  IN     PeSection *PeSections,
+	IN OUT PeRelocs  **PeRelTab
   )
 {
   const Elf_Shdr *RelShdr;
+  const Elf_Shdr *SecShdr;
 	const Elf_Rel  *Rel;
   UINT32         SIndex;
   UINTN          RIndex;
 	EFI_STATUS     Status;
+  UINT8          *SecData;
+  UINT32         WSecOffset;
+  UINTN          Offset;
 
-	assert (PeRelTab != NULL);
+	assert (PeH        != NULL);
+  assert (PeSections != NULL);
+  assert (PeRelTab   != NULL);
 
   for (SIndex = 0; SIndex < mEhdr->e_shnum; ++SIndex) {
     RelShdr = GetShdrByIndex (SIndex);
@@ -542,19 +479,65 @@ ProcessRelocs (
       continue;
     }
 
+    SecShdr = GetShdrByIndex (RelShdr->sh_info);
+
+    if ((!IsTextShdr (SecShdr)) && (!IsDataShdr (SecShdr))) {
+      continue;
+    }
+
     //
     // Process each relocation
     //
     for (RIndex = 0; RIndex < RelShdr->sh_size; RIndex += RelShdr->sh_entsize) {
-      Rel    = (Elf_Rel *)((UINT8 *)mEhdr + RelShdr->sh_offset + RIndex);
-      Status = ProcessReloc (RelShdr, Rel, PeRelTab);
-      if (EFI_ERROR (Status)) {
-        return Status;
+      Rel = (Elf_Rel *)((UINT8 *)mEhdr + RelShdr->sh_offset + RIndex);
+
+      FindAddress (PeH, PeSections, RelShdr->sh_info, &SecData, &WSecOffset);
+      Offset = (Elf_Addr) WSecOffset + (Rel->r_offset - SecShdr->sh_addr);
+
+#if defined(EFI_TARGET64)
+      switch (ELF_R_TYPE(Rel->r_info)) {
+        case R_X86_64_NONE:
+        case R_X86_64_PC32:
+        case R_X86_64_PLT32:
+        case R_X86_64_GOTPCREL:
+        case R_X86_64_GOTPCRELX:
+        case R_X86_64_REX_GOTPCRELX:
+          break;
+        case R_X86_64_64:
+          Status = GeneratePeReloc (PeRelTab, Offset, EFI_IMAGE_REL_BASED_DIR64);
+          break;
+        case R_X86_64_32:
+          Status = GeneratePeReloc (PeRelTab, Offset, EFI_IMAGE_REL_BASED_HIGHLOW);
+          break;
+        default:
+          fprintf (stderr, "ImageTool: Unrecognised relocation type %lld\n", ELF_R_TYPE (Rel->r_info));
+          return EFI_INVALID_PARAMETER;
       }
+#endif
+#if defined(EFI_TARGET32)
+      switch (ELF_R_TYPE(Rel->r_info)) {
+        case R_386_NONE:
+        case R_386_PLT32:
+        case R_386_PC32:
+          break;
+        case R_386_32:
+          Status = GeneratePeReloc (PeRelTab, Offset, EFI_IMAGE_REL_BASED_HIGHLOW);
+          break;
+        default:
+          fprintf (stderr, "ImageTool: Unrecognised relocation type %d\n", ELF_R_TYPE (Rel->r_info));
+          return EFI_INVALID_PARAMETER;
+      }
+#endif
     }
+
+#if defined(EFI_TARGET64)
+    if (RelShdr->sh_info == mGOTShIndex) {
+      EmitGOTRelocations (PeRelTab);
+    }
+#endif
 	}
 
-	return EFI_SUCCESS;
+	return Status;
 }
 
 static
@@ -650,39 +633,6 @@ CreateRelocSection (
 }
 
 static
-UINT32
-FindAddress (
-  IN  PeHeader  *PeH,
-  IN  PeSection *PeSections,
-	IN  UINT32    Index,
-  OUT UINT8     **SectionData,
-  OUT UINT32    *WOffset
-  )
-{
-  UINT32    ROffset;
-  PeSection *PeS;
-
-  assert (PeH         != NULL);
-  assert (PeSections  != NULL);
-  assert (SectionData != NULL);
-  assert (WOffset     != NULL);
-
-  ROffset  = mPeSectionOffsets[Index].Offset;
-  *WOffset = PeH->Nt->SizeOfHeaders + ROffset;
-
-  for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
-    if (mPeSectionOffsets[Index].Type == PeS->Type) {
-      *SectionData = PeS->Data;
-      break;
-    }
-
-    *WOffset += PeSections->PeShdr.SizeOfRawData;
-  }
-
-	return ROffset;
-}
-
-static
 EFI_STATUS
 ApplyRelocs (
   IN PeHeader  *PeH,
@@ -714,9 +664,16 @@ ApplyRelocs (
 	for (Index = 0; Index < mEhdr->e_shnum; Index++) {
     RelShdr = GetShdrByIndex (Index);
 
+#if defined(EFI_TARGET64)
     if (RelShdr->sh_type != SHT_RELA) {
       continue;
     }
+#endif
+#if defined(EFI_TARGET32)
+    if (RelShdr->sh_type != SHT_REL) {
+      continue;
+    }
+#endif
 
 		if (RelShdr->sh_info == 0) {
 			continue;
@@ -744,54 +701,70 @@ ApplyRelocs (
 
 			Targ = SecData + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
-			if (mEhdr->e_machine == EM_X86_64) {
-				switch (ELF_R_TYPE(Rel->r_info)) {
-					case R_X86_64_NONE:
-						break;
-					case R_X86_64_64:
-						*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
-						break;
-					case R_X86_64_32:
-						*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
-						break;
-					case R_X86_64_32S:
-						*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
-						break;
-					case R_X86_64_PLT32:
-					case R_X86_64_PC32:
-            *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr));
-						break;
-					case R_X86_64_GOTPCREL:
-					case R_X86_64_GOTPCRELX:
-					case R_X86_64_REX_GOTPCRELX:
-						GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
-						Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
-            if (EFI_ERROR (Status)) {
-              return Status;
-            }
+#if defined(EFI_TARGET64)
+			switch (ELF_R_TYPE(Rel->r_info)) {
+				case R_X86_64_NONE:
+					break;
+				case R_X86_64_64:
+					*(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
+					break;
+				case R_X86_64_32:
+					*(UINT32 *)Targ = (UINT32)((UINT64)(*(UINT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
+					break;
+				case R_X86_64_32S:
+					*(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
+					break;
+				case R_X86_64_PLT32:
+				case R_X86_64_PC32:
+          *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr));
+					break;
+				case R_X86_64_GOTPCREL:
+				case R_X86_64_GOTPCRELX:
+				case R_X86_64_REX_GOTPCRELX:
+					GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
+					Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
+          if (EFI_ERROR (Status)) {
+            return Status;
+          }
 
-            GOTOffset = FindAddress (PeH, PeSections, mGOTShIndex, &GOTData, &WGOTOffset);
-						*(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (WGOTOffset - WSecOffset) - (mGOTShdr->sh_addr - SecShdr->sh_addr));
-            //
-            // ELF Rva -> PE Rva
-            //
-						GOTEntryRva += (GOTOffset - mGOTShdr->sh_addr);
-            Status = AccumulateCoffGOTEntries((UINT32)GOTEntryRva, &NewGOTEntry);
-            if (EFI_ERROR (Status)) {
-              return Status;
-            }
+          GOTOffset = FindAddress (PeH, PeSections, mGOTShIndex, &GOTData, &WGOTOffset);
+					*(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (WGOTOffset - WSecOffset) - (mGOTShdr->sh_addr - SecShdr->sh_addr));
+          //
+          // ELF Rva -> PE Rva
+          //
+					GOTEntryRva += (GOTOffset - mGOTShdr->sh_addr);
+          Status = AccumulateCoffGOTEntries((UINT32)GOTEntryRva, &NewGOTEntry);
+          if (EFI_ERROR (Status)) {
+            return Status;
+          }
 
-            if (NewGOTEntry) {
-              Targ = GOTData + GOTEntryRva;
-              *(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
-            }
+          if (NewGOTEntry) {
+            Targ = GOTData + GOTEntryRva;
+            *(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
+          }
 
-						break;
-					default:
-						fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
-						return EFI_UNSUPPORTED;
-				}
+					break;
+				default:
+					fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+					return EFI_UNSUPPORTED;
 			}
+#endif
+#if defined(EFI_TARGET32)
+      switch (ELF_R_TYPE(Rel->r_info)) {
+        case R_386_NONE:
+          break;
+        case R_386_32:
+          *(UINT32 *)Targ = *(UINT32 *)Targ - SymShdr->sh_addr + WSymOffset;
+          break;
+        case R_386_PLT32:
+        case R_386_PC32:
+          *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr));
+          break;
+        default:
+          fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
+          return EFI_UNSUPPORTED;
+      }
+#endif
 		}
 	}
 
@@ -930,6 +903,27 @@ ReadElfFile (
 		free (mEhdr);
     return EFI_VOLUME_CORRUPTED;
 	}
+
+  if ((mEhdr->e_type != ET_EXEC) && (mEhdr->e_type != ET_DYN)) {
+    fprintf (stderr, "ImageTool: ELF e_type not ET_EXEC or ET_DYN\n");
+		free (mEhdr);
+    return EFI_UNSUPPORTED;
+  }
+
+#if defined(EFI_TARGET64)
+  if (mEhdr->e_machine != EM_X86_64) {
+    fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
+    free (mEhdr);
+    return EFI_UNSUPPORTED;
+  }
+#endif
+#if defined(EFI_TARGET32)
+  if (mEhdr->e_machine != EM_386) {
+    fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
+    free (mEhdr);
+    return EFI_UNSUPPORTED;
+  }
+#endif
 
 	//
 	// Check section headers
@@ -1123,7 +1117,7 @@ ElfToPe (
 
   NextPeSection = &(*NextPeSection)->Next;
 
-  Status = ProcessRelocs (&PeRelTab);
+  Status = ProcessRelocs (&PeH, PeSections, &PeRelTab);
   if (EFI_ERROR (Status)) {
     goto exit;
   }
