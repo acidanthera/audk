@@ -362,25 +362,19 @@ static
 EFI_STATUS
 GeneratePeReloc (
 	IN OUT PeRelocs **PeRelTab,
-	IN     UINTN    Rva,
+	IN     UINTN    Offset,
 	IN     UINT16   RelocType
   )
 {
 	UINTN    PageRva;
 	UINT16   TypeOffset;
 	PeRelocs *PeRel;
-	UINT16   *Copy;
 
 	assert (PeRelTab != NULL);
 
-	PageRva = Rva & ~0xfff;
-	//
-	// Get Offset
-	//
-	TypeOffset = Rva & 0xfff;
-	//
-	// Get Type
-	//
+	PageRva = Offset & ~0xfffULL;
+
+	TypeOffset = Offset & 0xfffULL;
   TypeOffset |= RelocType << 12;
 
   //
@@ -414,20 +408,13 @@ GeneratePeReloc (
 	if (PeRel->Used == PeRel->Total) {
 		PeRel->Total = (PeRel->Total != 0) ? (PeRel->Total * 2) : 256;
 
-		Copy = calloc (1, PeRel->Total * sizeof (TypeOffset));
-		if (Copy == NULL) {
+		PeRel->TypeOffsets = realloc (PeRel->TypeOffsets, PeRel->Total * sizeof (TypeOffset));
+		if (PeRel->TypeOffsets == NULL) {
 			fprintf (stderr, "ImageTool: Could not reallocate memory for TypeOffset array\n");
 			FreeRelocs (*PeRelTab);
 			*PeRelTab = NULL;
 	    return EFI_OUT_OF_RESOURCES;
 		}
-
-		if (PeRel->TypeOffsets != NULL) {
-			memcpy (Copy, PeRel->TypeOffsets, PeRel->Used * sizeof (TypeOffset));
-			free (PeRel->TypeOffsets);
-		}
-
-		PeRel->TypeOffsets = Copy;
 	}
 
 	//
@@ -617,9 +604,8 @@ CreateRelocSection (
 	strncpy ((char *)PeS->PeShdr.Name, ".reloc", sizeof (PeS->PeShdr.Name));
 	PeS->PeShdr.VirtualSize     = SectionSize;
 	PeS->PeShdr.SizeOfRawData   = RawDataSize;
-	PeS->PeShdr.Characteristics =
-	  EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_DISCARDABLE |
-		EFI_IMAGE_SCN_MEM_NOT_PAGED | EFI_IMAGE_SCN_MEM_READ;
+	PeS->PeShdr.Characteristics = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA
+    | EFI_IMAGE_SCN_MEM_DISCARDABLE | EFI_IMAGE_SCN_MEM_READ;
 
 	//
 	// Copy section contents

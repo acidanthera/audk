@@ -86,7 +86,7 @@ typedef struct {
 typedef struct _PeSection {
 	EFI_IMAGE_SECTION_HEADER PeShdr;
 	UINT8                    Type;
-	UINT8                    Data[0];
+	UINT8                    Data[];
 } PeSection;
 
 typedef struct _PeOffset {
