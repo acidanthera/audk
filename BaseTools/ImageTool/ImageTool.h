@@ -84,7 +84,6 @@ typedef struct {
 } PeHeader;
 
 typedef struct _PeSection {
-	PeSection                *Next;
 	EFI_IMAGE_SECTION_HEADER PeShdr;
 	UINT8                    Type;
 	UINT8                    Data[0];

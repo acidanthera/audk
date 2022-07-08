@@ -19,10 +19,12 @@
 
 #include "ImageTool.h"
 
-static Elf_Ehdr *mEhdr              = NULL;
-static Elf_Size mPeAlignment        = 0x200;
-static PeOffset *mPeSectionOffsets  = NULL;
-static BOOLEAN  mRelocSectionExists = FALSE;
+static Elf_Ehdr  *mEhdr              = NULL;
+static Elf_Size  mPeAlignment        = 0x200;
+static UINT32    mPeSectionsNumber   = 0;
+static PeSection **mPeSections       = NULL;
+static PeOffset  *mPeSectionOffsets  = NULL;
+static BOOLEAN   mRelocSectionExists = FALSE;
 
 static Elf_Shdr *mGOTShdr          = NULL;
 static UINT32   mGOTShIndex        = 0;
@@ -33,7 +35,6 @@ static UINT32   mGOTNumCoffEntries = 0;
 EFI_STATUS
 ApplyRelocs (
   IN PeHeader  *PeH,
-	IN PeSection *PeSections,
   IN BOOLEAN   (*Filter)(const Elf_Shdr *)
   );
 
@@ -95,30 +96,31 @@ static
 UINT32
 FindAddress (
   IN  PeHeader  *PeH,
-  IN  PeSection *PeSections,
-	IN  UINT32    Index,
+	IN  UINT32    ElfIndex,
   OUT UINT8     **SectionData,
   OUT UINT32    *WOffset
   )
 {
   UINT32    ROffset;
   PeSection *PeS;
+  UINT32    PeIndex;
 
   assert (PeH         != NULL);
-  assert (PeSections  != NULL);
   assert (SectionData != NULL);
   assert (WOffset     != NULL);
 
-  ROffset  = mPeSectionOffsets[Index].Offset;
+  ROffset  = mPeSectionOffsets[ElfIndex].Offset;
   *WOffset = PeH->Nt->SizeOfHeaders + ROffset;
 
-  for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
-    if (mPeSectionOffsets[Index].Type == PeS->Type) {
+  for (PeIndex = 0; (PeIndex < mPeSectionsNumber) && (mPeSections[PeIndex] != NULL); ++PeIndex) {
+    PeS = mPeSections[PeIndex];
+
+    if (mPeSectionOffsets[ElfIndex].Type == PeS->Type) {
       *SectionData = PeS->Data;
       break;
     }
 
-    *WOffset += PeSections->PeShdr.SizeOfRawData;
+    *WOffset += PeS->PeShdr.SizeOfRawData;
   }
 
 	return ROffset;
@@ -239,16 +241,18 @@ FreeRelocs (
 static
 VOID
 FreeSections (
-	IN PeSection *PeSections
+  VOID
   )
 {
-	assert (PeSections != NULL);
+  UINT32 Index;
 
-	if (PeSections->Next != NULL) {
-		FreeSections (PeSections->Next);
+	if (mPeSections != NULL) {
+    for (Index = 0; (Index < mPeSectionsNumber) && (mPeSections[Index] != NULL); ++Index) {
+      free (mPeSections[Index]);
+    }
+
+    free (mPeSections);
 	}
-
-	free (PeSections);
 }
 
 static
@@ -258,8 +262,7 @@ CreateSection (
   IN 	   BOOLEAN    (*Filter)(const Elf_Shdr *),
   IN     UINT32     Flags,
   IN     UINT8      Type,
-	IN OUT PeHeader   *PeH,
-  IN OUT PeSection  **PeSections
+	IN OUT PeHeader   *PeH
   )
 {
   EFI_STATUS     Status;
@@ -273,7 +276,6 @@ CreateSection (
 	assert (Name       != NULL);
   assert (Filter     != NULL);
   assert (PeH        != NULL);
-	assert (PeSections != NULL);
 
 	PeSectionSize = 0;
   Pointer       = 0;
@@ -353,10 +355,9 @@ CreateSection (
 	++PeH->Nt->CommonHeader.FileHeader.NumberOfSections;
 	PeH->Nt->SizeOfImage   +=	ALIGN_VALUE (PeSectionSize, PeH->Nt->SectionAlignment);
 
-  PeS->Next   = *PeSections;
-  *PeSections = PeS;
+  mPeSections[Type] = PeS;
 
-  Status = ApplyRelocs (PeH, *PeSections, Filter);
+  Status = ApplyRelocs (PeH, Filter);
 
 	return Status;
 }
@@ -469,7 +470,6 @@ static
 EFI_STATUS
 ProcessRelocs (
   IN     PeHeader  *PeH,
-  IN     PeSection *PeSections,
 	IN OUT PeRelocs  **PeRelTab
   )
 {
@@ -484,7 +484,6 @@ ProcessRelocs (
   UINTN          Offset;
 
 	assert (PeH        != NULL);
-  assert (PeSections != NULL);
   assert (PeRelTab   != NULL);
 
   for (SIndex = 0; SIndex < mEhdr->e_shnum; ++SIndex) {
@@ -506,7 +505,7 @@ ProcessRelocs (
     for (RIndex = 0; RIndex < RelShdr->sh_size; RIndex += RelShdr->sh_entsize) {
       Rel = (Elf_Rel *)((UINT8 *)mEhdr + RelShdr->sh_offset + RIndex);
 
-      FindAddress (PeH, PeSections, RelShdr->sh_info, &SecData, &WSecOffset);
+      FindAddress (PeH, RelShdr->sh_info, &SecData, &WSecOffset);
       Offset = (Elf_Addr) WSecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
 #if defined(EFI_TARGET64)
@@ -599,8 +598,7 @@ static
 EFI_STATUS
 CreateRelocSection (
 	IN OUT PeHeader  *PeH,
-	IN     PeRelocs  *PeRelTab,
-  IN OUT PeSection **PeSections
+	IN     PeRelocs  *PeRelTab
   )
 {
 	PeSection *PeS;
@@ -644,8 +642,7 @@ CreateRelocSection (
 
 	PeH->Nt->DataDirectory[DIR_BASERELOC].Size = SectionSize;
 
-  PeS->Next   = *PeSections;
-  *PeSections = PeS;
+  mPeSections[RELOC_SECTION] = PeS;
 
 	return EFI_SUCCESS;
 }
@@ -654,7 +651,6 @@ CreateRelocSection (
 EFI_STATUS
 ApplyRelocs (
   IN PeHeader  *PeH,
-	IN PeSection *PeSections,
   IN BOOLEAN   (*Filter)(const Elf_Shdr *)
   )
 {
@@ -678,8 +674,6 @@ ApplyRelocs (
   EFI_STATUS     Status;
   BOOLEAN        NewGOTEntry;
 
-	assert (PeSections != NULL);
-
 	for (Index = 0; Index < mEhdr->e_shnum; Index++) {
     RelShdr = GetShdrByIndex (Index);
 
@@ -692,7 +686,7 @@ ApplyRelocs (
 		}
 
     SecShdr   = GetShdrByIndex (RelShdr->sh_info);
-    SecOffset = FindAddress (PeH, PeSections, RelShdr->sh_info, &SecData, &WSecOffset);
+    SecOffset = FindAddress (PeH, RelShdr->sh_info, &SecData, &WSecOffset);
 
 #if defined(EFI_TARGET64)
     if ((RelShdr->sh_type != SHT_RELA) || (!(*Filter)(SecShdr))) {
@@ -720,7 +714,7 @@ ApplyRelocs (
 			}
 
       SymShdr   = GetShdrByIndex (Sym->st_shndx);
-      FindAddress (PeH, PeSections, Sym->st_shndx, &SymData, &WSymOffset);
+      FindAddress (PeH, Sym->st_shndx, &SymData, &WSymOffset);
 
 			Targ = SecData + SecOffset + (Rel->r_offset - SecShdr->sh_addr);
 
@@ -750,7 +744,7 @@ ApplyRelocs (
             return Status;
           }
 
-          GOTOffset = FindAddress (PeH, PeSections, mGOTShIndex, &GOTData, &WGOTOffset);
+          GOTOffset = FindAddress (PeH, mGOTShIndex, &GOTData, &WGOTOffset);
 					*(UINT32 *)Targ = (UINT32) (*(UINT32 *)Targ	+ (WGOTOffset - WSecOffset) - (mGOTShdr->sh_addr - SecShdr->sh_addr));
           //
           // ELF Rva -> PE Rva
@@ -799,16 +793,15 @@ EFI_STATUS
 WritePeFile (
 	IN OUT PeHeader  *PeH,
 	IN     UINT32    NtSize,
-  IN     PeSection *PeSections,
 	   OUT FILE      *Pe
   )
 {
 	PeSection  *PeS;
 	UINT32     Position;
+  UINT32     Index;
 
-	assert (PeH        != NULL);
-	assert (PeSections != NULL);
-	assert (Pe         != NULL);
+	assert (PeH != NULL);
+	assert (Pe  != NULL);
 
   Position = PeH->Nt->SizeOfHeaders;
 
@@ -818,7 +811,9 @@ WritePeFile (
 	//
 	// Assign raw data pointers
 	//
-	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+  for (Index = 0; Index < mPeSectionsNumber; ++Index) {
+    PeS = mPeSections[Index];
+
 		if (PeS->PeShdr.SizeOfRawData != 0) {
 			PeS->PeShdr.PointerToRawData = Position;
 			PeS->PeShdr.VirtualAddress   = Position;
@@ -861,7 +856,8 @@ WritePeFile (
 	//
 	// Write section headers
 	//
-	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+  for (Index = 0; Index < mPeSectionsNumber; ++Index) {
+    PeS = mPeSections[Index];
 		if (fwrite (&PeS->PeShdr, sizeof (PeS->PeShdr), 1, Pe) != 1) {
 			fprintf (stderr, "ImageTool: Could not write section header\n");
 			return EFI_ABORTED;
@@ -871,9 +867,8 @@ WritePeFile (
 	//
 	// Write sections
 	//
-  // TODO: Reorder Sections
-  //
-	for (PeS = PeSections; PeS != NULL; PeS = PeS->Next) {
+  for (Index = 0; Index < mPeSectionsNumber; ++Index) {
+    PeS = mPeSections[Index];
 		if (fseek (Pe, PeS->PeShdr.PointerToRawData, SEEK_SET) != 0) {
 			fprintf (stderr, "ImageTool: Could not seek to %x: %s\n", PeS->PeShdr.PointerToRawData, strerror (errno));
 			return EFI_ABORTED;
@@ -1063,7 +1058,6 @@ ElfToPe (
   )
 {
 	PeRelocs   *PeRelTab;
-	PeSection  *PeSections;
 	PeHeader   PeH;
 	FILE       *Pe;
 	EFI_STATUS Status;
@@ -1074,12 +1068,13 @@ ElfToPe (
 	assert (PeName  != NULL);
 
 	PeRelTab   = NULL;
-	PeSections = NULL;
 
 	Status = ReadElfFile (ElfName);
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
+
+  mPeSectionsNumber = 2;
 
 	//
 	// Initialise PE header
@@ -1112,11 +1107,12 @@ ElfToPe (
 	PeH.Nt->Magic            = EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC;
 	PeH.Nt->SectionAlignment = mPeAlignment;
 	PeH.Nt->FileAlignment    = mPeAlignment;
-	PeH.Nt->SizeOfHeaders    = sizeof (PeH.Dos) + NtSize + 2 * sizeof (PeSections->PeShdr);
+	PeH.Nt->SizeOfHeaders    = sizeof (PeH.Dos) + NtSize;
 
   if (mRelocSectionExists) {
-    PeH.Nt->SizeOfHeaders += sizeof (PeSections->PeShdr);
+    ++mPeSectionsNumber;
   }
+  PeH.Nt->SizeOfHeaders += mPeSectionsNumber * sizeof (EFI_IMAGE_SECTION_HEADER);
   PeH.Nt->SizeOfHeaders = ALIGN_VALUE (PeH.Nt->SizeOfHeaders, PeH.Nt->FileAlignment);
 
 	PeH.Nt->Subsystem               = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
@@ -1141,13 +1137,19 @@ ElfToPe (
 			goto exit;
 	}
 
+  mPeSections = calloc (1, mPeSectionsNumber * sizeof (*mPeSections));
+	if (mPeSections == NULL) {
+		fprintf (stderr, "ImageTool: Could not allocate memory for PeSections array\n");
+		free (mEhdr);
+		return EFI_OUT_OF_RESOURCES;
+	}
+
   Status = CreateSection (
     ".text",
     IsTextShdr,
     EFI_IMAGE_SCN_CNT_CODE | EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_READ,
     TEXT_SECTION,
-    &PeH,
-    &PeSections
+    &PeH
     );
   if (EFI_ERROR (Status)) {
     goto exit;
@@ -1158,22 +1160,21 @@ ElfToPe (
     IsDataShdr,
     EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_WRITE | EFI_IMAGE_SCN_MEM_READ,
     DATA_SECTION,
-    &PeH,
-    &PeSections
+    &PeH
     );
   if (EFI_ERROR (Status)) {
     goto exit;
   }
 
-  PeH.Nt->SizeOfInitializedData = PeSections->PeShdr.SizeOfRawData;
+  PeH.Nt->SizeOfInitializedData = mPeSections[DATA_SECTION]->PeShdr.SizeOfRawData;
 
   if (mRelocSectionExists) {
-    Status = ProcessRelocs (&PeH, PeSections, &PeRelTab);
+    Status = ProcessRelocs (&PeH, &PeRelTab);
     if (EFI_ERROR (Status)) {
       goto exit;
     }
 
-    Status = CreateRelocSection (&PeH, PeRelTab, &PeSections);
+    Status = CreateRelocSection (&PeH, PeRelTab);
     if (EFI_ERROR (Status)) {
       goto exit;
     }
@@ -1189,16 +1190,14 @@ ElfToPe (
 		goto exit;
 	}
 
-	Status = WritePeFile (&PeH, NtSize, PeSections, Pe);
+	Status = WritePeFile (&PeH, NtSize, Pe);
 	fclose (Pe);
 
 exit:
 	if (PeRelTab != NULL) {
 		FreeRelocs (PeRelTab);
 	}
-	if (PeSections != NULL) {
-		FreeSections (PeSections);
-	}
+	FreeSections ();
 	free (PeH.Nt);
 	free (mEhdr);
 
