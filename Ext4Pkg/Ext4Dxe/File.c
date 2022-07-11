@@ -566,15 +566,15 @@ Ext4Open (
 {
   EFI_STATUS      Status;
   EXT4_FILE       *FoundFile;
-  EXT4_PARTITION  *Partition = ((EXT4_FILE *) This)->Partition;
+  EXT4_FILE       *Source = EXT4_FILE_FROM_THIS (This);
 
   //
   // Reset Symloops counter
   //
-  Partition->Root->Symloops = 0;
+  Source->Partition->Root->Symloops = 0;
 
   Status = Ext4OpenInternal (
-    (EXT4_FILE *) This,
+    Source,
     &FoundFile,
     FileName,
     OpenMode,
@@ -603,7 +603,7 @@ Ext4Close (
   IN EFI_FILE_PROTOCOL  *This
   )
 {
-  return Ext4CloseInternal ((EXT4_FILE *)This);
+  return Ext4CloseInternal (EXT4_FILE_FROM_THIS (This));
 }
 
 /**
@@ -684,7 +684,7 @@ Ext4ReadFile (
   EXT4_PARTITION  *Partition;
   EFI_STATUS      Status;
 
-  File      = (EXT4_FILE *)This;
+  File      = EXT4_FILE_FROM_THIS (This);
   Partition = File->Partition;
 
   ASSERT (Ext4FileIsOpenable (File));
@@ -735,7 +735,7 @@ Ext4WriteFile (
 {
   EXT4_FILE  *File;
 
-  File = (EXT4_FILE *)This;
+  File = EXT4_FILE_FROM_THIS (This);
 
   if (!(File->OpenMode & EFI_FILE_MODE_WRITE)) {
     return EFI_ACCESS_DENIED;
@@ -765,7 +765,7 @@ Ext4GetPosition (
 {
   EXT4_FILE  *File;
 
-  File = (EXT4_FILE *)This;
+  File = EXT4_FILE_FROM_THIS (This);
 
   if (Ext4FileIsDir (File)) {
     return EFI_UNSUPPORTED;
@@ -798,7 +798,7 @@ Ext4SetPosition (
 {
   EXT4_FILE  *File;
 
-  File = (EXT4_FILE *)This;
+  File = EXT4_FILE_FROM_THIS (This);
 
   // Only seeks to 0 (so it resets the ReadDir operation) are allowed
   if (Ext4FileIsDir (File) && (Position != 0)) {
@@ -1063,12 +1063,11 @@ Ext4GetInfo (
   OUT VOID              *Buffer
   )
 {
-  EXT4_PARTITION  *Partition;
-
-  Partition = ((EXT4_FILE *)This)->Partition;
+  EXT4_FILE       *File = EXT4_FILE_FROM_THIS (This);
+  EXT4_PARTITION  *Partition = File->Partition;
 
   if (CompareGuid (InformationType, &gEfiFileInfoGuid)) {
-    return Ext4GetFileInfo ((EXT4_FILE *)This, Buffer, BufferSize);
+    return Ext4GetFileInfo (File, Buffer, BufferSize);
   }
 
   if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid)) {
@@ -1178,11 +1177,8 @@ Ext4SetInfo (
   IN VOID               *Buffer
   )
 {
-  EXT4_FILE       *File;
-  EXT4_PARTITION  *Part;
-
-  File = (EXT4_FILE *)This;
-  Part = File->Partition;
+  EXT4_FILE       *File = EXT4_FILE_FROM_THIS (This);
+  EXT4_PARTITION  *Part = File->Partition;
 
   if (Part->ReadOnly) {
     return EFI_WRITE_PROTECTED;

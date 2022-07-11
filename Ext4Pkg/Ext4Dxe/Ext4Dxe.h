@@ -383,6 +383,8 @@ struct _Ext4File {
   EXT4_DENTRY           *Dentry;
 };
 
+#define EXT4_FILE_FROM_THIS(This)  BASE_CR ((This), EXT4_FILE, Protocol)
+
 #define EXT4_FILE_FROM_OPEN_FILES_NODE(Node)                                   \
   BASE_CR(Node, EXT4_FILE, OpenFilesListNode)
 
@@ -499,6 +501,45 @@ VOID
 Ext4SetupFile (
   IN OUT EXT4_FILE   *File,
   IN EXT4_PARTITION  *Partition
+  );
+
+/**
+  Opens a new file relative to the source file's location.
+
+  @param[in]  Source     A pointer to the EXT4_FILE instance that is the file
+                         handle to the source location. This would typically be an open
+                         handle to a directory.
+  @param[out] FoundFile  A pointer to the location to return the opened handle for the new
+                         file.
+  @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
+                         The file name may contain the following path modifiers: "\", ".",
+                         and "..".
+  @param[in]  OpenMode   The mode to open the file. The only valid combinations that the
+                         file may be opened with are: Read, Read/Write, or Create/Read/Write.
+  @param[in]  Attributes Only valid for EFI_FILE_MODE_CREATE, in which case these are the
+                         attribute bits for the newly created file.
+
+  @retval EFI_SUCCESS          The file was opened.
+  @retval EFI_NOT_FOUND        The specified file could not be found on the device.
+  @retval EFI_NO_MEDIA         The device has no medium.
+  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the medium is no
+                               longer supported.
+  @retval EFI_DEVICE_ERROR     The device reported an error.
+  @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+  @retval EFI_WRITE_PROTECTED  An attempt was made to create a file, or open a file for write
+                               when the media is write-protected.
+  @retval EFI_ACCESS_DENIED    The service denied access to the file.
+  @retval EFI_OUT_OF_RESOURCES Not enough resources were available to open the file.
+  @retval EFI_VOLUME_FULL      The volume is full.
+
+**/
+EFI_STATUS
+Ext4OpenInternal (
+  IN EXT4_FILE           *Source,
+  OUT EXT4_FILE          **FoundFile,
+  IN CHAR16              *FileName,
+  IN UINT64              OpenMode,
+  IN UINT64              Attributes
   );
 
 /**
