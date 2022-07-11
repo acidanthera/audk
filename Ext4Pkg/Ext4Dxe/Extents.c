@@ -421,7 +421,7 @@ Ext4ExtentsMapKeyCompare (
   Extent = UserStruct;
   Block  = (UINT32)(UINTN)StandaloneKey;
 
-  if ((Block >= Extent->ee_block) && (Block < Extent->ee_block + Ext4GetExtentLength (Extent))) {
+  if ((Block >= Extent->ee_block) && (Block - Extent->ee_block < Ext4GetExtentLength (Extent))) {
     return 0;
   }
 
