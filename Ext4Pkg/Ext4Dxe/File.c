@@ -157,7 +157,7 @@ Ext4ReadFastSymlink (
   EFI_STATUS  Status;
   CHAR8       *AsciiSymlinkTmp;
 
-  AsciiSymlinkTmp = AllocateZeroPool (EXT4_FAST_SYMLINK_SIZE + 1);
+  AsciiSymlinkTmp = AllocatePool (EXT4_FAST_SYMLINK_SIZE + 1);
   if (AsciiSymlinkTmp == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
@@ -221,7 +221,7 @@ Ext4ReadSlowSymlink (
     return Status;
   }
 
-  SymlinkTmp = AllocateZeroPool (SymlinkAllocateSize);
+  SymlinkTmp = AllocatePool (SymlinkAllocateSize);
   if (SymlinkTmp == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
