@@ -31,6 +31,7 @@
 
 #include "Ext4Disk.h"
 
+#define SYMLOOP_MAX      8
 #define EXT4_NAME_MAX  255
 #define EFI_PATH_MAX  4096
 #define EXT4_FAST_SYMLINK_SIZE 60
@@ -370,6 +371,7 @@ struct _Ext4File {
 
   UINT64                OpenMode;
   UINT64                Position;
+  UINT32                Symloops;
 
   EXT4_PARTITION        *Partition;
 
