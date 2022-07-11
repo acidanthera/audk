@@ -160,17 +160,6 @@ Ext4RetrieveDirent (
         return EFI_VOLUME_CORRUPTED;
       }
 
-      // Ignore names bigger than our limit.
-
-      /* Note: I think having a limit is sane because:
-        1) It's nicer to work with.
-        2) Linux and a number of BSDs also have a filename limit of 255.
-      */
-      if (Entry->name_len > EXT4_NAME_MAX) {
-        BlockOffset += Entry->rec_len;
-        continue;
-      }
-
       // Unused entry
       if (Entry->inode == 0) {
         BlockOffset += Entry->rec_len;
