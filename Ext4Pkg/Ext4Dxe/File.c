@@ -346,9 +346,7 @@ Ext4ReadSymlink (
 
   *Symlink = Symlink16Tmp;
 
-  Status = EFI_SUCCESS;
-
-  return Status;
+  return EFI_SUCCESS;
 }
 
 /**
