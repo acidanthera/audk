@@ -240,8 +240,16 @@ Ext4ReadSlowSymlink (
   //
   SymlinkTmp[SymlinkSizeTmp] = '\0';
 
-  if (SymlinkSizeTmp != (UINT64) ReadSize
-      || SymlinkAllocateSize != AsciiStrSize (SymlinkTmp)) {
+  //
+  // It is not clear, should we check that symlink allocation size is
+  // equal symlink string size or not. However there is no checks in existing 
+  // Ext4 implementations, so we also don't check it here relying on the fact
+  // we terminated string ourselves above.
+  //
+  // ASSERT (SymlinkAllocateSize == AsciiStrSize (SymlinkTmp));
+  // 
+
+  if (SymlinkSizeTmp != ReadSize) {
     DEBUG ((
       DEBUG_FS,
       "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
