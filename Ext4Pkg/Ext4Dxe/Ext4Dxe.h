@@ -871,7 +871,7 @@ Ext4FileIsReg (
 #define Ext4FileIsOpenable(File)  (Ext4FileIsReg (File) || Ext4FileIsDir (File) || Ext4FileIsSymlink (File))
 
 #define EXT4_INODE_HAS_FIELD(Inode, Field)                                     \
-  (Inode->i_extra_isize + (UINTN) EXT4_GOOD_OLD_INODE_SIZE >=                          \
+  (Inode->i_extra_isize + EXT4_GOOD_OLD_INODE_SIZE >=                          \
    OFFSET_OF(EXT4_INODE, Field) + sizeof(((EXT4_INODE *)NULL)->Field))
 
 /**

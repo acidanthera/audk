@@ -338,7 +338,7 @@ STATIC_ASSERT (
 #define EXT4_TIND_BLOCK  14
 #define EXT4_NR_BLOCKS   15
 
-#define EXT4_GOOD_OLD_INODE_SIZE  128
+#define EXT4_GOOD_OLD_INODE_SIZE  128U
 
 typedef struct _Ext4_I_OSD2_Linux {
   UINT16    l_i_blocks_high;
