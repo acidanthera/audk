@@ -537,20 +537,8 @@ Ext4RemoveDentry (
   IN OUT EXT4_DENTRY  *ToBeRemoved
   )
 {
-  EXT4_DENTRY  *D;
-  LIST_ENTRY   *Entry;
-  LIST_ENTRY   *NextEntry;
-
-  BASE_LIST_FOR_EACH_SAFE (Entry, NextEntry, &Parent->Children) {
-    D = EXT4_DENTRY_FROM_DENTRY_LIST (Entry);
-
-    if (D == ToBeRemoved) {
-      RemoveEntryList (Entry);
-      return;
-    }
-  }
-
-  DEBUG ((DEBUG_ERROR, "[ext4] Ext4RemoveDentry did not find the asked-for dentry\n"));
+  ASSERT (IsNodeInList (&ToBeRemoved->ListNode, &Parent->Children));
+  RemoveEntryList (&ToBeRemoved->ListNode);
 }
 
 /**
