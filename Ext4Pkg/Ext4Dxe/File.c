@@ -135,6 +135,130 @@ Ext4DirCanLookup (
 }
 
 /**
+  Reads a symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     Symlink     Pointer to the output unicode symlink string.
+
+  @retval EFI_SUCCESS          Symlink was read.
+  @retval EFI_ACCESS_DENIED    Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES Any buffer allocation error.
+**/
+EFI_STATUS
+Ext4ReadSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR16          **Symlink
+  )
+{
+  EFI_STATUS  Status = EFI_SUCCESS;
+  CHAR8       *SymlinkTmp;
+  UINTN       SymlinkSize;
+  UINTN       SymlinkAllocateSize;
+  CHAR16      *Symlink16Tmp;
+  CHAR16      *Needle;
+
+  //
+  // Assume that we alread read Inode via Ext4ReadInode
+  // Skip reading, just check encryption flag
+  //
+  if (File->Inode->i_flags & EXT4_ENCRYPT_FL) {
+    Status = EFI_ACCESS_DENIED;
+    DEBUG ((DEBUG_FS, "[ext4] Error, symlink is encrypted\n"));
+    return Status;
+  }
+
+  SymlinkSize = File->Inode->i_size_lo;
+
+  //
+  // Allocate i_size_lo + 1
+  //
+  if (MAX_UINTN - SymlinkSize >= 1) {
+    SymlinkAllocateSize = SymlinkSize + 1;
+  } else {
+    Status = EFI_INVALID_PARAMETER;
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Integer overflow while calculating symlink buffer size!\n"
+      ));
+    return Status;
+  }
+
+  SymlinkTmp = AllocateZeroPool (SymlinkAllocateSize);
+  if (SymlinkTmp == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
+    return Status;
+  }
+
+  //
+  // If the filesize of the symlink is equal to or bigger than 60 the symlink
+  // is stored in a separate block, otherwise it is stored in the inode.
+  //
+  if (SymlinkSize < sizeof(File->Inode->symlink)) {
+    CopyMem (SymlinkTmp, File->Inode->symlink, SymlinkSize);
+  } else {
+    Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &SymlinkSize);
+    if (!EFI_ERROR (Status)) {
+      File->Position += SymlinkSize;
+    } else {
+      DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
+      FreePool (SymlinkTmp);
+      return Status;
+    }
+  }
+
+  //
+  // Add null-terminator
+  //
+  SymlinkTmp[SymlinkSize] = '\0';
+  ASSERT (
+    SymlinkSize == File->Inode->i_size_lo
+    && SymlinkAllocateSize == AsciiStrSize(SymlinkTmp)
+    );
+
+  Symlink16Tmp = AllocateZeroPool (SymlinkAllocateSize * sizeof (CHAR16));
+  if (Symlink16Tmp == NULL) {
+    Status = EFI_OUT_OF_RESOURCES;
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink unicode string buffer\n"));
+    FreePool (SymlinkTmp);
+    return Status;
+  }
+
+  Status = AsciiStrToUnicodeStrS (
+    SymlinkTmp,
+    Symlink16Tmp,
+    SymlinkSize * sizeof (CHAR16)
+    );
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Failed to convert ascii symlink to unicode with Status %r\n",
+      Status
+      ));
+    FreePool (SymlinkTmp);
+    FreePool (Symlink16Tmp);
+    return Status;
+  }
+
+  FreePool (SymlinkTmp);
+
+  //
+  // Convert to UEFI slashes
+  //
+  Needle = Symlink16Tmp;
+  while ((Needle = StrStr (Needle, L"/")) != NULL) {
+    *Needle++ = L'\\';
+  }
+
+  *Symlink = Symlink16Tmp;
+
+  return Status;
+}
+
+/**
   Opens a new file relative to the source file's location.
 
   @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
@@ -180,6 +304,7 @@ Ext4Open (
   CHAR16          PathSegment[EXT4_NAME_MAX + 1];
   UINTN           Length;
   EXT4_FILE       *File;
+  CHAR16          *Symlink;
   EFI_STATUS      Status;
 
   Current   = (EXT4_FILE *)This;
@@ -238,16 +363,38 @@ Ext4Open (
     }
 
     // Check if this is a valid file to open in EFI
-
-    // What to do with symlinks? They're nonsense when absolute but may
-    // be useful when they're relative. Right now, they're ignored, since they
-    // bring a lot of trouble for something that's not as useful in our case.
-    // If you want to link, use hard links.
-
     if (!Ext4FileIsOpenable (File)) {
       Ext4CloseInternal (File);
       // This looks like an /okay/ status to return.
       return EFI_ACCESS_DENIED;
+    }
+
+    //
+    // Reading symlink and then trying to follow it
+    //
+    if (Ext4FileIsSymlink (File)) {
+      DEBUG ((DEBUG_FS, "[ext4] File %s is symlink, trying to read it\n", PathSegment));
+      Status = Ext4ReadSymlink (Partition, File, &Symlink);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_FS, "[ext4] Error reading %s symlink!\n", PathSegment));
+        return Status;
+      }
+      DEBUG ((DEBUG_FS, "[ext4] File %s is linked to %s\n", PathSegment, Symlink));
+      //
+      // Close symlink file
+      //
+      Ext4CloseInternal (File);
+      //
+      // Open linked file by recursive call of Ext4OpenFile
+      //
+      Status = Ext4Open ((EFI_FILE_PROTOCOL *) Current, NewHandle, Symlink, OpenMode, Attributes);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_FS, "[ext4] Error opening linked file %s\n", Symlink));
+        return Status;
+        FreePool (Symlink);
+      }
+      FreePool (Symlink);
+      return Status;
     }
 
     if (Level != 0) {

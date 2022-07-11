@@ -256,6 +256,20 @@ Ext4FileIsDir (
 }
 
 /**
+   Checks if a file is a symlink.
+   @param[in]      File          Pointer to the opened file.
+
+   @return TRUE if file is a symlink.
+**/
+BOOLEAN
+Ext4FileIsSymlink (
+  IN CONST EXT4_FILE  *File
+  )
+{
+  return (File->Inode->i_mode & EXT4_INO_TYPE_SYMLINK) == EXT4_INO_TYPE_SYMLINK;
+}
+
+/**
    Checks if a file is a regular file.
    @param[in]      File          Pointer to the opened file.
 

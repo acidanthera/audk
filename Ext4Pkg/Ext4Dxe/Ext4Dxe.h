@@ -775,6 +775,17 @@ Ext4FileIsDir (
   );
 
 /**
+   Checks if a file is a symlink.
+   @param[in]      File          Pointer to the opened file.
+
+   @return TRUE if file is a symlink.
+**/
+BOOLEAN
+Ext4FileIsSymlink (
+  IN CONST EXT4_FILE  *File
+  );
+
+/**
    Checks if a file is a regular file.
    @param[in]      File          Pointer to the opened file.
 
@@ -797,7 +808,7 @@ Ext4FileIsReg (
            it's a regular file or a directory, since most other file types
            don't make sense under UEFI.
 **/
-#define Ext4FileIsOpenable(File)  (Ext4FileIsReg(File) || Ext4FileIsDir(File))
+#define Ext4FileIsOpenable(File)  (Ext4FileIsReg (File) || Ext4FileIsDir (File) || Ext4FileIsSymlink (File))
 
 #define EXT4_INODE_HAS_FIELD(Inode, Field)                                     \
   (Inode->i_extra_isize + EXT4_GOOD_OLD_INODE_SIZE >=                          \
@@ -933,6 +944,24 @@ Ext4ReadDir (
   OUT VOID           *Buffer,
   IN UINT64          Offset,
   IN OUT UINTN       *OutLength
+  );
+
+/**
+  Reads a symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     Symlink     Pointer to the output unicode symlink string.
+
+  @retval EFI_SUCCESS          Symlink was read.
+  @retval EFI_ACCESS_DENIED    Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES Any buffer allocation error.
+**/
+EFI_STATUS
+Ext4ReadSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR16          **Symlink
   );
 
 /**
