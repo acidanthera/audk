@@ -225,7 +225,7 @@ Ext4ReadSlowSymlink (
     DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
     return EFI_OUT_OF_RESOURCES;
   }
-
+  ReadSize = (UINTN) SymlinkSizeTmp;
   Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &ReadSize);
   if (!EFI_ERROR (Status)) {
     File->Position += ReadSize;
