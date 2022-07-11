@@ -209,7 +209,7 @@ Ext4ReadSlowSymlink (
   //
   // Allocate EXT4_INODE_SIZE + 1
   //
-  if (EFI_PATH_MAX - SymlinkSizeTmp >= 1) {
+  if (EFI_PATH_MAX - 1 >= SymlinkSizeTmp) {
     SymlinkAllocateSize = SymlinkSizeTmp + 1;
   } else {
     Status = EFI_INVALID_PARAMETER;
