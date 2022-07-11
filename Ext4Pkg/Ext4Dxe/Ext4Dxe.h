@@ -327,11 +327,11 @@ number of read bytes.
 **/
 EFI_STATUS
 Ext4Read (
-  IN EXT4_PARTITION  *Partition,
-  IN EXT4_FILE       *File,
-  OUT VOID           *Buffer,
-  IN UINT64          Offset,
-  IN OUT UINTN       *Length
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    VOID            *Buffer,
+  IN     UINT64          Offset,
+  IN OUT UINTN           *Length
   );
 
 /**
@@ -539,11 +539,11 @@ Ext4SetupFile (
 **/
 EFI_STATUS
 Ext4OpenInternal (
-  IN EXT4_FILE           *Source,
-  OUT EXT4_FILE          **FoundFile,
-  IN CHAR16              *FileName,
-  IN UINT64              OpenMode,
-  IN UINT64              Attributes
+  OUT EXT4_FILE  **FoundFile,
+  IN  EXT4_FILE  *Source,
+  IN  CHAR16     *FileName,
+  IN  UINT64     OpenMode,
+  IN  UINT64     Attributes
   );
 
 /**

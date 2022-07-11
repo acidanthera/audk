@@ -151,7 +151,7 @@ Ext4ReadFastSymlink (
   IN     EXT4_PARTITION  *Partition,
   IN     EXT4_FILE       *File,
   OUT    CHAR8           **AsciiSymlink,
-  OUT    UINTN           *AsciiSymlinkSize
+  OUT    UINT32          *AsciiSymlinkSize
   )
 {
   EFI_STATUS  Status;
@@ -196,40 +196,39 @@ Ext4ReadSlowSymlink (
   IN     EXT4_PARTITION  *Partition,
   IN     EXT4_FILE       *File,
   OUT    CHAR8           **AsciiSymlink,
-  OUT    UINTN           *AsciiSymlinkSize
+  OUT    UINT32          *AsciiSymlinkSize
   )
 {
   EFI_STATUS  Status;
   CHAR8       *SymlinkTmp;
-  UINTN       SymlinkSizeTmp;
-  UINTN       SymlinkAllocateSize;
+  UINT64      SymlinkSizeTmp;
+  UINT32      SymlinkAllocateSize;
+  UINTN       ReadSize;
 
-  SymlinkSizeTmp = (UINTN) EXT4_INODE_SIZE(File->Inode);
+  SymlinkSizeTmp = EXT4_INODE_SIZE (File->Inode);
 
   //
   // Allocate EXT4_INODE_SIZE + 1
   //
-  if (EFI_PATH_MAX - 1 >= SymlinkSizeTmp) {
-    SymlinkAllocateSize = SymlinkSizeTmp + 1;
+  if (SymlinkSizeTmp <= EFI_PATH_MAX - 1) {
+    SymlinkAllocateSize = (UINT32) SymlinkSizeTmp + 1;
   } else {
-    Status = EFI_INVALID_PARAMETER;
     DEBUG ((
       DEBUG_FS,
       "[ext4] Error! Symlink path maximum length was hit!\n"
       ));
-    return Status;
+    return EFI_INVALID_PARAMETER;
   }
 
   SymlinkTmp = AllocatePool (SymlinkAllocateSize);
   if (SymlinkTmp == NULL) {
-    Status = EFI_OUT_OF_RESOURCES;
     DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
-    return Status;
+    return EFI_OUT_OF_RESOURCES;
   }
 
-  Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &SymlinkSizeTmp);
+  Status = Ext4Read (Partition, File, SymlinkTmp, File->Position, &ReadSize);
   if (!EFI_ERROR (Status)) {
-    File->Position += SymlinkSizeTmp;
+    File->Position += ReadSize;
   } else {
     DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
     FreePool (SymlinkTmp);
@@ -241,14 +240,13 @@ Ext4ReadSlowSymlink (
   //
   SymlinkTmp[SymlinkSizeTmp] = '\0';
 
-  if (SymlinkSizeTmp != EXT4_INODE_SIZE (File->Inode)
+  if (SymlinkSizeTmp != (UINT64) ReadSize
       || SymlinkAllocateSize != AsciiStrSize (SymlinkTmp)) {
-    Status = EFI_VOLUME_CORRUPTED;
     DEBUG ((
       DEBUG_FS,
       "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
       ));
-    return Status;
+    return EFI_VOLUME_CORRUPTED;
   }
 
   *AsciiSymlinkSize = SymlinkAllocateSize;
@@ -279,7 +277,7 @@ Ext4ReadSymlink (
 {
   EFI_STATUS  Status;
   CHAR8       *SymlinkTmp;
-  UINTN       SymlinkSize;
+  UINT32      SymlinkSize;
   CHAR16      *Symlink16Tmp;
   CHAR16      *Needle;
 
@@ -375,11 +373,11 @@ Ext4ReadSymlink (
 **/
 EFI_STATUS
 Ext4OpenInternal (
-  IN EXT4_FILE           *Source,
-  OUT EXT4_FILE          **FoundFile,
-  IN CHAR16              *FileName,
-  IN UINT64              OpenMode,
-  IN UINT64              Attributes
+  OUT EXT4_FILE  **FoundFile,
+  IN  EXT4_FILE  *Source,
+  IN  CHAR16     *FileName,
+  IN  UINT64     OpenMode,
+  IN  UINT64     Attributes
   )
 {
   EXT4_FILE       *Current;
@@ -477,13 +475,12 @@ Ext4OpenInternal (
       //
       // Open linked file by recursive call of Ext4OpenFile
       //
-      Status = Ext4OpenInternal (Current, FoundFile, Symlink, OpenMode, Attributes);
+      Status = Ext4OpenInternal (FoundFile, Current, Symlink, OpenMode, Attributes);
+      FreePool (Symlink);
       if (EFI_ERROR (Status)) {
         DEBUG ((DEBUG_FS, "[ext4] Error opening linked file %s\n", Symlink));
-        FreePool (Symlink);
         return Status;
       }
-      FreePool (Symlink);
       //
       // Set File to newly opened
       //
@@ -568,8 +565,8 @@ Ext4Open (
   Source->Partition->Root->Symloops = 0;
 
   Status = Ext4OpenInternal (
-    Source,
     &FoundFile,
+    Source,
     FileName,
     OpenMode,
     Attributes
