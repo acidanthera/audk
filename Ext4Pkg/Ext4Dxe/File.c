@@ -164,7 +164,7 @@ Ext4ReadFastSymlink (
     return Status;
   }
 
-  CopyMem (AsciiSymlinkTmp, (CONST CHAR8 *) File->Inode->i_data, EXT4_FAST_SYMLINK_SIZE);
+  CopyMem (AsciiSymlinkTmp, File->Inode->i_data, EXT4_FAST_SYMLINK_SIZE);
 
   //
   // Add null-terminator
@@ -897,7 +897,7 @@ Ext4GetVolumeName (
 
   // s_volume_name is only valid on dynamic revision; old filesystems don't support this
   if (Partition->SuperBlock.s_rev_level == EXT4_DYNAMIC_REV) {
-    CopyMem (TempVolName, (CONST CHAR8 *)Partition->SuperBlock.s_volume_name, 16);
+    CopyMem (TempVolName, Partition->SuperBlock.s_volume_name, 16);
     TempVolName[16] = '\0';
 
     Status = UTF8StrToUCS2 (TempVolName, &VolumeName);
