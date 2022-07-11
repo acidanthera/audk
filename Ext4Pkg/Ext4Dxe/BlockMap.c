@@ -123,7 +123,7 @@ Ext4GetBlockPath (
       break;
     default:
       // EXT4_TYPE_BAD_BLOCK
-      return (UINTN)-1;
+      break;
   }
 
   return Type + 1;
@@ -230,7 +230,7 @@ Ext4GetBlocks (
 
   BlockPathLength = Ext4GetBlockPath (Partition, LogicalBlock, BlockPath);
 
-  if (BlockPathLength == (UINTN)-1) {
+  if (BlockPathLength - 1 == EXT4_TYPE_BAD_BLOCK) {
     // Bad logical block (out of range)
     return EFI_NO_MAPPING;
   }
