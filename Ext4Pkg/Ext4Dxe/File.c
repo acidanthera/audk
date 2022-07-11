@@ -324,12 +324,10 @@ Ext4ReadSymlink (
       "[ext4] Failed to convert ascii symlink to unicode with Status %r\n",
       Status
       ));
+    FreePool (Symlink16Tmp);  
     FreePool (SymlinkTmp);
-    FreePool (Symlink16Tmp);
     return Status;
   }
-
-  FreePool (SymlinkTmp);
 
   //
   // Convert to UEFI slashes
@@ -340,8 +338,9 @@ Ext4ReadSymlink (
   }
 
   *Symlink = Symlink16Tmp;
-
-  return EFI_SUCCESS;
+  
+  FreePool (SymlinkTmp);
+  return Status;
 }
 
 /**
