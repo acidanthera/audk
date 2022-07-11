@@ -288,7 +288,7 @@ Ext4SymlinkIsFastSymlink (
   //
   INTN ExtAttrBlocks = File->Inode->i_file_acl ? (File->Partition->BlockSize >> 9) : 0;
 
-  return (File->Inode->i_blocks - ExtAttrBlocks == 0
+  return (File->Inode->i_blocks == ExtAttrBlocks
           && EXT4_INODE_SIZE(File->Inode) <= 60
           );
 }
