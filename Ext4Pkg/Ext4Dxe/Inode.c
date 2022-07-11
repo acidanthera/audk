@@ -158,7 +158,7 @@ Ext4Read (
       WasRead = HoleLen > RemainingRead ? RemainingRead : HoleLen;
       // Potential improvement: In the future, we could get the file hole's total
       // size and memset all that
-      SetMem (Buffer, WasRead, 0);
+      ZeroMem (Buffer, WasRead);
     } else {
       ExtentStartBytes = MultU64x32 (
                            LShiftU64 (Extent.ee_start_hi, 32) |
@@ -469,7 +469,7 @@ Ext4FileCreateTime (
   Inode = File->Inode;
 
   if (!EXT4_INODE_HAS_FIELD (Inode, i_crtime)) {
-    SetMem (Time, sizeof (EFI_TIME), 0);
+    ZeroMem (Time, sizeof (EFI_TIME));
     return;
   }
 
