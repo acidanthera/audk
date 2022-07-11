@@ -172,10 +172,9 @@ Ext4ReadFastSymlink (
   AsciiSymlinkTmp[EXT4_FAST_SYMLINK_SIZE] = '\0';
 
   *AsciiSymlink = AsciiSymlinkTmp;
-  *AsciiSymlinkSize = EXT4_FAST_SYMLINK_SIZE;
+  *AsciiSymlinkSize = EXT4_FAST_SYMLINK_SIZE + 1;
 
-  Status = EFI_SUCCESS;
-  return Status;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -252,11 +251,10 @@ Ext4ReadSlowSymlink (
     return Status;
   }
 
-  *AsciiSymlinkSize = SymlinkSizeTmp;
+  *AsciiSymlinkSize = SymlinkAllocateSize;
   *AsciiSymlink = SymlinkTmp;
 
-  Status = EFI_SUCCESS;
-  return Status;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -282,7 +280,6 @@ Ext4ReadSymlink (
   EFI_STATUS  Status;
   CHAR8       *SymlinkTmp;
   UINTN       SymlinkSize;
-  UINTN       SymlinkAllocateSize;
   CHAR16      *Symlink16Tmp;
   CHAR16      *Needle;
 
@@ -307,9 +304,7 @@ Ext4ReadSymlink (
     return Status;
   }
 
-  SymlinkAllocateSize = SymlinkSize + 1;
-
-  Symlink16Tmp = AllocateZeroPool (SymlinkAllocateSize * sizeof (CHAR16));
+  Symlink16Tmp = AllocateZeroPool (SymlinkSize * sizeof (CHAR16));
   if (Symlink16Tmp == NULL) {
     Status = EFI_OUT_OF_RESOURCES;
     DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink unicode string buffer\n"));
@@ -320,7 +315,7 @@ Ext4ReadSymlink (
   Status = AsciiStrToUnicodeStrS (
     SymlinkTmp,
     Symlink16Tmp,
-    SymlinkAllocateSize
+    SymlinkSize
     );
 
   if (EFI_ERROR (Status)) {
