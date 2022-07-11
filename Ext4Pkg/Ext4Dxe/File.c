@@ -205,7 +205,7 @@ Ext4ReadSlowSymlink (
   UINTN       SymlinkSizeTmp;
   UINTN       SymlinkAllocateSize;
 
-  SymlinkSizeTmp = (UINTN) EXT4_INODE_SIZE(File->Inode) & MAX_UINTN;
+  SymlinkSizeTmp = (UINTN) EXT4_INODE_SIZE(File->Inode);
 
   //
   // Allocate EXT4_INODE_SIZE + 1
