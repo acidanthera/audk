@@ -320,7 +320,7 @@ Ext4ReadSymlink (
   Status = AsciiStrToUnicodeStrS (
     SymlinkTmp,
     Symlink16Tmp,
-    SymlinkSize * sizeof (CHAR16)
+    SymlinkAllocateSize
     );
 
   if (EFI_ERROR (Status)) {
