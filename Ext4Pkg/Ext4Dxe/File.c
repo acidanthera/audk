@@ -141,9 +141,11 @@ Ext4DirCanLookup (
   @param[in]      File        Pointer to the open symlink file.
   @param[out]     Symlink     Pointer to the output unicode symlink string.
 
-  @retval EFI_SUCCESS          Symlink was read.
-  @retval EFI_ACCESS_DENIED    Symlink is encrypted.
-  @retval EFI_OUT_OF_RESOURCES Any buffer allocation error.
+  @retval EFI_SUCCESS           Symlink was read.
+  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
 **/
 EFI_STATUS
 Ext4ReadSymlink (
@@ -152,7 +154,7 @@ Ext4ReadSymlink (
   OUT    CHAR16          **Symlink
   )
 {
-  EFI_STATUS  Status = EFI_SUCCESS;
+  EFI_STATUS  Status;
   CHAR8       *SymlinkTmp;
   UINTN       SymlinkSize;
   UINTN       SymlinkAllocateSize;
@@ -163,7 +165,7 @@ Ext4ReadSymlink (
   // Assume that we alread read Inode via Ext4ReadInode
   // Skip reading, just check encryption flag
   //
-  if (File->Inode->i_flags & EXT4_ENCRYPT_FL) {
+  if ((File->Inode->i_flags & EXT4_ENCRYPT_FL) != 0) {
     Status = EFI_ACCESS_DENIED;
     DEBUG ((DEBUG_FS, "[ext4] Error, symlink is encrypted\n"));
     return Status;
@@ -174,13 +176,13 @@ Ext4ReadSymlink (
   //
   // Allocate i_size_lo + 1
   //
-  if (MAX_UINTN - SymlinkSize >= 1) {
+  if (EFI_PATH_MAX - SymlinkSize >= 1) {
     SymlinkAllocateSize = SymlinkSize + 1;
   } else {
     Status = EFI_INVALID_PARAMETER;
     DEBUG ((
       DEBUG_FS,
-      "[ext4] Integer overflow while calculating symlink buffer size!\n"
+      "[ext4] Error! Symlink path maximum length was hit!\n"
       ));
     return Status;
   }
@@ -213,10 +215,16 @@ Ext4ReadSymlink (
   // Add null-terminator
   //
   SymlinkTmp[SymlinkSize] = '\0';
-  ASSERT (
-    SymlinkSize == File->Inode->i_size_lo
-    && SymlinkAllocateSize == AsciiStrSize(SymlinkTmp)
-    );
+  
+  if (SymlinkSize != File->Inode->i_size_lo 
+      || SymlinkAllocateSize != AsciiStrSize(SymlinkTmp)) {
+    Status = EFI_VOLUME_CORRUPTED;
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
+      ));
+    return Status;
+  }
 
   Symlink16Tmp = AllocateZeroPool (SymlinkAllocateSize * sizeof (CHAR16));
   if (Symlink16Tmp == NULL) {
@@ -254,6 +262,8 @@ Ext4ReadSymlink (
   }
 
   *Symlink = Symlink16Tmp;
+
+  Status = EFI_SUCCESS;
 
   return Status;
 }

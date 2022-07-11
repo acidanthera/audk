@@ -32,6 +32,7 @@
 #include "Ext4Disk.h"
 
 #define EXT4_NAME_MAX  255
+#define EFI_PATH_MAX  4096
 
 #define EXT4_DRIVER_VERSION  0x0000
 
@@ -953,9 +954,11 @@ Ext4ReadDir (
   @param[in]      File        Pointer to the open symlink file.
   @param[out]     Symlink     Pointer to the output unicode symlink string.
 
-  @retval EFI_SUCCESS          Symlink was read.
-  @retval EFI_ACCESS_DENIED    Symlink is encrypted.
-  @retval EFI_OUT_OF_RESOURCES Any buffer allocation error.
+  @retval EFI_SUCCESS           Symlink was read.
+  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
 **/
 EFI_STATUS
 Ext4ReadSymlink (
