@@ -566,7 +566,9 @@ Ext4Open (
 {
   EFI_STATUS      Status;
   EXT4_FILE       *FoundFile;
-  EXT4_FILE       *Source = EXT4_FILE_FROM_THIS (This);
+  EXT4_FILE       *Source;
+
+  Source = EXT4_FILE_FROM_THIS (This);
 
   //
   // Reset Symloops counter
@@ -1063,8 +1065,11 @@ Ext4GetInfo (
   OUT VOID              *Buffer
   )
 {
-  EXT4_FILE       *File = EXT4_FILE_FROM_THIS (This);
-  EXT4_PARTITION  *Partition = File->Partition;
+  EXT4_FILE       *File;
+  EXT4_PARTITION  *Partition;
+
+  File = EXT4_FILE_FROM_THIS (This);
+  Partition = File->Partition;
 
   if (CompareGuid (InformationType, &gEfiFileInfoGuid)) {
     return Ext4GetFileInfo (File, Buffer, BufferSize);
@@ -1177,10 +1182,13 @@ Ext4SetInfo (
   IN VOID               *Buffer
   )
 {
-  EXT4_FILE       *File = EXT4_FILE_FROM_THIS (This);
-  EXT4_PARTITION  *Part = File->Partition;
+  EXT4_FILE       *File;
+  EXT4_PARTITION  *Partition;
 
-  if (Part->ReadOnly) {
+  File = EXT4_FILE_FROM_THIS (This);
+  Partition = File->Partition;
+
+  if (Partition->ReadOnly) {
     return EFI_WRITE_PROTECTED;
   }
 
