@@ -342,7 +342,7 @@ Ext4CalculateChecksum (
       // For some reason, EXT4 really likes non-inverted CRC32C checksums, so we stick to that here.
       return ~CalculateCrc32c(Buffer, Length, ~InitialValue);
     default:
-      UNREACHABLE ();
+      ASSERT (FALSE);
       return 0;
   }
 }
