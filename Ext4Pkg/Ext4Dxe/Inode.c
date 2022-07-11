@@ -100,7 +100,7 @@ Ext4Read (
   EFI_STATUS   Status;
   BOOLEAN      HasBackingExtent;
   UINT32       HoleOff;
-  UINTN        HoleLen;
+  UINT64       HoleLen;
   UINT64       ExtentStartBytes;
   UINT64       ExtentLengthBytes;
   UINT64       ExtentLogicalBytes;
@@ -152,10 +152,10 @@ Ext4Read (
       } else {
         // Uninitialized extents behave exactly the same as file holes, except they have
         // blocks already allocated to them.
-        HoleLen = (UINTN) ((Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff);
+        HoleLen = (Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff;
       }
 
-      WasRead = HoleLen > RemainingRead ? RemainingRead : HoleLen;
+      WasRead = HoleLen > RemainingRead ? RemainingRead : (UINTN) HoleLen;
       // Potential improvement: In the future, we could get the file hole's total
       // size and memset all that
       ZeroMem (Buffer, WasRead);
