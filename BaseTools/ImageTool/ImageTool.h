@@ -65,12 +65,13 @@
 #endif
 
 #define MAX_PE_ALIGNMENT 0x10000
-#define DIR_BASERELOC    0
+#define DOS_STUB         0x40
 
 enum {
-	TEXT_SECTION  = 0,
-	DATA_SECTION  = 1,
-	RELOC_SECTION = 2
+	TEXT_SECTION  = 1,
+	DATA_SECTION  = 2,
+	HII_SECTION   = 3,
+	RELOC_SECTION = 4,
 };
 
 #define raise() assert(false)
@@ -104,7 +105,7 @@ typedef struct _PeRelocs {
 
 typedef struct {
 	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     Dir;
-	EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY Rsds;
+	EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY Nb10;
 	char                                Name[];
 } DebugData;
 
