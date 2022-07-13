@@ -260,10 +260,12 @@ Ext4Stop (
 
 EFI_DRIVER_BINDING_PROTOCOL  gExt4BindingProtocol =
 {
-  Ext4IsBindingSupported,
-  Ext4Bind,
-  Ext4Stop,
-  EXT4_DRIVER_VERSION
+  .Supported           = Ext4IsBindingSupported,
+  .Start               = Ext4Bind,
+  .Stop                = Ext4Stop,
+  .Version             = EXT4_DRIVER_VERSION,
+  .ImageHandle         = NULL,
+  .DriverBindingHandle = NULL
 };
 
 /**
