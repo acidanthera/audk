@@ -434,25 +434,22 @@ CopyPeReltab (
   )
 {
 	UINT32 BlockSize;
-  UINT8  *Pointer;
 
 	assert (PeRelTab != NULL);
   assert (Buffer   != NULL);
 
-  Pointer = Buffer;
-
   if (PeRelTab->Next != NULL) {
-    Pointer += CopyPeReltab (PeRelTab->Next, Buffer);
+    Buffer += CopyPeReltab (PeRelTab->Next, Buffer);
   }
 
 	BlockSize = sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) + sizeof (*PeRelTab->TypeOffsets) * PeRelTab->Used;
   BlockSize = ALIGN_VALUE (BlockSize, 4U);
 
-	*(UINT32 *)Pointer = PeRelTab->PageRva;
-	*(UINT32 *)(Pointer + sizeof (UINT32)) = BlockSize;
+	*(UINT32 *)Buffer = PeRelTab->PageRva;
+	*(UINT32 *)(Buffer + sizeof (UINT32)) = BlockSize;
 
 	memcpy (
-		Pointer + 2 * sizeof (UINT32),
+		Buffer + 2 * sizeof (UINT32),
 		PeRelTab->TypeOffsets,
 		PeRelTab->Used * sizeof (*PeRelTab->TypeOffsets)
 	  );
