@@ -243,13 +243,13 @@ CreateSection (
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
-    if ((mEhdr->e_entry >= Shdr->sh_addr)
-  	  && ((mEhdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
-  		mPeH.Nt->AddressOfEntryPoint = Pointer + (mEhdr->e_entry - Shdr->sh_addr);
-  	}
-
     if (Filter (Shdr)) {
       Pointer = ALIGN_VALUE (Pointer, Shdr->sh_addralign);
+
+      if ((mEhdr->e_entry >= Shdr->sh_addr)
+      && ((mEhdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
+        mPeH.Nt->AddressOfEntryPoint = Pointer + (mEhdr->e_entry - Shdr->sh_addr);
+      }
 
       mPeSectionOffsets[Index].Type   = Type;
       mPeSectionOffsets[Index].Offset = Pointer;
@@ -427,7 +427,7 @@ ProcessRelocs (
 }
 
 static
-UINT32
+UINT8 *
 CopyPeReltab (
 	IN  PeRelocs *PeRelTab,
 	OUT UINT8    *Buffer
@@ -439,7 +439,7 @@ CopyPeReltab (
   assert (Buffer   != NULL);
 
   if (PeRelTab->Next != NULL) {
-    Buffer += CopyPeReltab (PeRelTab->Next, Buffer);
+    Buffer = CopyPeReltab (PeRelTab->Next, Buffer);
   }
 
 	BlockSize = sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) + sizeof (*PeRelTab->TypeOffsets) * PeRelTab->Used;
@@ -454,7 +454,7 @@ CopyPeReltab (
 		PeRelTab->Used * sizeof (*PeRelTab->TypeOffsets)
 	  );
 
-	return BlockSize;
+	return Buffer + BlockSize;
 }
 
 static
