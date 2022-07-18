@@ -378,11 +378,11 @@
         $(OBJCOPY) $(OBJCOPY_STRIPFLAG) ${src}
 
         #
-        #The below 2 lines are only needed for UNIXGCC tool chain, which generates PE image directly
+        # The below 2 lines are only needed for UNIXGCC tool chain, which generates PE image directly
         #
         -$(OBJCOPY) $(OBJCOPY_ADDDEBUGFLAG) ${src}
         -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
-        ImageTool ${src} ${dst} $(MODULE_TYPE)
+        ImageTool ${src} ${dst} $(MODULE_TYPE) ElfToPe
 
         # "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
         $(CP) ${dst} $(DEBUG_DIR)
