@@ -463,6 +463,7 @@ typedef struct {
 #define EXT4_EXTENT_MAX_INITIALIZED  (1 << 15)
 
 typedef UINT64  EXT4_BLOCK_NR;
+typedef UINT32  EXT2_BLOCK_NR;
 typedef UINT32  EXT4_INO_NR;
 
 // 2 is always the root inode number in ext4

@@ -259,7 +259,8 @@ Ext4GetExtent (
 
   if (!(Inode->i_flags & EXT4_EXTENTS_FL)) {
     // If this is an older ext2/ext3 filesystem, emulate Ext4GetExtent using the block map
-    Status = Ext4GetBlocks (Partition, File, LogicalBlock, Extent);
+    // We cast LogicalBlock to UINT32, considering ext2/3 are 32-bit
+    Status = Ext4GetBlocks (Partition, File, (UINT32) LogicalBlock, Extent);
 
     if (!EFI_ERROR (Status)) {
       Ext4CacheExtents (File, Extent, 1);
