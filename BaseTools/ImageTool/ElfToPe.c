@@ -930,7 +930,8 @@ ReadElfFile (
 EFI_STATUS
 ElfToPe (
 	IN const char *ElfName,
-	IN const char *PeName
+	IN const char *PeName,
+  IN const char *ModuleType
   )
 {
 	PeRelocs   *PeRelTab;
@@ -992,7 +993,38 @@ ElfToPe (
     ++mPeSectionsNumber;
   }
 
-	mPeH.Nt->Subsystem               = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
+  if ((strcmp (ModuleType, "BASE") == 0)
+    || (strcmp (ModuleType, "SEC") == 0)
+    || (strcmp (ModuleType, "SECURITY_CORE") == 0)
+    || (strcmp (ModuleType, "PEI_CORE") == 0)
+    || (strcmp (ModuleType, "PEIM") == 0)
+    || (strcmp (ModuleType, "COMBINED_PEIM_DRIVER") == 0)
+    || (strcmp (ModuleType, "PIC_PEIM") == 0)
+    || (strcmp (ModuleType, "RELOCATABLE_PEIM") == 0)
+    || (strcmp (ModuleType, "DXE_CORE") == 0)
+    || (strcmp (ModuleType, "BS_DRIVER") == 0)
+    || (strcmp (ModuleType, "DXE_DRIVER") == 0)
+    || (strcmp (ModuleType, "DXE_SMM_DRIVER") == 0)
+    || (strcmp (ModuleType, "UEFI_DRIVER") == 0)
+    || (strcmp (ModuleType, "SMM_CORE") == 0)
+    || (strcmp (ModuleType, "MM_STANDALONE") == 0)
+    || (strcmp (ModuleType, "MM_CORE_STANDALONE") == 0)) {
+      mPeH.Nt->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
+  } else if ((strcmp (ModuleType, "UEFI_APPLICATION") == 0)
+    || (strcmp (ModuleType, "APPLICATION") == 0)) {
+      mPeH.Nt->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+  } else if ((strcmp (ModuleType, "DXE_RUNTIME_DRIVER") == 0)
+    || (strcmp (ModuleType, "RT_DRIVER") == 0)) {
+      mPeH.Nt->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
+  } else if ((strcmp (ModuleType, "DXE_SAL_DRIVER") == 0)
+    || (strcmp (ModuleType, "SAL_RT_DRIVER") == 0)) {
+      mPeH.Nt->Subsystem = EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
+  } else {
+    fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", ModuleType);
+    Status = EFI_UNSUPPORTED;
+    goto exit;
+  }
+
   mPeH.Nt->SizeOfUninitializedData = 0;
 
 	switch (mEhdr->e_machine) {

@@ -205,8 +205,9 @@ void *ToolImageEmitPe (
 
 EFI_STATUS
 ElfToPe (
-	const char *elf_name,
-	const char *pe_name
+	IN const char *ElfName,
+	IN const char *PeName,
+	IN const char *ModuleType
   );
 
 #endif // IMAGE_TOOL_H
