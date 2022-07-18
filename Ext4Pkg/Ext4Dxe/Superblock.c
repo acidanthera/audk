@@ -166,6 +166,7 @@ Ext4OpenSuperblock (
   UINTN                  NrBlocks;
   UINT32                 UnsupportedRoCompat;
   EXT4_BLOCK_GROUP_DESC  *Desc;
+  EFI_FILE_PROTOCOL      *PartitionRootProtocol;
 
   Status = Ext4ReadDiskIo (
              Partition,
@@ -305,13 +306,15 @@ Ext4OpenSuperblock (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  // Note that the cast below is completely safe, because EXT4_FILE is a specialisation of EFI_FILE_PROTOCOL
-  Status = Ext4OpenVolume (&Partition->Interface, (EFI_FILE_PROTOCOL **)&Partition->Root);
+  Status = Ext4OpenVolume (&Partition->Interface, &PartitionRootProtocol);
 
   if (EFI_ERROR (Status)) {
     Ext4UnrefDentry (Partition->RootDentry);
     FreePool (Partition->BlockGroups);
+    return Status;
   }
+
+  Partition->Root = EXT4_FILE_FROM_THIS (PartitionRootProtocol);
 
   return Status;
 }

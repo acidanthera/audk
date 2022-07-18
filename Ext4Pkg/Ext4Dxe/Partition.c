@@ -77,6 +77,7 @@ Ext4SetupFile (
   IN EXT4_PARTITION  *Partition
   )
 {
+  File->Signature            = EXT4_FILE_SIGNATURE;
   // Note: We don't yet support revision 2 of the file protocol
   // (needs DISK_IO2 + asynchronous IO)
   File->Protocol.Revision    = EFI_FILE_PROTOCOL_REVISION;

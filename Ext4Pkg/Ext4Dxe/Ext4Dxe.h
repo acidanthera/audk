@@ -364,8 +364,12 @@ Ext4GetExtent (
   OUT EXT4_EXTENT    *Extent
   );
 
+#define EXT4_FILE_SIGNATURE  SIGNATURE_32 ('E', 'x', 't', '4')
 struct _Ext4File {
+  UINT32                Signature;
+
   EFI_FILE_PROTOCOL     Protocol;
+
   EXT4_INODE            *Inode;
   EXT4_INO_NR           InodeNum;
 
@@ -383,7 +387,7 @@ struct _Ext4File {
   EXT4_DENTRY           *Dentry;
 };
 
-#define EXT4_FILE_FROM_THIS(This)  BASE_CR ((This), EXT4_FILE, Protocol)
+#define EXT4_FILE_FROM_THIS(This)  CR ((This), EXT4_FILE, Protocol, EXT4_FILE_SIGNATURE)
 
 #define EXT4_FILE_FROM_OPEN_FILES_NODE(Node)                                   \
   BASE_CR(Node, EXT4_FILE, OpenFilesListNode)
