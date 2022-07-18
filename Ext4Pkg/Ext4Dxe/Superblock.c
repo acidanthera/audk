@@ -258,14 +258,14 @@ Ext4OpenSuperblock (
     ));
 
   if (EXT4_IS_64_BIT (Partition)) {
+    // s_desc_size should be 4 byte aligned and
+    // 64 bit filesystems need DescSize to be 64 bytes
+    if (((Sb->s_desc_size % 4) != 0) || (Sb->s_desc_size < EXT4_64BIT_BLOCK_DESC_SIZE)) {
+      return EFI_VOLUME_CORRUPTED;
+    }
     Partition->DescSize = Sb->s_desc_size;
   } else {
     Partition->DescSize = EXT4_OLD_BLOCK_DESC_SIZE;
-  }
-
-  if ((Partition->DescSize < EXT4_64BIT_BLOCK_DESC_SIZE) && EXT4_IS_64_BIT (Partition)) {
-    // 64 bit filesystems need DescSize to be 64 bytes
-    return EFI_VOLUME_CORRUPTED;
   }
 
   if (!Ext4VerifySuperblockChecksum (Partition, Sb)) {

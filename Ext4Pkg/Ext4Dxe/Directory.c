@@ -74,7 +74,7 @@ Ext4ValidDirent (
   }
 
   // Dirent sizes need to be 4 byte aligned
-  if (Dirent->rec_len % 4) {
+  if ((Dirent->rec_len % 4) != 0) {
     return FALSE;
   }
 
