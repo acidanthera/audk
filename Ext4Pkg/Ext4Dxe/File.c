@@ -242,12 +242,12 @@ Ext4ReadSlowSymlink (
 
   //
   // It is not clear, should we check that symlink allocation size is
-  // equal symlink string size or not. However there is no checks in existing 
+  // equal symlink string size or not. However there is no checks in existing
   // Ext4 implementations, so we also don't check it here relying on the fact
   // we terminated string ourselves above.
   //
   // ASSERT (SymlinkAllocateSize == AsciiStrSize (SymlinkTmp));
-  // 
+  //
 
   if (SymlinkSizeTmp != ReadSize) {
     DEBUG ((
@@ -330,7 +330,7 @@ Ext4ReadSymlink (
       "[ext4] Failed to convert ascii symlink to unicode with Status %r\n",
       Status
       ));
-    FreePool (Symlink16Tmp);  
+    FreePool (Symlink16Tmp);
     FreePool (SymlinkTmp);
     return Status;
   }
@@ -344,7 +344,7 @@ Ext4ReadSymlink (
   }
 
   *Symlink = Symlink16Tmp;
-  
+
   FreePool (SymlinkTmp);
   return Status;
 }
