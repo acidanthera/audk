@@ -3531,6 +3531,11 @@ AddPadSection (
     (*FfsFile)->Size[2] = (UINT8)((FfsFileLength & 0x00FF0000) >> 16);
   }
 
+  //
+  // Recalculate the FFS header checksum. Instead of setting Header and State
+  // both to zero, set Header to (UINT8)(-State) so State preserves its original
+  // value
+  //
   IntegrityCheck = &(*FfsFile)->IntegrityCheck;
   IntegrityCheck->Checksum.Header = (UINT8) (0x100 - (*FfsFile)->State);
   IntegrityCheck->Checksum.File = 0;
