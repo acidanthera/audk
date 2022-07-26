@@ -729,7 +729,7 @@ CoreLoadPeImage (
         ASSERT (FALSE);
         goto Done;
       }
-      RelocationData = AllocateRuntimePool (RelocDataSize);
+      RelocationData = AllocateRuntimeZeroPool (RelocDataSize);
       if (RelocationData == NULL) {
         ASSERT (FALSE);
         Status = EFI_OUT_OF_RESOURCES;
