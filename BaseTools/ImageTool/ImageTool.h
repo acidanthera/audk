@@ -64,8 +64,9 @@
 #define ELF_R_SYM                        ELF64_R_SYM
 #endif
 
-#define MAX_PE_ALIGNMENT 0x10000
-#define DOS_STUB         0x40
+#define ELF_HII_SECTION_NAME ".hii"
+#define MAX_PE_ALIGNMENT     0x10000
+#define DOS_STUB             0x40
 
 enum {
 	TEXT_SECTION  = 1,

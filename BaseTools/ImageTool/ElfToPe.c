@@ -48,11 +48,28 @@ IsTextShdr (
 
 static
 BOOLEAN
+IsHiiRsrcShdr (
+  IN const Elf_Shdr *Shdr
+  )
+{
+  assert (Shdr != NULL);
+
+  Elf_Shdr *Namedr = GetShdrByIndex (mEhdr->e_shstrndx);
+
+  return (BOOLEAN) (strcmp ((CHAR8*)mEhdr + Namedr->sh_offset + Shdr->sh_name, ELF_HII_SECTION_NAME) == 0);
+}
+
+static
+BOOLEAN
 IsDataShdr (
   IN const Elf_Shdr *Shdr
   )
 {
   assert (Shdr != NULL);
+
+  if (IsHiiRsrcShdr (Shdr)) {
+    return FALSE;
+  }
 
   return ((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE));
 }
@@ -141,6 +158,69 @@ FreeSections (
 
     free (mPeSections);
 	}
+}
+
+static
+VOID
+SetHiiResourceHeader (
+  IN OUT UINT8  *Hii,
+  IN     UINT32 Offset
+  )
+{
+  UINT32                              Index;
+  EFI_IMAGE_RESOURCE_DIRECTORY        *RDir;
+  EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *RDirEntry;
+  EFI_IMAGE_RESOURCE_DIRECTORY_STRING *RDirString;
+  EFI_IMAGE_RESOURCE_DATA_ENTRY       *RDataEntry;
+
+  assert (Hii != NULL);
+
+  //
+  // Fill Resource section entry
+  //
+  RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)Hii;
+  RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+  for (Index = 0; Index < RDir->NumberOfNamedEntries; ++Index) {
+    if (RDirEntry->u1.s.NameIsString) {
+      RDirString = (EFI_IMAGE_RESOURCE_DIRECTORY_STRING *)(Hii + RDirEntry->u1.s.NameOffset);
+
+      if ((RDirString->Length == 3)
+        && (RDirString->String[0] == L'H')
+        && (RDirString->String[1] == L'I')
+        && (RDirString->String[2] == L'I')) {
+        //
+        // Resource Type "HII" found
+        //
+        if (RDirEntry->u2.s.DataIsDirectory) {
+          //
+          // Move to next level - resource Name
+          //
+          RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
+          RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+
+          if (RDirEntry->u2.s.DataIsDirectory) {
+            //
+            // Move to next level - resource Language
+            //
+            RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
+            RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+          }
+        }
+
+        //
+        // Now it ought to be resource Data. Update its OffsetToData value
+        //
+        if (!RDirEntry->u2.s.DataIsDirectory) {
+          RDataEntry = (EFI_IMAGE_RESOURCE_DATA_ENTRY *)(Hii + RDirEntry->u2.OffsetToData);
+          RDataEntry->OffsetToData = RDataEntry->OffsetToData + Offset;
+          break;
+        }
+      }
+    }
+    RDirEntry++;
+  }
+
+  return;
 }
 
 static
@@ -689,6 +769,13 @@ WritePeFile (
         mPeH.Nt->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = Position + mDebugOffset;
       }
 
+      if (PeS->Type == HII_SECTION) {
+        SetHiiResourceHeader (PeS->Data, Position);
+
+        mPeH.Nt->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = PeS->PeShdr.SizeOfRawData;
+        mPeH.Nt->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = Position;
+			}
+
 			Position += PeS->PeShdr.SizeOfRawData;
 		}
 	}
@@ -843,7 +930,7 @@ ReadElfFile (
 		if (Shdr->sh_addralign <= mPeAlignment) {
       continue;
     }
-    if (IsTextShdr(Shdr) || IsDataShdr(Shdr)) {
+    if (IsTextShdr (Shdr) || IsDataShdr (Shdr) || IsHiiRsrcShdr (Shdr)) {
       mPeAlignment = Shdr->sh_addralign;
     }
 	}
@@ -1062,6 +1149,17 @@ ElfToPe (
   }
 
   mPeH.Nt->SizeOfInitializedData = mPeSections[DATA_SECTION - 1]->PeShdr.SizeOfRawData;
+
+  Status = CreateSection (
+    ".rsrc",
+    IsHiiRsrcShdr,
+    EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_READ,
+    HII_SECTION,
+    NULL
+    );
+  if (EFI_ERROR (Status)) {
+    goto exit;
+  }
 
   if (mRelocSectionExists) {
     Status = ProcessRelocs (&PeRelTab);
