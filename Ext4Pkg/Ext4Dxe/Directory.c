@@ -74,7 +74,7 @@ Ext4ValidDirent (
   }
 
   // Dirent sizes need to be 4 byte aligned
-  if (Dirent->rec_len % 4) {
+  if ((Dirent->rec_len % 4) != 0) {
     return FALSE;
   }
 
@@ -158,17 +158,6 @@ Ext4RetrieveDirent (
         // Corrupted filesystem
         FreePool (Buf);
         return EFI_VOLUME_CORRUPTED;
-      }
-
-      // Ignore names bigger than our limit.
-
-      /* Note: I think having a limit is sane because:
-        1) It's nicer to work with.
-        2) Linux and a number of BSDs also have a filename limit of 255.
-      */
-      if (Entry->name_len > EXT4_NAME_MAX) {
-        BlockOffset += Entry->rec_len;
-        continue;
       }
 
       // Unused entry
@@ -548,20 +537,8 @@ Ext4RemoveDentry (
   IN OUT EXT4_DENTRY  *ToBeRemoved
   )
 {
-  EXT4_DENTRY  *D;
-  LIST_ENTRY   *Entry;
-  LIST_ENTRY   *NextEntry;
-
-  BASE_LIST_FOR_EACH_SAFE (Entry, NextEntry, &Parent->Children) {
-    D = EXT4_DENTRY_FROM_DENTRY_LIST (Entry);
-
-    if (D == ToBeRemoved) {
-      RemoveEntryList (Entry);
-      return;
-    }
-  }
-
-  DEBUG ((DEBUG_ERROR, "[ext4] Ext4RemoveDentry did not find the asked-for dentry\n"));
+  ASSERT (IsNodeInList (&ToBeRemoved->ListNode, &Parent->Children));
+  RemoveEntryList (&ToBeRemoved->ListNode);
 }
 
 /**

@@ -1165,7 +1165,7 @@ EFI_STATUS
 Ext4GetBlocks (
   IN  EXT4_PARTITION  *Partition,
   IN  EXT4_FILE       *File,
-  IN  EXT4_BLOCK_NR   LogicalBlock,
+  IN  EXT2_BLOCK_NR   LogicalBlock,
   OUT EXT4_EXTENT     *Extent
   );
 

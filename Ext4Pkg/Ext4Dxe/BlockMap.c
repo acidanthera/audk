@@ -70,7 +70,7 @@ UINTN
 Ext4GetBlockPath (
   IN  CONST EXT4_PARTITION  *Partition,
   IN  UINT32                LogicalBlock,
-  OUT EXT4_BLOCK_NR         BlockPath[EXT4_MAX_BLOCK_PATH]
+  OUT EXT2_BLOCK_NR         BlockPath[EXT4_MAX_BLOCK_PATH]
   )
 {
   // The logic behind the block map is very much like a page table
@@ -123,7 +123,7 @@ Ext4GetBlockPath (
       break;
     default:
       // EXT4_TYPE_BAD_BLOCK
-      return -1;
+      break;
   }
 
   return Type + 1;
@@ -213,12 +213,12 @@ EFI_STATUS
 Ext4GetBlocks (
   IN  EXT4_PARTITION  *Partition,
   IN  EXT4_FILE       *File,
-  IN  EXT4_BLOCK_NR   LogicalBlock,
+  IN  EXT2_BLOCK_NR   LogicalBlock,
   OUT EXT4_EXTENT     *Extent
   )
 {
   EXT4_INODE     *Inode;
-  EXT4_BLOCK_NR  BlockPath[EXT4_MAX_BLOCK_PATH];
+  EXT2_BLOCK_NR  BlockPath[EXT4_MAX_BLOCK_PATH];
   UINTN          BlockPathLength;
   UINTN          Index;
   UINT32         *Buffer;
@@ -230,7 +230,7 @@ Ext4GetBlocks (
 
   BlockPathLength = Ext4GetBlockPath (Partition, LogicalBlock, BlockPath);
 
-  if (BlockPathLength == (UINTN)-1) {
+  if (BlockPathLength - 1 == EXT4_TYPE_BAD_BLOCK) {
     // Bad logical block (out of range)
     return EFI_NO_MAPPING;
   }
@@ -272,7 +272,13 @@ Ext4GetBlocks (
     }
   }
 
-  Ext4GetExtentInBlockMap (Buffer, Partition->BlockSize / sizeof (UINT32), BlockPath[BlockPathLength - 1], Extent);
+  Ext4GetExtentInBlockMap (
+    Buffer,
+    Partition->BlockSize / sizeof (UINT32),
+    BlockPath[BlockPathLength - 1],
+    Extent
+    );
+
   FreePool (Buffer);
 
   return EFI_SUCCESS;

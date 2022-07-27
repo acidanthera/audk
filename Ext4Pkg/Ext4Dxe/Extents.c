@@ -257,9 +257,11 @@ Ext4GetExtent (
     return EFI_SUCCESS;
   }
 
-  if (!(Inode->i_flags & EXT4_EXTENTS_FL)) {
+  if ((Inode->i_flags & EXT4_EXTENTS_FL) == 0) {
     // If this is an older ext2/ext3 filesystem, emulate Ext4GetExtent using the block map
-    Status = Ext4GetBlocks (Partition, File, LogicalBlock, Extent);
+    // By specification files using block maps must be placed within the first 2^32 blocks
+    // of a filesystem, so we can safely cast LogicalBlock to uint32
+    Status = Ext4GetBlocks (Partition, File, (UINT32)LogicalBlock, Extent);
 
     if (!EFI_ERROR (Status)) {
       Ext4CacheExtents (File, Extent, 1);
@@ -420,7 +422,7 @@ Ext4ExtentsMapKeyCompare (
   Extent = UserStruct;
   Block  = (UINT32)(UINTN)StandaloneKey;
 
-  if ((Block >= Extent->ee_block) && (Block < Extent->ee_block + Ext4GetExtentLength (Extent))) {
+  if ((Block >= Extent->ee_block) && (Block - Extent->ee_block < Ext4GetExtentLength (Extent))) {
     return 0;
   }
 

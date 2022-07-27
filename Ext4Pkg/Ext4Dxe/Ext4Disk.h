@@ -338,7 +338,7 @@ STATIC_ASSERT (
 #define EXT4_TIND_BLOCK  14
 #define EXT4_NR_BLOCKS   15
 
-#define EXT4_GOOD_OLD_INODE_SIZE  128
+#define EXT4_GOOD_OLD_INODE_SIZE  128U
 
 typedef struct _Ext4_I_OSD2_Linux {
   UINT16    l_i_blocks_high;
@@ -463,6 +463,7 @@ typedef struct {
 #define EXT4_EXTENT_MAX_INITIALIZED  (1 << 15)
 
 typedef UINT64  EXT4_BLOCK_NR;
+typedef UINT32  EXT2_BLOCK_NR;
 typedef UINT32  EXT4_INO_NR;
 
 // 2 is always the root inode number in ext4

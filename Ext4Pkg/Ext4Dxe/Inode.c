@@ -100,7 +100,7 @@ Ext4Read (
   EFI_STATUS   Status;
   BOOLEAN      HasBackingExtent;
   UINT32       HoleOff;
-  UINTN        HoleLen;
+  UINT64       HoleLen;
   UINT64       ExtentStartBytes;
   UINT64       ExtentLengthBytes;
   UINT64       ExtentLogicalBytes;
@@ -155,10 +155,10 @@ Ext4Read (
         HoleLen = (Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff;
       }
 
-      WasRead = HoleLen > RemainingRead ? RemainingRead : HoleLen;
+      WasRead = HoleLen > RemainingRead ? RemainingRead : (UINTN)HoleLen;
       // Potential improvement: In the future, we could get the file hole's total
       // size and memset all that
-      SetMem (Buffer, WasRead, 0);
+      ZeroMem (Buffer, WasRead);
     } else {
       ExtentStartBytes = MultU64x32 (
                            LShiftU64 (Extent.ee_start_hi, 32) |
@@ -291,7 +291,7 @@ Ext4FilePhysicalSpace (
 
     // If HUGE_FILE is enabled and EXT4_HUGE_FILE_FL is set in the inode's flags, each unit
     // in i_blocks corresponds to an actual filesystem block
-    if (File->Inode->i_flags & EXT4_HUGE_FILE_FL) {
+    if ((File->Inode->i_flags & EXT4_HUGE_FILE_FL) != 0) {
       return MultU64x32 (Blocks, File->Partition->BlockSize);
     }
   }
@@ -431,7 +431,7 @@ Ext4FileCreateTime (
   Inode = File->Inode;
 
   if (!EXT4_INODE_HAS_FIELD (Inode, i_crtime)) {
-    SetMem (Time, sizeof (EFI_TIME), 0);
+    ZeroMem (Time, sizeof (EFI_TIME));
     return;
   }
 
