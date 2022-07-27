@@ -382,6 +382,8 @@ struct _Ext4File {
   EXT4_DENTRY           *Dentry;
 };
 
+#define EXT4_FILE_FROM_THIS(This)  BASE_CR ((This), EXT4_FILE, Protocol)
+
 #define EXT4_FILE_FROM_OPEN_FILES_NODE(Node)                                   \
   BASE_CR(Node, EXT4_FILE, OpenFilesListNode)
 
