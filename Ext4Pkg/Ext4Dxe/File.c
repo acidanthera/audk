@@ -135,13 +135,223 @@ Ext4DirCanLookup (
 }
 
 /**
+  Reads a fast symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
+  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
+
+  @retval EFI_SUCCESS            Fast symlink was read.
+  @retval EFI_OUT_OF_RESOURCES   Memory allocation error.
+**/
+STATIC
+EFI_STATUS
+Ext4ReadFastSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR8           **AsciiSymlink,
+  OUT    UINT32          *AsciiSymlinkSize
+  )
+{
+  UINT32  SymlinkSize;
+  CHAR8   *AsciiSymlinkTmp;
+  //
+  // Fast-symlink's EXT4_INODE_SIZE is not necessarily validated when we checked it in
+  // Ext4SymlinkIsFastSymlink(), so truncate if necessary.
+  //
+  SymlinkSize = (UINT32)MIN (EXT4_INODE_SIZE (File->Inode), EXT4_FAST_SYMLINK_MAX_SIZE);
+
+  AsciiSymlinkTmp = AllocatePool (SymlinkSize + 1);
+  if (AsciiSymlinkTmp == NULL) {
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  CopyMem (AsciiSymlinkTmp, File->Inode->i_data, SymlinkSize);
+
+  //
+  // Add null-terminator
+  //
+  AsciiSymlinkTmp[SymlinkSize] = '\0';
+
+  *AsciiSymlink     = AsciiSymlinkTmp;
+  *AsciiSymlinkSize = SymlinkSize + 1;
+
+  return EFI_SUCCESS;
+}
+
+/**
+  Reads a slow symlink file.
+
+  @param[in]      Partition        Pointer to the ext4 partition.
+  @param[in]      File             Pointer to the open symlink file.
+  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
+  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
+
+  @retval EFI_SUCCESS           Slow symlink was read.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Slow symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
+**/
+STATIC
+EFI_STATUS
+Ext4ReadSlowSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR8           **AsciiSymlink,
+  OUT    UINT32          *AsciiSymlinkSize
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       *SymlinkTmp;
+  UINT64      SymlinkSizeTmp;
+  UINT32      SymlinkAllocateSize;
+  UINTN       ReadSize;
+
+  SymlinkSizeTmp = EXT4_INODE_SIZE (File->Inode);
+
+  //
+  // Allocate EXT4_INODE_SIZE + 1
+  //
+  if (SymlinkSizeTmp > EFI_PATH_MAX - 1) {
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Error! Symlink path maximum length was hit!\n"
+      ));
+    return EFI_INVALID_PARAMETER;
+  }
+
+  SymlinkAllocateSize = (UINT32)SymlinkSizeTmp + 1;
+
+  SymlinkTmp = AllocatePool (SymlinkAllocateSize);
+  if (SymlinkTmp == NULL) {
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  ReadSize = (UINTN)SymlinkSizeTmp;
+  Status   = Ext4Read (Partition, File, SymlinkTmp, File->Position, &ReadSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
+    FreePool (SymlinkTmp);
+    return Status;
+  }
+
+  File->Position += ReadSize;
+
+  //
+  // Add null-terminator
+  //
+  SymlinkTmp[SymlinkSizeTmp] = '\0';
+
+  if (SymlinkSizeTmp != ReadSize) {
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
+      ));
+    return EFI_VOLUME_CORRUPTED;
+  }
+
+  *AsciiSymlinkSize = SymlinkAllocateSize;
+  *AsciiSymlink     = SymlinkTmp;
+
+  return EFI_SUCCESS;
+}
+
+/**
+  Reads a symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     Symlink     Pointer to the output unicode symlink string.
+
+  @retval EFI_SUCCESS           Symlink was read.
+  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
+**/
+EFI_STATUS
+Ext4ReadSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR16          **Symlink
+  )
+{
+  EFI_STATUS  Status;
+  CHAR8       *SymlinkTmp;
+  UINT32      SymlinkSize;
+  CHAR16      *Symlink16Tmp;
+  CHAR16      *Needle;
+
+  //
+  // Assume that we alread read Inode via Ext4ReadInode
+  // Skip reading, just check encryption flag
+  //
+  if ((File->Inode->i_flags & EXT4_ENCRYPT_FL) != 0) {
+    DEBUG ((DEBUG_FS, "[ext4] Error, symlink is encrypted\n"));
+    return EFI_ACCESS_DENIED;
+  }
+
+  if (Ext4SymlinkIsFastSymlink (File)) {
+    Status = Ext4ReadFastSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
+  } else {
+    Status = Ext4ReadSlowSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
+  }
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_FS, "[ext4] Symlink read error with Status %r\n", Status));
+    return Status;
+  }
+
+  Symlink16Tmp = AllocateZeroPool (SymlinkSize * sizeof (CHAR16));
+  if (Symlink16Tmp == NULL) {
+    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink unicode string buffer\n"));
+    FreePool (SymlinkTmp);
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  Status = AsciiStrToUnicodeStrS (
+             SymlinkTmp,
+             Symlink16Tmp,
+             SymlinkSize
+             );
+
+  if (EFI_ERROR (Status)) {
+    DEBUG ((
+      DEBUG_FS,
+      "[ext4] Failed to convert ascii symlink to unicode with Status %r\n",
+      Status
+      ));
+    FreePool (Symlink16Tmp);
+    FreePool (SymlinkTmp);
+    return Status;
+  }
+
+  //
+  // Convert to UEFI slashes
+  //
+  for (Needle = Symlink16Tmp; *Needle != L'\0'; Needle++) {
+    if (*Needle == L'/') {
+      *Needle = L'\\';
+    }
+  }
+
+  *Symlink = Symlink16Tmp;
+
+  FreePool (SymlinkTmp);
+  return Status;
+}
+
+/**
   Opens a new file relative to the source file's location.
 
-  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
+  @param[out] FoundFile  A pointer to the location to return the opened handle for the new
+                         file.
+  @param[in]  Source     A pointer to the EXT4_FILE instance that is the file
                          handle to the source location. This would typically be an open
                          handle to a directory.
-  @param[out] NewHandle  A pointer to the location to return the opened handle for the new
-                         file.
   @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
                          The file name may contain the following path modifiers: "\", ".",
                          and "..".
@@ -165,13 +375,12 @@ Ext4DirCanLookup (
 
 **/
 EFI_STATUS
-EFIAPI
-Ext4Open (
-  IN EFI_FILE_PROTOCOL   *This,
-  OUT EFI_FILE_PROTOCOL  **NewHandle,
-  IN CHAR16              *FileName,
-  IN UINT64              OpenMode,
-  IN UINT64              Attributes
+Ext4OpenInternal (
+  OUT EXT4_FILE  **FoundFile,
+  IN  EXT4_FILE  *Source,
+  IN  CHAR16     *FileName,
+  IN  UINT64     OpenMode,
+  IN  UINT64     Attributes
   )
 {
   EXT4_FILE       *Current;
@@ -180,13 +389,14 @@ Ext4Open (
   CHAR16          PathSegment[EXT4_NAME_MAX + 1];
   UINTN           Length;
   EXT4_FILE       *File;
+  CHAR16          *Symlink;
   EFI_STATUS      Status;
 
-  Current   = (EXT4_FILE *)This;
+  Current   = Source;
   Partition = Current->Partition;
   Level     = 0;
 
-  DEBUG ((DEBUG_FS, "[ext4] Ext4Open %s\n", FileName));
+  DEBUG ((DEBUG_FS, "[ext4] Ext4OpenInternal %s\n", FileName));
   // If the path starts with a backslash, we treat the root directory as the base directory
   if (FileName[0] == L'\\') {
     FileName++;
@@ -194,6 +404,11 @@ Ext4Open (
   }
 
   while (FileName[0] != L'\0') {
+    if (Partition->Root->SymLoops > SYMLOOP_MAX) {
+      DEBUG ((DEBUG_FS, "[ext4] Symloop limit is hit !\n"));
+      return EFI_ACCESS_DENIED;
+    }
+
     // Discard leading path separators
     while (FileName[0] == L'\\') {
       FileName++;
@@ -238,16 +453,43 @@ Ext4Open (
     }
 
     // Check if this is a valid file to open in EFI
-
-    // What to do with symlinks? They're nonsense when absolute but may
-    // be useful when they're relative. Right now, they're ignored, since they
-    // bring a lot of trouble for something that's not as useful in our case.
-    // If you want to link, use hard links.
-
     if (!Ext4FileIsOpenable (File)) {
       Ext4CloseInternal (File);
       // This looks like an /okay/ status to return.
       return EFI_ACCESS_DENIED;
+    }
+
+    //
+    // Reading symlink and then trying to follow it
+    //
+    if (Ext4FileIsSymlink (File)) {
+      Partition->Root->SymLoops++;
+      DEBUG ((DEBUG_FS, "[ext4] File %s is symlink, trying to read it\n", PathSegment));
+      Status = Ext4ReadSymlink (Partition, File, &Symlink);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_FS, "[ext4] Error reading %s symlink!\n", PathSegment));
+        return Status;
+      }
+
+      DEBUG ((DEBUG_FS, "[ext4] File %s is linked to %s\n", PathSegment, Symlink));
+      //
+      // Close symlink file
+      //
+      Ext4CloseInternal (File);
+      //
+      // Open linked file by recursive call of Ext4OpenFile
+      //
+      Status = Ext4OpenInternal (FoundFile, Current, Symlink, OpenMode, Attributes);
+      FreePool (Symlink);
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_FS, "[ext4] Error opening linked file %s\n", Symlink));
+        return Status;
+      }
+
+      //
+      // Set File to newly opened
+      //
+      File = *FoundFile;
     }
 
     if (Level != 0) {
@@ -273,10 +515,73 @@ Ext4Open (
     return EFI_ACCESS_DENIED;
   }
 
-  *NewHandle = &Current->Protocol;
+  *FoundFile = Current;
 
   DEBUG ((DEBUG_FS, "[ext4] Opened filename %s\n", Current->Dentry->Name));
   return EFI_SUCCESS;
+}
+
+/**
+  Opens a new file relative to the source file's location.
+  @param[in]  This       A pointer to the EFI_FILE_PROTOCOL instance that is the file
+                         handle to the source location. This would typically be an open
+                         handle to a directory.
+  @param[out] NewHandle  A pointer to the location to return the opened handle for the new
+                         file.
+  @param[in]  FileName   The Null-terminated string of the name of the file to be opened.
+                         The file name may contain the following path modifiers: "\", ".",
+                         and "..".
+  @param[in]  OpenMode   The mode to open the file. The only valid combinations that the
+                         file may be opened with are: Read, Read/Write, or Create/Read/Write.
+  @param[in]  Attributes Only valid for EFI_FILE_MODE_CREATE, in which case these are the
+                         attribute bits for the newly created file.
+  @retval EFI_SUCCESS          The file was opened.
+  @retval EFI_NOT_FOUND        The specified file could not be found on the device.
+  @retval EFI_NO_MEDIA         The device has no medium.
+  @retval EFI_MEDIA_CHANGED    The device has a different medium in it or the medium is no
+                               longer supported.
+  @retval EFI_DEVICE_ERROR     The device reported an error.
+  @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+  @retval EFI_WRITE_PROTECTED  An attempt was made to create a file, or open a file for write
+                               when the media is write-protected.
+  @retval EFI_ACCESS_DENIED    The service denied access to the file.
+  @retval EFI_OUT_OF_RESOURCES Not enough resources were available to open the file.
+  @retval EFI_VOLUME_FULL      The volume is full.
+**/
+EFI_STATUS
+EFIAPI
+Ext4Open (
+  IN EFI_FILE_PROTOCOL   *This,
+  OUT EFI_FILE_PROTOCOL  **NewHandle,
+  IN CHAR16              *FileName,
+  IN UINT64              OpenMode,
+  IN UINT64              Attributes
+  )
+{
+  EFI_STATUS  Status;
+  EXT4_FILE   *FoundFile;
+  EXT4_FILE   *Source;
+
+  Source = (EXT4_FILE *)This;
+
+  //
+  // Reset SymLoops counter
+  //
+  Source->Partition->Root->SymLoops = 0;
+
+  Status = Ext4OpenInternal (
+             &FoundFile,
+             Source,
+             FileName,
+             OpenMode,
+             Attributes
+             );
+
+  if (!EFI_ERROR (Status)) {
+    *NewHandle = &FoundFile->Protocol;
+  }
+
+  return Status;
 }
 
 /**
@@ -588,7 +893,7 @@ Ext4GetVolumeName (
 
   // s_volume_name is only valid on dynamic revision; old filesystems don't support this
   if (Partition->SuperBlock.s_rev_level == EXT4_DYNAMIC_REV) {
-    CopyMem (TempVolName, (CONST CHAR8 *)Partition->SuperBlock.s_volume_name, 16);
+    CopyMem (TempVolName, Partition->SuperBlock.s_volume_name, 16);
     TempVolName[16] = '\0';
 
     Status = UTF8StrToUCS2 (TempVolName, &VolumeName);
@@ -754,12 +1059,14 @@ Ext4GetInfo (
   OUT VOID              *Buffer
   )
 {
+  EXT4_FILE       *File;
   EXT4_PARTITION  *Partition;
 
-  Partition = ((EXT4_FILE *)This)->Partition;
+  File      = (EXT4_FILE *)This;
+  Partition = File->Partition;
 
   if (CompareGuid (InformationType, &gEfiFileInfoGuid)) {
-    return Ext4GetFileInfo ((EXT4_FILE *)This, Buffer, BufferSize);
+    return Ext4GetFileInfo (File, Buffer, BufferSize);
   }
 
   if (CompareGuid (InformationType, &gEfiFileSystemInfoGuid)) {
@@ -870,12 +1177,12 @@ Ext4SetInfo (
   )
 {
   EXT4_FILE       *File;
-  EXT4_PARTITION  *Part;
+  EXT4_PARTITION  *Partition;
 
-  File = (EXT4_FILE *)This;
-  Part = File->Partition;
+  File      = (EXT4_FILE *)This;
+  Partition = File->Partition;
 
-  if (Part->ReadOnly) {
+  if (Partition->ReadOnly) {
     return EFI_WRITE_PROTECTED;
   }
 

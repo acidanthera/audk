@@ -171,7 +171,7 @@
 #define EXT4_DIRTY_FL         0x00000100
 #define EXT4_COMPRBLK_FL      0x00000200
 #define EXT4_NOCOMPR_FL       0x00000400
-#define EXT4_ECOMPR_FL        0x00000800
+#define EXT4_ENCRYPT_FL       0x00000800
 #define EXT4_BTREE_FL         0x00001000
 #define EXT4_INDEX_FL         0x00002000
 #define EXT4_JOURNAL_DATA_FL  0x00004000
@@ -332,11 +332,12 @@ STATIC_ASSERT (
   "ext4 block group descriptor struct has incorrect size"
   );
 
-#define EXT4_DBLOCKS     12
-#define EXT4_IND_BLOCK   12
-#define EXT4_DIND_BLOCK  13
-#define EXT4_TIND_BLOCK  14
-#define EXT4_NR_BLOCKS   15
+#define EXT4_DBLOCKS                12
+#define EXT4_IND_BLOCK              12
+#define EXT4_DIND_BLOCK             13
+#define EXT4_TIND_BLOCK             14
+#define EXT4_NR_BLOCKS              15
+#define EXT4_FAST_SYMLINK_MAX_SIZE  EXT4_NR_BLOCKS * sizeof(UINT32)
 
 #define EXT4_GOOD_OLD_INODE_SIZE  128U
 
