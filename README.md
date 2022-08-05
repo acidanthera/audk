@@ -4,7 +4,7 @@ This branch demonstrates the integration of a new PE/COFF loader designed with t
 
 ## Introduction
 
-The PE/COFF loader is one of the central components of the firmware core and its trust base. Every Image part of an UEFI system, including platform drivers from the primary firmware storage, Option ROMs from external hardware, and OS loaders from arbitrary storage, is verified and loaded by this library. Clearly it is a key component to ensure platform reliability and software compatibility, and can only be modified with great care. It also is an essential component for security technologies such as Secure Boot and Measured Boot.
+The PE/COFF loader is one of the central components of the firmware core and its trust base. Every Image which is part of a UEFI system, including platform drivers from the primary firmware storage, Option ROMs from external hardware, and OS loaders from arbitrary storage, is verified and loaded by this library. Clearly it is a key component to ensure platform reliability and software compatibility, and can only be modified with great care. It also is an essential component for security technologies such as Secure Boot and Measured Boot.
 
 ![image](LoaderFlow.png)
 
