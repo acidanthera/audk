@@ -189,6 +189,12 @@ Ext4OpenSuperblock (
     Partition->FeaturesIncompat = Sb->s_feature_incompat;
     Partition->FeaturesRoCompat = Sb->s_feature_ro_compat;
     Partition->InodeSize        = Sb->s_inode_size;
+
+    // Check for proper alignment of InodeSize and that InodeSize is indeed larger than
+    // the minimum size, 128 bytes.
+    if (((Partition->InodeSize % 4) != 0) || (Partition->InodeSize < EXT4_GOOD_OLD_INODE_SIZE)) {
+      return EFI_VOLUME_CORRUPTED;
+    }
   } else {
     // GOOD_OLD_REV
     Partition->FeaturesCompat = Partition->FeaturesIncompat = Partition->FeaturesRoCompat = 0;
