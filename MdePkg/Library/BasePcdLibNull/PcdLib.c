@@ -174,8 +174,6 @@ LibPcdGetSize (
   IN UINTN  TokenNumber
   )
 {
-  ASSERT (FALSE);
-
   return 0;
 }
 
@@ -353,8 +351,6 @@ LibPcdGetExSize (
   IN UINTN       TokenNumber
   )
 {
-  ASSERT (FALSE);
-
   return 0;
 }
 
