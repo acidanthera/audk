@@ -66,7 +66,6 @@
 
 #define ELF_HII_SECTION_NAME ".hii"
 #define MAX_PE_ALIGNMENT     0x10000
-#define DOS_STUB             0x40
 
 enum {
 	TEXT_SECTION  = 1,

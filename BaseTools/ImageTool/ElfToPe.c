@@ -791,7 +791,7 @@ WritePeFile (
 	//
 	// Write NT header
 	//
-	if (fwrite ((UINT8 *)mPeH.Nt - DOS_STUB, NtSize, 1, Pe) != 1) {
+	if (fwrite (mPeH.Nt, NtSize, 1, Pe) != 1) {
 		fprintf (stderr, "ImageTool: Could not write PE NT header\n");
 		return EFI_ABORTED;
 	}
@@ -1030,17 +1030,15 @@ ElfToPe (
 	//
 	ZeroMem (&mPeH, sizeof (mPeH));
 	mPeH.Dos.e_magic  = EFI_IMAGE_DOS_SIGNATURE;
-	mPeH.Dos.e_lfanew = sizeof(EFI_IMAGE_DOS_HEADER) + DOS_STUB;
+	mPeH.Dos.e_lfanew = sizeof(EFI_IMAGE_DOS_HEADER);
 
-	NtSize = DOS_STUB + sizeof (EFI_IMAGE_NT_HEADERS) + EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY);
+	NtSize = sizeof (EFI_IMAGE_NT_HEADERS) + EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY);
 	mPeH.Nt = calloc (1, NtSize);
 	if (mPeH.Nt == NULL) {
 		fprintf (stderr, "ImageTool: Could not allocate memory for EFI_IMAGE_NT_HEADERS\n");
 		free (mEhdr);
 		return EFI_OUT_OF_RESOURCES;
 	}
-
-  mPeH.Nt = (EFI_IMAGE_NT_HEADERS *)((UINT8 *)mPeH.Nt + DOS_STUB);
 
 	mPeH.Nt->CommonHeader.Signature = EFI_IMAGE_NT_SIGNATURE;
 	mPeH.Nt->NumberOfRvaAndSizes = EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES;
@@ -1191,7 +1189,7 @@ exit:
 		FreeRelocs (PeRelTab);
 	}
 	FreeSections ();
-	free ((UINT8 *)mPeH.Nt - DOS_STUB);
+	free (mPeH.Nt);
 	free (mEhdr);
 
 	return Status;
