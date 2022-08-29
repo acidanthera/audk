@@ -1,8 +1,5 @@
 #include "ImageTool.h"
 
-#define PAGE(x)     ((x) & ~(uint64_t) 4095ULL)
-#define PAGE_OFF(x) ((x) & 4095U)
-
 typedef struct {
   uint8_t  NumExtraSections;
   uint32_t SizeOfHeaders;

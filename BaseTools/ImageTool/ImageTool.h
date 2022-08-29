@@ -109,6 +109,8 @@ typedef struct {
 	char                                Name[];
 } DebugData;
 
+#define PAGE(x)     ((x) & ~(uint64_t) 4095ULL)
+#define PAGE_OFF(x) ((x) & 4095U)
 
 typedef struct {
   uint64_t PreferredAddress;
