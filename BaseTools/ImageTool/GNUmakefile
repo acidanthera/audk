@@ -6,7 +6,7 @@
 PROJECT = ImageTool
 PRODUCT = $(PROJECT)
 OBJS    = $(PROJECT).o
-OBJS    += Image.o PeEmit.o PeScan.o UeEmit.o ElfToPe.o
+OBJS    += Image.o PeEmit.o PeScan.o UeEmit.o ElfToPe.o Intermediate.o
 OBJS    += BaseOverflow.o PeCoffInit.o PeCoffInfo.o PeCoffLoad.o PeCoffHii.o PeCoffDebug.o UeImageLib.o
 
 DEBUG    = 1

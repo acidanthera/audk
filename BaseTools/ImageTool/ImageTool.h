@@ -212,4 +212,9 @@ ElfToPe (
 	IN const char *ModuleType
   );
 
+Elf_Shdr *
+GetShdrByIndex (
+  IN UINT32 Index
+  );
+
 #endif // IMAGE_TOOL_H

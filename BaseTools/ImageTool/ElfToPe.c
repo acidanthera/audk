@@ -19,7 +19,6 @@ ApplyRelocs (
   IN BOOLEAN (*Filter)(const Elf_Shdr *)
   );
 
-static
 Elf_Shdr *
 GetShdrByIndex (
   IN UINT32 Index
