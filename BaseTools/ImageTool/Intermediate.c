@@ -204,6 +204,15 @@ ReadElfFile (
 
 static
 EFI_STATUS
+ApplyRelocs (
+  VOID
+  )
+{
+  return EFI_SUCCESS;
+}
+
+static
+EFI_STATUS
 CreateIntermediate (
   VOID
   )
@@ -213,9 +222,14 @@ CreateIntermediate (
   image_tool_segment_t *Segments;
   image_tool_reloc_t   *Relocs;
   UINT32               SIndex;
+  const Elf_Rel        *Rel;
+  UINTN                RIndex;
+  UINT32               RelNum;
 
   Segments = NULL;
+  SIndex   = 0;
   Relocs   = NULL;
+  RelNum   = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -235,7 +249,19 @@ CreateIntermediate (
     }
 
     if (IsRelocShdr (Shdr)) {
-      ++mImageInfo.RelocInfo.NumRelocs;
+      for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += Shdr->sh_entsize) {
+        Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
+#if defined(EFI_TARGET64)
+        if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
+          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)) {
+          ++mImageInfo.RelocInfo.NumRelocs;
+        }
+#elif defined(EFI_TARGET32)
+        if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
+          ++mImageInfo.RelocInfo.NumRelocs;
+        }
+#endif
+      }
     }
 	}
 
@@ -262,7 +288,7 @@ CreateIntermediate (
     mImageInfo.RelocInfo.Relocs = Relocs;
   }
 
-  for (SIndex = 0, Index = 0; Index < mEhdr->e_shnum; ++Index) {
+  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
     if (IsTextShdr (Shdr)) {
@@ -323,12 +349,62 @@ CreateIntermediate (
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, Shdr->sh_size);
       }
+
+      continue;
+    }
+
+    if (IsRelocShdr (Shdr)) {
+      for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += Shdr->sh_entsize) {
+        Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
+#if defined(EFI_TARGET64)
+        switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_X86_64_NONE:
+          case R_X86_64_PC32:
+          case R_X86_64_PLT32:
+          case R_X86_64_GOTPCREL:
+          case R_X86_64_GOTPCRELX:
+          case R_X86_64_REX_GOTPCRELX:
+            break;
+          case R_X86_64_64:
+            Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
+            break;
+          case R_X86_64_32:
+            Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unrecognised relocation type %lld\n", ELF_R_TYPE (Rel->r_info));
+            return EFI_INVALID_PARAMETER;
+        }
+#elif defined(EFI_TARGET32)
+        switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_386_NONE:
+          case R_386_PLT32:
+          case R_386_PC32:
+            break;
+          case R_386_32:
+            Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unrecognised relocation type %d\n", ELF_R_TYPE (Rel->r_info));
+            return EFI_INVALID_PARAMETER;
+        }
+#endif
+      }
     }
 	}
 
+  assert (SIndex == mImageInfo.SegmentInfo.NumSegments);
+  assert (RelNum == mImageInfo.RelocInfo.NumRelocs);
+
   mImageInfo.HeaderInfo.EntryPointAddress = mEhdr->e_entry;
 
-  return EFI_SUCCESS;
+  return ApplyRelocs();
 }
 
 EFI_STATUS
