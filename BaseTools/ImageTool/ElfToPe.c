@@ -19,6 +19,7 @@ ApplyRelocs (
   IN BOOLEAN (*Filter)(const Elf_Shdr *)
   );
 
+static
 Elf_Shdr *
 GetShdrByIndex (
   IN UINT32 Index
@@ -159,7 +160,6 @@ FreeSections (
 	}
 }
 
-static
 VOID
 SetHiiResourceHeader (
   IN OUT UINT8  *Hii,
