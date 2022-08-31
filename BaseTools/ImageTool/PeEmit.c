@@ -45,11 +45,11 @@ bool EmitPeGetHeaderSizes(
 
   HdrInfo->SectionHeadersSize = (uint32_t) Image->SegmentInfo.NumSegments * sizeof(EFI_IMAGE_SECTION_HEADER);
 
-  HdrInfo->NumberOfRvaAndSizes = 0;
-  HdrInfo->SizeOfOptionalHeader = sizeof(EFI_IMAGE_NT_HEADERS64)
+  HdrInfo->NumberOfRvaAndSizes = EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES;
+  HdrInfo->SizeOfOptionalHeader = sizeof (EFI_IMAGE_NT_HEADERS) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR)
     + HdrInfo->NumberOfRvaAndSizes * sizeof(EFI_IMAGE_DATA_DIRECTORY);
-  HdrInfo->SizeOfHeaders = sizeof(EFI_IMAGE_DOS_HEADER)
-    + HdrInfo->SizeOfOptionalHeader
+  HdrInfo->SizeOfHeaders = sizeof(EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS)
+    + HdrInfo->NumberOfRvaAndSizes * sizeof(EFI_IMAGE_DATA_DIRECTORY)
     + HdrInfo->SectionHeadersSize
     + HdrInfo->ExtraSectionHeadersSize;
 
@@ -693,8 +693,8 @@ void *ToolImageEmitPe(
   memset(&Context, 0, sizeof(Context));
 
   Context.Image = Image;
-  Context.FileAlignment = 32;
-
+  Context.FileAlignment = Image->SegmentInfo.SegmentAlignment;
+  
   bool Result = EmitPeGetHeaderSizes(Image, &Context.HdrInfo);
   if (!Result) {
     raise();

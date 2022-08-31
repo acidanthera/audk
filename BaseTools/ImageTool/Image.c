@@ -246,9 +246,16 @@ void ToolImageDestruct(image_tool_image_info_t *Image)
   }
 
   free(Image->SegmentInfo.Segments);
-  free(Image->RelocInfo.Relocs);
+
+  if (Image->HiiInfo.Data != NULL) {
+    free (Image->HiiInfo.Data);
+  }
+
+  if (Image->RelocInfo.Relocs != NULL) {
+    free (Image->RelocInfo.Relocs);
+  }
+
   free(Image->DebugInfo.SymbolsPath);
-  free(Image->HiiInfo.Data);
 
   memset(Image, 0, sizeof(*Image));
 }
