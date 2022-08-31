@@ -22,7 +22,9 @@ typedef struct {
   uint16_t                      FileAlignment;
 } image_tool_pe_emit_context_t;
 
-bool EmitPeGetHeaderSizes(
+static
+bool
+EmitPeGetHeaderSizes (
   const image_tool_image_info_t *Image,
   image_tool_emit_pe_hdr_info_t *HdrInfo
   )
@@ -56,7 +58,9 @@ bool EmitPeGetHeaderSizes(
   return true;
 }
 
-bool EmitPeGetSectionsSize(
+static
+bool
+EmitPeGetSectionsSize (
   const image_tool_pe_emit_context_t *Context,
   uint32_t                           *SectionsSize
   )
@@ -89,7 +93,9 @@ bool EmitPeGetSectionsSize(
   return true;
 }
 
-bool EmitPeGetRelocSectionSize(
+static
+bool
+EmitPeGetRelocSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *RelocsSize
   )
@@ -129,7 +135,9 @@ bool EmitPeGetRelocSectionSize(
   return true;
 }
 
-bool EmitPeGetHiiSectionSize(
+static
+bool
+EmitPeGetHiiSectionSize (
   const image_tool_pe_emit_context_t *Context,
   uint32_t                           *HiiSize
   )
@@ -144,7 +152,9 @@ bool EmitPeGetHiiSectionSize(
     );
 }
 
-bool EmitPeGetDebugSectionSize(
+static
+bool
+EmitPeGetDebugSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *DebugSize
   )
@@ -158,7 +168,9 @@ bool EmitPeGetDebugSectionSize(
   return true;
 }
 
-bool EmitPeGetExtraSectionsSize(
+static
+bool
+EmitPeGetExtraSectionsSize (
   image_tool_pe_emit_context_t *Context,
   uint32_t                     *SectionsSize
   )
@@ -242,7 +254,9 @@ bool EmitPeGetExtraSectionsSize(
   return true;
 }
 
-bool ToolImageEmitPeSectionHeaders (
+static
+bool
+ToolImageEmitPeSectionHeaders (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -297,7 +311,9 @@ bool ToolImageEmitPeSectionHeaders (
   return true;
 }
 
-bool ToolImageEmitPeExtraSectionHeaders (
+static
+bool
+ToolImageEmitPeExtraSectionHeaders (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -353,7 +369,9 @@ bool ToolImageEmitPeExtraSectionHeaders (
   return true;
 }
 
-bool ToolImageEmitPeHeaders (
+static
+bool
+ToolImageEmitPeHeaders (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -428,7 +446,9 @@ bool ToolImageEmitPeHeaders (
   return true;
 }
 
-bool ToolImageEmitPeSections (
+static
+bool
+ToolImageEmitPeSections (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -501,7 +521,9 @@ bool ToolImageEmitPeSections (
   return true;
 }
 
-bool ToolImageEmitPeRelocTable (
+static
+bool
+ToolImageEmitPeRelocTable (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -593,7 +615,9 @@ STATIC_ASSERT(
   "Flexible array aliases padding."
   );
 
-bool ToolImageEmitPeDebugTable (
+static
+bool
+ToolImageEmitPeDebugTable (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize,
@@ -607,7 +631,9 @@ bool ToolImageEmitPeDebugTable (
   return true;
 }
 
-bool ToolImageEmitPeHiiTable (
+static
+bool
+ToolImageEmitPeHiiTable (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -644,7 +670,9 @@ bool ToolImageEmitPeHiiTable (
   return true;
 }
 
-bool ToolImageEmitPeExtraSections(
+static
+bool
+ToolImageEmitPeExtraSections (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -681,7 +709,8 @@ bool ToolImageEmitPeExtraSections(
   return true;
 }
 
-void *ToolImageEmitPe(
+void *
+ToolImageEmitPe (
   const image_tool_image_info_t *Image,
   uint32_t                      *FileSize
   )
@@ -694,7 +723,7 @@ void *ToolImageEmitPe(
 
   Context.Image = Image;
   Context.FileAlignment = Image->SegmentInfo.SegmentAlignment;
-  
+
   bool Result = EmitPeGetHeaderSizes(Image, &Context.HdrInfo);
   if (!Result) {
     raise();

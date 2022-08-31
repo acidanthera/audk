@@ -21,7 +21,7 @@ PeToUe (
     return EFI_ABORTED;
   }
 
-  Result = ToolContextConstructPe(&Image, Pe, PeSize);
+  Result = ToolContextConstructPe (&Image, Pe, PeSize);
 
   free(Pe);
   Pe = NULL;
@@ -30,34 +30,34 @@ PeToUe (
     return EFI_ABORTED;
   }
 
-  Result = CheckToolImage(&Image);
+  Result = CheckToolImage (&Image);
   if (!Result) {
-    ToolImageDestruct(&Image);
+    ToolImageDestruct (&Image);
     return EFI_ABORTED;
   }
 
-  Result = ImageConvertToXip(&Image);
+  Result = ImageConvertToXip (&Image);
   if (!Result) {
-    ToolImageDestruct(&Image);
+    ToolImageDestruct (&Image);
     return EFI_ABORTED;
   }
 
-  Ue = ToolImageEmitUe(&Image, &UeSize);
+  Ue = ToolImageEmitUe (&Image, &UeSize);
 
   if (Ue == NULL) {
-    ToolImageDestruct(&Image);
+    ToolImageDestruct (&Image);
     return EFI_ABORTED;
   }
 
-  ToolImageDestruct(&Image);
+  ToolImageDestruct (&Image);
 
   /*UE_LOADER_IMAGE_CONTEXT UeContext;
   EFI_STATUS Status = UeInitializeContext(&UeContext, Ue, UeSize);
   printf("UE status - %llu\n", Status);*/
 
-  UserWriteFile(UeName, Ue, UeSize);
+  UserWriteFile (UeName, Ue, UeSize);
 
-  free(Ue);
+  free (Ue);
   Ue = NULL;
 
   return EFI_SUCCESS;

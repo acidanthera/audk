@@ -1,5 +1,6 @@
 #include "ImageTool.h"
 
+static
 bool
 OverflowGetDestinationSize (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT *Context,
@@ -26,7 +27,9 @@ OverflowGetDestinationSize (
 #define PE_COFF_SECT_NAME_RESRC  ".rsrc\0\0"
 #define PE_COFF_SECT_NAME_DEBUG  ".debug\0"
 
-bool ScanPeGetHeaderInfo (
+static
+bool
+ScanPeGetHeaderInfo (
   image_tool_header_info_t     *HeaderInfo,
   PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
@@ -43,7 +46,9 @@ bool ScanPeGetHeaderInfo (
   return true;
 }
 
-bool ScanPeGetSegmentInfo (
+static
+bool
+ScanPeGetSegmentInfo (
   image_tool_segment_info_t    *SegmentInfo,
   PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
@@ -140,7 +145,9 @@ bool ScanPeGetSegmentInfo (
   return true;
 }
 
-bool ScanPeGetRelocInfo (
+static
+bool
+ScanPeGetRelocInfo (
   image_tool_reloc_info_t      *RelocInfo,
   PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
@@ -285,7 +292,9 @@ bool ScanPeGetRelocInfo (
   return true;
 }
 
-bool ScanPeGetDebugInfo (
+static
+bool
+ScanPeGetDebugInfo (
   image_tool_debug_info_t      *DebugInfo,
   PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
@@ -324,7 +333,9 @@ bool ScanPeGetDebugInfo (
   return true;
 }
 
-bool ScanPeGetHiiInfo (
+static
+bool
+ScanPeGetHiiInfo (
   image_tool_hii_info_t        *HiiInfo,
   PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
@@ -356,7 +367,12 @@ bool ScanPeGetHiiInfo (
   return true;
 }
 
-bool ToolContextConstructPe(image_tool_image_info_t *Image, const void *File, size_t FileSize)
+bool
+ToolContextConstructPe (
+  image_tool_image_info_t *Image,
+  const void *File,
+  size_t FileSize
+  )
 {
   assert(File != NULL || FileSize == 0);
 

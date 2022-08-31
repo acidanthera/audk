@@ -177,30 +177,36 @@ typedef struct {
   image_tool_debug_info_t   DebugInfo;
 } image_tool_image_info_t;
 
-void ToolImageDestruct (
+void
+ToolImageDestruct (
   image_tool_image_info_t *Image
   );
 
-bool ImageConvertToXip (
+bool
+ImageConvertToXip (
   image_tool_image_info_t *Image
   );
 
-void *ToolImageEmitUe (
+void *
+ToolImageEmitUe (
   const image_tool_image_info_t *Image,
   uint32_t                      *FileSize
   );
 
-bool ToolContextConstructPe (
+bool
+ToolContextConstructPe (
   image_tool_image_info_t *Image,
   const void              *File,
   size_t                  FileSize
   );
 
-bool CheckToolImage (
+bool
+CheckToolImage (
   image_tool_image_info_t *Image
   );
 
-void *ToolImageEmitPe (
+void *
+ToolImageEmitPe (
   const image_tool_image_info_t *Image,
   uint32_t                      *FileSize
   );

@@ -1,6 +1,8 @@
 #include "ImageTool.h"
 
-bool CheckToolImageSegment(
+static
+bool
+CheckToolImageSegment (
   image_tool_segment_info_t *SegmentInfo,
   image_tool_segment_t      *Segment,
   uint32_t                  *PreviousEndAddress
@@ -54,7 +56,9 @@ bool CheckToolImageSegment(
   return true;
 }
 
-bool CheckToolImageSegmentInfo(
+static
+bool
+CheckToolImageSegmentInfo (
   image_tool_segment_info_t *SegmentInfo,
   uint32_t                  *ImageSize
   )
@@ -88,7 +92,9 @@ bool CheckToolImageSegmentInfo(
   return true;
 }
 
-const image_tool_segment_t *ImageGetSegmentByAddress(
+static
+const image_tool_segment_t *
+ImageGetSegmentByAddress (
   const image_tool_segment_info_t *SegmentInfo,
   uint64_t                        Address
   )
@@ -105,7 +111,9 @@ const image_tool_segment_t *ImageGetSegmentByAddress(
   return NULL;
 }
 
-bool CheckToolImageReloc(
+static
+bool
+CheckToolImageReloc (
   const image_tool_image_info_t *Image,
   const image_tool_reloc_t      *Reloc
   )
@@ -129,7 +137,11 @@ bool CheckToolImageReloc(
   return true;
 }
 
-bool CheckToolImageRelocInfo(const image_tool_image_info_t *Image)
+static
+bool
+CheckToolImageRelocInfo (
+  const image_tool_image_info_t *Image
+  )
 {
   assert(Image != NULL);
 
@@ -156,7 +168,11 @@ bool CheckToolImageRelocInfo(const image_tool_image_info_t *Image)
   return true;
 }
 
-bool CheckToolImageDebugInfo(image_tool_debug_info_t *DebugInfo)
+static
+bool
+CheckToolImageDebugInfo (
+  image_tool_debug_info_t *DebugInfo
+  )
 {
   assert(DebugInfo != NULL);
 
@@ -171,7 +187,10 @@ bool CheckToolImageDebugInfo(image_tool_debug_info_t *DebugInfo)
   return true;
 }
 
-bool CheckToolImage(image_tool_image_info_t *Image)
+bool
+CheckToolImage (
+  image_tool_image_info_t *Image
+  )
 {
   assert(Image != NULL);
 
@@ -199,7 +218,10 @@ bool CheckToolImage(image_tool_image_info_t *Image)
   return true;
 }
 
-bool ImageConvertToXip(image_tool_image_info_t *Image)
+bool
+ImageConvertToXip (
+  image_tool_image_info_t *Image
+  )
 {
   assert(Image != NULL);
 
@@ -234,7 +256,10 @@ bool ImageConvertToXip(image_tool_image_info_t *Image)
   return true;
 }
 
-void ToolImageDestruct(image_tool_image_info_t *Image)
+void
+ToolImageDestruct (
+  image_tool_image_info_t *Image
+  )
 {
   assert(Image != NULL);
 

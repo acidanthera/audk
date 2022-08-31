@@ -21,7 +21,9 @@ typedef struct {
   uint32_t                      DebugTableSize;
 } image_tool_ue_emit_context_t;
 
-bool EmitUeGetHeaderSizes(
+static
+bool
+EmitUeGetHeaderSizes (
   const image_tool_image_info_t *Image,
   image_tool_emit_ue_hdr_info_t *HdrInfo
   )
@@ -51,10 +53,13 @@ bool EmitUeGetHeaderSizes(
   return true;
 }
 
-bool EmitUeGetSegmentsSize(
+static
+bool
+EmitUeGetSegmentsSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *SegmentsSize
-  ) {
+  )
+{
   assert(Image != NULL);
   assert(SegmentsSize != NULL);
 
@@ -66,7 +71,9 @@ bool EmitUeGetSegmentsSize(
   return true;
 }
 
-bool EmitUeGetRelocSectionSize(
+static
+bool
+EmitUeGetRelocSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *RelocsSize
   )
@@ -107,7 +114,9 @@ bool EmitUeGetRelocSectionSize(
   return true;
 }
 
-bool EmitUeGetHiiSectionSize(
+static
+bool
+EmitUeGetHiiSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *HiiSize
   )
@@ -120,7 +129,9 @@ bool EmitUeGetHiiSectionSize(
   return true;
 }
 
-bool EmitUeGetDebugSectionSize(
+static
+bool
+EmitUeGetDebugSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *DebugSize
   )
@@ -143,7 +154,9 @@ bool EmitUeGetDebugSectionSize(
   return true;
 }
 
-bool EmitUeGetSectionsSize(
+static
+bool
+EmitUeGetSectionsSize (
   image_tool_ue_emit_context_t *Context,
   uint32_t                     *SectionsSize
   )
@@ -231,7 +244,11 @@ bool EmitUeGetSectionsSize(
   return true;
 }
 
-uint8_t AlignmentToExponent(uint64_t Alignment)
+static
+uint8_t
+AlignmentToExponent (
+  uint64_t Alignment
+  )
 {
   assert(IS_POW2(Alignment));
 
@@ -244,7 +261,9 @@ uint8_t AlignmentToExponent(uint64_t Alignment)
   return 0;
 }
 
-bool ToolImageEmitUeSegmentHeaders (
+static
+bool
+ToolImageEmitUeSegmentHeaders (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -292,7 +311,9 @@ bool ToolImageEmitUeSegmentHeaders (
   return true;
 }
 
-bool ToolImageEmitUeSectionHeaders (
+static
+bool
+ToolImageEmitUeSectionHeaders (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -366,7 +387,9 @@ bool ToolImageEmitUeSectionHeaders (
   return true;
 }
 
-bool ToolImageEmitUeHeader (
+static
+bool
+ToolImageEmitUeHeader (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -428,7 +451,9 @@ bool ToolImageEmitUeHeader (
   return true;
 }
 
-bool ToolImageEmitUeSegments (
+static
+bool
+ToolImageEmitUeSegments (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -466,7 +491,9 @@ bool ToolImageEmitUeSegments (
   return true;
 }
 
-bool ToolImageEmitUeRelocTable (
+static
+bool
+ToolImageEmitUeRelocTable (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -553,7 +580,9 @@ bool ToolImageEmitUeRelocTable (
   return true;
 }
 
-bool ToolImageEmitUeDebugTable (
+static
+bool
+ToolImageEmitUeDebugTable (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -625,7 +654,9 @@ bool ToolImageEmitUeDebugTable (
   return true;
 }
 
-bool ToolImageEmitUeHiiTable (
+static
+bool
+ToolImageEmitUeHiiTable (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -662,7 +693,9 @@ bool ToolImageEmitUeHiiTable (
   return true;
 }
 
-bool ToolImageEmitUeSections (
+static
+bool
+ToolImageEmitUeSections (
   const image_tool_ue_emit_context_t *Context,
   uint8_t                            **Buffer,
   uint32_t                           *BufferSize
@@ -694,7 +727,8 @@ bool ToolImageEmitUeSections (
   return true;
 }
 
-void *ToolImageEmitUe(
+void *
+ToolImageEmitUe (
   const image_tool_image_info_t *Image,
   uint32_t                      *FileSize
   )
