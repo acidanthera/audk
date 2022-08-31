@@ -218,4 +218,10 @@ SetHiiResourceHeader (
   IN     UINT32 Offset
   );
 
+EFI_STATUS
+ElfToIntermediate (
+	IN const char *ElfName,
+  IN const char *ModuleType
+  );
+
 #endif // IMAGE_TOOL_H

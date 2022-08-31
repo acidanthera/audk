@@ -1,5 +1,8 @@
 #include "ImageTool.h"
 
+image_tool_image_info_t mImageInfo;
+
+static
 EFI_STATUS
 PeToUe (
 	IN const char *PeName,
@@ -60,12 +63,56 @@ PeToUe (
   return EFI_SUCCESS;
 }
 
+static
+EFI_STATUS
+ElfToIntermediateToPe (
+	IN const char *ElfName,
+	IN const char *PeName,
+  IN const char *ModuleType
+  )
+{
+	EFI_STATUS Status;
+	bool       Result;
+	void       *Pe;
+  uint32_t   PeSize;
+
+	assert (ElfName    != NULL);
+	assert (PeName     != NULL);
+	assert (ModuleType != NULL);
+
+	Status = ElfToIntermediate (ElfName, ModuleType);
+	if (EFI_ERROR (Status)) {
+		return Status;
+	}
+
+	Result = CheckToolImage (&mImageInfo);
+  if (!Result) {
+    ToolImageDestruct (&mImageInfo);
+    return EFI_ABORTED;
+  }
+
+  Pe = ToolImageEmitPe (&mImageInfo, &PeSize);
+  if (Pe == NULL) {
+    ToolImageDestruct (&mImageInfo);
+    return EFI_ABORTED;
+  }
+
+  ToolImageDestruct (&mImageInfo);
+
+  UserWriteFile (PeName, Pe, PeSize);
+
+  free (Pe);
+
+  return EFI_SUCCESS;
+}
+
 int main (int argc, char *argv[])
 {
   EFI_STATUS Status;
 
   if (strcmp (argv[4], "ElfToPe") == 0) {
-    Status = ElfToPe (argv[1], argv[2], argv [3]);
+		// Status = ElfToPe (argv[1], argv[2], argv [3]);
+    Status = ElfToIntermediateToPe (argv[1], argv[2], argv [3]);
     if (EFI_ERROR (Status)) {
       raise();
       return -1;

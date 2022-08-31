@@ -9,7 +9,7 @@ static Elf_Ehdr  *mEhdr         = NULL;
 static Elf_Size  mPeAlignment   = 0x0;
 static UINT32    mSizeOfHeaders = 0x0;
 
-static image_tool_image_info_t mImageInfo;
+extern image_tool_image_info_t mImageInfo;
 
 static
 Elf_Shdr *
@@ -233,7 +233,9 @@ ReadElfFile (
       continue;
     }
 
-    mPeAlignment = Shdr->sh_addralign;
+    if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr)) || (IsHiiRsrcShdr (Shdr))) {
+      mPeAlignment = Shdr->sh_addralign;
+    }
 	}
 
   if (mEhdr->e_shstrndx >= mEhdr->e_shnum) {
@@ -467,14 +469,16 @@ CreateIntermediate (
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
-    if ((Shdr->sh_addralign == 0) || (Shdr->sh_addralign == 1)) {
-      fprintf (stderr, "ImageTool: Alignment field is invalid\n");
-      return EFI_VOLUME_CORRUPTED;
-    }
+    if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr)) || (IsHiiRsrcShdr (Shdr))) {
+      if ((Shdr->sh_addralign == 0) || (Shdr->sh_addralign == 1)) {
+        fprintf (stderr, "ImageTool: Alignment field is invalid\n");
+        return EFI_VOLUME_CORRUPTED;
+      }
 
-    if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
-      fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
-      return EFI_VOLUME_CORRUPTED;
+      if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
+        fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
+        return EFI_VOLUME_CORRUPTED;
+      }
     }
 
     if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr))) {
