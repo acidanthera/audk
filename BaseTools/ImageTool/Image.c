@@ -17,12 +17,12 @@ CheckToolImageSegment (
     &Segment->ImageSize
     );
   if (Overflow) {
-    raise();
+    raise ();
     return false;
   }
 
   if (Segment->Write && Segment->Execute) {
-    raise();
+    raise ();
     return false;
   }
   //
@@ -39,7 +39,7 @@ CheckToolImageSegment (
   }
   // FIXME: Expand prior segment
   if (Segment->ImageAddress != *PreviousEndAddress) {
-    raise();
+    raise ();
     return false;
   }
 
@@ -49,7 +49,7 @@ CheckToolImageSegment (
     PreviousEndAddress
     );
   if (Overflow) {
-    raise();
+    raise ();
     return false;
   }
 
@@ -67,12 +67,12 @@ CheckToolImageSegmentInfo (
   assert(ImageSize != NULL);
 
   if (!IS_POW2(SegmentInfo->SegmentAlignment)) {
-    raise();
+    raise ();
     return false;
   }
 
   if (SegmentInfo->NumSegments == 0) {
-    raise();
+    raise ();
     return false;
   }
 
@@ -84,7 +84,7 @@ CheckToolImageSegmentInfo (
       ImageSize
       );
     if (!Result) {
-      raise();
+      raise ();
       return false;
     }
   }
@@ -126,7 +126,7 @@ CheckToolImageReloc (
     Reloc->Target
     );
   if (Segment == NULL) {
-    raise();
+    raise ();
     return false;
   }
 
@@ -148,19 +148,19 @@ CheckToolImageRelocInfo (
   const image_tool_reloc_info_t *RelocInfo = &Image->RelocInfo;
 
   if (RelocInfo->RelocsStripped && RelocInfo->NumRelocs > 0) {
-    raise();
+    raise ();
     return false;
   }
 
   if (RelocInfo->NumRelocs > MAX_UINT32 / sizeof(UINT16)) {
-    raise();
+    raise ();
     return false;
   }
 
   for (uint32_t Index = 0; (uint32_t) Index < RelocInfo->NumRelocs; ++Index) {
     bool Result = CheckToolImageReloc(Image, &RelocInfo->Relocs[Index]);
     if (!Result) {
-      raise();
+      raise ();
       return false;
     }
   }
@@ -179,7 +179,7 @@ CheckToolImageDebugInfo (
   if (DebugInfo->SymbolsPath != NULL) {
     // FIXME: UE-only?
     if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
-      raise();
+      raise ();
       return false;
     }
   }
@@ -199,19 +199,19 @@ CheckToolImage (
   uint32_t ImageSize;
   Result = CheckToolImageSegmentInfo(&Image->SegmentInfo, &ImageSize);
   if (!Result) {
-    raise();
+    raise ();
     return false;
   }
 
   Result = CheckToolImageRelocInfo(Image);
   if (!Result) {
-    raise();
+    raise ();
     return false;
   }
 
   Result = CheckToolImageDebugInfo(&Image->DebugInfo);
   if (!Result) {
-    raise();
+    raise ();
     return false;
   }
 
@@ -237,7 +237,7 @@ ImageConvertToXip (
 
     void *Data = calloc(Segment->ImageSize, 1);
     if (Data == NULL) {
-      raise();
+      raise ();
       return false;
     }
 

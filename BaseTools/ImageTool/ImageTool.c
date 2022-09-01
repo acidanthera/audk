@@ -114,13 +114,13 @@ int main (int argc, char *argv[])
 		// Status = ElfToPe (argv[1], argv[2], argv [3]);
     Status = ElfToIntermediateToPe (argv[1], argv[2], argv [3]);
     if (EFI_ERROR (Status)) {
-      raise();
+      raise ();
       return -1;
     }
   } else if (strcmp (argv[4], "PeToUe") == 0) {
     Status = PeToUe (argv[1], argv[2]);
     if (EFI_ERROR (Status)) {
-      raise();
+      raise ();
       return -1;
     }
   }

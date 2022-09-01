@@ -402,20 +402,20 @@ FixAddresses (
   const Elf_Shdr *Shdr;
   UINT32         Pointer;
 
-  mSizeOfHeaders = sizeof(EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS) +
+  mSizeOfHeaders = sizeof (EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS) +
     EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY) +
-    mImageInfo.SegmentInfo.NumSegments * sizeof(EFI_IMAGE_SECTION_HEADER);
+    mImageInfo.SegmentInfo.NumSegments * sizeof (EFI_IMAGE_SECTION_HEADER);
 
   if (mImageInfo.RelocInfo.Relocs != NULL) {
-    mSizeOfHeaders += sizeof(EFI_IMAGE_SECTION_HEADER);
+    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
   }
 
   // if (mImageInfo.DebugInfo.SymbolsPath != NULL) {
-  //   mSizeOfHeaders += sizeof(EFI_IMAGE_SECTION_HEADER);
+  //   mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
   // }
 
   if (mImageInfo.HiiInfo.Data != NULL) {
-    mSizeOfHeaders += sizeof(EFI_IMAGE_SECTION_HEADER);
+    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
   }
 
   mSizeOfHeaders = ALIGN_VALUE (mSizeOfHeaders, mPeAlignment);
@@ -614,7 +614,7 @@ ElfToIntermediate (
 		return Status;
 	}
 
-  memset (&mImageInfo, 0, sizeof(mImageInfo));
+  memset (&mImageInfo, 0, sizeof (mImageInfo));
 
   mImageInfo.HeaderInfo.PreferredAddress  = 0;
   mImageInfo.HeaderInfo.EntryPointAddress = 0;
