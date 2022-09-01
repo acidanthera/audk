@@ -410,9 +410,9 @@ FixAddresses (
     mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
   }
 
-  // if (mImageInfo.DebugInfo.SymbolsPath != NULL) {
-  //   mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  // }
+  if (mImageInfo.DebugInfo.SymbolsPath != NULL) {
+    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
+  }
 
   if (mImageInfo.HiiInfo.Data != NULL) {
     mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
