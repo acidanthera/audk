@@ -248,7 +248,7 @@ ImageConvertToXip (
     Segment->Data     = Data;
     Segment->DataSize = Segment->ImageSize;
 
-    free(Memory);
+    free (Memory);
   }
 
   Image->HeaderInfo.IsXip = true;
@@ -261,16 +261,22 @@ ToolImageDestruct (
   image_tool_image_info_t *Image
   )
 {
-  assert(Image != NULL);
+  uint8_t Index;
 
-  for (uint8_t Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-    free(Image->SegmentInfo.Segments[Index].Name);
-    if (Image->SegmentInfo.Segments[Index].DataSize != 0) {
-      free(Image->SegmentInfo.Segments[Index].Data);
+  assert (Image != NULL);
+
+  if (Image->SegmentInfo.Segments != NULL) {
+    for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
+      if (Image->SegmentInfo.Segments[Index].Name != NULL) {
+        free (Image->SegmentInfo.Segments[Index].Name);
+      }
+      if (Image->SegmentInfo.Segments[Index].DataSize != 0) {
+        free (Image->SegmentInfo.Segments[Index].Data);
+      }
     }
-  }
 
-  free(Image->SegmentInfo.Segments);
+    free (Image->SegmentInfo.Segments);
+  }
 
   if (Image->HiiInfo.Data != NULL) {
     free (Image->HiiInfo.Data);
@@ -280,7 +286,9 @@ ToolImageDestruct (
     free (Image->RelocInfo.Relocs);
   }
 
-  free(Image->DebugInfo.SymbolsPath);
+  if (Image->DebugInfo.SymbolsPath != NULL) {
+    free (Image->DebugInfo.SymbolsPath);
+  }
 
-  memset(Image, 0, sizeof(*Image));
+  memset (Image, 0, sizeof(*Image));
 }

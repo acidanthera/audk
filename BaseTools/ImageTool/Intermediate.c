@@ -43,6 +43,27 @@ GetSymbol (
 }
 
 static
+char *
+GetString (
+  IN UINT32 Offset
+  )
+{
+	const Elf_Shdr *Shdr;
+	char           *String;
+
+  Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
+
+	if (Offset >= Shdr->sh_size) {
+    fprintf (stderr, "ImageTool: Invalid ELF string offset\n");
+    return NULL;
+	}
+
+  String = (char *)((UINT8 *)mEhdr + Shdr->sh_offset + Offset);
+
+	return String;
+}
+
+static
 BOOLEAN
 IsTextShdr (
   IN const Elf_Shdr *Shdr
@@ -461,6 +482,7 @@ CreateIntermediate (
   UINT32               SIndex;
   const Elf_Rel        *Rel;
   UINTN                RIndex;
+  char                 *Name;
 
   Segments = NULL;
   SIndex   = 0;
@@ -529,7 +551,19 @@ CreateIntermediate (
     Shdr = GetShdrByIndex (Index);
 
     if (IsTextShdr (Shdr)) {
-      Segments[SIndex].Name     = ".text";
+      Name = GetString (Shdr->sh_name);
+      if (Name == NULL) {
+        return EFI_VOLUME_CORRUPTED;
+      }
+
+      Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
+      if (Segments[SIndex].Name == NULL) {
+    		fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", SIndex);
+    		return EFI_OUT_OF_RESOURCES;
+    	};
+
+      memcpy (Segments[SIndex].Name, Name, strlen (Name));
+
       Segments[SIndex].DataSize = ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
 
       Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
@@ -551,7 +585,19 @@ CreateIntermediate (
     }
 
     if (IsDataShdr (Shdr)) {
-      Segments[SIndex].Name = ".data";
+      Name = GetString (Shdr->sh_name);
+      if (Name == NULL) {
+        return EFI_VOLUME_CORRUPTED;
+      }
+
+      Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
+      if (Segments[SIndex].Name == NULL) {
+    		fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", SIndex);
+    		return EFI_OUT_OF_RESOURCES;
+    	};
+
+      memcpy (Segments[SIndex].Name, Name, strlen (Name));
+
       Segments[SIndex].DataSize = ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
 
       Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
@@ -601,8 +647,7 @@ ElfToIntermediate (
   )
 {
 	EFI_STATUS Status;
-  UINT32     SIndex;
-
+  
   assert (ElfName    != NULL);
 	assert (ModuleType != NULL);
 
@@ -668,24 +713,7 @@ ElfToIntermediate (
 
   Status = CreateIntermediate ();
   if (EFI_ERROR (Status)) {
-    if (mImageInfo.SegmentInfo.Segments != NULL) {
-      for (SIndex = 0; SIndex < mImageInfo.SegmentInfo.NumSegments; ++SIndex) {
-        if (mImageInfo.SegmentInfo.Segments[SIndex].Data != NULL) {
-          free (mImageInfo.SegmentInfo.Segments[SIndex].Data);
-        }
-      }
-      free (mImageInfo.SegmentInfo.Segments);
-    }
-
-    if (mImageInfo.HiiInfo.Data != NULL) {
-      free (mImageInfo.HiiInfo.Data);
-    }
-
-    if (mImageInfo.RelocInfo.Relocs != NULL) {
-      free (mImageInfo.RelocInfo.Relocs);
-    }
-
-    free (mImageInfo.DebugInfo.SymbolsPath);
+    ToolImageDestruct (&mImageInfo);
 	}
 
 	free (mEhdr);
