@@ -114,8 +114,8 @@ typedef struct {
 typedef struct {
   uint64_t PreferredAddress;
   uint32_t EntryPointAddress;
-  uint8_t  Machine;
-  uint8_t  Subsystem;
+  uint16_t Machine;
+  uint16_t Subsystem;
   bool     IsXip;
 } image_tool_header_info_t;
 

@@ -301,8 +301,6 @@ ToolImageEmitPeSectionHeaders (
   assert (SectionHeadersSize <= *BufferSize);
 
   for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-    Sections[Index].VirtualSize = Image->SegmentInfo.Segments[Index].ImageSize;
-
     switch (Image->SegmentInfo.Segments[Index].Type) {
       case ToolImageSectionTypeCode:
         Sections[Index].Characteristics = EFI_IMAGE_SCN_CNT_CODE;
@@ -332,7 +330,8 @@ ToolImageEmitPeSectionHeaders (
 
     Sections[Index].PointerToRawData = SectionOffset;
     Sections[Index].VirtualAddress   = SectionOffset;
-    Sections[Index].SizeOfRawData    = Image->SegmentInfo.Segments[Index].DataSize;
+    Sections[Index].SizeOfRawData    = ALIGN_VALUE (Image->SegmentInfo.Segments[Index].DataSize, Context->FileAlignment);
+    Sections[Index].VirtualSize      = Sections[Index].SizeOfRawData;
 
     strncpy (
       (char *) Sections[Index].Name,
@@ -341,7 +340,6 @@ ToolImageEmitPeSectionHeaders (
       );
 
     SectionOffset += Sections[Index].SizeOfRawData;
-    SectionOffset  = ALIGN_VALUE (SectionOffset, Context->FileAlignment);
   }
 
   *BufferSize -= SectionHeadersSize;
@@ -972,6 +970,9 @@ ToolImageEmitPe (
   assert (RemainingSize == ExpectedSize);
 
   assert (RemainingSize == 0);
+
+  Context.PeHdr->SizeOfHeaders = AlignedHeaderSize;
+  Context.PeHdr->SizeOfImage   = Context.UnsignedFileSize;
 
   *FileSize = Context.UnsignedFileSize;
 

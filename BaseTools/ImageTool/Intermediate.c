@@ -647,7 +647,7 @@ ElfToIntermediate (
   )
 {
 	EFI_STATUS Status;
-  
+
   assert (ElfName    != NULL);
 	assert (ModuleType != NULL);
 
@@ -663,11 +663,29 @@ ElfToIntermediate (
 
   mImageInfo.HeaderInfo.PreferredAddress  = 0;
   mImageInfo.HeaderInfo.EntryPointAddress = 0;
-  mImageInfo.HeaderInfo.Machine           = mEhdr->e_machine;
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = mPeAlignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
   mImageInfo.DebugInfo.SymbolsPathLen     = strlen (ElfName) + 1;
+
+  switch (mEhdr->e_machine) {
+		case EM_386:
+			mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_IA32;
+			break;
+		case EM_X86_64:
+			mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
+			break;
+		case EM_ARM:
+			mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
+			break;
+		case EM_AARCH64:
+			mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_AARCH64;
+			break;
+		default:
+			fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", mEhdr->e_machine);
+      free (mEhdr);
+			return EFI_UNSUPPORTED;
+	}
 
   mImageInfo.DebugInfo.SymbolsPath = calloc (1, mImageInfo.DebugInfo.SymbolsPathLen);
   if (mImageInfo.DebugInfo.SymbolsPath == NULL) {
