@@ -146,6 +146,69 @@ IsRelocShdr (
 
 static
 VOID
+SetHiiResourceHeader (
+  IN OUT UINT8  *Hii,
+  IN     UINT32 Offset
+  )
+{
+  UINT32                              Index;
+  EFI_IMAGE_RESOURCE_DIRECTORY        *RDir;
+  EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *RDirEntry;
+  EFI_IMAGE_RESOURCE_DIRECTORY_STRING *RDirString;
+  EFI_IMAGE_RESOURCE_DATA_ENTRY       *RDataEntry;
+
+  assert (Hii != NULL);
+
+  //
+  // Fill Resource section entry
+  //
+  RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)Hii;
+  RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+  for (Index = 0; Index < RDir->NumberOfNamedEntries; ++Index) {
+    if (RDirEntry->u1.s.NameIsString) {
+      RDirString = (EFI_IMAGE_RESOURCE_DIRECTORY_STRING *)(Hii + RDirEntry->u1.s.NameOffset);
+
+      if ((RDirString->Length == 3)
+        && (RDirString->String[0] == L'H')
+        && (RDirString->String[1] == L'I')
+        && (RDirString->String[2] == L'I')) {
+        //
+        // Resource Type "HII" found
+        //
+        if (RDirEntry->u2.s.DataIsDirectory) {
+          //
+          // Move to next level - resource Name
+          //
+          RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
+          RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+
+          if (RDirEntry->u2.s.DataIsDirectory) {
+            //
+            // Move to next level - resource Language
+            //
+            RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
+            RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
+          }
+        }
+
+        //
+        // Now it ought to be resource Data. Update its OffsetToData value
+        //
+        if (!RDirEntry->u2.s.DataIsDirectory) {
+          RDataEntry = (EFI_IMAGE_RESOURCE_DATA_ENTRY *)(Hii + RDirEntry->u2.OffsetToData);
+          RDataEntry->OffsetToData = RDataEntry->OffsetToData + Offset;
+          break;
+        }
+      }
+    }
+    RDirEntry++;
+  }
+
+  return;
+}
+
+static
+VOID
 FindAddress (
 	IN  UINT32 ElfIndex,
   OUT UINT8  **SectionData,
@@ -641,7 +704,7 @@ CreateIntermediate (
 }
 
 EFI_STATUS
-ElfToIntermediate (
+ScanElf (
 	IN const char *ElfName,
   IN const char *ModuleType
   )

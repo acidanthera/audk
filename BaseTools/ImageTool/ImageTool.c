@@ -65,7 +65,7 @@ PeToUe (
 
 static
 EFI_STATUS
-ElfToIntermediateToPe (
+ElfToPe (
 	IN const char *ElfName,
 	IN const char *PeName,
   IN const char *ModuleType
@@ -79,7 +79,7 @@ ElfToIntermediateToPe (
 	assert (PeName     != NULL);
 	assert (ModuleType != NULL);
 
-	Status = ElfToIntermediate (ElfName, ModuleType);
+	Status = ScanElf (ElfName, ModuleType);
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
@@ -104,8 +104,7 @@ int main (int argc, char *argv[])
   EFI_STATUS Status;
 
   if (strcmp (argv[4], "ElfToPe") == 0) {
-		// Status = ElfToPe (argv[1], argv[2], argv [3]);
-    Status = ElfToIntermediateToPe (argv[1], argv[2], argv [3]);
+    Status = ElfToPe (argv[1], argv[2], argv [3]);
     if (EFI_ERROR (Status)) {
       raise ();
       return -1;

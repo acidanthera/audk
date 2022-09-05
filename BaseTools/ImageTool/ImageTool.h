@@ -67,40 +67,7 @@
 #define ELF_HII_SECTION_NAME ".hii"
 #define MAX_PE_ALIGNMENT     0x10000
 
-enum {
-	TEXT_SECTION  = 1,
-	DATA_SECTION  = 2,
-	HII_SECTION   = 3,
-	RELOC_SECTION = 4,
-};
-
 #define raise() assert(false)
-
-typedef struct _PeRelocs PeRelocs;
-
-typedef struct {
-	EFI_IMAGE_DOS_HEADER Dos;
-	EFI_IMAGE_NT_HEADERS *Nt;
-} PeHeader;
-
-typedef struct {
-	EFI_IMAGE_SECTION_HEADER PeShdr;
-	UINT8                    Type;
-	UINT8                    Data[];
-} PeSection;
-
-typedef struct _PeOffset {
-	UINT8  Type;
-	UINT32 Offset;
-} PeOffset;
-
-typedef struct _PeRelocs {
-	PeRelocs *Next;
-	UINTN    PageRva;
-	UINT32   Used;
-	UINT32   Total;
-	UINT16   *TypeOffsets;
-} PeRelocs;
 
 typedef struct {
 	EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     Dir;
@@ -212,20 +179,7 @@ ToolImageEmitPe (
   );
 
 EFI_STATUS
-ElfToPe (
-	IN const char *ElfName,
-	IN const char *PeName,
-	IN const char *ModuleType
-  );
-
-VOID
-SetHiiResourceHeader (
-  IN OUT UINT8  *Hii,
-  IN     UINT32 Offset
-  );
-
-EFI_STATUS
-ElfToIntermediate (
+ScanElf (
 	IN const char *ElfName,
   IN const char *ModuleType
   );
