@@ -103,14 +103,14 @@ int main (int argc, char *argv[])
 {
   EFI_STATUS Status;
 
-  if (strcmp (argv[4], "ElfToPe") == 0) {
-    Status = ElfToPe (argv[1], argv[2], argv [3]);
+  if (strcmp (argv[1], "ElfToPe") == 0) {
+    Status = ElfToPe (argv[2], argv [3], argv[4]);
     if (EFI_ERROR (Status)) {
       raise ();
       return -1;
     }
-  } else if (strcmp (argv[4], "PeToUe") == 0) {
-    Status = PeToUe (argv[1], argv[2]);
+  } else if (strcmp (argv[1], "PeToUe") == 0) {
+    Status = PeToUe (argv[2], argv[3]);
     if (EFI_ERROR (Status)) {
       raise ();
       return -1;
