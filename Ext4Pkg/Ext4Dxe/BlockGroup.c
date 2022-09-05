@@ -218,9 +218,9 @@ Ext4CalculateBlockGroupDescChecksum (
   IN UINT32                       BlockGroupNum
   )
 {
-  if ((Partition->FeaturesRoCompat & EXT4_FEATURE_RO_COMPAT_METADATA_CSUM) != 0) {
+  if (EXT4_HAS_METADATA_CSUM (Partition)) {
     return Ext4CalculateBlockGroupDescChecksumMetadataCsum (Partition, BlockGroupDesc, BlockGroupNum);
-  } else if ((Partition->FeaturesRoCompat & EXT4_FEATURE_RO_COMPAT_GDT_CSUM) != 0) {
+  } else if (EXT4_HAS_GDT_CSUM (Partition)) {
     return Ext4CalculateBlockGroupDescChecksumGdtCsum (Partition, BlockGroupDesc, BlockGroupNum);
   }
 

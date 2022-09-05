@@ -1183,7 +1183,7 @@ Ext4CalculateBlockGroupDescChecksum (
    @return TRUE if the gdt_csum is supported, else FALSE.
 **/
 #define EXT4_HAS_GDT_CSUM(Partition)                                           \
-  EXT4_HAS_RO_COMPAT(Partition, EXT4_FEATURE_RO_COMPAT_METADATA_CSUM)
+  EXT4_HAS_RO_COMPAT(Partition, EXT4_FEATURE_RO_COMPAT_GDT_CSUM)
 
 /**
    Retrieves the volume name.
