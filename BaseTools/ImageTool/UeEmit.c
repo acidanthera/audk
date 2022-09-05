@@ -1,3 +1,8 @@
+/** @file
+  Copyright (c) 2021, Marvin Häuser. All rights reserved.
+  SPDX-License-Identifier: BSD-3-Clause
+**/
+
 #include "ImageTool.h"
 
 // FIXME: NumSegments <= MAX_UINT8

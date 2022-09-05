@@ -1,3 +1,9 @@
+/** @file
+  Copyright (c) 2021, Marvin Häuser. All rights reserved.
+  Copyright (c) 2022, Mikhail Krichanov. All rights reserved.
+  SPDX-License-Identifier: BSD-3-Clause
+**/
+
 #include "ImageTool.h"
 
 typedef struct {
