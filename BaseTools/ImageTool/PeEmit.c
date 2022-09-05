@@ -138,11 +138,9 @@ EmitPeGetRelocSectionSize (
   BlockSize       = ALIGN_VALUE (BlockSize, 4);
   RelocTableSize += BlockSize;
 
-  return !BaseOverflowAlignUpU32 (
-    RelocTableSize,
-    Image->SegmentInfo.SegmentAlignment,
-    RelocsSize
-    );
+  *RelocsSize = RelocTableSize;
+
+  return true;
 }
 
 static
@@ -397,8 +395,8 @@ ToolImageEmitPeExtraSectionHeaders (
     Section = (void *) *Buffer;
 
     strncpy ((char *)Section->Name, ".reloc", sizeof (Section->Name));
-    Section->SizeOfRawData    = Context->RelocTableSize;
-    Section->VirtualSize      = Context->RelocTableSize;
+    Section->SizeOfRawData    = ALIGN_VALUE (Context->RelocTableSize, Context->FileAlignment);
+    Section->VirtualSize      = ALIGN_VALUE (Context->RelocTableSize, Context->FileAlignment);
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA
       | EFI_IMAGE_SCN_MEM_DISCARDABLE | EFI_IMAGE_SCN_MEM_READ;
     Section->PointerToRawData = ALIGN_VALUE (Context->HdrInfo.SizeOfHeaders, Context->FileAlignment)
@@ -697,6 +695,8 @@ ToolImageEmitPeRelocTable (
   *Buffer        += RelocBlock->SizeOfBlock;
   RelocTableSize += RelocBlock->SizeOfBlock;
 
+  assert (RelocTableSize == Context->RelocTableSize);
+
   RelocTablePadding = ALIGN_VALUE_ADDEND (
     RelocTableSize,
     Context->FileAlignment
@@ -704,11 +704,8 @@ ToolImageEmitPeRelocTable (
 
   assert (RelocTablePadding <= *BufferSize);
 
-  *BufferSize    -= RelocTablePadding;
-  *Buffer        += RelocTablePadding;
-  RelocTableSize += RelocTablePadding;
-
-  assert (RelocTableSize == Context->RelocTableSize);
+  *BufferSize -= RelocTablePadding;
+  *Buffer     += RelocTablePadding;
 
   return true;
 }
