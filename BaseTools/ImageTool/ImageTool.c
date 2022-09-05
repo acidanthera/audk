@@ -72,7 +72,6 @@ ElfToIntermediateToPe (
   )
 {
 	EFI_STATUS Status;
-	bool       Result;
 	void       *Pe;
   uint32_t   PeSize;
 
@@ -84,12 +83,6 @@ ElfToIntermediateToPe (
 	if (EFI_ERROR (Status)) {
 		return Status;
 	}
-
-	Result = CheckToolImage (&mImageInfo);
-  if (!Result) {
-    ToolImageDestruct (&mImageInfo);
-    return EFI_ABORTED;
-  }
 
   Pe = ToolImageEmitPe (&mImageInfo, &PeSize);
   if (Pe == NULL) {
