@@ -10,6 +10,26 @@
 #include <Library/BaseUcs2Utf8Lib.h>
 
 /**
+  Reads a symlink file.
+
+  @param[in]      Partition   Pointer to the ext4 partition.
+  @param[in]      File        Pointer to the open symlink file.
+  @param[out]     Symlink     Pointer to the output unicode symlink string.
+
+  @retval EFI_SUCCESS           Symlink was read.
+  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
+  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
+  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
+  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
+**/
+EFI_STATUS
+Ext4ReadSymlink (
+  IN     EXT4_PARTITION  *Partition,
+  IN     EXT4_FILE       *File,
+  OUT    CHAR16          **Symlink
+  );
+
+/**
    Duplicates a file structure.
 
    @param[in]        Original    Pointer to the original file.
@@ -132,216 +152,6 @@ Ext4DirCanLookup (
   // In UNIX, executable permission on directories means that we have permission to look up
   // files in a directory.
   return (File->Inode->i_mode & EXT4_INO_PERM_EXEC_OWNER) == EXT4_INO_PERM_EXEC_OWNER;
-}
-
-/**
-  Reads a fast symlink file.
-
-  @param[in]      Partition   Pointer to the ext4 partition.
-  @param[in]      File        Pointer to the open symlink file.
-  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
-  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
-
-  @retval EFI_SUCCESS            Fast symlink was read.
-  @retval EFI_OUT_OF_RESOURCES   Memory allocation error.
-**/
-STATIC
-EFI_STATUS
-Ext4ReadFastSymlink (
-  IN     EXT4_PARTITION  *Partition,
-  IN     EXT4_FILE       *File,
-  OUT    CHAR8           **AsciiSymlink,
-  OUT    UINT32          *AsciiSymlinkSize
-  )
-{
-  UINT32  SymlinkSize;
-  CHAR8   *AsciiSymlinkTmp;
-  //
-  // Fast-symlink's EXT4_INODE_SIZE is not necessarily validated when we checked it in
-  // Ext4SymlinkIsFastSymlink(), so truncate if necessary.
-  //
-  SymlinkSize = (UINT32)MIN (EXT4_INODE_SIZE (File->Inode), EXT4_FAST_SYMLINK_MAX_SIZE);
-
-  AsciiSymlinkTmp = AllocatePool (SymlinkSize + 1);
-  if (AsciiSymlinkTmp == NULL) {
-    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  CopyMem (AsciiSymlinkTmp, File->Inode->i_data, SymlinkSize);
-
-  //
-  // Add null-terminator
-  //
-  AsciiSymlinkTmp[SymlinkSize] = '\0';
-
-  *AsciiSymlink     = AsciiSymlinkTmp;
-  *AsciiSymlinkSize = SymlinkSize + 1;
-
-  return EFI_SUCCESS;
-}
-
-/**
-  Reads a slow symlink file.
-
-  @param[in]      Partition        Pointer to the ext4 partition.
-  @param[in]      File             Pointer to the open symlink file.
-  @param[out]     AsciiSymlink     Pointer to the output ascii symlink string.
-  @param[out]     AsciiSymlinkSize Pointer to the output ascii symlink string length.
-
-  @retval EFI_SUCCESS           Slow symlink was read.
-  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
-  @retval EFI_INVALID_PARAMETER Slow symlink path has incorrect length
-  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
-**/
-STATIC
-EFI_STATUS
-Ext4ReadSlowSymlink (
-  IN     EXT4_PARTITION  *Partition,
-  IN     EXT4_FILE       *File,
-  OUT    CHAR8           **AsciiSymlink,
-  OUT    UINT32          *AsciiSymlinkSize
-  )
-{
-  EFI_STATUS  Status;
-  CHAR8       *SymlinkTmp;
-  UINT64      SymlinkSizeTmp;
-  UINT32      SymlinkAllocateSize;
-  UINTN       ReadSize;
-
-  SymlinkSizeTmp = EXT4_INODE_SIZE (File->Inode);
-
-  //
-  // Allocate EXT4_INODE_SIZE + 1
-  //
-  if (SymlinkSizeTmp > EFI_PATH_MAX - 1) {
-    DEBUG ((
-      DEBUG_FS,
-      "[ext4] Error! Symlink path maximum length was hit!\n"
-      ));
-    return EFI_INVALID_PARAMETER;
-  }
-
-  SymlinkAllocateSize = (UINT32)SymlinkSizeTmp + 1;
-
-  SymlinkTmp = AllocatePool (SymlinkAllocateSize);
-  if (SymlinkTmp == NULL) {
-    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink ascii string buffer\n"));
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  ReadSize = (UINTN)SymlinkSizeTmp;
-  Status   = Ext4Read (Partition, File, SymlinkTmp, File->Position, &ReadSize);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_FS, "[ext4] Failed to read symlink from blocks with Status %r\n", Status));
-    FreePool (SymlinkTmp);
-    return Status;
-  }
-
-  File->Position += ReadSize;
-
-  //
-  // Add null-terminator
-  //
-  SymlinkTmp[SymlinkSizeTmp] = '\0';
-
-  if (SymlinkSizeTmp != ReadSize) {
-    DEBUG ((
-      DEBUG_FS,
-      "[ext4] Error! The sz of the read block doesn't match the value from the inode!\n"
-      ));
-    return EFI_VOLUME_CORRUPTED;
-  }
-
-  *AsciiSymlinkSize = SymlinkAllocateSize;
-  *AsciiSymlink     = SymlinkTmp;
-
-  return EFI_SUCCESS;
-}
-
-/**
-  Reads a symlink file.
-
-  @param[in]      Partition   Pointer to the ext4 partition.
-  @param[in]      File        Pointer to the open symlink file.
-  @param[out]     Symlink     Pointer to the output unicode symlink string.
-
-  @retval EFI_SUCCESS           Symlink was read.
-  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
-  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
-  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
-  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
-**/
-EFI_STATUS
-Ext4ReadSymlink (
-  IN     EXT4_PARTITION  *Partition,
-  IN     EXT4_FILE       *File,
-  OUT    CHAR16          **Symlink
-  )
-{
-  EFI_STATUS  Status;
-  CHAR8       *SymlinkTmp;
-  UINT32      SymlinkSize;
-  CHAR16      *Symlink16Tmp;
-  CHAR16      *Needle;
-
-  //
-  // Assume that we alread read Inode via Ext4ReadInode
-  // Skip reading, just check encryption flag
-  //
-  if ((File->Inode->i_flags & EXT4_ENCRYPT_FL) != 0) {
-    DEBUG ((DEBUG_FS, "[ext4] Error, symlink is encrypted\n"));
-    return EFI_ACCESS_DENIED;
-  }
-
-  if (Ext4SymlinkIsFastSymlink (File)) {
-    Status = Ext4ReadFastSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
-  } else {
-    Status = Ext4ReadSlowSymlink (Partition, File, &SymlinkTmp, &SymlinkSize);
-  }
-
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_FS, "[ext4] Symlink read error with Status %r\n", Status));
-    return Status;
-  }
-
-  Symlink16Tmp = AllocateZeroPool (SymlinkSize * sizeof (CHAR16));
-  if (Symlink16Tmp == NULL) {
-    DEBUG ((DEBUG_FS, "[ext4] Failed to allocate symlink unicode string buffer\n"));
-    FreePool (SymlinkTmp);
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  Status = AsciiStrToUnicodeStrS (
-             SymlinkTmp,
-             Symlink16Tmp,
-             SymlinkSize
-             );
-
-  if (EFI_ERROR (Status)) {
-    DEBUG ((
-      DEBUG_FS,
-      "[ext4] Failed to convert ascii symlink to unicode with Status %r\n",
-      Status
-      ));
-    FreePool (Symlink16Tmp);
-    FreePool (SymlinkTmp);
-    return Status;
-  }
-
-  //
-  // Convert to UEFI slashes
-  //
-  for (Needle = Symlink16Tmp; *Needle != L'\0'; Needle++) {
-    if (*Needle == L'/') {
-      *Needle = L'\\';
-    }
-  }
-
-  *Symlink = Symlink16Tmp;
-
-  FreePool (SymlinkTmp);
-  return Status;
 }
 
 /**

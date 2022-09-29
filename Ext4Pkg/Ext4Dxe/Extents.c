@@ -259,8 +259,8 @@ Ext4GetExtent (
 
   if ((Inode->i_flags & EXT4_EXTENTS_FL) == 0) {
     // If this is an older ext2/ext3 filesystem, emulate Ext4GetExtent using the block map
-    // By specification files using block maps must be placed within the first 2^32 blocks
-    // of a filesystem, so we can safely cast LogicalBlock to uint32
+    // By specification files using block maps are limited to 2^32 blocks,
+    // so we can safely cast LogicalBlock to uint32
     Status = Ext4GetBlocks (Partition, File, (UINT32)LogicalBlock, Extent);
 
     if (!EFI_ERROR (Status)) {

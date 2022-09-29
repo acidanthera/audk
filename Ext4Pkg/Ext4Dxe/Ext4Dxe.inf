@@ -108,6 +108,7 @@
   Directory.c
   Extents.c
   File.c
+  Symlink.c
   Collation.c
   Ext4Disk.h
   Ext4Dxe.h

@@ -271,44 +271,6 @@ Ext4FileIsSymlink (
 }
 
 /**
-   Detects if a symlink is a fast symlink.
-
-   @param[in]      File          Pointer to the opened file.
-
-   @return BOOLEAN         Whether symlink is a fast symlink
-**/
-BOOLEAN
-Ext4SymlinkIsFastSymlink (
-  IN CONST EXT4_FILE  *File
-  )
-{
-  //
-  // Detection logic of the fast-symlink splits into two behaviors - old and new.
-  // The old behavior is based on comparing the extended attribute blocks
-  // with the inode's i_blocks, and if it's zero we know the inode isn't storing
-  // the link in filesystem blocks, so we look to the inode->i_data.
-  // The new behavior is apparently needed only with the large EA inode feature.
-  // In this case we check that inode size less than maximum fast symlink size.
-  // So, we revert to the old behavior if the large EA inode feature is not set.
-  //
-  UINT32  FileAcl;
-  UINT32  ExtAttrBlocks;
-
-  if ((File->Inode->i_flags & EXT4_EA_INODE_FL) == 0) {
-    FileAcl = File->Inode->i_file_acl;
-    if (EXT4_IS_64_BIT (File->Partition)) {
-      FileAcl |= LShiftU64 (File->Inode->i_osd2.data_linux.l_i_file_acl_high, 32);
-    }
-
-    ExtAttrBlocks = FileAcl != 0 ? (File->Partition->BlockSize >> 9) : 0;
-
-    return File->Inode->i_blocks == ExtAttrBlocks;
-  }
-
-  return EXT4_INODE_SIZE (File->Inode) <= EXT4_FAST_SYMLINK_MAX_SIZE;
-}
-
-/**
    Checks if a file is a regular file.
    @param[in]      File          Pointer to the opened file.
 

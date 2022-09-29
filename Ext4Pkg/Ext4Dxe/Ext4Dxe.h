@@ -33,8 +33,12 @@
 
 #define SYMLOOP_MAX    8
 #define EXT4_NAME_MAX  255
-#define EFI_PATH_MAX   4096
-
+//
+// We need to specify path length limit for security purposes, to prevent possible
+// overflows and dead-loop conditions. Originally this limit is absent in FS design,
+// but present in UNIX distros and shell environments, which may varies from 1024 to 4096.
+//
+#define EXT4_EFI_PATH_MAX    4096
 #define EXT4_DRIVER_VERSION  0x0000
 
 /**
@@ -831,18 +835,6 @@ Ext4FileIsSymlink (
   );
 
 /**
-   Detects if a symlink is a fast symlink.
-
-   @param[in]      File          Pointer to the opened file.
-
-   @return BOOLEAN         Whether symlink is a fast symlink
-**/
-BOOLEAN
-Ext4SymlinkIsFastSymlink (
-  IN CONST EXT4_FILE  *File
-  );
-
-/**
    Checks if a file is a regular file.
    @param[in]      File          Pointer to the opened file.
 
@@ -1001,26 +993,6 @@ Ext4ReadDir (
   OUT VOID           *Buffer,
   IN UINT64          Offset,
   IN OUT UINTN       *OutLength
-  );
-
-/**
-  Reads a symlink file.
-
-  @param[in]      Partition   Pointer to the ext4 partition.
-  @param[in]      File        Pointer to the open symlink file.
-  @param[out]     Symlink     Pointer to the output unicode symlink string.
-
-  @retval EFI_SUCCESS           Symlink was read.
-  @retval EFI_ACCESS_DENIED     Symlink is encrypted.
-  @retval EFI_OUT_OF_RESOURCES  Memory allocation error.
-  @retval EFI_INVALID_PARAMETER Symlink path has incorrect length
-  @retval EFI_VOLUME_CORRUPTED  Symlink read block size differ from inode value
-**/
-EFI_STATUS
-Ext4ReadSymlink (
-  IN     EXT4_PARTITION  *Partition,
-  IN     EXT4_FILE       *File,
-  OUT    CHAR16          **Symlink
   );
 
 /**
