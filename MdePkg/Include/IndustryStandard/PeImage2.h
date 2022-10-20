@@ -96,7 +96,17 @@ typedef struct {
 //
 // Characteristics
 //
-#define EFI_IMAGE_FILE_RELOCS_STRIPPED      1     ///< 0x0001  Relocation info stripped from file.
+#define EFI_IMAGE_FILE_RELOCS_STRIPPED      BIT0     ///< 0x0001  Relocation info stripped from file.
+#define EFI_IMAGE_FILE_EXECUTABLE_IMAGE     BIT1     ///< 0x0002  File is executable  (i.e. no unresolved externel references).
+#define EFI_IMAGE_FILE_LINE_NUMS_STRIPPED   BIT2     ///< 0x0004  Line numbers stripped from file.
+#define EFI_IMAGE_FILE_LOCAL_SYMS_STRIPPED  BIT3     ///< 0x0008  Local symbols stripped from file.
+#define EFI_IMAGE_FILE_LARGE_ADDRESS_AWARE  BIT5     ///< 0x0020  Supports addresses > 2-GB
+#define EFI_IMAGE_FILE_BYTES_REVERSED_LO    BIT7     ///< 0x0080  Bytes of machine word are reversed.
+#define EFI_IMAGE_FILE_32BIT_MACHINE        BIT8     ///< 0x0100  32 bit word machine.
+#define EFI_IMAGE_FILE_DEBUG_STRIPPED       BIT9     ///< 0x0200  Debugging info stripped from file in .DBG file.
+#define EFI_IMAGE_FILE_SYSTEM               BIT12    ///< 0x1000  System File.
+#define EFI_IMAGE_FILE_DLL                  BIT13    ///< 0x2000  File is a DLL.
+#define EFI_IMAGE_FILE_BYTES_REVERSED_HI    BIT15    ///< 0x8000  Bytes of machine word are reversed.
 
 ///
 /// Header Data Directories.
