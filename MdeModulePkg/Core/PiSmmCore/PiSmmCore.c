@@ -749,6 +749,17 @@ SmmEntryPoint (
 }
 
 /**
+  Insert image record.
+
+  @param[in]  DriverEntry    Driver information
+**/
+VOID
+SmmInsertImageRecord (
+  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext
+  );
+
+/**
   Install LoadedImage protocol for SMM Core.
 **/
 VOID
@@ -775,7 +786,7 @@ SmmCoreInstallLoadedImage (
   mSmmCoreLoadedImage->SystemTable  = gST;
 
   mSmmCoreLoadedImage->ImageBase     = (VOID *)(UINTN)gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreLoadedImage->ImageSize     = gSmmCorePrivate->PiSmmCoreImageSize;
+  mSmmCoreLoadedImage->ImageSize     = UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreLoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   mSmmCoreLoadedImage->ImageDataType = EfiRuntimeServicesData;
 
@@ -807,13 +818,13 @@ SmmCoreInstallLoadedImage (
   mSmmCoreDriverEntry->SmmLoadedImage.SystemTable  = gST;
 
   mSmmCoreDriverEntry->SmmLoadedImage.ImageBase     = (VOID *)(UINTN)gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreDriverEntry->SmmLoadedImage.ImageSize     = gSmmCorePrivate->PiSmmCoreImageSize;
+  mSmmCoreDriverEntry->SmmLoadedImage.ImageSize     = UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreDriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   mSmmCoreDriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
 
-  mSmmCoreDriverEntry->ImageEntryPoint = gSmmCorePrivate->PiSmmCoreEntryPoint;
+  mSmmCoreDriverEntry->ImageEntryPoint = UefiImageLoaderGetImageEntryPoint (&gSmmCorePrivate->PiSmmCoreImageContext);
   mSmmCoreDriverEntry->ImageBuffer     = gSmmCorePrivate->PiSmmCoreImageBase;
-  mSmmCoreDriverEntry->NumberOfPage    = EFI_SIZE_TO_PAGES ((UINTN)gSmmCorePrivate->PiSmmCoreImageSize);
+  mSmmCoreDriverEntry->NumberOfPage    = EFI_SIZE_TO_PAGES ((UINTN)UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext));
 
   //
   // Create a new image handle in the SMM handle database for the SMM Driver
@@ -826,6 +837,21 @@ SmmCoreInstallLoadedImage (
                                           &mSmmCoreDriverEntry->SmmLoadedImage
                                           );
   ASSERT_EFI_ERROR (Status);
+
+  SmmInsertImageRecord (&mSmmCoreDriverEntry->SmmLoadedImage, &gSmmCorePrivate->PiSmmCoreImageContext);
+
+  //
+  // Create the aligned system table pointer structure that is used by external
+  // debuggers to locate the system table...  Also, install debug image info
+  // configuration table.
+  //
+  SmmInitializeDebugImageInfoTable ();
+  SmmNewDebugImageInfoEntry (
+    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
+    &mSmmCoreDriverEntry->SmmLoadedImage,
+    mSmmCoreDriverEntry->SmmImageHandle,
+    &gSmmCorePrivate->PiSmmCoreImageContext
+    );
 
   return;
 }

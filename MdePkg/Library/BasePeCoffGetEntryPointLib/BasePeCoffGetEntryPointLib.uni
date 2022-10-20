@@ -13,4 +13,3 @@
 #string STR_MODULE_ABSTRACT             #language en-US "PE/COFF Entry Point Library implementation"
 
 #string STR_MODULE_DESCRIPTION          #language en-US "PE/COFF Entry Point Library implementation."
-

@@ -122,9 +122,15 @@
   ##  @libraryclass  Provides extra action services for unloading and relocating a PE/COFF image on some specific platform such
   ## as NT32 emulator.
   PeCoffExtraActionLib|Include/Library/PeCoffExtraActionLib.h
+  # FIXME: Docs
+  ##  @libraryclass  Provides services to load and relocate a PE/COFF image.
+  PeCoffLib2|Include/Library/PeCoffLib2.h
+  ##  @libraryclass  Provides extra action services for unloading and relocating a PE/COFF image on some specific platform such
+  ## as NT32 emulator.
+  UefiImageExtraActionLib|Include/Library/UefiImageExtraActionLib.h
 
   ##  @libraryclass  Provides a service to retrieve the PE/COFF entry point from a PE/COFF image.
-  PeCoffGetEntryPointLib|Include/Library/PeCoffGetEntryPointLib.h
+  UefiImageGetEntryPointLib|Include/Library/UefiImageGetEntryPointLib.h
 
   ##  @libraryclass  Provides services to return the PCI segment information.
   PciSegmentInfoLib|Include/Library/PciSegmentInfoLib.h
@@ -2166,7 +2172,7 @@
   #   BIT0 - SMM CET Shadow Stack is enabled.<BR>
   #   Other - reserved
   # @Prompt Enable control flow enforcement.
-  gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x0|UINT32|0x30001017
+  gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0|UINT32|0x30001017
 
   ## Indicates the type of instruction sequence to use for a speculation
   #  barrier.  The default instruction sequence is LFENCE.<BR><BR>
@@ -2176,6 +2182,15 @@
   #   Other - reserved
   # @Prompt Speculation Barrier Type.
   gEfiMdePkgTokenSpaceGuid.PcdSpeculationBarrierType|0x01|UINT8|0x30001018
+
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch|FALSE|BOOLEAN|0x40001018
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderHashProhibitOverlap|TRUE|BOOLEAN|0x40001019
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader|TRUE|BOOLEAN|0x4000101A
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRelocTypePolicy|0xFFFFFFFF|UINT32|0x4000101B
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderWXorX|TRUE|BOOLEAN|0x4000101C
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport|TRUE|BOOLEAN|0x4000101D
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy|0xFFFFFFFF|UINT32|0x4000101E
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe|FALSE|BOOLEAN|0x4000101F
 
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following

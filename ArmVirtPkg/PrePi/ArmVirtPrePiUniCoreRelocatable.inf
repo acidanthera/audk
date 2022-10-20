@@ -46,7 +46,7 @@
   SerialPortLib
   ExtractGuidedSectionLib
   LzmaDecompressLib
-  PeCoffLib
+  UefiImageLib
   PrePiLib
   MemoryAllocationLib
   HobLib

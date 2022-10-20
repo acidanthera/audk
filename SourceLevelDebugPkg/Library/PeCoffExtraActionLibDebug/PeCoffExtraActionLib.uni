@@ -13,4 +13,3 @@
 #string STR_MODULE_ABSTRACT             #language en-US "PeCoffExtraAction Library to support source level debug"
 
 #string STR_MODULE_DESCRIPTION          #language en-US "PeCoffExtraAction Library to support source level debug."
-

@@ -276,7 +276,8 @@ FfsProcessSection (
   IN EFI_SECTION_TYPE           SectionType,
   IN EFI_COMMON_SECTION_HEADER  *Section,
   IN UINTN                      SectionSize,
-  OUT VOID                      **OutputBuffer
+  OUT VOID                      **OutputBuffer,
+  OUT UINT32                    *OutputSize
   )
 {
   EFI_STATUS                Status;
@@ -294,6 +295,7 @@ FfsProcessSection (
   UINT32                    CompressedDataLength;
 
   *OutputBuffer = NULL;
+  *OutputSize   = 0;
   ParsedLength  = 0;
   Status        = EFI_NOT_FOUND;
   while (ParsedLength < SectionSize) {
@@ -302,10 +304,13 @@ FfsProcessSection (
     }
 
     if (Section->Type == SectionType) {
+      // FIXME: Use common API with size checks
       if (IS_SECTION2 (Section)) {
         *OutputBuffer = (VOID *)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER2));
+        *OutputSize   = SECTION2_SIZE (Section) - sizeof (EFI_COMMON_SECTION_HEADER2);
       } else {
         *OutputBuffer = (VOID *)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER));
+        *OutputSize   = SECTION_SIZE (Section) - sizeof (EFI_COMMON_SECTION_HEADER);
       }
 
       return EFI_SUCCESS;
@@ -417,7 +422,8 @@ FfsProcessSection (
                  SectionType,
                  DstBuffer,
                  DstBufferSize,
-                 OutputBuffer
+                OutputBuffer,
+                OutputSize
                  );
       }
     }
@@ -458,7 +464,8 @@ EFIAPI
 FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT VOID                **SectionData
+  OUT VOID                      **SectionData,
+  OUT UINT32                    *SectionSize
   )
 {
   EFI_FFS_FILE_HEADER        *FfsFileHeader;
@@ -480,7 +487,8 @@ FfsFindSectionData (
            SectionType,
            Section,
            FileSize,
-           SectionData
+          SectionData,
+          SectionSize
            );
 }
 
@@ -773,6 +781,7 @@ FfsProcessFvFile (
 {
   EFI_STATUS            Status;
   EFI_PEI_FV_HANDLE     FvImageHandle;
+  UINT32                FvImageHandleSize;
   EFI_FV_INFO           FvImageInfo;
   UINT32                FvAlignment;
   VOID                  *FvBuffer;
@@ -799,7 +808,12 @@ FfsProcessFvFile (
   //
   // Find FvImage in FvFile
   //
-  Status = FfsFindSectionData (EFI_SECTION_FIRMWARE_VOLUME_IMAGE, FvFileHandle, (VOID **)&FvImageHandle);
+  Status = FfsFindSectionData (
+             EFI_SECTION_FIRMWARE_VOLUME_IMAGE,
+             FvFileHandle,
+             (VOID **)&FvImageHandle,
+             &FvImageHandleSize
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }

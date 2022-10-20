@@ -34,7 +34,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PlatformSecureLib.h>
 #include <Library/BaseCryptLib.h>
 #include <Library/FileExplorerLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Guid/MdeModuleHii.h>
 #include <Guid/AuthenticatedVariableFormat.h>
@@ -82,16 +82,6 @@ extern  EFI_IFR_GUID_LABEL  *mEndLabel;
 #define MAX_DIGEST_SIZE  SHA512_DIGEST_SIZE
 
 #define WIN_CERT_UEFI_RSA2048_SIZE  256
-
-//
-// Support hash types
-//
-#define HASHALG_SHA224  0x00000000
-#define HASHALG_SHA256  0x00000001
-#define HASHALG_SHA384  0x00000002
-#define HASHALG_SHA512  0x00000003
-#define HASHALG_RAW     0x00000004
-#define HASHALG_MAX     0x00000004
 
 //
 // Certificate public key minimum size (bytes)
@@ -299,6 +289,7 @@ typedef struct {
   UINTN                    DigestLength;    ///< Digest Length
   UINT8                    *OidValue;       ///< Hash Algorithm OID ASN.1 Value
   UINTN                    OidLength;       ///< Length of Hash OID Value
+  CONST GUID               *CertType;       ///< GUID of the certificate type
   HASH_GET_CONTEXT_SIZE    GetContextSize;  ///< Pointer to Hash GetContentSize function
   HASH_INIT                HashInit;        ///< Pointer to Hash Init function
   HASH_UPDATE              HashUpdate;      ///< Pointer to Hash Update function

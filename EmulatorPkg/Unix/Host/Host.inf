@@ -55,12 +55,11 @@
   PrintLib
   BaseMemoryLib
   BaseLib
-  PeCoffLib
+  UefiImageLib
   ThunkPpiList
   ThunkProtocolList
   PpiListLib
   PeiServicesLib
-  PeCoffGetEntryPointLib
 
 [Ppis]
   gEfiPeiStatusCodePpiGuid                      # PPI ALWAYS_PRODUCED

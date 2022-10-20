@@ -113,7 +113,7 @@ MeasureFspFirmwareBlobWithCfg (
   VOID                            *FvEventLog, *UpdEventLog;
   UINT32                          FvEventLogSize, UpdEventLogSize;
   EFI_STATUS                      Status;
-  HASH_HANDLE                     HashHandle;
+  VOID                              *HashHandle;
   UINT8                           *HashBase;
   UINTN                           HashSize;
   TPML_DIGEST_VALUES              DigestList;

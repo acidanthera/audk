@@ -48,7 +48,7 @@
   SerialPortLib
   PrintLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   HobLib
   MemoryAllocationLib
   SynchronizationLib

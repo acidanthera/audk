@@ -82,9 +82,8 @@
   UefiLib
   DebugLib
   DxeCoreEntryPoint
-  PeCoffLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
+  UefiImageLib
+  UefiImageExtraActionLib
   ExtractGuidedSectionLib
   MemoryAllocationLib
   UefiBootServicesTableLib
@@ -186,6 +185,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask                   ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard                           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdFwVolDxeMaxEncapsulationDepth           ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMergeRuntimeDataSegments                ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES

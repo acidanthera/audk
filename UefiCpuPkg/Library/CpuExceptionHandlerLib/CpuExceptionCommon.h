@@ -15,10 +15,12 @@
 #include <Library/SerialPortLib.h>
 #include <Library/PrintLib.h>
 #include <Library/LocalApicLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/DebugLib.h>
+
 #include <Library/BaseMemoryLib.h>
 #include <Library/SynchronizationLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
+#include <Library/UefiImageLib.h>
 
 #define  CPU_EXCEPTION_NUM    32
 #define  CPU_INTERRUPT_NUM    256
@@ -317,4 +319,13 @@ AsmGetTssTemplateMap (
   OUT EXCEPTION_HANDLER_TEMPLATE_MAP  *AddressMap
   );
 
+// FIXME:
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
+  );
+
 #endif
+
