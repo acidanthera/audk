@@ -2393,6 +2393,10 @@ AsciiStrHexToUintnS (
   OUT       UINTN  *Data
   )
 {
+  BOOLEAN  IsPrefixFound;
+
+  IsPrefixFound = FALSE;
+
   //
   // 1. Neither String nor Data shall be a null pointer.
   //
@@ -2421,11 +2425,12 @@ AsciiStrHexToUintnS (
   // Ignore leading Zeros after the spaces
   //
   while (*String == '0') {
+    IsPrefixFound = TRUE;
     String++;
   }
 
   if (AsciiCharToUpper (*String) == 'X') {
-    if (*(String - 1) != '0') {
+    if (!IsPrefixFound) {
       *Data = 0;
       return RETURN_SUCCESS;
     }
