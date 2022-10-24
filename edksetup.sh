@@ -72,6 +72,7 @@ function SetWorkspace()
   # Set $WORKSPACE
   #
   export WORKSPACE=$PWD
+  export PACKAGES_PATH=$PWD
   return 0
 }
 
