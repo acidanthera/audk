@@ -202,8 +202,6 @@ do
   I=$((I - 1))
 done
 
-cp "$EDK_TOOLS_PATH/ImageTool/ImageTool" "$EDK_TOOLS_PATH/BinWrappers/PosixLike/"
-
 if [ $I -gt 0 ]
 then
   return 1

@@ -19,3 +19,5 @@ Source/C/libs/
 Bin/Win32
 Lib
 ImageTool/ImageTool
+ImageTool/ImageTool32
+ImageTool/ImageTool64

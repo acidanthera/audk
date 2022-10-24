@@ -15,7 +15,19 @@ OC_USER  = ../../OpenCorePkg
 
 include $(OC_USER)/User/Makefile
 
-CFLAGS += -include Pcds.h -Werror -D EFI_TARGET64
+.DEFAULT_GOAL := Tools
+
+CFLAGS += -include Pcds.h -Werror -DEFI_TARGET64
 
 VPATH  += ../../MdePkg/Library/BasePeCoffLib2:$\
 				  ../../MdePkg/Library/BaseUeImageLib
+
+Tools: Tool32 clean Tool64
+
+Tool32: CFLAGS := $(filter-out -DEFI_TARGET64,$(CFLAGS)) -DEFI_TARGET32
+Tool32: all
+	cp $(PRODUCT) ImageTool32
+
+Tool64:
+	$(MAKE) all
+	cp $(PRODUCT) ImageTool64
