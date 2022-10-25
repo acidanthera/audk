@@ -786,6 +786,28 @@ SplitRecord (
     // Update PhysicalStart, in order to exclude the image buffer already splitted.
     //
     if (PcdGetBool (PcdMergeRuntimeDataSegments)) {
+      //
+      // Merge .data (and .reloc) segment of the current driver with
+      // header segment of the next one.
+      //
+      // +---------------------+
+      // | Record X            |
+      // +---------------------+ ----
+      // | header (segment[0]) |     |
+      // +---------------------+     |
+      // | .code  (segment[1]) |     |
+      // +---------------------+     |-> PE/COFF1
+      // | .data  (segemtn[2]) |     |
+      // +                     +     |
+      // | .reloc (segment[3]) |     |
+      // +                     + ----
+      // | header (segment[0]) |     |
+      // +---------------------+     |
+      // | .code  (segemtn[1]) |     |-> PE/COFF2
+      // +---------------------+     |
+      // | ...                 |     |
+      // +---------------------+
+      //
       PhysicalStart = ImageRecord->StartAddress + ImageRecord->Segments[0].Size + ImageRecord->Segments[1].Size;
     } else {
       PhysicalStart = ImageRecord->EndAddress;
