@@ -9,6 +9,15 @@ static Elf_Ehdr  *mEhdr         = NULL;
 static Elf_Size  mPeAlignment   = 0x0;
 static UINT32    mSizeOfHeaders = 0x0;
 
+#if defined(EFI_TARGET64)
+static UINT8           *mGotData      = NULL;
+static UINT32          mWGotOffset    = 0x0;
+static const Elf_Shdr  *mGOTShdr      = NULL;
+static UINT32          *mGOTPeEntries = NULL;
+static UINT32          mGOTMaxEntries = 0;
+static UINT32          mGOTNumEntries = 0;
+#endif
+
 extern image_tool_image_info_t mImageInfo;
 
 static
@@ -234,6 +243,85 @@ FindAddress (
 	return;
 }
 
+#if defined(EFI_TARGET64)
+static
+EFI_STATUS
+FindElfGOTSectionFromGOTEntryElfRva (
+  IN Elf_Addr GOTEntryElfRva
+  )
+{
+  UINT32         Index;
+  const Elf_Shdr *Shdr;
+
+  if (mGOTShdr != NULL) {
+    if ((GOTEntryElfRva >= mGOTShdr->sh_addr)
+      && (GOTEntryElfRva < (mGOTShdr->sh_addr + mGOTShdr->sh_size))) {
+      return EFI_SUCCESS;
+    }
+
+    fprintf (stderr, "ImageTool: GOT entries found in multiple sections\n");
+    return EFI_UNSUPPORTED;
+  }
+
+  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex(Index);
+    if ((GOTEntryElfRva >= Shdr->sh_addr)
+      && (GOTEntryElfRva < (Shdr->sh_addr + Shdr->sh_size))) {
+      mGOTShdr = Shdr;
+      FindAddress (Index, &mGotData, &mWGotOffset);
+      return EFI_SUCCESS;
+    }
+  }
+
+  fprintf (stderr, "ImageTool: ElfRva 0x%016LX for GOT entry not found in any section\n", GOTEntryElfRva);
+  return EFI_VOLUME_CORRUPTED;
+}
+
+static
+EFI_STATUS
+AccumulatePeGOTEntries (
+  IN  UINT32  GOTPeEntry,
+  OUT BOOLEAN *IsNew
+  )
+{
+  UINT32 Index;
+
+  assert (IsNew != NULL);
+
+  if (mGOTPeEntries != NULL) {
+    for (Index = 0; Index < mGOTNumEntries; ++Index) {
+      if (mGOTPeEntries[Index] == GOTPeEntry) {
+        *IsNew = FALSE;
+        return EFI_SUCCESS;
+      }
+    }
+  }
+
+  if (mGOTPeEntries == NULL) {
+    mGOTMaxEntries = 5;
+    mGOTNumEntries = 0;
+    mGOTPeEntries  = calloc (1, mGOTMaxEntries * sizeof (*mGOTPeEntries));
+    if (mGOTPeEntries == NULL) {
+      fprintf (stderr, "ImageTool: Could not allocate memory for mGOTPeEntries\n");
+  		return EFI_OUT_OF_RESOURCES;
+    }
+  } else if (mGOTNumEntries == mGOTMaxEntries) {
+    mGOTMaxEntries *= 2;
+    mGOTPeEntries   = realloc (mGOTPeEntries, mGOTMaxEntries * sizeof (*mGOTPeEntries));
+    if (mGOTPeEntries == NULL) {
+      fprintf (stderr, "ImageTool: Could not reallocate memory for mGOTPeEntries\n");
+  		return EFI_OUT_OF_RESOURCES;
+    }
+  }
+
+  mGOTPeEntries[mGOTNumEntries] = mWGotOffset + GOTPeEntry;
+  ++mGOTNumEntries;
+  *IsNew = TRUE;
+
+  return EFI_SUCCESS;
+}
+#endif
+
 static
 EFI_STATUS
 ReadElfFile (
@@ -263,6 +351,13 @@ ReadElfFile (
 	if ((FileSize < sizeof (*mEhdr))
 	  || (memcmp (Ident, mEhdr->e_ident, sizeof (Ident)) != 0)) {
 		fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[0] = 0x%x\n", mEhdr->e_ident[0]);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[1] = 0x%x\n", mEhdr->e_ident[1]);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[2] = 0x%x\n", mEhdr->e_ident[2]);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[3] = 0x%x\n", mEhdr->e_ident[3]);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[4] = 0x%x\n", mEhdr->e_ident[4]);
+    fprintf (stderr, "ImageTool: mEhdr->e_ident[5] = 0x%x\n", mEhdr->e_ident[5]);
+    fprintf (stderr, "ImageTool: FileSize = 0x%x  sizeof(*mEhdr) = 0x%lx\n", FileSize, sizeof (*mEhdr));
     return EFI_VOLUME_CORRUPTED;
 	}
 
@@ -367,7 +462,11 @@ FixSegmentsSetRelocs (
 	UINT8          *Targ;
   UINT32         RelNum;
   UINTN          Offset;
-
+#if defined(EFI_TARGET64)
+  Elf_Addr       GOTEntryRva;
+  EFI_STATUS     Status;
+  BOOLEAN        IsNew;
+#endif
   RelNum = 0;
 
 	for (Index = 0; Index < mEhdr->e_shnum; Index++) {
@@ -442,6 +541,36 @@ FixSegmentsSetRelocs (
 				case R_X86_64_PC32:
           *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr));
 					break;
+        case R_X86_64_GOTPCREL:
+        case R_X86_64_GOTPCRELX:
+        case R_X86_64_REX_GOTPCRELX:
+          GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
+
+          Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
+          if (EFI_ERROR (Status)) {
+            return Status;
+          }
+
+          *(UINT32 *)Targ = (UINT32)(*(UINT32 *)Targ + (mWGotOffset - mGOTShdr->sh_addr) - (WSecOffset - SecShdr->sh_addr));
+          //
+          // ELF Rva -> Offset in PE GOT
+          //
+          GOTEntryRva -= mGOTShdr->sh_addr;
+
+          Status = AccumulatePeGOTEntries ((UINT32)GOTEntryRva, &IsNew);
+          if (EFI_ERROR (Status)) {
+            return Status;
+          }
+
+          if (IsNew) {
+            //
+            // Relocate GOT entry if it's the first time we run into it
+            //
+            Targ = mGotData + GOTEntryRva;
+
+            *(UINT64 *)Targ = *(UINT64 *)Targ - SymShdr->sh_addr + WSymOffset;
+          }
+          break;
 				default:
 					fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
 					return EFI_UNSUPPORTED;
@@ -485,6 +614,9 @@ FixAddresses (
   UINT32         Index;
   const Elf_Shdr *Shdr;
   UINT32         Pointer;
+#if defined(EFI_TARGET64)
+  UINT32         NewSize;
+#endif
 
   mSizeOfHeaders = sizeof (EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS) +
     EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY) +
@@ -529,6 +661,22 @@ FixAddresses (
     SetHiiResourceHeader (mImageInfo.HiiInfo.Data, Pointer);
   }
 
+#if defined(EFI_TARGET64)
+  if (mGOTPeEntries != NULL) {
+    NewSize = (mImageInfo.RelocInfo.NumRelocs + mGOTNumEntries) * sizeof (*mImageInfo.RelocInfo.Relocs);
+
+    mImageInfo.RelocInfo.Relocs = realloc (mImageInfo.RelocInfo.Relocs, NewSize);
+    if (mImageInfo.RelocInfo.Relocs == NULL) {
+      fprintf (stderr, "ImageTool: Could not reallocate memory for Relocs\n");
+  		return EFI_OUT_OF_RESOURCES;
+    }
+
+    for (Index = 0; Index < mGOTNumEntries; ++Index) {
+      mImageInfo.RelocInfo.Relocs[mImageInfo.RelocInfo.NumRelocs + Index].Type   = EFI_IMAGE_REL_BASED_DIR64;
+      mImageInfo.RelocInfo.Relocs[mImageInfo.RelocInfo.NumRelocs + Index].Target = mGOTPeEntries[Index];
+    }
+  }
+#endif
   return EFI_SUCCESS;
 }
 
@@ -797,6 +945,11 @@ ScanElf (
     ToolImageDestruct (&mImageInfo);
 	}
 
+#if defined(EFI_TARGET64)
+  if (mGOTPeEntries != NULL) {
+    free (mGOTPeEntries);
+  }
+#endif
 	free (mEhdr);
 
 	return Status;
