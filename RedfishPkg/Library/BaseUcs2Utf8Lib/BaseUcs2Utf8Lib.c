@@ -173,14 +173,12 @@ UTF8ToUCS2Char (
   )
 {
   UINT8  Utf8Size;
-  CHAR8  *Ucs2Buffer;
   CHAR8  TempChar1;
   CHAR8  TempChar2;
   CHAR8  TempChar3;
 
   ASSERT (Utf8Buffer != NULL && Ucs2Char != NULL);
-  ZeroMem (Ucs2Char, sizeof (CHAR16));
-  Ucs2Buffer = (CHAR8 *)Ucs2Char;
+  *Ucs2Char = 0;
 
   Utf8Size = GetUTF8SizeForUCS2 (Utf8Buffer);
   switch (Utf8Size) {
@@ -194,8 +192,7 @@ UTF8ToUCS2Char (
         return EFI_INVALID_PARAMETER;
       }
 
-      *Ucs2Buffer       = TempChar1;
-      *(Ucs2Buffer + 1) = 0;
+      *Ucs2Char = (CHAR16)TempChar1;
       break;
 
     case 2:
@@ -213,8 +210,7 @@ UTF8ToUCS2Char (
         return EFI_INVALID_PARAMETER;
       }
 
-      *Ucs2Buffer       = (TempChar1 << 6) + (TempChar2 & 0x3F);
-      *(Ucs2Buffer + 1) = (TempChar1 >> 2) & 0x07;
+      *Ucs2Char = (TempChar1 & 0x1F) << 6 | (TempChar2 & 0x3F);
       break;
 
     case 3:
@@ -237,9 +233,7 @@ UTF8ToUCS2Char (
         return EFI_INVALID_PARAMETER;
       }
 
-      *Ucs2Buffer       = (TempChar2 << 6) + (TempChar3 & 0x3F);
-      *(Ucs2Buffer + 1) = (TempChar1 << 4) + ((TempChar2 >> 2) & 0x0F);
-
+      *Ucs2Char = (TempChar1 & 0x0F) << 12 | (TempChar2 & 0x3F) << 6 | (TempChar3 & 0x3F);
       break;
 
     default:
