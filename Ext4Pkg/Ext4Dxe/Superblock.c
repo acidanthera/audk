@@ -220,13 +220,11 @@ Ext4OpenSuperblock (
   }
 
   // At the time of writing, it's the only supported checksum.
-  if (Partition->FeaturesCompat & EXT4_FEATURE_RO_COMPAT_METADATA_CSUM &&
-      (Sb->s_checksum_type != EXT4_CHECKSUM_CRC32C))
-  {
+  if (EXT4_HAS_METADATA_CSUM (Partition) && (Sb->s_checksum_type != EXT4_CHECKSUM_CRC32C)) {
     return EFI_UNSUPPORTED;
   }
 
-  if ((Partition->FeaturesIncompat & EXT4_FEATURE_INCOMPAT_CSUM_SEED) != 0) {
+  if (EXT4_HAS_INCOMPAT (Partition, EXT4_FEATURE_INCOMPAT_CSUM_SEED)) {
     Partition->InitialSeed = Sb->s_checksum_seed;
   } else {
     Partition->InitialSeed = Ext4CalculateChecksum (Partition, Sb->s_uuid, 16, ~0U);
