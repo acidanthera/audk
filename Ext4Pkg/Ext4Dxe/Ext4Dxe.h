@@ -32,7 +32,6 @@
 #include "Ext4Disk.h"
 
 #define SYMLOOP_MAX    8
-#define EXT4_NAME_MAX  255
 //
 // We need to specify path length limit for security purposes, to prevent possible
 // overflows and dead-loop conditions. Originally this limit is absent in FS design,

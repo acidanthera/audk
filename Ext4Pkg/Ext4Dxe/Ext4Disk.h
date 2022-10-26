@@ -397,12 +397,14 @@ typedef struct _Ext4Inode {
   UINT32       i_projid;
 } EXT4_INODE;
 
+#define EXT4_NAME_MAX 255
+
 typedef struct {
   UINT32    inode;
   UINT16    rec_len;
   UINT8     name_len;
   UINT8     file_type;
-  CHAR8     name[255];
+  CHAR8     name[EXT4_NAME_MAX];
 } EXT4_DIR_ENTRY;
 
 #define EXT4_MIN_DIR_ENTRY_LEN  8
