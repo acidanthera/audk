@@ -243,6 +243,11 @@ Ext4OpenSuperblock (
 
   DEBUG ((DEBUG_FS, "Read only = %u\n", Partition->ReadOnly));
 
+  if (Sb->s_inodes_per_group == 0) {
+    DEBUG ((DEBUG_ERROR, "[ext4] Inodes per group can not be zero\n"));
+    return EFI_VOLUME_CORRUPTED;
+  }
+
   Partition->BlockSize = (UINT32)LShiftU64 (1024, Sb->s_log_block_size);
 
   // The size of a block group can also be calculated as 8 * Partition->BlockSize
