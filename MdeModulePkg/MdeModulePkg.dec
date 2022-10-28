@@ -906,13 +906,6 @@
   # @Prompt Enable process non-reset capsule image at runtime.
   gEfiMdeModulePkgTokenSpaceGuid.PcdSupportProcessCapsuleAtRuntime|FALSE|BOOLEAN|0x00010079
 
-  ## Indicates whether different Data segments of Runtime drivers (headers, .data, .reloc)
-  #  should have distinct entries in MemoryMap and MemoryAttrubutesTable.<BR><BR>
-  #   TRUE  - contiguous Data segments will be merged in MemoryMap and MemoryAttrubutesTable.<BR>
-  #   FALSE - each Data segment will have its own entry in MemoryMap and MemoryAttrubutesTable.<BR>
-  # @Prompt Merge Data segments of Runtime drivers.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdMergeRuntimeDataSegments|FALSE|BOOLEAN|0x0001007a
-
 [PcdsFeatureFlag.IA32, PcdsFeatureFlag.ARM, PcdsFeatureFlag.AARCH64]
   gEfiMdeModulePkgTokenSpaceGuid.PcdPciDegradeResourceForOptionRom|FALSE|BOOLEAN|0x0001003a
 

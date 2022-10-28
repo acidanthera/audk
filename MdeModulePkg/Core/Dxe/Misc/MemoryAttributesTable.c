@@ -603,33 +603,6 @@ SetNewRecord (
   UINT32                                    Index;
   UINT32                                    NewRecordCount;
 
-  if (PcdGetBool (PcdMergeRuntimeDataSegments)) {
-    ImageRecordSegment = &ImageRecord->Segments[1];
-    SectionAddress = ImageRecord->StartAddress + ImageRecord->Segments[0].Size;
-
-    NewRecordCount    = 0;
-    if (SectionAddress > OldRecord->PhysicalStart) {
-      NewRecord->Type = OldRecord->Type;
-      NewRecord->PhysicalStart = OldRecord->PhysicalStart;
-      NewRecord->VirtualStart  = 0;
-      NewRecord->NumberOfPages = EfiSizeToPages (SectionAddress - OldRecord->PhysicalStart);
-      NewRecord->Attribute     = OldRecord->Attribute | EFI_MEMORY_XP;
-      NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
-      NewRecordCount++;
-    }
-
-    NewRecord->Type          = OldRecord->Type;
-    NewRecord->PhysicalStart = SectionAddress;
-    NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSegment->Size);
-    NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
-
-    NewRecord= NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
-    NewRecordCount++;
-
-    return NewRecordCount;
-  }
-
   //
   // Always create a new entry for non-PE image record
   //
@@ -788,33 +761,7 @@ SplitRecord (
     //
     // Update PhysicalStart, in order to exclude the image buffer already splitted.
     //
-    if (PcdGetBool (PcdMergeRuntimeDataSegments)) {
-      //
-      // Merge .data (and .reloc) segment of the current driver with
-      // header segment of the next one.
-      //
-      // +---------------------+
-      // | Record X            |
-      // +---------------------+ ----
-      // | header (segment[0]) |     |
-      // +---------------------+     |
-      // | .code  (segment[1]) |     |
-      // +---------------------+     |-> PE/COFF1
-      // | .data  (segemtn[2]) |     |
-      // +                     +     |
-      // | .reloc (segment[3]) |     |
-      // +                     + ----
-      // | header (segment[0]) |     |
-      // +---------------------+     |
-      // | .code  (segemtn[1]) |     |-> PE/COFF2
-      // +---------------------+     |
-      // | ...                 |     |
-      // +---------------------+
-      //
-      PhysicalStart = ImageRecord->StartAddress + ImageRecord->Segments[0].Size + ImageRecord->Segments[1].Size;
-    } else {
-      PhysicalStart = ImageRecord->EndAddress;
-    }
+    PhysicalStart = ImageRecord->EndAddress;
 
     TempRecord.PhysicalStart = PhysicalStart;
     TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
