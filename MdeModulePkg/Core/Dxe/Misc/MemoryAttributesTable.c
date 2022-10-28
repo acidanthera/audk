@@ -196,7 +196,7 @@ InstallMemoryAttributesTable (
       case EfiRuntimeServicesCode:
       case EfiRuntimeServicesData:
         CopyMem (MemoryAttributesEntry, MemoryMap, DescriptorSize);
-        MemoryAttributesEntry->Attribute &= EFI_MEMORY_ACCESS_MASK;
+        MemoryAttributesEntry->Attribute &= EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_RUNTIME;
         DEBUG ((DEBUG_VERBOSE, "Entry (0x%x)\n", MemoryAttributesEntry));
         DEBUG ((DEBUG_VERBOSE, "  Type              - 0x%x\n", MemoryAttributesEntry->Type));
         DEBUG ((DEBUG_VERBOSE, "  PhysicalStart     - 0x%016lx\n", MemoryAttributesEntry->PhysicalStart));
@@ -592,7 +592,7 @@ GetImageRecordByAddress (
 STATIC
 UINTN
 SetNewRecord (
-  IN UEFI_IMAGE_RECORD             *ImageRecord,
+  IN UEFI_IMAGE_RECORD          *ImageRecord,
   IN OUT EFI_MEMORY_DESCRIPTOR  *NewRecord,
   IN EFI_MEMORY_DESCRIPTOR      *OldRecord,
   IN UINTN                      DescriptorSize
@@ -633,15 +633,15 @@ SetNewRecord (
   //
   // Always create a new entry for non-PE image record
   //
-  NewRecordCount    = 0;
+  NewRecordCount = 0;
   if (ImageRecord->StartAddress > OldRecord->PhysicalStart) {
     NewRecord->Type = OldRecord->Type;
     NewRecord->PhysicalStart = OldRecord->PhysicalStart;
     NewRecord->VirtualStart  = 0;
     NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - OldRecord->PhysicalStart);
-    NewRecord->Attribute     = OldRecord->Attribute;
+    NewRecord->Attribute     = OldRecord->Attribute | EFI_MEMORY_XP;
     NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
-    NewRecordCount++;
+    ++NewRecordCount;
   }
 
   SectionAddress = ImageRecord->StartAddress;
@@ -655,7 +655,7 @@ SetNewRecord (
     NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
 
     SectionAddress += ImageRecordSegment->Size;
-    NewRecord= NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
+    NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
   }
 
   return NewRecordCount + ImageRecord->NumSegments;
@@ -686,7 +686,6 @@ GetMaxSplitRecordCount (
   PhysicalEnd      = OldRecord->PhysicalStart + EfiPagesToSize (OldRecord->NumberOfPages);
 
   do {
-    // FIXME: Inline iteration to not always start anew?
     ImageRecord = GetImageRecordByAddress (PhysicalStart, PhysicalEnd - PhysicalStart);
     if (ImageRecord == NULL) {
       break;
@@ -702,7 +701,11 @@ GetMaxSplitRecordCount (
   //
   // There may be additional prefix data.
   //
-  return SplitRecordCount + 1;
+  if (SplitRecordCount != 0) {
+    ++SplitRecordCount;
+  }
+
+  return SplitRecordCount;
 }
 
 /**
@@ -758,7 +761,7 @@ SplitRecord (
       //
       // No more image covered by this range, stop
       //
-      if (PhysicalEnd > PhysicalStart) {
+      if ((TotalNewRecordCount != 0) && (PhysicalEnd > PhysicalStart)) {
         //
         // Always create a new entry for non-PE image record
         //
@@ -767,7 +770,7 @@ SplitRecord (
         NewRecord->VirtualStart  = 0;
         NewRecord->NumberOfPages = TempRecord.NumberOfPages;
         NewRecord->Attribute     = TempRecord.Attribute;
-        TotalNewRecordCount++;
+        ++TotalNewRecordCount;
       }
 
       break;
@@ -817,12 +820,7 @@ SplitRecord (
     TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
 
-  //
-  // The logic in function SplitTable() ensures that TotalNewRecordCount will not be zero if the
-  // code reaches here.
-  //
-  ASSERT (TotalNewRecordCount != 0);
-  return TotalNewRecordCount - 1;
+  return TotalNewRecordCount;
 }
 
 /**
@@ -899,8 +897,8 @@ SplitTable (
   //
   // Let new record point to end of full MemoryMap buffer.
   //
-  IndexNew = ((*MemoryMapSize) / DescriptorSize) - 1 + AdditionalRecordCount;
-  for ( ; IndexOld >= 0; IndexOld--) {
+  IndexNew = IndexOld + AdditionalRecordCount;
+  for ( ; IndexOld >= 0; --IndexOld) {
     MaxSplitRecordCount = GetMaxSplitRecordCount ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + IndexOld * DescriptorSize));
     //
     // Split this MemoryMap record
