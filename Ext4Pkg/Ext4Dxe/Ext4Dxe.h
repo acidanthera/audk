@@ -40,6 +40,20 @@
 #define EXT4_EFI_PATH_MAX    4096
 #define EXT4_DRIVER_VERSION  0x0000
 
+//
+// The EXT4 Specification doesn't strictly limit block size and this value could be up to 2^31,
+// but in practice it is limited by PAGE_SIZE due to performance significant impact.
+// Many EXT4 implementations have size of block limited to PAGE_SIZE. In many cases it's limited
+// to 4096, which is a commonly supported page size on most MMU-capable hardware, and up to 65536.
+// So, to take a balance between compatibility and security measures, it is decided to use the
+// value of 2MiB as the limit, which is equal to page size on new hardware.
+// As for supporting big block sizes, EXT4 has a RO_COMPAT_FEATURE called BIGALLOC, which changes
+// EXT4 to use clustered allocation, so that each bit in the ext4 block allocation bitmap addresses
+// a power of two number of blocks. So it would be wiser to implement and use this feature
+// if there is such a need instead of big block size.
+//
+#define EXT4_LOG_BLOCK_SIZE_MAX  11
+
 /**
    Opens an ext4 partition and installs the Simple File System protocol.
 
