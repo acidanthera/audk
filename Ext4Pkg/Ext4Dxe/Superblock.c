@@ -248,6 +248,11 @@ Ext4OpenSuperblock (
     return EFI_VOLUME_CORRUPTED;
   }
 
+  if (Sb->s_log_block_size > EXT4_LOG_BLOCK_SIZE_MAX) {
+    DEBUG ((DEBUG_ERROR, "[ext4] SuperBlock s_log_block_size %lu is too big\n", Sb->s_log_block_size));
+    return EFI_UNSUPPORTED;
+  }
+
   Partition->BlockSize = (UINT32)LShiftU64 (1024, Sb->s_log_block_size);
 
   // The size of a block group can also be calculated as 8 * Partition->BlockSize
