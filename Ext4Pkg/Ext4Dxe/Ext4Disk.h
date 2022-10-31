@@ -397,7 +397,7 @@ typedef struct _Ext4Inode {
   UINT32       i_projid;
 } EXT4_INODE;
 
-#define EXT4_NAME_MAX 255
+#define EXT4_NAME_MAX  255
 
 typedef struct {
   UINT32    inode;
@@ -469,8 +469,17 @@ typedef UINT64  EXT4_BLOCK_NR;
 typedef UINT32  EXT2_BLOCK_NR;
 typedef UINT32  EXT4_INO_NR;
 
-// 2 is always the root inode number in ext4
-#define EXT4_ROOT_INODE_NR  2
+/* Special inode numbers */
+#define EXT4_ROOT_INODE_NR         2
+#define EXT4_USR_QUOTA_INODE_NR    3
+#define EXT4_GRP_QUOTA_INODE_NR    4
+#define EXT4_BOOT_LOADER_INODE_NR  5
+#define EXT4_UNDEL_DIR_INODE_NR    6
+#define EXT4_RESIZE_INODE_NR       7
+#define EXT4_JOURNAL_INODE_NR      8
+
+/* First non-reserved inode for old ext4 filesystems */
+#define EXT4_GOOD_OLD_FIRST_INODE_NR  11
 
 #define EXT4_BLOCK_FILE_HOLE  0
 

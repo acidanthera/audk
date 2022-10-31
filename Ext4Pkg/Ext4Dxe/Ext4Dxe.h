@@ -288,6 +288,31 @@ Ext4GetBlockGroupDesc (
   );
 
 /**
+   Retrieves the first usable non-reserved inode number from the superblock
+   of the opened partition.
+
+   @param[in]  Partition      Pointer to the opened ext4 partition.
+
+   @return The first usable inode number (non-reserved).
+**/
+#define EXT4_FIRST_INODE_NR(Partition)                                         \
+  ((Partition->SuperBlock.s_rev_level == EXT4_GOOD_OLD_REV) ?                  \
+         EXT4_GOOD_OLD_FIRST_INODE_NR :                                        \
+         Partition->SuperBlock.s_first_ino)
+
+/**
+   Checks inode number validity across superblock of the opened partition.
+
+   @param[in]  Partition      Pointer to the opened ext4 partition.
+
+   @return TRUE if inode number is valid.
+**/
+#define EXT4_IS_VALID_INODE_NR(Partition, InodeNum)                            \
+  (InodeNum == EXT4_ROOT_INODE_NR ||                                           \
+        (InodeNum >= EXT4_FIRST_INODE_NR(Partition) &&                         \
+         InodeNum <= Partition->SuperBlock.s_inodes_count))
+
+/**
    Reads an inode from disk.
 
    @param[in]    Partition  Pointer to the opened partition.

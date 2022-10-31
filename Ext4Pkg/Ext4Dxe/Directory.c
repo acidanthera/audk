@@ -163,6 +163,10 @@ Ext4RetrieveDirent (
       if (Entry->inode == 0) {
         BlockOffset += Entry->rec_len;
         continue;
+      } else if (!EXT4_IS_VALID_INODE_NR (Partition, Entry->inode)) {
+        DEBUG ((DEBUG_ERROR, "[ext4] Ext4RetrieveDirent directory entry inode number %u isn't valid\n", Entry->inode));
+        Status = EFI_VOLUME_CORRUPTED;
+        goto Out;
       }
 
       Status = Ext4GetUcs2DirentName (Entry, DirentUcs2Name);
@@ -497,6 +501,12 @@ Ext4ReadDir (
 
     // When inode = 0, it's unused.
     ShouldSkip = Entry.inode == 0 || IsDotOrDotDot;
+
+    if ((Entry.inode != 0) && !EXT4_IS_VALID_INODE_NR (Partition, Entry.inode)) {
+      DEBUG ((DEBUG_ERROR, "[ext4] Ext4ReadDir directory entry inode number %u isn't valid\n", Entry.inode));
+      Status = EFI_VOLUME_CORRUPTED;
+      goto Out;
+    }
 
     if (ShouldSkip) {
       Offset += Entry.rec_len;
