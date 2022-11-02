@@ -612,7 +612,7 @@ SetNewRecord (
     NewRecord->PhysicalStart = OldRecord->PhysicalStart;
     NewRecord->VirtualStart  = 0;
     NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - OldRecord->PhysicalStart);
-    NewRecord->Attribute     = OldRecord->Attribute | EFI_MEMORY_XP;
+    NewRecord->Attribute     = OldRecord->Attribute;
     NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
     ++NewRecordCount;
   }
@@ -659,6 +659,7 @@ GetMaxSplitRecordCount (
   PhysicalEnd      = OldRecord->PhysicalStart + EfiPagesToSize (OldRecord->NumberOfPages);
 
   do {
+    // FIXME: Inline iteration to not always start anew?
     ImageRecord = GetImageRecordByAddress (PhysicalStart, PhysicalEnd - PhysicalStart);
     if (ImageRecord == NULL) {
       break;
