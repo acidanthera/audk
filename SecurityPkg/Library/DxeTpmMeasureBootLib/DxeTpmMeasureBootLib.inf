@@ -46,7 +46,7 @@
   DevicePathLib
   UefiBootServicesTableLib
   BaseCryptLib
-  PeCoffLib
+  UefiImageLib
   BaseLib
   SecurityManagementLib
   HobLib

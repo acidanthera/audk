@@ -47,7 +47,7 @@
   SerialPortLib
   PrintLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   VmgExitLib
 
 [FeaturePcd]

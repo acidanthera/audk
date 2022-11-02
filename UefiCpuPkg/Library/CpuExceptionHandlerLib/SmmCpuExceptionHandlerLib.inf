@@ -49,10 +49,12 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   DebugLib
   VmgExitLib
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
 
+[Guids]
+  gEfiDebugImageInfoTableGuid  ## CONSUMES ## SystemTable

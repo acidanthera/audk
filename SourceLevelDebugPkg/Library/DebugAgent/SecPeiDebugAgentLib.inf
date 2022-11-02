@@ -66,8 +66,7 @@
   PrintLib
   PeiServicesLib
   MemoryAllocationLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
 
 [Ppis]
   gEfiPeiMemoryDiscoveredPpiGuid                ## NOTIFY

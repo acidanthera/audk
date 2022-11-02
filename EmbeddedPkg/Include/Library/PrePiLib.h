@@ -69,7 +69,8 @@ EFIAPI
 FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT VOID                **SectionData
+  OUT VOID                **SectionData,
+  OUT UINT32                    *SectionSize
   );
 
 /**
@@ -642,7 +643,7 @@ BuildExtractSectionHob (
 
 VOID
 EFIAPI
-BuildPeCoffLoaderHob (
+BuildUefiLoaderHob (
   VOID
   );
 
@@ -708,8 +709,9 @@ AllocateAlignedPages (
 
 EFI_STATUS
 EFIAPI
-LoadPeCoffImage (
-  IN  VOID                  *PeCoffImage,
+LoadUefiImage (
+  IN  VOID                                      *UefiImage,
+  IN  UINT32                                    UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
