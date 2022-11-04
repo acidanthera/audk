@@ -207,6 +207,11 @@ Ext4OpenInternal (
   Level     = 0;
 
   DEBUG ((DEBUG_FS, "[ext4] Ext4OpenInternal %s\n", FileName));
+
+  if (!Ext4FileIsDir (Current)) {
+    return EFI_INVALID_PARAMETER;
+  }
+
   // If the path starts with a backslash, we treat the root directory as the base directory
   if (FileName[0] == L'\\') {
     FileName++;
@@ -217,6 +222,10 @@ Ext4OpenInternal (
     if (Partition->Root->SymLoops > SYMLOOP_MAX) {
       DEBUG ((DEBUG_FS, "[ext4] Symloop limit is hit !\n"));
       return EFI_ACCESS_DENIED;
+    }
+
+    if (!Ext4FileIsDir (Current)) {
+      return EFI_INVALID_PARAMETER;
     }
 
     // Discard leading path separators
@@ -241,10 +250,6 @@ Ext4OpenInternal (
     }
 
     DEBUG ((DEBUG_FS, "[ext4] Opening %s\n", PathSegment));
-
-    if (!Ext4FileIsDir (Current)) {
-      return EFI_INVALID_PARAMETER;
-    }
 
     if (!Ext4IsLastPathSegment (FileName)) {
       if (!Ext4DirCanLookup (Current)) {
