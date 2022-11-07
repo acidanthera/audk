@@ -45,6 +45,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderWXorX
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowBrokenLinuxImage
 
 # FIXME: Remove when solving the BaseOverflow design questions
 [BuildOptions]
