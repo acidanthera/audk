@@ -25,6 +25,7 @@
 
 [LibraryClasses]
   BaseLib
+  BaseOverflowLib
   BaseMemoryLib
   CacheMaintenanceLib
   DebugLib

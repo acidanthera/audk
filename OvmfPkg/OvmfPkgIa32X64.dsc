@@ -125,6 +125,7 @@
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
+  BaseOverflowLib|MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
   SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
   TimeBaseLib|EmbeddedPkg/Library/TimeBaseLib/TimeBaseLib.inf
   BmpSupportLib|MdeModulePkg/Library/BaseBmpSupportLib/BaseBmpSupportLib.inf
