@@ -15,14 +15,13 @@
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/BaseOverflowLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/PcdLib.h>
 #include <Library/UefiImageLib.h>
-
-#include "../BasePeCoffLib2/BaseOverflow.h"
 
 #include "PeCoffSupport.h"
 

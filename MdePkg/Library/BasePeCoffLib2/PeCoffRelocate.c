@@ -17,12 +17,12 @@
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 #include <Library/UefiImageExtraActionLib.h>
 #include <Library/PeCoffLib2.h>
 
-#include "BaseOverflow.h"
 #include "BasePeCoffLib2Internals.h"
 
 struct PE_COFF_LOADER_RUNTIME_CONTEXT_ {

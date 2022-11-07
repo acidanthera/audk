@@ -10,11 +10,10 @@
 #include <Uefi/UefiBaseType.h>
 #include <Uefi/UefiSpec.h>
 
+#include <Library/BaseOverflowLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/UefiImageLib.h>
-
-#include "../BasePeCoffLib2/BaseOverflow.h"
 
 RETURN_STATUS
 UefiImageInitializeContext (

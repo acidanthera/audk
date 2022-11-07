@@ -17,7 +17,6 @@
   LIBRARY_CLASS  = PeCoffLib2
 
 [Sources]
-  BaseOverflow.c
   PeCoffDebug.c
   PeCoffHash.c
   PeCoffHii.c
@@ -32,6 +31,7 @@
 [LibraryClasses]
   BaseLib
   BaseMemoryLib
+  BaseOverflowLib
   DebugLib
   MemoryAllocationLib
   UefiImageExtraActionLib
