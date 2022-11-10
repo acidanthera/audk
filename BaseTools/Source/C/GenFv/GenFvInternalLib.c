@@ -1364,10 +1364,16 @@ Returns:
       // Rebase the PE or TE image in FileBuffer of FFS file for XIP
       // Rebase for the debug genfvmap tool
       //
-      Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, (UINTN) *VtfFileImage - (UINTN) FvImage->FileImage, FvMapFile);
+      Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, &FileSize, (UINTN) *VtfFileImage - (UINTN) FvImage->FileImage, FvMapFile);
       if (EFI_ERROR (Status)) {
         Error (NULL, 0, 3000, "Invalid", "Could not rebase %s.", FvInfo->FvFiles[Index]);
         return Status;
+      }
+
+      if (FileSize > (UINTN) ((UINTN) *VtfFileImage - (UINTN) FvImage->CurrentFilePointer)) {
+        free (FileBuffer);
+        Error (NULL, 0, 4002, "Resource", "FV space is full, not enough room to add file %s after ImageBase aligning.", FvInfo->FvFiles[Index]);
+        return EFI_OUT_OF_RESOURCES;
       }
       //
       // copy VTF File
@@ -1410,10 +1416,16 @@ Returns:
     // Rebase the PE or TE image in FileBuffer of FFS file for XIP.
     // Rebase Bs and Rt drivers for the debug genfvmap tool.
     //
-    Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, (UINTN) FvImage->CurrentFilePointer - (UINTN) FvImage->FileImage, FvMapFile);
+    Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, &FileSize, (UINTN) FvImage->CurrentFilePointer - (UINTN) FvImage->FileImage, FvMapFile);
     if (EFI_ERROR (Status)) {
       Error (NULL, 0, 3000, "Invalid", "Could not rebase %s.", FvInfo->FvFiles[Index]);
       return Status;
+    }
+
+    if (FileSize > (UINTN) ((UINTN) *VtfFileImage - (UINTN) FvImage->CurrentFilePointer)) {
+      free (FileBuffer);
+      Error (NULL, 0, 4002, "Resource", "FV space is full, not enough room to add file %s after ImageBase aligning.", FvInfo->FvFiles[Index]);
+      return EFI_OUT_OF_RESOURCES;
     }
     //
     // Copy the file
@@ -3471,6 +3483,7 @@ AddPadSection (
   IN OUT EFI_PHYSICAL_ADDRESS     *BaseAddress,
   IN     UINT32                   Alignment,
   IN OUT EFI_FFS_FILE_HEADER      **FfsFile,
+  IN OUT UINTN                    *FileSize,
   IN OUT EFI_FILE_SECTION_POINTER *Section
   )
 {
@@ -3504,13 +3517,14 @@ AddPadSection (
     free (FfsPart);
     return EFI_OUT_OF_RESOURCES;
   }
+  *FileSize += PadSize;
 
   NewSection = (EFI_COMMON_SECTION_HEADER *)((UINTN)(*FfsFile) + Offset);
 
   NewSection->Size[0] = (UINT8)(PadSize & 0xff);
   NewSection->Size[1] = (UINT8)((PadSize & 0xff00) >> 8);
   NewSection->Size[2] = (UINT8)((PadSize & 0xff0000) >> 16);
-  NewSection->Type    = 0;
+  NewSection->Type    = EFI_SECTION_RAW;
   ++NewSection;
   ZeroMem ((VOID *)NewSection, PadSize - sizeof (EFI_COMMON_SECTION_HEADER));
 
@@ -3566,6 +3580,7 @@ FfsRebase (
   IN OUT  FV_INFO               *FvInfo,
   IN      CHAR8                 *FileName,
   IN OUT  EFI_FFS_FILE_HEADER   **FfsFile,
+  IN OUT  UINTN                 *FileSize,
   IN      UINTN                 XipOffset,
   IN      FILE                  *FvMapFile
   )
@@ -3849,7 +3864,7 @@ Returns:
     ImageContext.ImageAddress = ALIGN_VALUE ((UINTN)MemoryImagePointer, ImageContext.SectionAlignment);
 
     if (!(IS_ALIGNED (NewPe32BaseAddress, ImageContext.SectionAlignment))) {
-      Status = AddPadSection (&NewPe32BaseAddress, ImageContext.SectionAlignment, FfsFile, &CurrentPe32Section);
+      Status = AddPadSection (&NewPe32BaseAddress, ImageContext.SectionAlignment, FfsFile, FileSize, &CurrentPe32Section);
       if (EFI_ERROR (Status)) {
         free ((VOID *) MemoryImagePointer);
         return Status;
