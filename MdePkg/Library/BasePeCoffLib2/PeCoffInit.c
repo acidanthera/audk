@@ -514,7 +514,7 @@ InternalInitializePe (
 
   ASSERT (Context != NULL);
   ASSERT (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16) <= FileSize - Context->ExeHdrOffset);
-  if (!PcdGetBool (PcdImageLoaderAllowBrokenLinuxImage)) {
+  if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)) {
     ASSERT (IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR)));
   }
   //
@@ -585,7 +585,7 @@ InternalInitializePe (
       //
       // Verify the PE32+ header offset is sufficiently aligned.
       //
-      if (!PcdGetBool (PcdImageLoaderAllowBrokenLinuxImage)
+      if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
         && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
         DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
@@ -658,7 +658,7 @@ InternalInitializePe (
   //
   // Verify the Section Headers offset is sufficiently aligned.
   //
-  if (!PcdGetBool (PcdImageLoaderAllowBrokenLinuxImage)
+  if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
     && !IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
@@ -869,7 +869,7 @@ PeCoffInitializeContext (
   //
   // Verify the Execution Header offset is sufficiently aligned.
   //
-  if (!PcdGetBool (PcdImageLoaderAllowBrokenLinuxImage)
+  if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
     && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
