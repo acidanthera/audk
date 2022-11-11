@@ -46,7 +46,3 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderDebugSupport
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset
-
-# FIXME: Remove when solving the BaseOverflow design questions
-[BuildOptions]
-  *_*_*_CC_FLAGS = -DPRODUCTION
