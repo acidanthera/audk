@@ -60,11 +60,11 @@ Ext4ReadBlocks (
   // Check for overflow on the block -> byte conversions.
   // Partition->BlockSize is never 0, so we don't need to check for that.
 
-  if (Offset > DivU64x32 ((UINT64)-1, Partition->BlockSize)) {
+  if ((NumberBlocks != 0) && (DivU64x64Remainder (Offset, BlockNumber, NULL) != Partition->BlockSize)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  if (Length > (UINTN)-1/Partition->BlockSize) {
+  if ((NumberBlocks != 0) && (Length / NumberBlocks != Partition->BlockSize)) {
     return EFI_INVALID_PARAMETER;
   }
 
@@ -94,12 +94,12 @@ Ext4AllocAndReadBlocks (
 
   Length = NumberBlocks * Partition->BlockSize;
 
-  if (Length > (UINTN)-1/Partition->BlockSize) {
+  // Check for integer overflow
+  if ((NumberBlocks != 0) && (Length / NumberBlocks != Partition->BlockSize)) {
     return NULL;
   }
 
   Buf = AllocatePool (Length);
-
   if (Buf == NULL) {
     return NULL;
   }
