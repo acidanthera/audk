@@ -260,7 +260,8 @@ Ext4OpenDirent (
   } else {
     File->Dentry = Ext4CreateDentry (FileName, Directory->Dentry);
 
-    if (!File->Dentry) {
+    if (File->Dentry == NULL) {
+      Status = EFI_OUT_OF_RESOURCES;
       goto Error;
     }
   }
