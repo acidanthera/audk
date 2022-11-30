@@ -230,7 +230,7 @@ Ext4AllocateInode (
 
   Inode = AllocateZeroPool (InodeSize);
 
-  if (!Inode) {
+  if (Inode == NULL) {
     return NULL;
   }
 

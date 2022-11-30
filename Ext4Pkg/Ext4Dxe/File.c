@@ -726,7 +726,11 @@ Ext4GetVolumeName (
 
     VolNameLength = StrLen (VolumeName);
   } else {
-    VolumeName    = AllocateZeroPool (sizeof (CHAR16));
+    VolumeName = AllocateZeroPool (sizeof (CHAR16));
+    if (VolumeName == NULL) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+
     VolNameLength = 0;
   }
 
@@ -793,7 +797,9 @@ Ext4GetFilesystemInfo (
   Info->VolumeSize = MultU64x32 (TotalBlocks, Part->BlockSize);
   Info->FreeSpace  = MultU64x32 (FreeBlocks, Part->BlockSize);
 
-  StrCpyS (Info->VolumeLabel, VolNameLength + 1, VolumeName);
+  Status = StrCpyS (Info->VolumeLabel, VolNameLength + 1, VolumeName);
+
+  ASSERT_EFI_ERROR (Status);
 
   FreePool (VolumeName);
 
