@@ -424,6 +424,8 @@ ProcessHobList (
     Hob.Raw = GET_NEXT_HOB (Hob);
   }
 
+  (VOID)AccumulateAcceptedMemory;
+
   return Status;
 }
 
