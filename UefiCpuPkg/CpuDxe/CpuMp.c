@@ -600,9 +600,8 @@ CollectBistDataFromHob (
 // Structure for InitializeSeparateExceptionStacks
 //
 typedef struct {
-  VOID          *Buffer;
-  UINTN         BufferSize;
-  EFI_STATUS    Status;
+  VOID     *Buffer;
+  UINTN    *BufferSize;
 } EXCEPTION_STACK_SWITCH_CONTEXT;
 
 /**
@@ -621,18 +620,9 @@ InitializeExceptionStackSwitchHandlers (
   )
 {
   EXCEPTION_STACK_SWITCH_CONTEXT  *SwitchStackData;
-  UINTN                           Index;
 
-  MpInitLibWhoAmI (&Index);
   SwitchStackData = (EXCEPTION_STACK_SWITCH_CONTEXT *)Buffer;
-
-  //
-  // This may be called twice for each Cpu. Only run InitializeSeparateExceptionStacks
-  // if this is the first call or the first call failed because of size too small.
-  //
-  if ((SwitchStackData[Index].Status == EFI_NOT_STARTED) || (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL)) {
-    SwitchStackData[Index].Status = InitializeSeparateExceptionStacks (SwitchStackData[Index].Buffer, &SwitchStackData[Index].BufferSize);
-  }
+  InitializeSeparateExceptionStacks (SwitchStackData->Buffer, SwitchStackData->BufferSize);
 }
 
 /**
@@ -648,69 +638,53 @@ InitializeMpExceptionStackSwitchHandlers (
   )
 {
   UINTN                           Index;
-  EXCEPTION_STACK_SWITCH_CONTEXT  *SwitchStackData;
+  UINTN                           Bsp;
+  EXCEPTION_STACK_SWITCH_CONTEXT  SwitchStackData;
   UINTN                           BufferSize;
-  EFI_STATUS                      Status;
-  UINT8                           *Buffer;
 
-  SwitchStackData = AllocateZeroPool (mNumberOfProcessors * sizeof (EXCEPTION_STACK_SWITCH_CONTEXT));
-  ASSERT (SwitchStackData != NULL);
+  SwitchStackData.BufferSize = &BufferSize;
+  MpInitLibWhoAmI (&Bsp);
+
   for (Index = 0; Index < mNumberOfProcessors; ++Index) {
-    //
-    // Because the procedure may runs multiple times, use the status EFI_NOT_STARTED
-    // to indicate the procedure haven't been run yet.
-    //
-    SwitchStackData[Index].Status = EFI_NOT_STARTED;
-  }
+    SwitchStackData.Buffer = NULL;
+    BufferSize             = 0;
 
-  Status = MpInitLibStartupAllCPUs (
-             InitializeExceptionStackSwitchHandlers,
-             0,
-             SwitchStackData
-             );
-  ASSERT_EFI_ERROR (Status);
-
-  BufferSize = 0;
-  for (Index = 0; Index < mNumberOfProcessors; ++Index) {
-    if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
-      ASSERT (SwitchStackData[Index].BufferSize != 0);
-      BufferSize += SwitchStackData[Index].BufferSize;
+    if (Index == Bsp) {
+      InitializeExceptionStackSwitchHandlers (&SwitchStackData);
     } else {
-      ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);
-      ASSERT (SwitchStackData[Index].BufferSize == 0);
+      //
+      // AP might need different buffer size from BSP.
+      //
+      MpInitLibStartupThisAP (InitializeExceptionStackSwitchHandlers, Index, NULL, 0, (VOID *)&SwitchStackData, NULL);
+    }
+
+    if (BufferSize == 0) {
+      continue;
+    }
+
+    SwitchStackData.Buffer = AllocateRuntimeZeroPool (BufferSize);
+    ASSERT (SwitchStackData.Buffer != NULL);
+    DEBUG ((
+      DEBUG_INFO,
+      "Buffer[cpu%lu] for InitializeExceptionStackSwitchHandlers: 0x%lX with size 0x%x\n",
+      (UINT64)(UINTN)Index,
+      (UINT64)(UINTN)SwitchStackData.Buffer,
+      (UINT32)BufferSize
+      ));
+
+    if (Index == Bsp) {
+      InitializeExceptionStackSwitchHandlers (&SwitchStackData);
+    } else {
+      MpInitLibStartupThisAP (
+        InitializeExceptionStackSwitchHandlers,
+        Index,
+        NULL,
+        0,
+        (VOID *)&SwitchStackData,
+        NULL
+        );
     }
   }
-
-  if (BufferSize != 0) {
-    Buffer = AllocateRuntimeZeroPool (BufferSize);
-    ASSERT (Buffer != NULL);
-    BufferSize = 0;
-    for (Index = 0; Index < mNumberOfProcessors; ++Index) {
-      if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
-        SwitchStackData[Index].Buffer = (VOID *)(&Buffer[BufferSize]);
-        BufferSize                   += SwitchStackData[Index].BufferSize;
-        DEBUG ((
-          DEBUG_INFO,
-          "Buffer[cpu%lu] for InitializeExceptionStackSwitchHandlers: 0x%lX with size 0x%lX\n",
-          (UINT64)(UINTN)Index,
-          (UINT64)(UINTN)SwitchStackData[Index].Buffer,
-          (UINT64)(UINTN)SwitchStackData[Index].BufferSize
-          ));
-      }
-    }
-
-    Status = MpInitLibStartupAllCPUs (
-               InitializeExceptionStackSwitchHandlers,
-               0,
-               SwitchStackData
-               );
-    ASSERT_EFI_ERROR (Status);
-    for (Index = 0; Index < mNumberOfProcessors; ++Index) {
-      ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);
-    }
-  }
-
-  FreePool (SwitchStackData);
 }
 
 /**
