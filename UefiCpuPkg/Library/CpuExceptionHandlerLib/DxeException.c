@@ -24,7 +24,7 @@ EXCEPTION_HANDLER_DATA     mExceptionHandlerData = {
 };
 
 UINT8  mBuffer[CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE
-               + CPU_TSS_GDT_SIZE];
+               + sizeof (IA32_TSS_DESCRIPTOR) + CPU_TSS_GDT_SIZE];
 
 /**
   Common exception handler.
