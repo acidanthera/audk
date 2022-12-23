@@ -82,7 +82,7 @@ BrotliDecompress (
   IN CONST VOID  *Source,
   IN UINTN       SourceSize,
   IN OUT VOID    *Destination,
-  IN OUT UINTN   DestSize,
+  IN OUT UINTN   *DestSize,
   IN VOID        *BuffInfo
   )
 {
@@ -157,7 +157,7 @@ BrotliDecompress (
     CopyMem (Temp, Output, (size_t)(NextOut - Output));
   }
 
-  DestSize = TotalOut;
+  *DestSize = TotalOut;
 
   BrFree (BuffInfo, Input);
   BrFree (BuffInfo, Output);
@@ -292,7 +292,7 @@ BrotliUefiDecompress (
              (VOID *)((UINT8 *)Source + BROTLI_SCRATCH_MAX),
              SourceSize - BROTLI_SCRATCH_MAX,
              Destination,
-             DestSize,
+             &DestSize,
              (VOID *)(&BroBuff)
              );
 
