@@ -390,7 +390,6 @@ WifiMgrRefreshNetworkList (
 {
   EFI_STATUS                Status;
   EFI_TPL                   OldTpl;
-  UINT32                    AvailableCount;
   EFI_STRING_ID             PortPromptToken;
   EFI_STRING_ID             PortTextToken;
   EFI_STRING_ID             PortHelpToken;
@@ -418,7 +417,6 @@ WifiMgrRefreshNetworkList (
   }
 
   OldTpl            = gBS->RaiseTPL (TPL_CALLBACK);
-  AvailableCount    = 0;
   PortStringSize    = sizeof (PortString);
   ConnectedProfile  = NULL;
   AKMListDisplay    = NULL;
@@ -433,7 +431,6 @@ WifiMgrRefreshNetworkList (
         Private->CurrentNic->CurrentOperateNetwork->IsAvailable)
     {
       Profile = Private->CurrentNic->CurrentOperateNetwork;
-      AvailableCount++;
 
       AKMListDisplay = WifiMgrGetStrAKMList (Profile);
       if (AKMListDisplay == NULL) {
@@ -509,7 +506,6 @@ WifiMgrRefreshNetworkList (
     }
 
     if (Profile->IsAvailable && Profile->CipherSuiteSupported) {
-      AvailableCount++;
 
       AKMListDisplay = WifiMgrGetStrAKMList (Profile);
       if (AKMListDisplay == NULL) {
@@ -598,7 +594,6 @@ WifiMgrRefreshNetworkList (
     }
 
     if (Profile->IsAvailable && !Profile->CipherSuiteSupported) {
-      AvailableCount++;
 
       AKMListDisplay = WifiMgrGetStrAKMList (Profile);
       if (AKMListDisplay == NULL) {
