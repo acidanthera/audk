@@ -1983,7 +1983,7 @@ EnrollImageSignatureToSigDB (
   Status = UefiImageGetFirstCertificate (&ImageContext, &Certificate);
 
   if (Status == RETURN_NOT_FOUND) {
-    if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize, &CertType)) {
+    if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize)) {
       Status =  EFI_SECURITY_VIOLATION;
       goto ON_EXIT;
     }
@@ -1995,7 +1995,7 @@ EnrollImageSignatureToSigDB (
         goto ON_EXIT;
       }
 
-      if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize, &CertType)) {
+      if (!HashPeImage (&ImageContext, HASHALG_SHA256, ImageDigest, &ImageDigestSize)) {
         Status = EFI_ABORTED;
         goto ON_EXIT;
       }

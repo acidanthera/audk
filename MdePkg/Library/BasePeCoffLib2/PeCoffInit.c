@@ -233,7 +233,7 @@ InternalVerifySections (
   }
   //
   // Set SizeOfImage to the aligned end address of the last ImageSection.
-//
+  //
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
     Context->SizeOfImage = NextSectRva;
   } else {

@@ -60,6 +60,8 @@
   MdePkg/Library/BaseArmTrngLibNull/BaseArmTrngLibNull.inf
   MdePkg/Library/BasePeCoffLib2/BasePeCoffLib2.inf
   MdePkg/Library/BaseUefiImageLib/BaseUefiImageLibPeCoff.inf
+  MdePkg/Library/BaseUeImageLib/BaseUeImageLib.inf
+  MdePkg/Library/BaseUefiImageLib/BaseUefiImageLibUe.inf
   MdePkg/Library/BaseUefiImageExtraActionLibNull/BaseUefiImageExtraActionLibNull.inf
   MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
   MdePkg/Library/BasePostCodeLibDebug/BasePostCodeLibDebug.inf

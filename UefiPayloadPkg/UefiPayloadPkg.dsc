@@ -315,7 +315,7 @@
   PcdLib|MdePkg/Library/BasePcdLibNull/BasePcdLibNull.inf
   DxeHobListLib|UefiPayloadPkg/Library/DxeHobListLibNull/DxeHobListLibNull.inf
   DebugLib|MdePkg/Library/BaseDebugLibSerialPort/BaseDebugLibSerialPort.inf
-  MemoryAllocationLib|UefiPayloadPkg/Library/UefiPayloadEntryMemoryAllocationLib/UefiPayloadEntryMemoryAllocationLib.inf
+  MemoryAllocationLib|UefiPayloadPkg/Library/UefiPayloadMemoryAllocationLib/UefiPayloadMemoryAllocationLib.inf
 
 [LibraryClasses.common.DXE_CORE]
   DxeHobListLib|UefiPayloadPkg/Library/DxeHobListLibNull/DxeHobListLibNull.inf

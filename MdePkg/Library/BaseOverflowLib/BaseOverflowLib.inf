@@ -29,12 +29,12 @@
 #
 
 [Sources]
-  Alignment.c
-  BitOverflow.c
-  OverflowInternals.h
-  Math.c
-  NativeOverflow.c
-  TripleOverflow.c
+  BaseAlignment.c
+  BaseBitOverflow.c
+  BaseOverflowInternals.h
+  BaseMath.c
+  BaseNativeOverflow.c
+  BaseTripleOverflow.c
 
 [Packages]
   MdePkg/MdePkg.dec

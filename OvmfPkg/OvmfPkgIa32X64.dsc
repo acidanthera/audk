@@ -143,7 +143,6 @@
   PrintLib|MdePkg/Library/BasePrintLib/BasePrintLib.inf
   BaseMemoryLib|MdePkg/Library/BaseMemoryLibRepStr/BaseMemoryLibRepStr.inf
   BaseLib|MdePkg/Library/BaseLib/BaseLib.inf
-  BaseOverflowLib|MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
   SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
   TimeBaseLib|EmbeddedPkg/Library/TimeBaseLib/TimeBaseLib.inf
   BmpSupportLib|MdeModulePkg/Library/BaseBmpSupportLib/BaseBmpSupportLib.inf
@@ -604,14 +603,15 @@
   #
   !if $(LEGACY_WINDOWS_LOADER) == TRUE
     # Allow execution of EfiLoaderData memory regions.
-    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0x7FD1
+    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFFD1
   !elseif $(LINUX_LOADER) == TRUE
-    # Allow execution of EfiConventionalMemory, EfiBootServicesData and EfiLoaderData memory regions.
-    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0x7F41
+    # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiLoaderData memory regions.
+    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF40
     gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset|TRUE
   !elseif $(WINDOWS_10_IA32) == TRUE
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
-    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0x7F04
+    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
+    gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x0
   !endif
 
 ################################################################################

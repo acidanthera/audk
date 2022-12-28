@@ -19,7 +19,7 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 
-#include "OverflowInternals.h"
+#include "BaseOverflowInternals.h"
 
 BOOLEAN
 BaseOverflowAddUN (
