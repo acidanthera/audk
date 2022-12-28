@@ -1234,56 +1234,29 @@ BmIsLoadOptionPeHeaderValid (
   IN UINTN                              FileSize
   )
 {
-  EFI_IMAGE_DOS_HEADER             *DosHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *PeHeader;
-  EFI_IMAGE_OPTIONAL_HEADER32      *OptionalHeader;
-  UINT16                           Subsystem;
+  EFI_STATUS                        Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
+  UINT16                            Subsystem;
 
   if ((FileBuffer == NULL) || (FileSize == 0)) {
     return FALSE;
   }
 
-  //
-  // Read dos header
-  //
-  DosHeader = (EFI_IMAGE_DOS_HEADER *)FileBuffer;
-  if ((FileSize >= sizeof (EFI_IMAGE_DOS_HEADER)) &&
-      (FileSize > DosHeader->e_lfanew) && (DosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE)
-      )
-  {
-    //
-    // Read and check PE signature
-    //
-    PeHeader = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINT8 *)FileBuffer + DosHeader->e_lfanew);
-    if ((FileSize >= DosHeader->e_lfanew + sizeof (EFI_IMAGE_OPTIONAL_HEADER_UNION)) &&
-        (PeHeader->Pe32.Signature == EFI_IMAGE_NT_SIGNATURE)
-        )
-    {
-      //
-      // Check PE32 or PE32+ magic, and machine type
-      //
-      OptionalHeader = (EFI_IMAGE_OPTIONAL_HEADER32 *)&PeHeader->Pe32.OptionalHeader;
-      if ((OptionalHeader->Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) ||
-          (OptionalHeader->Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC))
-      {
-        //
-        // Check the Subsystem:
-        //   Driver#### must be of type BootServiceDriver or RuntimeDriver
-        //   SysPrep####, Boot####, OsRecovery####, PlatformRecovery#### must be of type Application
-        //
-        Subsystem = OptionalHeader->Subsystem;
-        if ((Type == LoadOptionTypeMax) ||
-            ((Type == LoadOptionTypeDriver) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER)) ||
-            ((Type == LoadOptionTypeDriver) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER)) ||
-            ((Type == LoadOptionTypeSysPrep) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) ||
-            ((Type == LoadOptionTypeBoot) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) ||
-            ((Type == LoadOptionTypePlatformRecovery) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION))
-            )
-        {
-          return TRUE;
-        }
-      }
-    }
+  Status = UefiImageInitializeContext (&ImageContext, FileBuffer, (UINT32) FileSize);
+  if (EFI_ERROR (Status)) {
+    return FALSE;
+  }
+
+  Subsystem = UefiImageGetSubsystem (&ImageContext);
+
+  if ((Type == LoadOptionTypeMax) ||
+      (Type == LoadOptionTypeDriver && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER) ||
+      (Type == LoadOptionTypeDriver && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) ||
+      (Type == LoadOptionTypeSysPrep && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION) ||
+      (Type == LoadOptionTypeBoot && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION) ||
+      (Type == LoadOptionTypePlatformRecovery && Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)
+      ) {
+    return TRUE;
   }
 
   return FALSE;

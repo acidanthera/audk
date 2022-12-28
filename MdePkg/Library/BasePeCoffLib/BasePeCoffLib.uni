@@ -25,4 +25,3 @@
 #string STR_MODULE_ABSTRACT             #language en-US "PE/COFF Loader Library implementation"
 
 #string STR_MODULE_DESCRIPTION          #language en-US "The IPF version library supports loading IPF and EBC PE/COFF images. The IA32 version library support loading IA32, X64 and EBC PE/COFF images. The X64 version library support loading IA32, X64 and EBC PE/COFF images.  Caution: This module requires additional review when modified. This library will have external input: PE/COFF image. This external input must be validated carefully to avoid security issues like buffer overflow and integer overflow."
-

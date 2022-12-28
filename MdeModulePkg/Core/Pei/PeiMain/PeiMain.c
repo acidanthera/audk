@@ -60,6 +60,7 @@ EFI_PEI_SERVICES  gPs = {
   PeiFfsGetFileInfo2,
   PeiResetSystem2,
   PeiFreePages,
+  PeiFfsFindSectionData4
 };
 
 /**

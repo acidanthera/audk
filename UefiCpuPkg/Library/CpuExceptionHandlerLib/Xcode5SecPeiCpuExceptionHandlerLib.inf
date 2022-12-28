@@ -52,7 +52,7 @@
   SerialPortLib
   PrintLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   CcExitLib
 
 [Pcd]

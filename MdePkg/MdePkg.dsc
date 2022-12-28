@@ -58,9 +58,9 @@
   MdePkg/Library/PciSegmentLibSegmentInfo/DxeRuntimePciSegmentLibSegmentInfo.inf
   MdePkg/Library/BaseS3PciSegmentLib/BaseS3PciSegmentLib.inf
   MdePkg/Library/BaseArmTrngLibNull/BaseArmTrngLibNull.inf
-  MdePkg/Library/BasePeCoffGetEntryPointLib/BasePeCoffGetEntryPointLib.inf
-  MdePkg/Library/BasePeCoffLib/BasePeCoffLib.inf
-  MdePkg/Library/BasePeCoffExtraActionLibNull/BasePeCoffExtraActionLibNull.inf
+  MdePkg/Library/BasePeCoffLib2/BasePeCoffLib2.inf
+  MdePkg/Library/BaseUefiImageLib/BaseUefiImageLibPeCoff.inf
+  MdePkg/Library/BaseUefiImageExtraActionLibNull/BaseUefiImageExtraActionLibNull.inf
   MdePkg/Library/BasePerformanceLibNull/BasePerformanceLibNull.inf
   MdePkg/Library/BasePostCodeLibDebug/BasePostCodeLibDebug.inf
   MdePkg/Library/BasePostCodeLibPort80/BasePostCodeLibPort80.inf
@@ -181,6 +181,7 @@
   MdePkg/Library/MmServicesTableLib/MmServicesTableLib.inf
   MdePkg/Library/MmUnblockMemoryLib/MmUnblockMemoryLibNull.inf
   MdePkg/Library/TdxLib/TdxLib.inf
+  MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
 
 [Components.EBC]
   MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf

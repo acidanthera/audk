@@ -222,3 +222,13 @@ InitializeSeparateExceptionStacks (
 {
   return EFI_UNSUPPORTED;
 }
+
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
+  )
+{
+  return FALSE;
+}

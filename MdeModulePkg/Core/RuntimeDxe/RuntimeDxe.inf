@@ -39,7 +39,7 @@
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
-  PeCoffLib
+  UefiImageLib
   CacheMaintenanceLib
   UefiBootServicesTableLib
   UefiLib

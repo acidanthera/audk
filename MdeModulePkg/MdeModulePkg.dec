@@ -520,7 +520,7 @@
   ## Load File protocol provides capability to load and unload EFI image into memory and execute it.
   #  Include/Protocol/LoadPe32Image.h
   #  This protocol is deprecated. Native EDKII module should NOT use this protocol to load/unload image.
-  #  If developer need implement such functionality, they should use BasePeCoffLib.
+  #  If developer need implement such functionality, they should use BasePeCoffLib2.
   gEfiLoadPeImageProtocolGuid    = { 0x5CB5C776, 0x60D5, 0x45EE, { 0x88, 0x3C, 0x45, 0x27, 0x08, 0xCD, 0x74, 0x3F }}
 
   ## Print protocols define basic print functions to print the format unicode and ascii string.
@@ -1392,7 +1392,7 @@
   # e.g. 0x7BD4 can be used for all memory except Code and ACPINVS/Reserved. <BR>
   #
   # @Prompt Set DXE memory protection policy.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0x0000000|UINT64|0x00001048
+  gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFFD5|UINT64|0x00001048
 
   ## PCI Serial Device Info. It is an array of Device, Function, and Power Management
   #  information that describes the path that contains zero or more PCI to PCI bridges

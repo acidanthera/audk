@@ -1520,7 +1520,7 @@ PromoteGuardedFreePages (
   OUT EFI_PHYSICAL_ADDRESS  *EndAddress
   )
 {
-  EFI_STATUS            Status;
+  EFI_STATUS              Status;
   UINTN                 AvailablePages;
   UINT64                Bitmap;
   EFI_PHYSICAL_ADDRESS  Start;

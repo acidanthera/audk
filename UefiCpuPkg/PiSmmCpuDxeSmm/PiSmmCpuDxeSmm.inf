@@ -97,7 +97,7 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
 
 [Protocols]
   gEfiSmmAccess2ProtocolGuid               ## CONSUMES
@@ -114,6 +114,7 @@
   gEfiAcpiVariableGuid                     ## SOMETIMES_CONSUMES ## HOB # it is used for S3 boot.
   gEdkiiPiSmmMemoryAttributesTableGuid     ## CONSUMES ## SystemTable
   gEfiMemoryAttributesTableGuid            ## CONSUMES ## SystemTable
+  gEfiDebugImageInfoTableGuid              ## CONSUMES ## SystemTable
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmDebug                         ## CONSUMES

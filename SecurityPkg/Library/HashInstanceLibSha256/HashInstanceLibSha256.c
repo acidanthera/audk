@@ -45,10 +45,10 @@ Tpm2SetSha256ToDigestList (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha256HashInit (
-  OUT HASH_HANDLE  *HashHandle
+  OUT VOID           **HashHandle
   )
 {
   VOID   *Sha256Ctx;
@@ -60,9 +60,9 @@ Sha256HashInit (
 
   Sha256Init (Sha256Ctx);
 
-  *HashHandle = (HASH_HANDLE)Sha256Ctx;
+  *HashHandle = Sha256Ctx;
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -74,20 +74,17 @@ Sha256HashInit (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha256HashUpdate (
-  IN HASH_HANDLE  HashHandle,
-  IN VOID         *DataToHash,
+  IN VOID           *HashHandle,
+  IN CONST VOID     *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sha256Ctx;
+  Sha256Update (HashHandle, DataToHash, DataToHashLen);
 
-  Sha256Ctx = (VOID *)HashHandle;
-  Sha256Update (Sha256Ctx, DataToHash, DataToHashLen);
-
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -98,24 +95,22 @@ Sha256HashUpdate (
 
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha256HashFinal (
-  IN HASH_HANDLE          HashHandle,
+  IN VOID                *HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SHA256_DIGEST_SIZE];
-  VOID   *Sha256Ctx;
 
-  Sha256Ctx = (VOID *)HashHandle;
-  Sha256Final (Sha256Ctx, Digest);
+  Sha256Final (HashHandle, Digest);
 
-  FreePool (Sha256Ctx);
+  FreePool (HashHandle);
 
   Tpm2SetSha256ToDigestList (DigestList, Digest);
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 HASH_INTERFACE  mSha256InternalHashInstance = {

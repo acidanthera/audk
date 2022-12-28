@@ -49,8 +49,7 @@
   DebugAgentLib
   CpuLib
   UefiCpuLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
+  UefiImageExtraActionLib
   CpuExceptionHandlerLib
   ReportStatusCodeLib
   PeiServicesLib

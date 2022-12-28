@@ -57,7 +57,10 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   MemoryAllocationLib
   DebugLib
   CcExitLib
+
+[Guids]
+  gEfiDebugImageInfoTableGuid  ## CONSUMES ## SystemTable
