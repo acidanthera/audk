@@ -26,10 +26,19 @@ Ext4GetUcs2DirentName (
   )
 {
   CHAR8       Utf8NameBuf[EXT4_NAME_MAX + 1];
+  UINTN       Index;
   UINT16      *Str;
   EFI_STATUS  Status;
 
-  CopyMem (Utf8NameBuf, Entry->name, Entry->name_len);
+  for (Index = 0; Index < Entry->name_len; ++Index)
+  {
+    if (Entry->name[Index] == '\0')
+    {
+      return EFI_INVALID_PARAMETER;
+    }
+
+    Utf8NameBuf[Index] = Entry->name[Index];
+  }
 
   Utf8NameBuf[Entry->name_len] = '\0';
 
@@ -496,12 +505,14 @@ Ext4ReadDir (
 
     // Entry.name_len may be 0 if it's a nameless entry, like an unused entry
     // or a checksum at the end of the directory block.
-    IsDotOrDotDot = Entry.name_len <= 2 &&
-                    ((Entry.name[0] == '.') &&
-                     (Entry.name[1] == '.' || Entry.name[1] == '\0'));
+    // memcmp (and CompareMem) return 0 when the passed length is 0.
 
-    // When inode = 0, it's unused.
-    ShouldSkip = Entry.inode == 0 || IsDotOrDotDot;
+    IsDotOrDotDot = Entry.name_len <= 2 &&
+                    CompareMem (Entry.name, "..", Entry.name_len) == 0;
+
+    // When inode = 0, it's unused. When name_len == 0, it's a nameless entry
+    // (which we should not expose to ReadDir).
+    ShouldSkip = Entry.inode == 0 || Entry.name_len == 0 || IsDotOrDotDot;
 
     if ((Entry.inode != 0) && !EXT4_IS_VALID_INODE_NR (Partition, Entry.inode)) {
       DEBUG ((DEBUG_ERROR, "[ext4] Ext4ReadDir directory entry inode number %u isn't valid\n", Entry.inode));
