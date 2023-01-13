@@ -592,13 +592,12 @@ Ext4GetPosition (
 
   @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that is the
                               file handle to set the requested position on.
-  @param[in]  Position        The byte position from the start of the file to set.
+  @param[in] Position        The byte position from the start of the file to set.
 
-  @retval EFI_SUCCESS            The position was set.
-  @retval EFI_INVALID_PARAMETER  The seek request for non-zero position is not valid on open
-                                 directories.
-  @retval EFI_UNSUPPORTED        The seek request for position is exceeds FileSize.
-  @retval EFI_DEVICE_ERROR       An attempt was made to set the position of a deleted file.
+  @retval EFI_SUCCESS      The position was set.
+  @retval EFI_UNSUPPORTED  The seek request for nonzero is not valid on open
+                           directories.
+  @retval EFI_DEVICE_ERROR An attempt was made to set the position of a deleted file.
 
 **/
 EFI_STATUS
@@ -609,23 +608,17 @@ Ext4SetPosition (
   )
 {
   EXT4_FILE  *File;
-  UINT64     FileSize;
 
   File = EXT4_FILE_FROM_THIS (This);
 
   // Only seeks to 0 (so it resets the ReadDir operation) are allowed
   if (Ext4FileIsDir (File) && (Position != 0)) {
-    return EFI_INVALID_PARAMETER;
+    return EFI_UNSUPPORTED;
   }
-
-  FileSize = EXT4_INODE_SIZE (File->Inode);
 
   // -1 (0xffffff.......) seeks to the end of the file
   if (Position == (UINT64)-1) {
-    Position = FileSize;
-  } else if (Position > FileSize) {
-    DEBUG ((DEBUG_FS, "[ext4] Ext4SetPosition Cannot seek to #%Lx of %Lx\n", Position, FileSize));
-    return EFI_UNSUPPORTED;
+    Position = EXT4_INODE_SIZE (File->Inode);
   }
 
   File->Position = Position;

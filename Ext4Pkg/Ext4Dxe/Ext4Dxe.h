@@ -31,7 +31,7 @@
 
 #include "Ext4Disk.h"
 
-#define SYMLOOP_MAX  8
+#define SYMLOOP_MAX    8
 //
 // We need to specify path length limit for security purposes, to prevent possible
 // overflows and dead-loop conditions. Originally this limit is absent in FS design,
@@ -754,15 +754,16 @@ Ext4GetPosition (
 /**
   Sets a file's current position.
 
-  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that is the
-                              file handle to set the requested position on.
-  @param[in]  Position        The byte position from the start of the file to set.
+  @param[in]  This            A pointer to the EFI_FILE_PROTOCOL instance that
+is the file handle to set the requested position on.
+  @param[in] Position        The byte position from the start of the file to
+set.
 
-  @retval EFI_SUCCESS            The position was set.
-  @retval EFI_INVALID_PARAMETER  The seek request for non-zero position is not valid on open
-                                 directories.
-  @retval EFI_UNSUPPORTED        The seek request for position is exceeds FileSize.
-  @retval EFI_DEVICE_ERROR       An attempt was made to set the position of a deleted file.
+  @retval EFI_SUCCESS      The position was set.
+  @retval EFI_UNSUPPORTED  The seek request for nonzero is not valid on open
+                           directories.
+  @retval EFI_DEVICE_ERROR An attempt was made to set the position of a deleted
+file.
 
 **/
 EFI_STATUS
