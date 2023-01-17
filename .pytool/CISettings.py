@@ -74,7 +74,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
                 "OvmfPkg",
                 "RedfishPkg",
                 "SourceLevelDebugPkg",
-                "UefiPayloadPkg"
+                "UefiPayloadPkg",
+                "OpenCorePkg"
                 )
 
     def GetArchitecturesSupported(self):
@@ -202,6 +203,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
             "BaseTools/Source/C/BrotliCompress/brotli", False))
         rs.append(RequiredSubmodule(
             "RedfishPkg/Library/JsonLib/jansson", False))
+        rs.append(RequiredSubmodule(
+            "OpenCorePkg", False))
         return rs
 
     def GetName(self):
