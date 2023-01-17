@@ -91,6 +91,8 @@ jobs:
 
     - name: CI Build
       run: stuart_ci_build -c .pytool/CISettings.py -p ${{ matrix.package }} -t DEBUG -a IA32,X64 TOOL_CHAIN_TAG=VS2019
+      env:
+        PYTOOL_TEMPORARILY_IGNORE_NESTED_EDK_PACKAGES: true
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
