@@ -1,0 +1,737 @@
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+
+jobs:
+  build-macos:
+    name: macOS XCODE5
+    runs-on: macos-latest
+    env:
+      JOB_TYPE: BUILD
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Add Linux Toolchain
+        run: brew tap FiloSottile/homebrew-musl-cross
+
+      - name: Install Linux Toolchain
+        run: brew install musl-cross
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: Install Dependencies
+        run: brew install openssl mingw-w64
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Init UDK submodules
+        run: |
+          git submodule update --init --recursive
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build Ext4Pkg
+        run: ./efibuild.sh
+        env:
+          SELFPKG: Ext4Pkg
+          ARCHS: IA32,X64
+
+      - name: Build FatPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: FatPkg
+          ARCHS: IA32,X64
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2Pkg
+          ARCHS: IA32,X64
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          ARCHS: IA32,X64
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdeModulePkg
+          ARCHS: IA32,X64
+
+      - name: Build MdePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          ARCHS: IA32,X64
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiCpuPkg
+          ARCHS: IA32,X64
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          ARCHS: IA32,X64
+
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: IA32
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+
+      - name: Build NetworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: NetworkPkg
+          ARCHS: IA32,X64
+
+  build-windows:
+    name: Windows VS2019
+    runs-on: windows-2019
+    env:
+      CC: gcc
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip --no-progress
+          choco install iasl --no-progress --version=2017.11.10
+
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Init UDK submodules
+        run: |
+          git submodule update --init --recursive
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          cmd <<< "mklink /D .\\UDK .\\" > /dev/null
+
+      - name: Build Ext4Pkg
+        run: ./efibuild.sh
+        env:
+          SELFPKG: Ext4Pkg
+          ARCHS: IA32,X64
+
+      - name: Build FatPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: FatPkg
+          ARCHS: IA32,X64
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2Pkg
+          ARCHS: IA32,X64
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          ARCHS: IA32,X64
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdeModulePkg
+          ARCHS: IA32,X64
+
+      - name: Build MdePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          ARCHS: IA32,X64
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiCpuPkg
+          ARCHS: IA32,X64
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          ARCHS: IA32,X64
+
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: IA32
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+
+      - name: Build NetworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: NetworkPkg
+          ARCHS: IA32,X64
+
+  build-linux-clangpdb:
+    name: Linux CLANGPDB
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+  build-linux-clangdwarf:
+    name: Linux CLANGDWARF
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+  build-linux-gcc5:
+    name: Linux GCC5
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
