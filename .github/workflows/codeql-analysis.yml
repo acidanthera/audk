@@ -69,10 +69,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Install Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10.6'
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip --no-progress
+          choco install iasl --no-progress --version=2017.11.10
+
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
@@ -83,15 +87,6 @@ jobs:
           # Learn more about CodeQL language support at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
           config-file: ./.github/codeql/codeql-config.yml
           # Note: Add new queries to codeql-config.yml file as they are enabled.
-
-      - name: Install Dependencies
-        run: |
-          choco install make nasm zip --no-progress
-          choco install iasl --no-progress --version=2017.11.10
-
-      - name: CI Bootstrap
-        run: |
-          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
 
       - name: Init UDK submodules
         run: |
