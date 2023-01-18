@@ -771,7 +771,7 @@ typedef UINTN *BASE_LIST;
   // support the standard operator _Alignof.
   //
   #define ALIGNOF(TYPE)  _Alignof (TYPE)
-#elif defined(_MSC_VER)
+#elif defined(_MSC_EXTENSIONS)
   //
   // Earlier versions of MSVC, at least MSVC 2008 and later, support the
   // vendor-extension __alignof.
