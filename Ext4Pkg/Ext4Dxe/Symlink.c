@@ -155,11 +155,6 @@ Ext4ReadSlowSymlink (
     return Status;
   }
 
-  //
-  // Add null-terminator
-  //
-  SymlinkTmp[SymlinkSizeTmp] = '\0';
-
   if (SymlinkSizeTmp != ReadSize) {
     DEBUG ((
       DEBUG_FS,
@@ -167,6 +162,11 @@ Ext4ReadSlowSymlink (
       ));
     return EFI_VOLUME_CORRUPTED;
   }
+
+  //
+  // Add null-terminator
+  //
+  SymlinkTmp[ReadSize] = '\0';
 
   *AsciiSymlinkSize = SymlinkAllocateSize;
   *AsciiSymlink     = SymlinkTmp;

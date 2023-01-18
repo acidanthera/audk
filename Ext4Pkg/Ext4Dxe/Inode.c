@@ -152,7 +152,7 @@ Ext4Read (
       } else {
         // Uninitialized extents behave exactly the same as file holes, except they have
         // blocks already allocated to them.
-        HoleLen = (Ext4GetExtentLength (&Extent) * Partition->BlockSize) - HoleOff;
+        HoleLen = MultU64x32 (Ext4GetExtentLength (&Extent), Partition->BlockSize) - HoleOff;
       }
 
       WasRead = HoleLen > RemainingRead ? RemainingRead : (UINTN)HoleLen;
@@ -166,7 +166,7 @@ Ext4Read (
                            Partition->BlockSize
                            );
       ExtentLengthBytes  = Extent.ee_len * Partition->BlockSize;
-      ExtentLogicalBytes = (UINT64)Extent.ee_block * Partition->BlockSize;
+      ExtentLogicalBytes = MultU64x32 ((UINT64)Extent.ee_block, Partition->BlockSize);
       ExtentOffset       = CurrentSeek - ExtentLogicalBytes;
       ExtentMayRead      = (UINTN)(ExtentLengthBytes - ExtentOffset);
 
