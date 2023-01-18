@@ -4075,7 +4075,7 @@ Returns:
       PdbPointer = FileName;
     }
 
-    WriteMapFile (FvMapFile, PdbPointer, *FfsFile, NewPe32BaseAddress, &OrigImageContext);
+    WriteMapFile (FvMapFile, PdbPointer, *FfsFile, NewPe32BaseAddress, &ImageContext);
   }
 
   if ((*FfsFile)->Type != EFI_FV_FILETYPE_SECURITY_CORE &&
