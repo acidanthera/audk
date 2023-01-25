@@ -647,7 +647,11 @@
     <OutputFile.XCODE>
         $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
-    <Command.MSFT, Command.INTEL, Command.CLANGPDB>
+    <Command.CLANGPDB>
+        ImageTool $(ARCH) HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
+        "$(RC)" /Fo${dst} -- $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
+
+    <Command.MSFT, Command.INTEL>
         ImageTool $(ARCH) HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
         "$(RC)" /Fo${dst} $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
