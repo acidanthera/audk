@@ -169,6 +169,7 @@ typedef EFI_COMMON_SECTION_HEADER2 EFI_COMPATIBILITY16_SECTION2;
 //
 #define EFI_NOT_COMPRESSED        0x00
 #define EFI_STANDARD_COMPRESSION  0x01
+#define TIANO_COMPRESS            0x02
 //
 // An encapsulation section type in which the
 // section data is compressed.
