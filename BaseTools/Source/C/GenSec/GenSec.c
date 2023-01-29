@@ -71,7 +71,7 @@ STATIC CHAR8      *mSectionTypeName[] = {
   "EFI_SECTION_SMM_DEPEX"               // 0x1C
 };
 
-STATIC CHAR8      *mCompressionTypeName[]    = { "PI_NONE", "PI_STD" };
+STATIC CHAR8      *mCompressionTypeName[]    = { "PI_NONE", "PI_STD", "TIANO" };
 
 #define EFI_GUIDED_SECTION_NONE 0x80
 STATIC CHAR8      *mGUIDedSectionAttribue[]  = { "NONE", "PROCESSING_REQUIRED", "AUTH_STATUS_VALID"};
@@ -171,7 +171,7 @@ Returns:
                         if -s option is not given, \n\
                         EFI_SECTION_ALL is default section type.\n");
   fprintf (stdout, "  -c [Type], --compress [Type]\n\
-                        Compress method type can be PI_NONE or PI_STD.\n\
+                        Compress method type can be PI_NONE, PI_STD or TIANO.\n\
                         if -c option is not given, PI_STD is default type.\n");
   fprintf (stdout, "  -g GuidValue, --vendor GuidValue\n\
                         GuidValue is one specific vendor guid value.\n\
@@ -710,6 +710,10 @@ Returns:
     CompressFunction = (COMPRESS_FUNCTION) EfiCompress;
     break;
 
+  case TIANO_COMPRESS:
+    CompressFunction = (COMPRESS_FUNCTION) TianoCompress;
+    break;
+
   default:
     Error (NULL, 0, 2000, "Invalid parameter", "unknown compression type");
     free (FileBuffer);
@@ -774,7 +778,7 @@ Returns:
     memset(CompressionSect2->CommonHeader.Size, 0xff, sizeof(UINT8) * 3);
     CompressionSect2->CommonHeader.Type         = EFI_SECTION_COMPRESSION;
     CompressionSect2->CommonHeader.ExtendedSize = TotalLength;
-    CompressionSect2->CompressionType           = SectCompSubType;
+    CompressionSect2->CompressionType           = (SectCompSubType == EFI_NOT_COMPRESSED) ? SectCompSubType : EFI_STANDARD_COMPRESSION;
     CompressionSect2->UncompressedLength        = InputLength;
   } else {
     CompressionSect = (EFI_COMPRESSION_SECTION *) FileBuffer;
@@ -783,7 +787,7 @@ Returns:
     CompressionSect->CommonHeader.Size[0]  = (UINT8) (TotalLength & 0xff);
     CompressionSect->CommonHeader.Size[1]  = (UINT8) ((TotalLength & 0xff00) >> 8);
     CompressionSect->CommonHeader.Size[2]  = (UINT8) ((TotalLength & 0xff0000) >> 16);
-    CompressionSect->CompressionType       = SectCompSubType;
+    CompressionSect->CompressionType       = (SectCompSubType == EFI_NOT_COMPRESSED) ? SectCompSubType : EFI_STANDARD_COMPRESSION;
     CompressionSect->UncompressedLength    = InputLength;
   }
 
@@ -1667,6 +1671,8 @@ Returns:
       SectCompSubType = EFI_NOT_COMPRESSED;
     } else if (stricmp (CompressionName, mCompressionTypeName[EFI_STANDARD_COMPRESSION]) == 0) {
       SectCompSubType = EFI_STANDARD_COMPRESSION;
+    } else if (stricmp (CompressionName, mCompressionTypeName[TIANO_COMPRESS]) == 0) {
+      SectCompSubType = TIANO_COMPRESS;
     } else {
       Error (NULL, 0, 1003, "Invalid option value", "--compress = %s", CompressionName);
       goto Finish;
