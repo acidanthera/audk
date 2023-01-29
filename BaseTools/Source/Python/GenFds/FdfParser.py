@@ -2985,7 +2985,7 @@ class FdfParser:
 
         if self._IsKeyword("COMPRESS"):
             type = "PI_STD"
-            if self._IsKeyword("PI_STD") or self._IsKeyword("PI_NONE"):
+            if self._IsKeyword("PI_STD") or self._IsKeyword("PI_NONE") or self._IsKeyword("TIANO"):
                 type = self._Token
 
             if not self._IsToken("{"):
@@ -4054,7 +4054,7 @@ class FdfParser:
     def _GetRuleEncapsulationSection(self, theRule):
         if self._IsKeyword("COMPRESS"):
             Type = "PI_STD"
-            if self._IsKeyword("PI_STD") or self._IsKeyword("PI_NONE"):
+            if self._IsKeyword("PI_STD") or self._IsKeyword("PI_NONE") or self._IsKeyword("TIANO"):
                 Type = self._Token
 
             if not self._IsToken("{"):
