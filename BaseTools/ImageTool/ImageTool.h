@@ -61,7 +61,6 @@
 
 #define ELF_HII_SECTION_NAME ".hii"
 #define MAX_PE_ALIGNMENT     0x10000
-#define DEFAULT_PE_ALIGNMENT 0x1000
 
 #define raise() assert(false)
 

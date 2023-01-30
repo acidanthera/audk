@@ -6,7 +6,7 @@
 #include "ImageTool.h"
 
 static Elf_Ehdr  *mEhdr         = NULL;
-static Elf_Size  mPeAlignment   = DEFAULT_PE_ALIGNMENT;
+static Elf_Size  mPeAlignment   = 0x0;
 static UINT64    mSizeOfHeaders = 0x0;
 
 #if defined(EFI_TARGET64)
