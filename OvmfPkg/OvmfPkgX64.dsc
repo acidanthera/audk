@@ -35,8 +35,6 @@
 
 !include OvmfPkg/OvmfTpmDefines.dsc.inc
 
-  DEFINE TPM_CONFIG_ENABLE       = FALSE
-
   DEFINE DEBUG_ON_SERIAL_PORT = TRUE
 
   #
@@ -607,7 +605,8 @@
   gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiRuntimeServicesData|0x100
 
   #
-  # TDX need 1G PageTable support
+  # TDX needs 1G PageTable support
+  #
   gEfiMdeModulePkgTokenSpaceGuid.PcdUse1GPageTable|TRUE
 
   #
