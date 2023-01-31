@@ -180,12 +180,6 @@ ScanElf (
   IN const char *ModuleType
   );
 
-VOID
-SetHiiResourceHeader (
-  IN OUT UINT8  *Hii,
-  IN     UINT32 Offset
-  );
-
 RETURN_STATUS
 ConstructHii (
   IN  const char *FileNames[],

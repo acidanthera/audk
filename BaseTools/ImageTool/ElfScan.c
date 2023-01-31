@@ -7,10 +7,9 @@
 
 static Elf_Ehdr  *mEhdr         = NULL;
 static Elf_Size  mPeAlignment   = 0x0;
-static UINT64    mSizeOfHeaders = 0x0;
 
 #if defined(EFI_TARGET64)
-static UINT8           *mGotData      = NULL;
+// static UINT8           *mGotData      = NULL;
 static UINT32          mWGotOffset    = 0x0;
 static const Elf_Shdr  *mGOTShdr      = NULL;
 static UINT32          *mGOTPeEntries = NULL;
@@ -160,6 +159,7 @@ IsRelocShdr (
   return FALSE;
 }
 
+static
 VOID
 SetHiiResourceHeader (
   IN OUT UINT8  *Hii,
@@ -222,35 +222,7 @@ SetHiiResourceHeader (
   return;
 }
 
-static
-VOID
-FindAddress (
-  IN  UINT32 ElfIndex,
-  OUT UINT8  **SectionData,
-  OUT UINT32 *WOffset
-  )
-{
-  UINT32 Index;
-
-  assert (SectionData != NULL);
-  assert (WOffset     != NULL);
-
-  *WOffset = (UINT32)mSizeOfHeaders;
-
-  for (Index = 0; Index < mImageInfo.SegmentInfo.NumSegments; ++Index) {
-    if (mImageInfo.SegmentInfo.Segments[Index].ImageSize == ElfIndex) {
-      *SectionData = mImageInfo.SegmentInfo.Segments[Index].Data;
-      break;
-    }
-
-    *WOffset += mImageInfo.SegmentInfo.Segments[Index].DataSize;
-  }
-
-  return;
-}
-
 #if defined(EFI_TARGET64)
-static
 RETURN_STATUS
 FindElfGOTSectionFromGOTEntryElfRva (
   IN Elf_Addr GOTEntryElfRva
@@ -274,7 +246,7 @@ FindElfGOTSectionFromGOTEntryElfRva (
     if ((GOTEntryElfRva >= Shdr->sh_addr)
       && (GOTEntryElfRva < (Shdr->sh_addr + Shdr->sh_size))) {
       mGOTShdr = Shdr;
-      FindAddress (Index, &mGotData, &mWGotOffset);
+      // FindAddress (Index, &mGotData, &mWGotOffset);
       return RETURN_SUCCESS;
     }
   }
@@ -283,7 +255,6 @@ FindElfGOTSectionFromGOTEntryElfRva (
   return RETURN_VOLUME_CORRUPTED;
 }
 
-static
 RETURN_STATUS
 AccumulatePeGOTEntries (
   IN  UINT32  GOTPeEntry,
@@ -457,21 +428,15 @@ FixSegmentsSetRelocs (
   UINT32         Index;
   const Elf_Shdr *RelShdr;
   const Elf_Shdr *SecShdr;
-  UINT8          *SecData;
-  UINT32         WSecOffset;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
   const Elf_Sym  *Sym;
-  const Elf_Shdr *SymShdr;
-  UINT8          *SymData;
-  UINT32         WSymOffset;
-  UINT8          *Targ;
   UINT32         RelNum;
   UINTN          Offset;
 #if defined(EFI_TARGET64)
-  Elf_Addr       GOTEntryRva;
-  RETURN_STATUS  Status;
-  BOOLEAN        IsNew;
+  // Elf_Addr       GOTEntryRva;
+  // RETURN_STATUS  Status;
+  // BOOLEAN        IsNew;
 #endif
   RelNum = 0;
 
@@ -487,7 +452,6 @@ FixSegmentsSetRelocs (
     }
 
     SecShdr = GetShdrByIndex (RelShdr->sh_info);
-    FindAddress (RelShdr->sh_info, &SecData, &WSecOffset);
 
 #if defined(EFI_TARGET64)
     if ((RelShdr->sh_type != SHT_RELA) || (!((IsTextShdr (SecShdr)) || (IsDataShdr (SecShdr))))) {
@@ -503,9 +467,8 @@ FixSegmentsSetRelocs (
     // Process all relocation entries for this section.
     //
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
-      Rel = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
-
-      Offset = (UINTN)((Elf_Addr)WSecOffset + (Rel->r_offset - SecShdr->sh_addr));
+      Rel    = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
+      Offset = (UINTN)Rel->r_offset;
 
       //
       // Set pointer to symbol table entry associated with the relocation entry.
@@ -515,17 +478,11 @@ FixSegmentsSetRelocs (
         continue;
       }
 
-      SymShdr = GetShdrByIndex (Sym->st_shndx);
-      FindAddress (Sym->st_shndx, &SymData, &WSymOffset);
-
-      Targ = SecData + (Rel->r_offset - SecShdr->sh_addr);
-
 #if defined(EFI_TARGET64)
       switch (ELF_R_TYPE(Rel->r_info)) {
         case R_X86_64_NONE:
           break;
         case R_X86_64_64:
-          WriteUnaligned64 ((UINT64 *)Targ, ReadUnaligned64((UINT64 *)Targ) - SymShdr->sh_addr + WSymOffset);
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
           mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
@@ -533,7 +490,6 @@ FixSegmentsSetRelocs (
 
           break;
         case R_X86_64_32:
-          WriteUnaligned32 ((UINT32 *)Targ, (UINT32)((UINT64)ReadUnaligned32((UINT32 *)Targ) - SymShdr->sh_addr + WSymOffset));
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
           mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
@@ -541,41 +497,38 @@ FixSegmentsSetRelocs (
 
           break;
         case R_X86_64_32S:
-          *(INT32 *)Targ = (INT32)((INT64)(*(INT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
-          break;
         case R_X86_64_PLT32:
         case R_X86_64_PC32:
-          WriteUnaligned32 ((UINT32 *)Targ, (UINT32)(ReadUnaligned32((UINT32 *)Targ) + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr)));
           break;
         case R_X86_64_GOTPCREL:
         case R_X86_64_GOTPCRELX:
         case R_X86_64_REX_GOTPCRELX:
-          GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
-
-          Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
-          if (RETURN_ERROR (Status)) {
-            return Status;
-          }
-
-          WriteUnaligned32 ((UINT32 *)Targ, (UINT32)(ReadUnaligned32((UINT32 *)Targ) + (mWGotOffset - mGOTShdr->sh_addr) - (WSecOffset - SecShdr->sh_addr)));
+          // GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
           //
-          // ELF Rva -> Offset in PE GOT
+          // Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
+          // if (RETURN_ERROR (Status)) {
+          //   return Status;
+          // }
           //
-          GOTEntryRva -= mGOTShdr->sh_addr;
-
-          Status = AccumulatePeGOTEntries ((UINT32)GOTEntryRva, &IsNew);
-          if (RETURN_ERROR (Status)) {
-            return Status;
-          }
-
-          if (IsNew) {
-            //
-            // Relocate GOT entry if it's the first time we run into it
-            //
-            Targ = mGotData + GOTEntryRva;
-
-            WriteUnaligned64 ((UINT64 *)Targ, ReadUnaligned64((UINT64 *)Targ) - SymShdr->sh_addr + WSymOffset);
-          }
+          // WriteUnaligned32 ((UINT32 *)Targ, (UINT32)(ReadUnaligned32((UINT32 *)Targ) + (mWGotOffset - mGOTShdr->sh_addr) - (WSecOffset - SecShdr->sh_addr)));
+          // //
+          // // ELF Rva -> Offset in PE GOT
+          // //
+          // GOTEntryRva -= mGOTShdr->sh_addr;
+          //
+          // Status = AccumulatePeGOTEntries ((UINT32)GOTEntryRva, &IsNew);
+          // if (RETURN_ERROR (Status)) {
+          //   return Status;
+          // }
+          //
+          // if (IsNew) {
+          //   //
+          //   // Relocate GOT entry if it's the first time we run into it
+          //   //
+          //   Targ = mGotData + GOTEntryRva;
+          //
+          //   WriteUnaligned64 ((UINT64 *)Targ, ReadUnaligned64((UINT64 *)Targ) - SymShdr->sh_addr + WSymOffset);
+          // }
           break;
         default:
           fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
@@ -586,7 +539,6 @@ FixSegmentsSetRelocs (
         case R_386_NONE:
           break;
         case R_386_32:
-          WriteUnaligned32 ((UINT32 *)Targ, ReadUnaligned32((UINT32 *)Targ) - SymShdr->sh_addr + WSymOffset);
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
           mImageInfo.RelocInfo.Relocs[RelNum].Target = Offset;
@@ -595,7 +547,6 @@ FixSegmentsSetRelocs (
           break;
         case R_386_PLT32:
         case R_386_PC32:
-          WriteUnaligned32 ((UINT32 *)Targ, (UINT32)(ReadUnaligned32((UINT32 *)Targ) + (WSymOffset - WSecOffset) - (SymShdr->sh_addr - SecShdr->sh_addr)));
           break;
         default:
           fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
@@ -617,54 +568,14 @@ FixAddresses (
   )
 {
   RETURN_STATUS  Status;
-  UINT32         Index;
-  const Elf_Shdr *Shdr;
-  UINT64         Pointer;
 #if defined(EFI_TARGET64)
+  UINT32         Index;
   UINT32         NewSize;
 #endif
-
-  mSizeOfHeaders = sizeof (EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS) +
-    EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY) +
-    mImageInfo.SegmentInfo.NumSegments * sizeof (EFI_IMAGE_SECTION_HEADER);
-
-  if (mImageInfo.RelocInfo.Relocs != NULL) {
-    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  if (mImageInfo.DebugInfo.SymbolsPath != NULL) {
-    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  if (mImageInfo.HiiInfo.Data != NULL) {
-    mSizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  mSizeOfHeaders = ALIGN_VALUE (mSizeOfHeaders, mPeAlignment);
 
   Status = FixSegmentsSetRelocs ();
   if (RETURN_ERROR (Status)) {
     return Status;
-  }
-
-  Pointer = mSizeOfHeaders;
-
-  for (Index = 0; Index < mImageInfo.SegmentInfo.NumSegments; ++Index) {
-    Shdr = GetShdrByIndex (mImageInfo.SegmentInfo.Segments[Index].ImageSize);
-
-    if ((mEhdr->e_entry >= Shdr->sh_addr)
-    && ((mEhdr->e_entry - Shdr->sh_addr) < Shdr->sh_size)) {
-      mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)Pointer + (uint32_t)(mEhdr->e_entry - Shdr->sh_addr);
-    }
-
-    mImageInfo.SegmentInfo.Segments[Index].ImageAddress = Pointer;
-    mImageInfo.SegmentInfo.Segments[Index].ImageSize    = mImageInfo.SegmentInfo.Segments[Index].DataSize;
-
-    Pointer += mImageInfo.SegmentInfo.Segments[Index].DataSize;
-  }
-
-  if (mImageInfo.HiiInfo.Data != NULL) {
-    SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Pointer);
   }
 
 #if defined(EFI_TARGET64)
@@ -700,6 +611,7 @@ CreateIntermediate (
   const Elf_Rel        *Rel;
   UINTN                RIndex;
   char                 *Name;
+  UINT64               Pointer;
 
   Segments = NULL;
   SIndex   = 0;
@@ -763,6 +675,10 @@ CreateIntermediate (
 
     mImageInfo.RelocInfo.Relocs = Relocs;
   }
+  //
+  // Assume 4K alignment, which must be enough for all PE headers.
+  //
+  Pointer = mPeAlignment;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -791,12 +707,13 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
 
-      Segments[SIndex].ImageAddress = 0;
-      Segments[SIndex].ImageSize    = Index; // Will be needed by FindAddress()
+      Segments[SIndex].ImageAddress = Pointer;
+      Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = false;
       Segments[SIndex].Execute      = true;
       Segments[SIndex].Type         = ToolImageSectionTypeCode;
+      Pointer                      += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -827,12 +744,13 @@ CreateIntermediate (
         memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
       }
 
-      Segments[SIndex].ImageAddress = 0;
-      Segments[SIndex].ImageSize    = Index; // Will be needed by FindAddress()
+      Segments[SIndex].ImageAddress = Pointer;
+      Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = true;
       Segments[SIndex].Execute      = false;
       Segments[SIndex].Type         = ToolImageSectionTypeInitialisedData;
+      Pointer                      += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -848,6 +766,8 @@ CreateIntermediate (
 
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
+        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Pointer);
+        Pointer += mImageInfo.HiiInfo.DataSize;
       }
     }
   }
@@ -879,7 +799,7 @@ ScanElf (
   memset (&mImageInfo, 0, sizeof (mImageInfo));
 
   mImageInfo.HeaderInfo.PreferredAddress  = 0;
-  mImageInfo.HeaderInfo.EntryPointAddress = 0;
+  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)mEhdr->e_entry;
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
