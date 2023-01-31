@@ -466,91 +466,6 @@ ScanPeGetHiiInfo (
   return true;
 }
 
-static
-bool
-FixAddresses (
-  IN OUT image_tool_image_info_t *Image
-  )
-{
-  UINT64               SizeOfHeaders;
-  UINT64               Delta;
-  UINT32               Index;
-  UINT32               IndexS;
-  image_tool_segment_t *Segment;
-  image_tool_reloc_t   *Reloc;
-  UINT8                *Fixup;
-  UINT32               Fixup32;
-  UINT64               Fixup64;
-
-  assert (Image   != NULL);
-
-  SizeOfHeaders = sizeof (EFI_IMAGE_DOS_HEADER) + sizeof (EFI_IMAGE_NT_HEADERS) +
-    EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY) +
-    Image->SegmentInfo.NumSegments * sizeof (EFI_IMAGE_SECTION_HEADER);
-
-  if (Image->RelocInfo.Relocs != NULL) {
-    SizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  if (Image->DebugInfo.SymbolsPath != NULL) {
-    SizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  if (Image->HiiInfo.Data != NULL) {
-    SizeOfHeaders += sizeof (EFI_IMAGE_SECTION_HEADER);
-  }
-
-  SizeOfHeaders = ALIGN_VALUE (SizeOfHeaders, Image->SegmentInfo.SegmentAlignment);
-  if (SizeOfHeaders == Image->SegmentInfo.Segments[0].ImageAddress) {
-    return true;
-  }
-
-  Delta = Image->SegmentInfo.Segments[0].ImageAddress - SizeOfHeaders;
-
-  Image->HeaderInfo.EntryPointAddress -= (UINT32)Delta;
-
-  for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-    Image->SegmentInfo.Segments[Index].ImageAddress -= Delta;
-  }
-
-  if (Image->RelocInfo.Relocs != NULL) {
-    Segment = Image->SegmentInfo.Segments;
-    Reloc   = Image->RelocInfo.Relocs;
-
-    for (Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
-      Reloc[Index].Target -= (UINT32)Delta;
-
-      for (IndexS = 0; IndexS < Image->SegmentInfo.NumSegments; ++IndexS) {
-        if ((Reloc[Index].Target >= Segment[IndexS].ImageAddress)
-          && ((Reloc[Index].Target - Segment[IndexS].ImageAddress) < Segment[IndexS].ImageSize)) {
-            Fixup = Segment[IndexS].Data + (Reloc[Index].Target - Segment[IndexS].ImageAddress);
-            switch (Reloc[Index].Type) {
-              case EFI_IMAGE_REL_BASED_HIGHLOW:
-                Fixup32  = ReadUnaligned32 ((CONST VOID *) Fixup);
-                Fixup32 -= (UINT32)Delta;
-                WriteUnaligned32 ((VOID *) Fixup, Fixup32);
-                break;
-              case EFI_IMAGE_REL_BASED_DIR64:
-                Fixup64  = ReadUnaligned64 ((CONST VOID *) Fixup);
-                Fixup64 -= Delta;
-                WriteUnaligned64 ((VOID *) Fixup, Fixup64);
-                break;
-              default:
-                fprintf (stderr, "ImageTool: Unknown relocation type %u\n", Reloc[Index].Type);
-                return false;
-            }
-        }
-      }
-    }
-  }
-
-  if (Image->HiiInfo.Data != NULL) {
-    SetHiiResourceHeader (Image->HiiInfo.Data, (UINT32)(0ULL - Delta));
-  }
-
-  return true;
-}
-
 bool
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
@@ -590,8 +505,6 @@ ToolContextConstructPe (
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
     return false;
   }
-
-  Result = FixAddresses (Image);
 
   return Result;
 }
