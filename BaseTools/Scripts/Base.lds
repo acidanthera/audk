@@ -15,7 +15,10 @@ SECTIONS {
 
   .text CONSTANT(MAXPAGESIZE) : {
     *(.text .text.* .stub .gnu.linkonce.t.*)
-    *(.rodata .rodata.* .gnu.linkonce.r.*)
+  }
+
+  .rodata : ALIGN(CONSTANT(MAXPAGESIZE)) {
+    *(.rodata .rodata.* .data.rel.ro .data.rel.ro.* .gnu.linkonce.r.*)
     *(.got .got.*)
 
     /*
