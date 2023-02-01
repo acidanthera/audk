@@ -13,7 +13,7 @@
 
 SECTIONS {
 
-  .text CONSTANT(MAXPAGESIZE) : {
+  .text CONSTANT(MAXPAGESIZE) : ALIGN(CONSTANT(MAXPAGESIZE)) {
     *(.text .text.* .stub .gnu.linkonce.t.*)
   }
 
