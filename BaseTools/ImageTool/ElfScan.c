@@ -620,18 +620,6 @@ CreateIntermediate (
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
-    if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr)) || (IsHiiRsrcShdr (Shdr))) {
-      if ((Shdr->sh_addralign == 0) || (Shdr->sh_addralign == 1)) {
-        fprintf (stderr, "ImageTool: Alignment field is invalid\n");
-        return RETURN_VOLUME_CORRUPTED;
-      }
-
-      if (!IS_ALIGNED(Shdr->sh_addr, Shdr->sh_addralign)) {
-        fprintf (stderr, "ImageTool: Section address not aligned to its own alignment\n");
-        return RETURN_VOLUME_CORRUPTED;
-      }
-    }
-
     if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr))) {
       ++mImageInfo.SegmentInfo.NumSegments;
     }
