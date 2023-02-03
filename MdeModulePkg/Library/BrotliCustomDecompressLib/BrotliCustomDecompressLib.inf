@@ -76,3 +76,12 @@
   DebugLib
   BaseMemoryLib
   ExtractGuidedSectionLib
+
+[BuildOptions]
+  #
+  # Disables the following Visual Studio compiler warnings brought by brotli source,
+  # so we do not break the build with /WX option:
+  #   C4559: 'function' : redefinition; the function gains __declspec(restrict)
+  #
+  MSFT:*_*_IA32_CC_FLAGS   = /wd4559
+  MSFT:*_*_X64_CC_FLAGS    = /wd4559
