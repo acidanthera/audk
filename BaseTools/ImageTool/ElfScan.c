@@ -5,17 +5,8 @@
 
 #include "ImageTool.h"
 
-static Elf_Ehdr  *mEhdr         = NULL;
-static Elf_Size  mPeAlignment   = 0x0;
-
-#if defined(EFI_TARGET64)
-// static UINT8           *mGotData      = NULL;
-static UINT32          mWGotOffset    = 0x0;
-static const Elf_Shdr  *mGOTShdr      = NULL;
-static UINT32          *mGOTPeEntries = NULL;
-static UINT32          mGOTMaxEntries = 0;
-static UINT32          mGOTNumEntries = 0;
-#endif
+static Elf_Ehdr  *mEhdr       = NULL;
+static Elf_Size  mPeAlignment = 0x0;
 
 #if defined (_MSC_EXTENSIONS)
 #define EFI_IMAGE_MACHINE_IA32            0x014C
@@ -41,7 +32,6 @@ GetShdrByIndex (
   return (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
 }
 
-static
 Elf_Sym *
 GetSymbol (
   IN UINT32 TableIndex,
@@ -60,13 +50,18 @@ GetSymbol (
 static
 char *
 GetString (
-  IN UINT32 Offset
+  IN UINT32 Offset,
+  IN UINT32 Index
   )
 {
   const Elf_Shdr *Shdr;
   char           *String;
 
-  Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
+  if (Index == 0) {
+    Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
+  } else {
+    Shdr = GetShdrByIndex (Index);
+  }
 
   if (Offset >= Shdr->sh_size) {
     fprintf (stderr, "ImageTool: Invalid ELF string offset\n");
@@ -118,45 +113,6 @@ IsDataShdr (
 
   return (((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE))
            && ((Shdr->sh_type == SHT_PROGBITS) || (Shdr->sh_type == SHT_NOBITS)));
-}
-
-static
-BOOLEAN
-IsRelocShdr (
-  IN const Elf_Shdr *Shdr
-  )
-{
-  const Elf_Shdr *SecShdr;
-  const Elf_Rel  *Rel;
-  UINTN          Index;
-
-  assert (Shdr != NULL);
-
-  if ((Shdr->sh_type != SHT_REL) && (Shdr->sh_type != SHT_RELA)) {
-    return FALSE;
-  }
-
-  SecShdr = GetShdrByIndex (Shdr->sh_info);
-
-  if ((!IsTextShdr (SecShdr)) && (!IsDataShdr (SecShdr))) {
-    return FALSE;
-  }
-
-  for (Index = 0; Index < Shdr->sh_size; Index += (UINTN)Shdr->sh_entsize) {
-    Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + Index);
-#if defined(EFI_TARGET64)
-    if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
-      || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)) {
-      return TRUE;
-    }
-#elif defined(EFI_TARGET32)
-    if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
-      return TRUE;
-    }
-#endif
-  }
-
-  return FALSE;
 }
 
 static
@@ -221,83 +177,6 @@ SetHiiResourceHeader (
 
   return;
 }
-
-#if defined(EFI_TARGET64)
-RETURN_STATUS
-FindElfGOTSectionFromGOTEntryElfRva (
-  IN Elf_Addr GOTEntryElfRva
-  )
-{
-  UINT32         Index;
-  const Elf_Shdr *Shdr;
-
-  if (mGOTShdr != NULL) {
-    if ((GOTEntryElfRva >= mGOTShdr->sh_addr)
-      && (GOTEntryElfRva < (mGOTShdr->sh_addr + mGOTShdr->sh_size))) {
-      return RETURN_SUCCESS;
-    }
-
-    fprintf (stderr, "ImageTool: GOT entries found in multiple sections\n");
-    return RETURN_UNSUPPORTED;
-  }
-
-  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex(Index);
-    if ((GOTEntryElfRva >= Shdr->sh_addr)
-      && (GOTEntryElfRva < (Shdr->sh_addr + Shdr->sh_size))) {
-      mGOTShdr = Shdr;
-      // FindAddress (Index, &mGotData, &mWGotOffset);
-      return RETURN_SUCCESS;
-    }
-  }
-
-  fprintf (stderr, "ImageTool: ElfRva 0x%016llx for GOT entry not found in any section\n", GOTEntryElfRva);
-  return RETURN_VOLUME_CORRUPTED;
-}
-
-RETURN_STATUS
-AccumulatePeGOTEntries (
-  IN  UINT32  GOTPeEntry,
-  OUT BOOLEAN *IsNew
-  )
-{
-  UINT32 Index;
-
-  assert (IsNew != NULL);
-
-  if (mGOTPeEntries != NULL) {
-    for (Index = 0; Index < mGOTNumEntries; ++Index) {
-      if (mGOTPeEntries[Index] == GOTPeEntry) {
-        *IsNew = FALSE;
-        return RETURN_SUCCESS;
-      }
-    }
-  }
-
-  if (mGOTPeEntries == NULL) {
-    mGOTMaxEntries = 5;
-    mGOTNumEntries = 0;
-    mGOTPeEntries  = calloc (1, mGOTMaxEntries * sizeof (*mGOTPeEntries));
-    if (mGOTPeEntries == NULL) {
-      fprintf (stderr, "ImageTool: Could not allocate memory for mGOTPeEntries\n");
-      return RETURN_OUT_OF_RESOURCES;
-    }
-  } else if (mGOTNumEntries == mGOTMaxEntries) {
-    mGOTMaxEntries *= 2;
-    mGOTPeEntries   = realloc (mGOTPeEntries, mGOTMaxEntries * sizeof (*mGOTPeEntries));
-    if (mGOTPeEntries == NULL) {
-      fprintf (stderr, "ImageTool: Could not reallocate memory for mGOTPeEntries\n");
-      return RETURN_OUT_OF_RESOURCES;
-    }
-  }
-
-  mGOTPeEntries[mGOTNumEntries] = mWGotOffset + GOTPeEntry;
-  ++mGOTNumEntries;
-  *IsNew = TRUE;
-
-  return RETURN_SUCCESS;
-}
-#endif
 
 static
 RETURN_STATUS
@@ -421,22 +300,18 @@ ReadElfFile (
 
 static
 RETURN_STATUS
-FixSegmentsSetRelocs (
+SetRelocs (
   VOID
   )
 {
   UINT32         Index;
   const Elf_Shdr *RelShdr;
-  const Elf_Shdr *SecShdr;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
-  const Elf_Sym  *Sym;
   UINT32         RelNum;
-  UINTN          Offset;
 #if defined(EFI_TARGET64)
-  // Elf_Addr       GOTEntryRva;
-  // RETURN_STATUS  Status;
-  // BOOLEAN        IsNew;
+  UINT32         Index2;
+  BOOLEAN        New;
 #endif
   RelNum = 0;
 
@@ -447,52 +322,41 @@ FixSegmentsSetRelocs (
       continue;
     }
 
-    if (RelShdr->sh_info == 0) {
-      continue;
-    }
-
-    SecShdr = GetShdrByIndex (RelShdr->sh_info);
-
-#if defined(EFI_TARGET64)
-    if ((RelShdr->sh_type != SHT_RELA) || (!((IsTextShdr (SecShdr)) || (IsDataShdr (SecShdr))))) {
-      continue;
-    }
-#elif defined(EFI_TARGET32)
-    if ((RelShdr->sh_type != SHT_REL) || (!((IsTextShdr (SecShdr)) || (IsDataShdr (SecShdr))))) {
-      continue;
-    }
-#endif
-
-    //
-    // Process all relocation entries for this section.
-    //
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
-      Rel    = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
-      Offset = (UINTN)Rel->r_offset;
-
-      //
-      // Set pointer to symbol table entry associated with the relocation entry.
-      //
-      Sym = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
-      if ((Sym->st_shndx == SHN_UNDEF) || (Sym->st_shndx >= mEhdr->e_shnum)) {
-        continue;
-      }
+      Rel = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
 
 #if defined(EFI_TARGET64)
       switch (ELF_R_TYPE(Rel->r_info)) {
         case R_X86_64_NONE:
           break;
+        case R_X86_64_RELATIVE:
+          New = TRUE;
+
+          for (Index2 = 0; Index2 < RelNum; ++Index2) {
+            if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+              New = FALSE;
+            }
+          }
+
+          if (New) {
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            ++RelNum;
+            ++mImageInfo.RelocInfo.NumRelocs;
+          }
+
+          break;
         case R_X86_64_64:
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
+          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
           ++RelNum;
 
           break;
         case R_X86_64_32:
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
+          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
           ++RelNum;
 
           break;
@@ -503,32 +367,6 @@ FixSegmentsSetRelocs (
         case R_X86_64_GOTPCREL:
         case R_X86_64_GOTPCRELX:
         case R_X86_64_REX_GOTPCRELX:
-          // GOTEntryRva = Rel->r_offset - Rel->r_addend + *(INT32 *)Targ;
-          //
-          // Status = FindElfGOTSectionFromGOTEntryElfRva (GOTEntryRva);
-          // if (RETURN_ERROR (Status)) {
-          //   return Status;
-          // }
-          //
-          // WriteUnaligned32 ((UINT32 *)Targ, (UINT32)(ReadUnaligned32((UINT32 *)Targ) + (mWGotOffset - mGOTShdr->sh_addr) - (WSecOffset - SecShdr->sh_addr)));
-          // //
-          // // ELF Rva -> Offset in PE GOT
-          // //
-          // GOTEntryRva -= mGOTShdr->sh_addr;
-          //
-          // Status = AccumulatePeGOTEntries ((UINT32)GOTEntryRva, &IsNew);
-          // if (RETURN_ERROR (Status)) {
-          //   return Status;
-          // }
-          //
-          // if (IsNew) {
-          //   //
-          //   // Relocate GOT entry if it's the first time we run into it
-          //   //
-          //   Targ = mGotData + GOTEntryRva;
-          //
-          //   WriteUnaligned64 ((UINT64 *)Targ, ReadUnaligned64((UINT64 *)Targ) - SymShdr->sh_addr + WSymOffset);
-          // }
           break;
         default:
           fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
@@ -541,7 +379,7 @@ FixSegmentsSetRelocs (
         case R_386_32:
 
           mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = Offset;
+          mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
           ++RelNum;
 
           break;
@@ -563,42 +401,6 @@ FixSegmentsSetRelocs (
 
 static
 RETURN_STATUS
-FixAddresses (
-  VOID
-  )
-{
-  RETURN_STATUS  Status;
-#if defined(EFI_TARGET64)
-  UINT32         Index;
-  UINT32         NewSize;
-#endif
-
-  Status = FixSegmentsSetRelocs ();
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
-
-#if defined(EFI_TARGET64)
-  if (mGOTPeEntries != NULL) {
-    NewSize = (mImageInfo.RelocInfo.NumRelocs + mGOTNumEntries) * sizeof (*mImageInfo.RelocInfo.Relocs);
-
-    mImageInfo.RelocInfo.Relocs = realloc (mImageInfo.RelocInfo.Relocs, NewSize);
-    if (mImageInfo.RelocInfo.Relocs == NULL) {
-      fprintf (stderr, "ImageTool: Could not reallocate memory for Relocs\n");
-      return RETURN_OUT_OF_RESOURCES;
-    }
-
-    for (Index = 0; Index < mGOTNumEntries; ++Index) {
-      mImageInfo.RelocInfo.Relocs[mImageInfo.RelocInfo.NumRelocs + Index].Type   = EFI_IMAGE_REL_BASED_DIR64;
-      mImageInfo.RelocInfo.Relocs[mImageInfo.RelocInfo.NumRelocs + Index].Target = mGOTPeEntries[Index];
-    }
-  }
-#endif
-  return RETURN_SUCCESS;
-}
-
-static
-RETURN_STATUS
 CreateIntermediate (
   VOID
   )
@@ -612,25 +414,32 @@ CreateIntermediate (
   UINTN                RIndex;
   char                 *Name;
   UINT64               Pointer;
+  UINT32               NumRelat;
 
   Segments = NULL;
   SIndex   = 0;
   Relocs   = NULL;
+  NumRelat = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
     if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr))) {
       ++mImageInfo.SegmentInfo.NumSegments;
+      continue;
     }
 
-    if (IsRelocShdr (Shdr)) {
+    if ((Shdr->sh_type == SHT_REL) || (Shdr->sh_type == SHT_RELA)) {
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
 #if defined(EFI_TARGET64)
         if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
           || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)) {
           ++mImageInfo.RelocInfo.NumRelocs;
+        }
+
+        if (ELF_R_TYPE(Rel->r_info) == R_X86_64_RELATIVE) {
+          ++NumRelat;
         }
 #elif defined(EFI_TARGET32)
         if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
@@ -655,7 +464,7 @@ CreateIntermediate (
   mImageInfo.SegmentInfo.Segments = Segments;
 
   if (mImageInfo.RelocInfo.NumRelocs != 0) {
-    Relocs = calloc (1, sizeof (*Relocs) * mImageInfo.RelocInfo.NumRelocs);
+    Relocs = calloc (1, sizeof (*Relocs) * (mImageInfo.RelocInfo.NumRelocs + NumRelat));
     if (Relocs == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Relocs\n");
       return RETURN_OUT_OF_RESOURCES;
@@ -672,7 +481,7 @@ CreateIntermediate (
     Shdr = GetShdrByIndex (Index);
 
     if (IsTextShdr (Shdr)) {
-      Name = GetString (Shdr->sh_name);
+      Name = GetString (Shdr->sh_name, 0);
       if (Name == NULL) {
         return RETURN_VOLUME_CORRUPTED;
       }
@@ -707,7 +516,7 @@ CreateIntermediate (
     }
 
     if (IsDataShdr (Shdr)) {
-      Name = GetString (Shdr->sh_name);
+      Name = GetString (Shdr->sh_name, 0);
       if (Name == NULL) {
         return RETURN_VOLUME_CORRUPTED;
       }
@@ -762,7 +571,7 @@ CreateIntermediate (
 
   assert (SIndex == mImageInfo.SegmentInfo.NumSegments);
 
-  return FixAddresses();
+  return SetRelocs();
 }
 
 RETURN_STATUS
@@ -859,11 +668,6 @@ ScanElf (
     ToolImageDestruct (&mImageInfo);
   }
 
-#if defined(EFI_TARGET64)
-  if (mGOTPeEntries != NULL) {
-    free (mGOTPeEntries);
-  }
-#endif
   free (mEhdr);
 
   return Status;
