@@ -24,6 +24,31 @@
 global ASM_PFX(__ashrdi3)
 ASM_PFX(__ashrdi3):
     cmp cl,0x40
+    jnc ReturnZero
+    cmp cl,0x20
+    jnc CounterMore32
+    shrd eax,edx,cl
+    sar edx,cl
+    ret
+CounterMore32:
+    mov eax,edx
+    xor edx,edx
+    and cl,0x1f
+    sar eax,cl
+    ret
+ReturnZero:
+    xor eax,eax
+    xor edx,edx
+    ret
+
+;------------------------------------------------------------------------------
+;
+; void __cdecl __lshrdi3 (void)
+;
+;------------------------------------------------------------------------------
+global ASM_PFX(__lshrdi3)
+ASM_PFX(__lshrdi3):
+    cmp cl,0x40
     jnc _Exit
     cmp cl,0x20
     jnc More32
@@ -40,4 +65,3 @@ _Exit:
     xor eax,eax
     xor edx,edx
     ret
-
