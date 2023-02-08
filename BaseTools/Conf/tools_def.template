@@ -3033,9 +3033,9 @@ RELEASE_XCODE5_IA32_CC_FLAGS   = -arch i386 -c    -Os       -Wall -Werror -inclu
 ##################
 # X64 definitions
 ##################
-  DEBUG_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
-  NOOPT_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
-RELEASE_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+  DEBUG_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+  NOOPT_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+RELEASE_XCODE5_X64_DLINK_FLAGS = DEF(XCODE5_RODATA_ARGS) -arch x86_64 -u _$(IMAGE_ENTRY_POINT) -e _$(IMAGE_ENTRY_POINT) -preload -segalign 0x1000  -pie -all_load -dead_strip -seg1addr 0x1000 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
 
 *_XCODE5_X64_SLINK_FLAGS      = -static -o
   DEBUG_XCODE5_X64_ASM_FLAGS  = -arch x86_64 -g
