@@ -298,6 +298,25 @@ ReadElfFile (
   return RETURN_SUCCESS;
 }
 
+INT32
+GetValue (
+  IN UINT64 Offset
+  )
+{
+  UINT32 Index;
+
+  for (Index = 0; Index < mImageInfo.SegmentInfo.NumSegments; ++Index) {
+    if ((Offset >= mImageInfo.SegmentInfo.Segments[Index].ImageAddress)
+      && (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress < mImageInfo.SegmentInfo.Segments[Index].ImageSize)) {
+      return (INT32)ReadUnaligned32 (
+        (UINT32 *)(mImageInfo.SegmentInfo.Segments[Index].Data + (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress))
+        );
+    }
+  }
+
+  return 0;
+}
+
 static
 RETURN_STATUS
 SetRelocs (
@@ -312,6 +331,7 @@ SetRelocs (
 #if defined(EFI_TARGET64)
   UINT32         Index2;
   BOOLEAN        New;
+  UINT64         Offset;
 #endif
   RelNum = 0;
 
@@ -321,30 +341,31 @@ SetRelocs (
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
     }
+    //
+    // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
+    // section that applies to the entire binary, and which will have its section
+    // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
+    //
+    // In the absence of GOT based relocations,
+    // this RELA section will contain redundant R_xxx_RELATIVE relocations, one
+    // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
+    // (i.e., .rela.text and .rela.data)
+    //
+    if (RelShdr->sh_info == 0) {
+      continue;
+    }
 
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
       Rel = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
-
+      //
+      // Assume ELF virtual addresses match corresponding PE virtual adresses one to one,
+      // so we don't need to recalculate relocations computed by the linker at all r_offset's.
+      // We only need to transform ELF relocations' format into PE one.
+      //
 #if defined(EFI_TARGET64)
       switch (ELF_R_TYPE(Rel->r_info)) {
         case R_X86_64_NONE:
-          break;
         case R_X86_64_RELATIVE:
-          New = TRUE;
-
-          for (Index2 = 0; Index2 < RelNum; ++Index2) {
-            if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
-              New = FALSE;
-            }
-          }
-
-          if (New) {
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
-            ++RelNum;
-            ++mImageInfo.RelocInfo.NumRelocs;
-          }
-
           break;
         case R_X86_64_64:
 
@@ -367,6 +388,31 @@ SetRelocs (
         case R_X86_64_GOTPCREL:
         case R_X86_64_GOTPCRELX:
         case R_X86_64_REX_GOTPCRELX:
+          //
+          // Relocations of these types point to instructions' arguments containing
+          // offsets relative to RIP leading to .got entries. As sections' virtual
+          // addresses do not change during ELF->PE transform, we don't need to
+          // add them to relocations' list. But .got entries contain virtual
+          // addresses which must be updated.
+          //
+          // At r_offset the following value is stored: G + GOT + A - P.
+          // To derive .got entry address (G + GOT) compute: value - A + P.
+          //
+          New = TRUE;
+          Offset = GetValue (Rel->r_offset) - Rel->r_addend + Rel->r_offset;
+
+          for (Index2 = 0; Index2 < RelNum; ++Index2) {
+            if (((uint32_t)Offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+              New = FALSE;
+            }
+          }
+
+          if (New) {
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
+            ++RelNum;
+          }
+
           break;
         default:
           fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
@@ -394,7 +440,7 @@ SetRelocs (
     }
   }
 
-  assert (RelNum == mImageInfo.RelocInfo.NumRelocs);
+  mImageInfo.RelocInfo.NumRelocs = RelNum;
 
   return RETURN_SUCCESS;
 }
@@ -414,12 +460,12 @@ CreateIntermediate (
   UINTN                RIndex;
   char                 *Name;
   UINT64               Pointer;
-  UINT32               NumRelat;
+  UINT32               NumRelocs;
 
-  Segments = NULL;
-  SIndex   = 0;
-  Relocs   = NULL;
-  NumRelat = 0;
+  Segments  = NULL;
+  SIndex    = 0;
+  Relocs    = NULL;
+  NumRelocs = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -430,20 +476,23 @@ CreateIntermediate (
     }
 
     if ((Shdr->sh_type == SHT_REL) || (Shdr->sh_type == SHT_RELA)) {
+      if (Shdr->sh_info == 0) {
+        continue;
+      }
+
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
 #if defined(EFI_TARGET64)
         if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
-          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)) {
-          ++mImageInfo.RelocInfo.NumRelocs;
-        }
-
-        if (ELF_R_TYPE(Rel->r_info) == R_X86_64_RELATIVE) {
-          ++NumRelat;
+          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)
+          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCREL)
+          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCRELX)
+          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_REX_GOTPCRELX)) {
+          ++NumRelocs;
         }
 #elif defined(EFI_TARGET32)
         if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
-          ++mImageInfo.RelocInfo.NumRelocs;
+          ++NumRelocs;
         }
 #endif
       }
@@ -463,8 +512,8 @@ CreateIntermediate (
 
   mImageInfo.SegmentInfo.Segments = Segments;
 
-  if (mImageInfo.RelocInfo.NumRelocs != 0) {
-    Relocs = calloc (1, sizeof (*Relocs) * (mImageInfo.RelocInfo.NumRelocs + NumRelat));
+  if (NumRelocs != 0) {
+    Relocs = calloc (1, sizeof (*Relocs) * NumRelocs);
     if (Relocs == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Relocs\n");
       return RETURN_OUT_OF_RESOURCES;
