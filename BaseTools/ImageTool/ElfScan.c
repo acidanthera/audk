@@ -331,7 +331,6 @@ SetRelocs (
 #if defined(EFI_TARGET64)
   UINT32         Index2;
   BOOLEAN        New;
-  UINT64         Offset;
 #endif
   RelNum = 0;
 
@@ -339,19 +338,6 @@ SetRelocs (
     RelShdr = GetShdrByIndex (Index);
 
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
-      continue;
-    }
-    //
-    // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
-    // section that applies to the entire binary, and which will have its section
-    // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
-    //
-    // In the absence of GOT based relocations,
-    // this RELA section will contain redundant R_xxx_RELATIVE relocations, one
-    // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
-    // (i.e., .rela.text and .rela.data)
-    //
-    if (RelShdr->sh_info == 0) {
       continue;
     }
 
@@ -365,13 +351,31 @@ SetRelocs (
 #if defined(EFI_TARGET64)
       switch (ELF_R_TYPE(Rel->r_info)) {
         case R_X86_64_NONE:
-        case R_X86_64_RELATIVE:
           break;
+        case R_X86_64_RELATIVE:
         case R_X86_64_64:
+          //
+          // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
+          // section that applies to the entire binary, and which will have its section
+          // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
+          //
+          // This RELA section will contain redundant R_xxx_RELATIVE relocations, one
+          // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
+          // (i.e., .rela.text and .rela.data) and .got entries' addresses (G + GOT).
+          //
+          New = TRUE;
 
-          mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
-          ++RelNum;
+          for (Index2 = 0; Index2 < RelNum; ++Index2) {
+            if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+              New = FALSE;
+            }
+          }
+
+          if (New) {
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            ++RelNum;
+          }
 
           break;
         case R_X86_64_32:
@@ -398,21 +402,10 @@ SetRelocs (
           // At r_offset the following value is stored: G + GOT + A - P.
           // To derive .got entry address (G + GOT) compute: value - A + P.
           //
-          New = TRUE;
-          Offset = GetValue (Rel->r_offset) - Rel->r_addend + Rel->r_offset;
-
-          for (Index2 = 0; Index2 < RelNum; ++Index2) {
-            if (((uint32_t)Offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
-              New = FALSE;
-            }
-          }
-
-          if (New) {
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Offset;
-            ++RelNum;
-          }
-
+          // Such a method of finding relocatable .got entries can not be used,
+          // due to a BUG in clang compiler, which sometimes generates
+          // R_X86_64_REX_GOTPCRELX relocations instead of R_X86_64_PC32.
+          //
           break;
         default:
           fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
