@@ -75,6 +75,7 @@
   HobLib|MdeModulePkg/Library/BaseHobLibNull/BaseHobLibNull.inf
   MemoryAllocationLib|MdeModulePkg/Library/BaseMemoryAllocationLibNull/BaseMemoryAllocationLibNull.inf
   PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLib/PeiServicesTablePointerLib.inf
+  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
 
 [LibraryClasses.common.SEC]
   PlatformSecLib|UefiCpuPkg/Library/PlatformSecLibNull/PlatformSecLibNull.inf
@@ -132,6 +133,9 @@
   UefiCpuPkg/Library/SecPeiDxeTimerLibUefiCpu/SecPeiDxeTimerLibUefiCpu.inf
   UefiCpuPkg/Library/MmUnblockMemoryLib/MmUnblockMemoryLib.inf
   UefiCpuPkg/Library/CpuExceptionHandlerLib/DxeCpuExceptionHandlerLib.inf
+
+[Components.IA32]
+  CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
 
 [Components.IA32, Components.X64]
   UefiCpuPkg/Application/Cpuid/Cpuid.inf
