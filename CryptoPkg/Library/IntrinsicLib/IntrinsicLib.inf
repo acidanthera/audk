@@ -27,6 +27,7 @@
 [Sources.IA32]
   CopyMem.c
 
+  Ia32/MathDivU64xU64Rem.c  | MSFT
   Ia32/MathLShiftS64.c      | MSFT
   Ia32/MathRShiftU64.c      | MSFT
   Ia32/MathFtol.c           | MSFT
@@ -37,6 +38,7 @@
   Ia32/MathLldiv.asm        | MSFT
   Ia32/MathUllrem.asm       | MSFT
 
+  Ia32/MathDivU64xU64Rem.c  | INTEL
   Ia32/MathLShiftS64.c      | INTEL
   Ia32/MathRShiftU64.c      | INTEL
   Ia32/MathFtol.c           | INTEL
