@@ -58,3 +58,5 @@
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
 
+[BuildOptions]
+  *_*_*_NASM_FLAGS  = -DCEHL_MINIMAL_INTERRUPTS

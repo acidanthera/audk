@@ -28,7 +28,7 @@
   Ia32/ArchInterruptDefs.h
 
 [Sources.X64]
-  X64/Xcode5ExceptionHandlerAsm.nasm
+  X64/ExceptionHandlerAsm.nasm
   X64/ArchExceptionHandler.c
   X64/ArchInterruptDefs.h
 
@@ -63,3 +63,6 @@
 
 [Guids]
   gEfiDebugImageInfoTableGuid  ## CONSUMES ## SystemTable
+
+[BuildOptions]
+  *_*_*_NASM_FLAGS = -DCEHL_SUPPORTS_CET
