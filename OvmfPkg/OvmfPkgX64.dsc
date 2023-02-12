@@ -35,8 +35,6 @@
 
 !include OvmfPkg/OvmfTpmDefines.dsc.inc
 
-  DEFINE DEBUG_ON_SERIAL_PORT = TRUE
-
   #
   # Shell can be useful for debugging but should not be enabled for production
   #
