@@ -119,7 +119,12 @@ PeCoffGetPdbPath (
   // Verify the Debug Directory has a well-formed size.
   //
   if (DebugDir->Size % sizeof (*DebugEntries) != 0) {
-    DEBUG_RAISE ();
+    //
+    // Some Apple-made images contain a sum of EFI_IMAGE_DEBUG_DIRECTORY_ENTRY
+    // and EFI_IMAGE_DEBUG_CODEVIEW_MTOC_ENTRY sizes in DebugDir size.
+    // Since this violates the spec and nobody but Apple has access
+    // to the DEBUG symbols, just ignore this debug information.
+    //
     return RETURN_UNSUPPORTED;
   }
   //
