@@ -3000,7 +3000,7 @@ DEFINE XCODE5_RODATA_ARGS   = DEF(XCODE5_RORELOCS_ARGS) -segprot __DATA_CONST r-
 # ASL definitions
 ##################
 *_XCODE5_*_ASLCC_FLAGS      = -x c -save-temps -g -O0 -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-missing-braces -c -include AutoGen.h
-*_XCODE5_*_ASLDLINK_FLAGS   = -e _ReferenceAcpiTable -preload -segalign 0x1000  -pie -seg1addr 0x1000 -read_only_relocs suppress -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
+*_XCODE5_*_ASLDLINK_FLAGS   = -e _ReferenceAcpiTable -preload -segalign 0x1000  -pie -seg1addr 0x1000 -map $(DEST_DIR_DEBUG)/$(BASE_NAME).map
 *_XCODE5_*_ASLPP_FLAGS      = -x c -E -include AutoGen.h
 *_XCODE5_*_ASL_FLAGS        =
 *_XCODE5_*_ASL_OUTFLAGS     = DEF(IASL_OUTFLAGS)
