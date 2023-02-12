@@ -212,6 +212,10 @@ CoreNewDebugImageInfoEntry (
     CopyMem (NewTable, Table, TableSize);
     mDebugInfoTableHeader.EfiDebugImageInfoTable = NewTable;
     //
+    // Set the first empty entry index to be the original max table entries.
+    //
+    Index = mMaxTableEntries;
+    //
     // Enlarge the max table entries.
     //
     mMaxTableEntries += EFI_PAGE_SIZE / EFI_DEBUG_TABLE_ENTRY_SIZE;
@@ -222,11 +226,7 @@ CoreNewDebugImageInfoEntry (
     //
     // Update the table header
     //
-    Table                                        = NewTable;
-    //
-    // Set the first empty entry index to be the original max table entries.
-    //
-    Index             = mMaxTableEntries;
+    Table = NewTable;
   }
 
   //
