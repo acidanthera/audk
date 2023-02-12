@@ -379,7 +379,8 @@ GetAcpi (
   NumberOfSections = PeCoffGetSectionTable (&Context, &Sections);
   for (Index = 0; Index < NumberOfSections; ++Index) {
     if ((strcmp ((char *)Sections[Index].Name, ".data") == 0)
-      || (strcmp ((char *)Sections[Index].Name, ".sdata") == 0)) {
+      || (strcmp ((char *)Sections[Index].Name, ".sdata") == 0)
+      || (strcmp ((char *)Sections[Index].Name, ".rdata") == 0)) {
 
       if (Sections[Index].VirtualSize < Sections[Index].SizeOfRawData) {
         FileLength = Sections[Index].VirtualSize;
