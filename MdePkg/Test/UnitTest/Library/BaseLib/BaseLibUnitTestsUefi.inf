@@ -31,3 +31,6 @@
   UefiApplicationEntryPoint
   DebugLib
   UnitTestLib
+
+[BuildOptions]
+  NOOPT_CLANGPDB_*_DLINK_FLAGS = /force:unresolved
