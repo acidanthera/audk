@@ -1,7 +1,7 @@
 /** @file
   Common header for the driver
 
-  Copyright (c) 2021 - 2022 Pedro Falcato All rights reserved.
+  Copyright (c) 2021 - 2023 Pedro Falcato All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -31,7 +31,7 @@
 
 #include "Ext4Disk.h"
 
-#define SYMLOOP_MAX    8
+#define SYMLOOP_MAX  8
 //
 // We need to specify path length limit for security purposes, to prevent possible
 // overflows and dead-loop conditions. Originally this limit is absent in FS design,
@@ -46,7 +46,7 @@
 // Many EXT4 implementations have size of block limited to PAGE_SIZE. In many cases it's limited
 // to 4096, which is a commonly supported page size on most MMU-capable hardware, and up to 65536.
 // So, to take a balance between compatibility and security measures, it is decided to use the
-// value of 2MiB as the limit, which is equal to page size on new hardware.
+// value of 2MiB as the limit, which is equal to large page size on new hardware.
 // As for supporting big block sizes, EXT4 has a RO_COMPAT_FEATURE called BIGALLOC, which changes
 // EXT4 to use clustered allocation, so that each bit in the ext4 block allocation bitmap addresses
 // a power of two number of blocks. So it would be wiser to implement and use this feature
@@ -169,7 +169,7 @@ Ext4UnrefDentry (
 
    @param[out]     Partition Partition structure to fill with filesystem
 details.
-   @retval EFI_SUCCESS       Parsing was succesful and the partition is a
+   @retval EFI_SUCCESS       Parsing was successful and the partition is a
                              valid ext4 partition.
 **/
 EFI_STATUS
@@ -302,19 +302,6 @@ Ext4GetBlockGroupDesc (
   );
 
 /**
-   Retrieves the first usable non-reserved inode number from the superblock
-   of the opened partition.
-
-   @param[in]  Partition      Pointer to the opened ext4 partition.
-
-   @return The first usable inode number (non-reserved).
-**/
-#define EXT4_FIRST_INODE_NR(Partition)                                         \
-  ((Partition->SuperBlock.s_rev_level == EXT4_GOOD_OLD_REV) ?                  \
-         EXT4_GOOD_OLD_FIRST_INODE_NR :                                        \
-         Partition->SuperBlock.s_first_ino)
-
-/**
    Checks inode number validity across superblock of the opened partition.
 
    @param[in]  Partition      Pointer to the opened ext4 partition.
@@ -322,9 +309,7 @@ Ext4GetBlockGroupDesc (
    @return TRUE if inode number is valid.
 **/
 #define EXT4_IS_VALID_INODE_NR(Partition, InodeNum)                            \
-  (InodeNum == EXT4_ROOT_INODE_NR ||                                           \
-        (InodeNum >= EXT4_FIRST_INODE_NR(Partition) &&                         \
-         InodeNum <= Partition->SuperBlock.s_inodes_count))
+  (((InodeNum) > 0) && (InodeNum) <= (Partition->SuperBlock.s_inodes_count))
 
 /**
    Reads an inode from disk.
@@ -361,7 +346,7 @@ Ext4ReadInode (
    @param[out]     Buffer        Pointer to the buffer.
    @param[in]      Offset        Offset of the read.
    @param[in out]  Length        Pointer to the length of the buffer, in bytes.
-                                 After a succesful read, it's updated to the
+                                 After a successful read, it's updated to the
 number of read bytes.
 
    @return Status of the read operation.
@@ -394,7 +379,7 @@ cover.
    @param[out]     Extent        Pointer to the output buffer, where the extent
 will be copied to.
 
-   @retval EFI_SUCCESS        Retrieval was succesful.
+   @retval EFI_SUCCESS        Retrieval was successful.
    @retval EFI_NO_MAPPING     Block has no mapping.
 **/
 EFI_STATUS
@@ -983,11 +968,11 @@ Ext4StrCmpInsensitive (
    Retrieves the filename of the directory entry and converts it to UTF-16/UCS-2
 
    @param[in]      Entry   Pointer to a EXT4_DIR_ENTRY.
-   @param[out]      Ucs2FileName   Pointer to an array of CHAR16's, of size
-EXT4_NAME_MAX + 1.
+   @param[out]      Ucs2FileName   Pointer to an array of CHAR16's, of size EXT4_NAME_MAX + 1.
 
-   @retval EFI_SUCCESS   Unicode collation was successfully initialised.
-   @retval !EFI_SUCCESS  Failure.
+   @retval EFI_SUCCESS              The filename was successfully retrieved and converted to UCS2.
+   @retval EFI_INVALID_PARAMETER    The filename is not valid UTF-8.
+   @retval !EFI_SUCCESS             Failure.
 **/
 EFI_STATUS
 Ext4GetUcs2DirentName (
@@ -1145,7 +1130,7 @@ Ext4CalculateBlockGroupDescChecksum (
   );
 
 /**
-   Verifies the existance of a particular RO compat feature set.
+   Verifies the existence of a particular RO compat feature set.
    @param[in]      Partition           Pointer to the opened EXT4 partition.
    @param[in]      RoCompatFeatureSet  Feature set to test.
 
@@ -1155,7 +1140,7 @@ Ext4CalculateBlockGroupDescChecksum (
   ((Partition->FeaturesRoCompat & RoCompatFeatureSet) == RoCompatFeatureSet)
 
 /**
-   Verifies the existance of a particular compat feature set.
+   Verifies the existence of a particular compat feature set.
    @param[in]      Partition           Pointer to the opened EXT4 partition.
    @param[in]      CompatFeatureSet  Feature set to test.
 
@@ -1165,7 +1150,7 @@ Ext4CalculateBlockGroupDescChecksum (
   ((Partition->FeaturesCompat & CompatFeatureSet) == CompatFeatureSet)
 
 /**
-   Verifies the existance of a particular compat feature set.
+   Verifies the existence of a particular compat feature set.
    @param[in]      Partition           Pointer to the opened EXT4 partition.
    @param[in]      IncompatFeatureSet  Feature set to test.
 
@@ -1256,7 +1241,7 @@ Ext4GetExtentLength (
    @param[in]      LogicalBlock  Block number which the returned extent must cover.
    @param[out]     Extent        Pointer to the output buffer, where the extent will be copied to.
 
-   @retval EFI_SUCCESS        Retrieval was succesful.
+   @retval EFI_SUCCESS        Retrieval was successful.
    @retval EFI_NO_MAPPING     Block has no mapping.
 **/
 EFI_STATUS

@@ -151,7 +151,7 @@ Ext4VerifySuperblockChecksum (
    Opens and parses the superblock.
 
    @param[out]     Partition Partition structure to fill with filesystem details.
-   @retval EFI_SUCCESS       Parsing was succesful and the partition is a
+   @retval EFI_SUCCESS       Parsing was successful and the partition is a
                              valid ext4 partition.
 **/
 EFI_STATUS
@@ -203,7 +203,7 @@ Ext4OpenSuperblock (
 
   // Now, check for the feature set of the filesystem
   // It's essential to check for this to avoid filesystem corruption and to avoid
-  // accidentally opening an ext2/3/4 filesystem we don't understand, which would be disasterous.
+  // accidentally opening an ext2/3/4 filesystem we don't understand, which would be disastrous.
 
   if (Partition->FeaturesIncompat & ~gSupportedIncompatFeat) {
     DEBUG ((
@@ -320,7 +320,7 @@ Ext4OpenSuperblock (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  // Note that the cast below is completely safe, because EXT4_FILE is a specialisation of EFI_FILE_PROTOCOL
+  // Note that the cast below is completely safe, because EXT4_FILE is a specialization of EFI_FILE_PROTOCOL
   Status = Ext4OpenVolume (&Partition->Interface, (EFI_FILE_PROTOCOL **)&Partition->Root);
 
   if (EFI_ERROR (Status)) {

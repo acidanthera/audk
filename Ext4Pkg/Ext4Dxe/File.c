@@ -105,7 +105,7 @@ Ext4IsLastPathSegment (
    @param[in out] File         Pointer to the file we're opening.
    @param[in]     OpenMode     Mode in which to open the file.
 
-   @return           True if the open was succesful, false if we don't have
+   @return           True if the open was successful, false if we don't have
                      enough permissions.
 **/
 STATIC

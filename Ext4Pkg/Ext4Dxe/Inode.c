@@ -76,7 +76,7 @@ Ext4CalculateInodeChecksum (
    @param[out]     Buffer        Pointer to the buffer.
    @param[in]      Offset        Offset of the read.
    @param[in out]  Length        Pointer to the length of the buffer, in bytes.
-                                 After a succesful read, it's updated to the number of read bytes.
+                                 After a successful read, it's updated to the number of read bytes.
 
    @return Status of the read operation.
 **/
