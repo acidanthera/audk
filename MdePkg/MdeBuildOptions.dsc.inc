@@ -23,7 +23,8 @@
     CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:1024 /FILEALIGN:1024
     GCC:*_*_*_DLINK_FLAGS      = -z max-page-size=0x400
     CLANGGCC:*_*_*_DLINK_FLAGS = -z max-page-size=0x400
-    XCODE:*_*_*_DLINK_FLAGS    = -seg1addr 0x400 -segalign 0x400
+    XCODE:*_*_*_DLINK_FLAGS    = -segalign 0x400 -seg1addr 0x400
+    XCODE:*_*_*_ASLDLINK_FLAGS = -segalign 0x400 -seg1addr 0x400
     XCODE:*_*_*_MTOC_FLAGS     = -align 0x400
 !endif
 
