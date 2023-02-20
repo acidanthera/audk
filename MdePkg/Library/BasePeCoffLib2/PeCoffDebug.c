@@ -70,7 +70,6 @@ PeCoffGetPdbPath (
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
       if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
 
@@ -106,7 +105,6 @@ PeCoffGetPdbPath (
       break;
 
     default:
-      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
   }
   //
@@ -136,10 +134,9 @@ PeCoffGetPdbPath (
                &DebugDirTop
                );
   if (Overflow || DebugDirTop > Context->SizeOfImage) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
-//
+  //
   // Determine the raw file offset of the Debug Directory.
   //
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
@@ -156,7 +153,6 @@ PeCoffGetPdbPath (
   // Verify the Debug Directory was found among the Image sections.
   //
   if (SectionIndex == Context->NumberOfSections) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -169,7 +165,6 @@ PeCoffGetPdbPath (
   DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectionIndex].VirtualAddress;
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
   if (DebugDirSectionRawTop > Sections[SectionIndex].SizeOfRawData) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -189,7 +184,6 @@ PeCoffGetPdbPath (
   }
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -216,7 +210,6 @@ PeCoffGetPdbPath (
   CodeViewEntry = &DebugEntries[DebugIndex];
 
   if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -229,7 +222,6 @@ PeCoffGetPdbPath (
                  &DebugEntryFileOffset
                  );
     if (Overflow) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   } else {
@@ -246,7 +238,6 @@ PeCoffGetPdbPath (
                );
   if (Overflow || DebugEntryFileOffsetTop > Context->FileSize
    || !IS_ALIGNED (DebugEntryFileOffset, ALIGNOF (UINT32))) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -285,7 +276,6 @@ PeCoffGetPdbPath (
       break;
 
     default:
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
   //
@@ -297,7 +287,6 @@ PeCoffGetPdbPath (
                &PdbNameSize
                );
   if (Overflow || PdbNameSize == 0) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -305,7 +294,6 @@ PeCoffGetPdbPath (
   //
   PdbName = CodeView + PdbOffset;
   if (PdbName[PdbNameSize - 1] != 0) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 

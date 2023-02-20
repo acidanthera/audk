@@ -187,7 +187,6 @@ PeCoffLoadImageInplaceNoBase (
                     );
     if (Sections[SectionIndex].PointerToRawData != Sections[SectionIndex].VirtualAddress
      || Sections[SectionIndex].SizeOfRawData != AlignedSize) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -245,7 +244,6 @@ PeCoffLoadImageInplace (
 
   Result = PeCoffImageIsInplace (Context);
   if (!Result) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 

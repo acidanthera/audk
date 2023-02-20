@@ -52,7 +52,6 @@ PeCoffGetHiiDataRva (
   switch (Context->ImageType) {
     case PeCoffLoaderTypeTe:
       if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-        ASSERT (FALSE);
         return RETURN_UNSUPPORTED;
       }
       //
@@ -83,7 +82,6 @@ PeCoffGetHiiDataRva (
       break;
 
     default:
-      ASSERT (FALSE);
       return RETURN_UNSUPPORTED;
   }
   //
@@ -96,7 +94,6 @@ PeCoffGetHiiDataRva (
   // Verify the start of the Resource Directory Table is sufficiently aligned.
   //
   if (!IS_ALIGNED (ResDirTable->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   // FIXME: Verify against first Image section / Headers due to XIP TE.
@@ -109,7 +106,6 @@ PeCoffGetHiiDataRva (
                &TopOffset
                );
   if (Overflow || TopOffset > Context->SizeOfImage) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -126,7 +122,6 @@ PeCoffGetHiiDataRva (
   TopOffset = sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDirEntry) *
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
   if (TopOffset > ResDirTable->Size) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -150,7 +145,6 @@ PeCoffGetHiiDataRva (
                  &TopOffset
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -158,7 +152,6 @@ PeCoffGetHiiDataRva (
     //
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
 
@@ -175,7 +168,6 @@ PeCoffGetHiiDataRva (
                  &TopOffset
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -210,7 +202,6 @@ PeCoffGetHiiDataRva (
     // with and one Relocation Directory Entry.
     //
     if (ResourceDirEntry->u2.s.OffsetToDirectory > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -218,7 +209,6 @@ PeCoffGetHiiDataRva (
     //
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -228,7 +218,6 @@ PeCoffGetHiiDataRva (
                     (CONST CHAR8 *) Context->ImageBuffer + Offset
                     );
     if ((UINT32) ResourceDir->NumberOfIdEntries + ResourceDir->NumberOfNamedEntries == 0) {
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -240,7 +229,6 @@ PeCoffGetHiiDataRva (
   // Verify the final Resource Directory Entry is of a data type.
   //
   if (ResourceDirEntry->u2.s.DataIsDirectory != 0) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -251,7 +239,6 @@ PeCoffGetHiiDataRva (
     "The following arithmetic may overflow."
     );
   if (ResourceDirEntry->u2.OffsetToData > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -259,7 +246,6 @@ PeCoffGetHiiDataRva (
   //
   Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
   if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -275,7 +261,6 @@ PeCoffGetHiiDataRva (
                &HiiRvaEnd
                );
   if (Overflow || HiiRvaEnd > Context->SizeOfImage) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
