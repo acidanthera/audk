@@ -31,6 +31,10 @@ FatDelete (
   EFI_STATUS  Status;
   UINTN       Round;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   IFile = IFILE_FROM_FHAND (FHand);
   OFile = IFile->OFile;
 
