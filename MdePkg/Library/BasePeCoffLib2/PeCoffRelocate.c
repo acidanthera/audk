@@ -270,6 +270,7 @@ InternalApplyRelocation (
                &RelocTargetRva
                );
   if (Overflow) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -279,6 +280,7 @@ InternalApplyRelocation (
                &RemRelocTargetSize
                );
   if (Overflow) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -302,6 +304,7 @@ InternalApplyRelocation (
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT32) > RemRelocTargetSize) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -310,6 +313,7 @@ InternalApplyRelocation (
       //
       if (RelocTargetRva + sizeof (UINT32) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -333,6 +337,7 @@ InternalApplyRelocation (
       // buffer.
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -341,6 +346,7 @@ InternalApplyRelocation (
       //
       if (RelocTargetRva + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -363,12 +369,14 @@ InternalApplyRelocation (
       // Verify ARM Thumb mode Base Relocations are supported.
       //
       if ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) == 0) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -376,6 +384,7 @@ InternalApplyRelocation (
       // The ARM THunb instruction pait must start on a 32-bit boundary.
       //
       if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT32))) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -383,6 +392,7 @@ InternalApplyRelocation (
       //
       if (RelocTargetRva + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
       //
@@ -402,6 +412,7 @@ InternalApplyRelocation (
       //
       // The Image Base Relocation type is unknown, disallow the Image.
       //
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
 
@@ -485,6 +496,7 @@ PeCoffRelocateImage (
                  &TopOfRelocDir
                  );
     if (Overflow) {
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
   }
@@ -504,6 +516,7 @@ PeCoffRelocateImage (
                  &SizeOfRelocs
                  );
     if (Overflow) {
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -511,6 +524,7 @@ PeCoffRelocateImage (
     // Directory.
     //
     if (SizeOfRelocs > RelocBlockOffsetMax - RelocBlockOffset) {
+      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
     }
     //
@@ -523,6 +537,7 @@ PeCoffRelocateImage (
       // Verify the next Base Relocation Block offset is sufficiently aligned.
       //
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
+        DEBUG_RAISE ();
         return RETURN_UNSUPPORTED;
       }
     } else {
@@ -577,6 +592,7 @@ PeCoffRelocateImage (
                  CurrentFixupData
                  );
       if (Status != RETURN_SUCCESS) {
+        DEBUG_RAISE ();
         return Status;
       }
     }
@@ -590,6 +606,7 @@ PeCoffRelocateImage (
   // Verify the Relocation Directory size matches the contained data.
   //
   if (RelocBlockOffset != TopOfRelocDir) {
+    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -711,7 +728,7 @@ InternalApplyRelocationRuntime (
       // Invalid Base Relocation types would have caused the Image to not be
       // loaded relocated successfully earlier.
       //
-      return RETURN_UNSUPPORTED;
+      ASSERT (FALSE);
   }
 
   return RETURN_SUCCESS;
@@ -904,12 +921,16 @@ PeCoffRelocateImageInplace (
 
   Status = PeCoffLoadImageInplaceNoBase (Context);
   if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
     return Status;
   }
 
   NewBase = PeCoffLoaderGetImageAddress (Context);
 
   Status = PeCoffRelocateImage (Context, NewBase, NULL, 0);
+  if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
+  }
 
   return Status;
 }
