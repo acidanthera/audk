@@ -51,11 +51,19 @@ jobs:
           chmod +x ./efibuild.sh
           ln -s `pwd` UDK
 
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
       - name: Build Ext4Pkg
         run: ./efibuild.sh
         env:
           SELFPKG: Ext4Pkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build FatPkg
         if: always()
@@ -63,6 +71,8 @@ jobs:
         env:
           SELFPKG: FatPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -70,6 +80,8 @@ jobs:
         env:
           SELFPKG: IntelFsp2Pkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -77,6 +89,8 @@ jobs:
         env:
           SELFPKG: IntelFsp2WrapperPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdeModulePkg
         if: always()
@@ -84,6 +98,8 @@ jobs:
         env:
           SELFPKG: MdeModulePkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdePkg
         if: always()
@@ -91,6 +107,8 @@ jobs:
         env:
           SELFPKG: MdePkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiCpuPkg
         if: always()
@@ -98,6 +116,8 @@ jobs:
         env:
           SELFPKG: UefiCpuPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -105,6 +125,8 @@ jobs:
         env:
           SELFPKG: UnitTestFrameworkPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32
         if: always()
@@ -113,6 +135,8 @@ jobs:
           SELFPKG: OvmfPkgIa32
           SELFPKG_DIR: OvmfPkg
           ARCHS: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgX64
         if: always()
@@ -121,6 +145,8 @@ jobs:
           SELFPKG: OvmfPkgX64
           SELFPKG_DIR: OvmfPkg
           ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -130,6 +156,8 @@ jobs:
           SELFPKG_DIR: OvmfPkg
           ARCHS: X64
           ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -137,6 +165,8 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -145,6 +175,8 @@ jobs:
           SELFPKG: UefiPayloadPkg
           ARCHS: X64
           ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build NetworkPkg
         if: always()
@@ -152,6 +184,8 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
   build-windows:
     name: Windows VS2019
@@ -184,11 +218,19 @@ jobs:
           chmod +x ./efibuild.sh
           cmd <<< "mklink /D .\\UDK .\\" > /dev/null
 
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
       - name: Build Ext4Pkg
         run: ./efibuild.sh
         env:
           SELFPKG: Ext4Pkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build FatPkg
         if: always()
@@ -196,6 +238,8 @@ jobs:
         env:
           SELFPKG: FatPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -203,6 +247,8 @@ jobs:
         env:
           SELFPKG: IntelFsp2Pkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -210,6 +256,8 @@ jobs:
         env:
           SELFPKG: IntelFsp2WrapperPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdeModulePkg
         if: always()
@@ -217,6 +265,8 @@ jobs:
         env:
           SELFPKG: MdeModulePkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdePkg
         if: always()
@@ -224,6 +274,8 @@ jobs:
         env:
           SELFPKG: MdePkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiCpuPkg
         if: always()
@@ -231,6 +283,8 @@ jobs:
         env:
           SELFPKG: UefiCpuPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -238,6 +292,8 @@ jobs:
         env:
           SELFPKG: UnitTestFrameworkPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32
         if: always()
@@ -246,6 +302,8 @@ jobs:
           SELFPKG: OvmfPkgIa32
           SELFPKG_DIR: OvmfPkg
           ARCHS: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgX64
         if: always()
@@ -254,6 +312,8 @@ jobs:
           SELFPKG: OvmfPkgX64
           SELFPKG_DIR: OvmfPkg
           ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -263,6 +323,8 @@ jobs:
           SELFPKG_DIR: OvmfPkg
           ARCHS: X64
           ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -270,6 +332,8 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -278,6 +342,8 @@ jobs:
           SELFPKG: UefiPayloadPkg
           ARCHS: X64
           ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build NetworkPkg
         if: always()
@@ -285,6 +351,8 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
   build-linux-clangpdb:
     name: Linux CLANGPDB
@@ -295,6 +363,12 @@ jobs:
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
 
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
       - name: Build Ext4Pkg
         run: docker compose run build-package
         env:
@@ -303,6 +377,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build FatPkg
         if: always()
@@ -313,6 +389,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -323,6 +401,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -333,6 +413,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdeModulePkg
         if: always()
@@ -343,6 +425,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdePkg
         if: always()
@@ -353,6 +437,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiCpuPkg
         if: always()
@@ -363,6 +449,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -373,6 +461,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32
         if: always()
@@ -383,6 +473,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgX64
         if: always()
@@ -393,6 +485,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -404,6 +498,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -414,6 +510,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -425,6 +523,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build NetworkPkg
         if: always()
@@ -435,6 +535,8 @@ jobs:
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
   build-linux-clangdwarf:
     name: Linux CLANGDWARF
@@ -445,6 +547,12 @@ jobs:
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
 
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
       - name: Build Ext4Pkg
         run: docker compose run build-package
         env:
@@ -453,6 +561,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build FatPkg
         if: always()
@@ -463,6 +573,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -473,6 +585,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -483,6 +597,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdeModulePkg
         if: always()
@@ -493,6 +609,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdePkg
         if: always()
@@ -503,6 +621,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiCpuPkg
         if: always()
@@ -513,6 +633,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -523,6 +645,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32
         if: always()
@@ -533,6 +657,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgX64
         if: always()
@@ -543,6 +669,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -554,6 +682,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -564,6 +694,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -575,6 +707,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build NetworkPkg
         if: always()
@@ -585,6 +719,8 @@ jobs:
           TOOLCHAINS: CLANGDWARF
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
   build-linux-gcc5:
     name: Linux GCC5
@@ -595,6 +731,12 @@ jobs:
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
 
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
       - name: Build Ext4Pkg
         run: docker compose run build-package
         env:
@@ -603,6 +745,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build FatPkg
         if: always()
@@ -613,6 +757,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -623,6 +769,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -633,6 +781,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdeModulePkg
         if: always()
@@ -643,6 +793,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build MdePkg
         if: always()
@@ -653,6 +805,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiCpuPkg
         if: always()
@@ -663,6 +817,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -673,6 +829,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32
         if: always()
@@ -683,6 +841,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgX64
         if: always()
@@ -693,6 +853,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -704,6 +866,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -714,6 +878,8 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -725,6 +891,8 @@ jobs:
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
 
       - name: Build NetworkPkg
         if: always()
@@ -735,3 +903,5 @@ jobs:
           TOOLCHAINS: GCC5
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
