@@ -13,10 +13,18 @@ goto start
 :done
 if "%1%"=="IA32" (
   call ImageTool32.exe %args%
-) else (
-  if "%1%"=="X64" (
-    call ImageTool64.exe %args%
-  ) else (
-    echo Unable to find the command to run!
+  exit
   )
+if "%1%"=="ARM" (
+  call ImageTool32.exe %args%
+  exit
+  )
+if "%1%"=="X64" (
+  call ImageTool64.exe %args%
+  exit
 )
+if "%1%"=="AARCH64" (
+  call ImageTool64.exe %args%
+  exit
+)
+echo ImageTool for %1% is not supported
