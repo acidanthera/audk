@@ -223,12 +223,12 @@ ReadElfFile (
   }
 
 #if defined(EFI_TARGET64)
-  if (mEhdr->e_machine != EM_X86_64) {
+  if ((mEhdr->e_machine != EM_X86_64) && (mEhdr->e_machine != EM_AARCH64)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
     return RETURN_UNSUPPORTED;
   }
 #elif defined(EFI_TARGET32)
-  if (mEhdr->e_machine != EM_386) {
+  if ((mEhdr->e_machine != EM_386) && (mEhdr->e_machine != EM_ARM)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
     return RETURN_UNSUPPORTED;
   }
@@ -298,7 +298,7 @@ ReadElfFile (
   return RETURN_SUCCESS;
 }
 
-INT32
+UINT32
 GetValue (
   IN UINT64 Offset
   )
@@ -308,7 +308,7 @@ GetValue (
   for (Index = 0; Index < mImageInfo.SegmentInfo.NumSegments; ++Index) {
     if ((Offset >= mImageInfo.SegmentInfo.Segments[Index].ImageAddress)
       && (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress < mImageInfo.SegmentInfo.Segments[Index].ImageSize)) {
-      return (INT32)ReadUnaligned32 (
+      return ReadUnaligned32 (
         (UINT32 *)(mImageInfo.SegmentInfo.Segments[Index].Data + (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress))
         );
     }
@@ -331,6 +331,13 @@ SetRelocs (
 #if defined(EFI_TARGET64)
   UINT32         Index2;
   BOOLEAN        New;
+  INT64          Offset;
+  Elf_Sym        *Sym;
+  UINT32         Value;
+#elif defined(EFI_TARGET32)
+  UINT32         MovwOffset;
+
+  MovwOffset = 0;
 #endif
   RelNum = 0;
 
@@ -349,85 +356,321 @@ SetRelocs (
       // We only need to transform ELF relocations' format into PE one.
       //
 #if defined(EFI_TARGET64)
-      switch (ELF_R_TYPE(Rel->r_info)) {
-        case R_X86_64_NONE:
-          break;
-        case R_X86_64_RELATIVE:
-        case R_X86_64_64:
-          //
-          // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
-          // section that applies to the entire binary, and which will have its section
-          // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
-          //
-          // This RELA section will contain redundant R_xxx_RELATIVE relocations, one
-          // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
-          // (i.e., .rela.text and .rela.data) and .got entries' addresses (G + GOT).
-          //
-          New = TRUE;
+      if (mEhdr->e_machine == EM_X86_64) {
+        switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_X86_64_NONE:
+            break;
+          case R_X86_64_RELATIVE:
+          case R_X86_64_64:
+            //
+            // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
+            // section that applies to the entire binary, and which will have its section
+            // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
+            //
+            // This RELA section will contain redundant R_xxx_RELATIVE relocations, one
+            // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
+            // (i.e., .rela.text and .rela.data) and .got entries' addresses (G + GOT).
+            //
+            New = TRUE;
 
-          for (Index2 = 0; Index2 < RelNum; ++Index2) {
-            if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
-              New = FALSE;
+            for (Index2 = 0; Index2 < RelNum; ++Index2) {
+              if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+                New = FALSE;
+              }
             }
-          }
 
-          if (New) {
+            if (New) {
+              mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+              ++RelNum;
+            }
+
+            break;
+          case R_X86_64_32:
+
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            ++RelNum;
+
+            break;
+          case R_X86_64_32S:
+          case R_X86_64_PLT32:
+          case R_X86_64_PC32:
+            break;
+          case R_X86_64_GOTPCREL:
+          case R_X86_64_GOTPCRELX:
+          case R_X86_64_REX_GOTPCRELX:
+            //
+            // Relocations of these types point to instructions' arguments containing
+            // offsets relative to RIP leading to .got entries. As sections' virtual
+            // addresses do not change during ELF->PE transform, we don't need to
+            // add them to relocations' list. But .got entries contain virtual
+            // addresses which must be updated.
+            //
+            // At r_offset the following value is stored: G + GOT + A - P.
+            // To derive .got entry address (G + GOT) compute: value - A + P.
+            //
+            // Such a method of finding relocatable .got entries can not be used,
+            // due to a BUG in clang compiler, which sometimes generates
+            // R_X86_64_REX_GOTPCRELX relocations instead of R_X86_64_PC32.
+            //
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+            return RETURN_UNSUPPORTED;
+        }
+      } else if (mEhdr->e_machine == EM_AARCH64) {
+        Sym = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
+
+        switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_AARCH64_LD64_GOTOFF_LO15:
+          case R_AARCH64_LD64_GOTPAGE_LO15:
+            //
+            // Convert into an ADR instruction that refers to the symbol directly.
+            //
+            Offset = Sym->st_value - Rel->r_offset;
+
+            Value  = (GetValue (Rel->r_offset) & 0x1000001f);
+            Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
+            // WriteValue (Value, Rel->r_offset);
+
+            if (Offset < -0x100000 || Offset > 0xfffff) {
+              fprintf (stderr, "ImageTool: Failed to relax GOT based symbol reference - image is too big (>1 MiB)\n");
+              return RETURN_UNSUPPORTED;
+            }
+            break;
+          case R_AARCH64_LD64_GOT_LO12_NC:
+            //
+            // Convert into an ADD instruction - see R_AARCH64_ADR_GOT_PAGE below.
+            //
+            Value  = (GetValue (Rel->r_offset) & 0x3ff);
+            Value |= 0x91000000 | ((Sym->st_value & 0xfff) << 10);
+            // WriteValue (Value, Rel->r_offset);
+            break;
+          case R_AARCH64_ADR_GOT_PAGE:
+            //
+            // This relocation points to the GOT entry that contains the absolute
+            // address of the symbol we are referring to. Since EDK2 only uses
+            // fully linked binaries, we can avoid the indirection, and simply
+            // refer to the symbol directly. This implies having to patch the
+            // subsequent LDR instruction (covered by a R_AARCH64_LD64_GOT_LO12_NC
+            // relocation) into an ADD instruction - this is handled above.
+            //
+            Offset = (Sym->st_value - (Rel->r_offset & ~0xfff)) >> 12;
+
+            Value  = (GetValue (Rel->r_offset) & 0x9000001f);
+            Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
+            // WriteValue (Value, Rel->r_offset);
+            /* fall through */
+
+          case R_AARCH64_ADR_PREL_PG_HI21:
+            //
+            // In order to handle Cortex-A53 erratum #843419, the LD linker may
+            // convert ADRP instructions into ADR instructions, but without
+            // updating the static relocation type, and so we may end up here
+            // while the instruction in question is actually ADR. So let's
+            // just disregard it: the section offset check we apply below to
+            // ADR instructions will trigger for its R_AARCH64_xxx_ABS_LO12_NC
+            // companion instruction as well, so it is safe to omit it here.
+            //
+            if ((Value & BIT31) == 0) {
+              break;
+            }
+
+            //
+            // AArch64 PG_H21 relocations are typically paired with ABS_LO12
+            // relocations, where a PC-relative reference with +/- 4 GB range is
+            // split into a relative high part and an absolute low part. Since
+            // the absolute low part represents the offset into a 4 KB page, we
+            // either have to convert the ADRP into an ADR instruction, or we
+            // need to use a section alignment of at least 4 KB, so that the
+            // binary appears at a correct offset at runtime. In any case, we
+            // have to make sure that the 4 KB relative offsets of both the
+            // section containing the reference as well as the section to which
+            // it refers have not been changed during PE/COFF conversion (i.e.,
+            // in ScanSections64() above).
+            //
+            if (mPeAlignment < 0x1000) {
+              //
+              // Attempt to convert the ADRP into an ADR instruction.
+              // This is only possible if the symbol is within +/- 1 MB.
+              //
+
+              // Decode the ADRP instruction
+              Offset = (INT32)((Value & 0xffffe0) << 8);
+              Offset = (Offset << (6 - 5)) | ((Value & 0x60000000) >> (29 - 12));
+
+              //
+              // ADRP offset is relative to the previous page boundary,
+              // whereas ADR offset is relative to the instruction itself.
+              // So fix up the offset so it points to the page containing
+              // the symbol.
+              //
+              Offset -= (UINTN)(Rel->r_offset) & 0xfff;
+
+              if (Offset < -0x100000 || Offset > 0xfffff) {
+                fprintf (stderr, "ImageTool: Due to its size (> 1 MB), this module requires 4 KB section alignment\n");
+                return RETURN_UNSUPPORTED;
+              }
+
+              // Re-encode the offset as an ADR instruction
+              Value &= 0x1000001f;
+              Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
+              // WriteValue (Value, Rel->r_offset);
+            }
+            /* fall through */
+
+          case R_AARCH64_ADD_ABS_LO12_NC:
+          case R_AARCH64_LDST8_ABS_LO12_NC:
+          case R_AARCH64_LDST16_ABS_LO12_NC:
+          case R_AARCH64_LDST32_ABS_LO12_NC:
+          case R_AARCH64_LDST64_ABS_LO12_NC:
+          case R_AARCH64_LDST128_ABS_LO12_NC:
+            if (mPeAlignment != 0x1000) {
+              fprintf (stderr, "ImageTool: AARCH64 small code model requires identical ELF and PE/COFF section offsets modulo 4 KB\n");
+              return RETURN_UNSUPPORTED;
+            }
+            /* fall through */
+
+          case R_AARCH64_ADR_PREL_LO21:
+          case R_AARCH64_CONDBR19:
+          case R_AARCH64_LD_PREL_LO19:
+          case R_AARCH64_CALL26:
+          case R_AARCH64_JUMP26:
+          case R_AARCH64_PREL64:
+          case R_AARCH64_PREL32:
+          case R_AARCH64_PREL16:
+            //
+            // The GCC toolchains (i.e., binutils) may corrupt section relative
+            // relocations when emitting relocation sections into fully linked
+            // binaries. More specifically, they tend to fail to take into
+            // account the fact that a '.rodata + XXX' relocation needs to have
+            // its addend recalculated once .rodata is merged into the .text
+            // section, and the relocation emitted into the .rela.text section.
+            //
+            // We cannot really recover from this loss of information, so the
+            // only workaround is to prevent having to recalculate any relative
+            // relocations at all, by using a linker script that ensures that
+            // the offset between the Place and the Symbol is the same in both
+            // the ELF and the PE/COFF versions of the binary.
+            //
+            break;
+
+            // Absolute relocations.
+          case R_AARCH64_ABS64:
+
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
             mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
             ++RelNum;
-          }
+            break;
+          case R_AARCH64_ABS32:
 
-          break;
-        case R_X86_64_32:
-
-          mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
-          ++RelNum;
-
-          break;
-        case R_X86_64_32S:
-        case R_X86_64_PLT32:
-        case R_X86_64_PC32:
-          break;
-        case R_X86_64_GOTPCREL:
-        case R_X86_64_GOTPCRELX:
-        case R_X86_64_REX_GOTPCRELX:
-          //
-          // Relocations of these types point to instructions' arguments containing
-          // offsets relative to RIP leading to .got entries. As sections' virtual
-          // addresses do not change during ELF->PE transform, we don't need to
-          // add them to relocations' list. But .got entries contain virtual
-          // addresses which must be updated.
-          //
-          // At r_offset the following value is stored: G + GOT + A - P.
-          // To derive .got entry address (G + GOT) compute: value - A + P.
-          //
-          // Such a method of finding relocatable .got entries can not be used,
-          // due to a BUG in clang compiler, which sometimes generates
-          // R_X86_64_REX_GOTPCRELX relocations instead of R_X86_64_PC32.
-          //
-          break;
-        default:
-          fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
-          return RETURN_UNSUPPORTED;
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            ++RelNum;
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+            return RETURN_UNSUPPORTED;
+        }
       }
 #elif defined(EFI_TARGET32)
-      switch (ELF_R_TYPE(Rel->r_info)) {
-        case R_386_NONE:
-          break;
-        case R_386_32:
+      if (mEhdr->e_machine == EM_386) {
+        switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_386_NONE:
+            break;
+          case R_386_32:
 
-          mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-          mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
-          ++RelNum;
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
 
-          break;
-        case R_386_PLT32:
-        case R_386_PC32:
-          break;
-        default:
-          fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
-          return RETURN_UNSUPPORTED;
+            break;
+          case R_386_PLT32:
+          case R_386_PC32:
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
+            return RETURN_UNSUPPORTED;
+        }
+      } else if (mEhdr->e_machine == EM_ARM) {
+        switch (ELF32_R_TYPE(Rel->r_info)) {
+          case R_ARM_RBASE:
+            // No relocation - no action required
+            // break skipped
+
+          case R_ARM_PC24:
+          case R_ARM_REL32:
+          case R_ARM_XPC25:
+          case R_ARM_THM_PC22:
+          case R_ARM_THM_JUMP19:
+          case R_ARM_CALL:
+          case R_ARM_JMP24:
+          case R_ARM_THM_JUMP24:
+          case R_ARM_PREL31:
+          case R_ARM_MOVW_PREL_NC:
+          case R_ARM_MOVT_PREL:
+          case R_ARM_THM_MOVW_PREL_NC:
+          case R_ARM_THM_MOVT_PREL:
+          case R_ARM_THM_JMP6:
+          case R_ARM_THM_ALU_PREL_11_0:
+          case R_ARM_THM_PC12:
+          case R_ARM_REL32_NOI:
+          case R_ARM_ALU_PC_G0_NC:
+          case R_ARM_ALU_PC_G0:
+          case R_ARM_ALU_PC_G1_NC:
+          case R_ARM_ALU_PC_G1:
+          case R_ARM_ALU_PC_G2:
+          case R_ARM_LDR_PC_G1:
+          case R_ARM_LDR_PC_G2:
+          case R_ARM_LDRS_PC_G0:
+          case R_ARM_LDRS_PC_G1:
+          case R_ARM_LDRS_PC_G2:
+          case R_ARM_LDC_PC_G0:
+          case R_ARM_LDC_PC_G1:
+          case R_ARM_LDC_PC_G2:
+          case R_ARM_THM_JUMP11:
+          case R_ARM_THM_JUMP8:
+          case R_ARM_TLS_GD32:
+          case R_ARM_TLS_LDM32:
+          case R_ARM_TLS_IE32:
+            // Thease are all PC-relative relocations and don't require modification
+            // GCC does not seem to have the concept of a application that just needs to get relocated.
+            break;
+          case R_ARM_THM_MOVW_ABS_NC:
+            // MOVW is only lower 16-bits of the addres
+            // ThumbMovtImmediatePatch ((UINT16 *)Targ, (UINT16)Sym->st_value);
+
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_ARM_MOV32T;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
+            // PE/COFF treats MOVW/MOVT relocation as single 64-bit instruction
+            // Track this address so we can log an error for unsupported sequence of MOVW/MOVT
+            MovwOffset = Rel->r_offset;
+
+            break;
+          case R_ARM_THM_MOVT_ABS:
+            // MOVT is only upper 16-bits of the addres
+            // ThumbMovtImmediatePatch ((UINT16 *)Targ, (UINT16)(Sym->st_value >> 16));
+
+            if ((MovwOffset + 4) != Rel->r_offset) {
+              fprintf (stderr, "ImageTool: PE/COFF requires MOVW+MOVT instruction sequence (%x + 4) != %x\n", MovwOffset, Rel->r_offset);
+              return RETURN_UNSUPPORTED;
+            }
+
+            break;
+          case R_ARM_ABS32:
+          case R_ARM_RABS32:
+
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
+            ++RelNum;
+
+            break;
+          default:
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
+            return RETURN_UNSUPPORTED;
+        }
       }
 #endif
     }
@@ -475,16 +718,24 @@ CreateIntermediate (
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
 #if defined(EFI_TARGET64)
-        if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
-          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)
-          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCREL)
-          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCRELX)
-          || (ELF_R_TYPE(Rel->r_info) == R_X86_64_REX_GOTPCRELX)) {
-          ++NumRelocs;
+        if (mEhdr->e_machine == EM_X86_64) {
+          if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
+            || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)
+            || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCREL)
+            || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCRELX)
+            || (ELF_R_TYPE(Rel->r_info) == R_X86_64_REX_GOTPCRELX)) {
+            ++NumRelocs;
+          }
+        } else if (mEhdr->e_machine == EM_AARCH64) {
+
         }
 #elif defined(EFI_TARGET32)
-        if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
-          ++NumRelocs;
+        if (mEhdr->e_machine == EM_386) {
+          if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
+            ++NumRelocs;
+          }
+        } else if (mEhdr->e_machine == EM_ARM) {
+
         }
 #endif
       }

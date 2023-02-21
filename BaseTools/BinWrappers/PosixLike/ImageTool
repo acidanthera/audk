@@ -9,7 +9,7 @@ cmd=${full_cmd##*/}
 
 if [ -n "$WORKSPACE" ] && [ -e "$EDK_TOOLS_PATH/ImageTool" ]
 then
-  if [ $1 == 'IA32' ]
+  if [ $1 == 'IA32' ] || [ $1 == 'ARM' ]
   then
     if [ ! -e "$EDK_TOOLS_PATH/ImageTool/ImageTool32" ]
     then
@@ -20,7 +20,7 @@ then
       shift
       exec "$EDK_TOOLS_PATH/ImageTool/ImageTool32" "$@"
     fi
-  elif [ $1 == 'X64' ]
+  elif [ $1 == 'X64' ] || [ $1 == 'AARCH64' ]
   then
     if [ ! -e "$EDK_TOOLS_PATH/ImageTool/ImageTool64" ]
     then
