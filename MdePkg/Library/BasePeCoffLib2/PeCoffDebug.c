@@ -26,9 +26,9 @@
 
 RETURN_STATUS
 PeCoffGetPdbPath (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8                   **PdbPath,
-  OUT    UINT32                        *PdbPathSize
+  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST CHAR8                         **PdbPath,
+  OUT    UINT32                              *PdbPathSize
   )
 {
   BOOLEAN                               Overflow;

@@ -22,7 +22,7 @@
 
 UINT32
 PeCoffGetAddressOfEntryPoint (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -142,7 +142,7 @@ PeCoffGetRelocsStripped (
 // FIXME: Distinguish between base and buffer (XIP TE)
 UINTN
 PeCoffLoaderGetImageAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
