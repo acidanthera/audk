@@ -20,7 +20,7 @@ OUT  = $(UDK_PATH)\MdePkg\Library\UefiDebugLibConOut
 PRIN = $(UDK_PATH)\MdePkg\Library\BasePrintLib
 ERRO = $(UDK_PATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib
 USER = $(OC_USER)\User\Library
-OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj
+OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj
 OBJECTS = $(OBJECTS) {$(OUT)}DebugLib.obj {$(PRIN)}PrintLib.obj PrintLibInternal.obj {$(ERRO)}BaseDebugPrintErrorLevelLib.obj
 OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserBootServices.obj
 
