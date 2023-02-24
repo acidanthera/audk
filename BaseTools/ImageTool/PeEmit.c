@@ -284,7 +284,8 @@ bool
 ToolImageEmitPeSectionHeaders (
   const image_tool_pe_emit_context_t *Context,
   uint8_t                            **Buffer,
-  uint32_t                           *BufferSize
+  uint32_t                           *BufferSize,
+  uint32_t                           AlignedHeaderSize
   )
 {
   const image_tool_image_info_t *Image;
@@ -299,7 +300,7 @@ ToolImageEmitPeSectionHeaders (
 
   Image              = Context->Image;
   SectionHeadersSize = (uint16_t) (Image->SegmentInfo.NumSegments * sizeof (EFI_IMAGE_SECTION_HEADER));
-  SectionOffset      = ALIGN_VALUE (Context->HdrInfo.SizeOfHeaders, Context->FileAlignment);
+  SectionOffset      = AlignedHeaderSize;
   Sections           = (void *) *Buffer;
 
   assert (SectionHeadersSize <= *BufferSize);
@@ -359,7 +360,8 @@ bool
 ToolImageEmitPeExtraSectionHeaders (
   image_tool_pe_emit_context_t *Context,
   uint8_t                      **Buffer,
-  uint32_t                     *BufferSize
+  uint32_t                     *BufferSize,
+  uint32_t                     AlignedHeaderSize
   )
 {
   uint32_t                 SectionHeadersSize;
@@ -382,7 +384,7 @@ ToolImageEmitPeExtraSectionHeaders (
     Section->SizeOfRawData    = Context->HiiTableSize;
     Section->VirtualSize      = Context->HiiTableSize;
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_READ;
-    Section->PointerToRawData = ALIGN_VALUE (Context->HdrInfo.SizeOfHeaders, Context->FileAlignment) + Context->SectionsSize;
+    Section->PointerToRawData = AlignedHeaderSize + Context->SectionsSize;
     Section->VirtualAddress   = Section->PointerToRawData;
 
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = Context->HiiTableSize;
@@ -405,8 +407,7 @@ ToolImageEmitPeExtraSectionHeaders (
     Section->VirtualSize      = ALIGN_VALUE (Context->RelocTableSize, Context->FileAlignment);
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA
       | EFI_IMAGE_SCN_MEM_DISCARDABLE | EFI_IMAGE_SCN_MEM_READ;
-    Section->PointerToRawData = ALIGN_VALUE (Context->HdrInfo.SizeOfHeaders, Context->FileAlignment)
-      + Context->SectionsSize + Context->HiiTableSize;
+    Section->PointerToRawData = AlignedHeaderSize + Context->SectionsSize + Context->HiiTableSize;
     Section->VirtualAddress   = Section->PointerToRawData;
 
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = Context->RelocTableSize;
@@ -449,7 +450,8 @@ bool
 ToolImageEmitPeHeaders (
   image_tool_pe_emit_context_t *Context,
   uint8_t                      **Buffer,
-  uint32_t                     *BufferSize
+  uint32_t                     *BufferSize,
+  uint32_t                     AlignedHeaderSize
   )
 {
   const image_tool_image_info_t *Image;
@@ -493,7 +495,7 @@ ToolImageEmitPeHeaders (
   PePlusHdr->AddressOfEntryPoint = Image->HeaderInfo.EntryPointAddress;
   PePlusHdr->SectionAlignment    = Image->SegmentInfo.SegmentAlignment;
   PePlusHdr->FileAlignment       = Context->FileAlignment;
-  PePlusHdr->SizeOfHeaders       = Context->HdrInfo.SizeOfHeaders;
+  PePlusHdr->SizeOfHeaders       = AlignedHeaderSize;
   PePlusHdr->ImageBase           = (UINTN)Image->HeaderInfo.PreferredAddress;
   PePlusHdr->Subsystem           = Image->HeaderInfo.Subsystem;
   PePlusHdr->NumberOfRvaAndSizes = Context->HdrInfo.NumberOfRvaAndSizes;
@@ -508,20 +510,17 @@ ToolImageEmitPeHeaders (
   *BufferSize -= sizeof (EFI_IMAGE_NT_HEADERS) + PePlusHdr->NumberOfRvaAndSizes * sizeof (EFI_IMAGE_DATA_DIRECTORY);
   *Buffer     += sizeof (EFI_IMAGE_NT_HEADERS) + PePlusHdr->NumberOfRvaAndSizes * sizeof (EFI_IMAGE_DATA_DIRECTORY);
 
-  Result = ToolImageEmitPeSectionHeaders (Context, Buffer, BufferSize);
+  Result = ToolImageEmitPeSectionHeaders (Context, Buffer, BufferSize, AlignedHeaderSize);
   if (!Result) {
     return false;
   }
 
-  Result = ToolImageEmitPeExtraSectionHeaders (Context, Buffer, BufferSize);
+  Result = ToolImageEmitPeExtraSectionHeaders (Context, Buffer, BufferSize, AlignedHeaderSize);
   if (!Result) {
     return false;
   }
 
-  HeaderPadding = ALIGN_VALUE_ADDEND(
-    Context->HdrInfo.SizeOfHeaders,
-    Context->FileAlignment
-    );
+  HeaderPadding = AlignedHeaderSize - Context->HdrInfo.SizeOfHeaders;
 
   assert (HeaderPadding <= *BufferSize);
 
@@ -897,6 +896,13 @@ ToolImageEmitPe (
     return NULL;
   }
 
+  if (AlignedHeaderSize <= Image->SegmentInfo.Segments[0].ImageAddress) {
+    AlignedHeaderSize = Image->SegmentInfo.Segments[0].ImageAddress;
+  } else {
+    raise ();
+    return NULL;
+  }
+
   Result = EmitPeGetSectionsSize (&Context, &Context.SectionsSize);
   if (!Result) {
     raise ();
@@ -939,7 +945,7 @@ ToolImageEmitPe (
   RemainingSize = Context.UnsignedFileSize;
   ExpectedSize  = Context.UnsignedFileSize;
 
-  Result = ToolImageEmitPeHeaders (&Context, &Buffer, &RemainingSize);
+  Result = ToolImageEmitPeHeaders (&Context, &Buffer, &RemainingSize, AlignedHeaderSize);
   if (!Result) {
     raise ();
     free (FileBuffer);
@@ -971,12 +977,9 @@ ToolImageEmitPe (
   ExpectedSize -= Context.ExtraSectionsSize;
 
   assert (RemainingSize == ExpectedSize);
-
   assert (RemainingSize == 0);
 
-  Context.PeHdr->SizeOfHeaders = AlignedHeaderSize;
-  Context.PeHdr->SizeOfImage   = Context.UnsignedFileSize;
-
+  Context.PeHdr->SizeOfImage            = Context.UnsignedFileSize;
   Context.PeHdr->SizeOfInitializedData += Context.ExtraSectionsSize;
 
   *FileSize = Context.UnsignedFileSize;
