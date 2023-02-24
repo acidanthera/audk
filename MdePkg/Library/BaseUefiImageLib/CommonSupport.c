@@ -70,7 +70,7 @@ UefiImageLoaderGetDestinationSize (
 
 UINTN
 UefiImageLoaderGetImageEntryPoint (
-  IN OUT CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   UINTN  ImageAddress;

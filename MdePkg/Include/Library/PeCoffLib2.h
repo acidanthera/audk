@@ -362,9 +362,9 @@ PeCoffDiscardSections (
 **/
 RETURN_STATUS
 PeCoffGetPdbPath (
-  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8                         **PdbPath,
-  OUT    UINT32                              *PdbPathSize
+  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
+  OUT CONST CHAR8                         **PdbPath,
+  OUT UINT32                              *PdbPathSize
   );
 
 /**
@@ -448,7 +448,7 @@ PeCoffGetHiiDataRva (
 **/
 UINT32
 PeCoffGetAddressOfEntryPoint (
-  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 /**
@@ -567,7 +567,7 @@ PeCoffGetRelocsStripped (
 **/
 UINTN
 PeCoffLoaderGetImageAddress (
-  IN OUT CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
 #endif // PE_COFF_LIB2_H_

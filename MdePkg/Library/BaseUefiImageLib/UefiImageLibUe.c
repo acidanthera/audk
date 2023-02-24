@@ -135,9 +135,9 @@ UefiImageDiscardSegments (
 
 RETURN_STATUS
 UefiImageGetSymbolsPath (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8                      **SymbolsPath,
-  OUT    UINT32                           *SymbolsPathSize
+  IN  CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT CONST CHAR8                            **SymbolsPath,
+  OUT UINT32                                 *SymbolsPathSize
   )
 {
   return UeGetSymbolsPath (Context, SymbolsPath, SymbolsPathSize);
@@ -173,7 +173,7 @@ UefiImageGetHiiDataRva (
 
 UINT32
 UefiImageGetEntryPointAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   return UeGetAddressOfEntryPoint (Context);
@@ -237,7 +237,7 @@ UefiImageGetRelocsStripped (
 
 UINTN
 UefiImageLoaderGetImageAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   return UeLoaderGetImageAddress (Context);
