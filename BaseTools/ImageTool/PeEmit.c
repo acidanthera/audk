@@ -897,7 +897,7 @@ ToolImageEmitPe (
   }
 
   if (AlignedHeaderSize <= Image->SegmentInfo.Segments[0].ImageAddress) {
-    AlignedHeaderSize = Image->SegmentInfo.Segments[0].ImageAddress;
+    AlignedHeaderSize = (uint32_t)Image->SegmentInfo.Segments[0].ImageAddress;
   } else {
     raise ();
     return NULL;
