@@ -33,4 +33,4 @@
   UeImageLib
 
 [FixedPcd]
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask

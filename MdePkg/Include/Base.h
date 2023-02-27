@@ -885,14 +885,14 @@ STATIC_ASSERT (ALIGNOF (__VERIFY_UINT32_ENUM_SIZE) == sizeof (__VERIFY_UINT32_EN
 **/
 #define BASE_CR(Record, TYPE, Field)  ((TYPE *) ((CHAR8 *) (Record) - OFFSET_OF (TYPE, Field)))
 
-#define DEBUG_RAISE()                                                                              \
-    if ((PcdGet8 (PcdDebugPropertyMask) & DEBUG_PROPERTY_DEBUG_ASSERT_ENABLED) != 0) {             \
-      ASSERT (FALSE);                                                                              \
-    } else if ((PcdGet8 (PcdDebugPropertyMask) & DEBUG_PROPERTY_DEBUG_PRINT_ENABLED) != 0) {       \
-      DEBUG ((DEBUG_ERROR, "SecurePE: PE format specification is violated\n"));                    \
-    } else if ((PcdGet8 (PcdDebugPropertyMask) & DEBUG_PROPERTY_ASSERT_BREAKPOINT_ENABLED) != 0) { \
-      CpuBreakpoint ();                                                                            \
-    }                                                                                              \
+#define DEBUG_RAISE()                                                                                   \
+    if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_DEBUG_ASSERT_ENABLED) != 0) {             \
+      ASSERT (FALSE);                                                                                   \
+    } else if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_DEBUG_PRINT_ENABLED) != 0) {       \
+      DEBUG ((DEBUG_ERROR, "SecurePE: PE format specification is violated\n"));                         \
+    } else if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_ASSERT_BREAKPOINT_ENABLED) != 0) { \
+      CpuBreakpoint ();                                                                                 \
+    }                                                                                                   \
 
 /**
   Checks whether a value is a power of two.

@@ -37,4 +37,4 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
-  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
