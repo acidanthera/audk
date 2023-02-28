@@ -925,9 +925,9 @@ InternalGetDebugTable (
 
 RETURN_STATUS
 UeGetSymbolsPath (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8              **SymbolsPath,
-  OUT    UINT32                   *SymbolsPathSize
+  IN  CONST UE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT CONST CHAR8                    **SymbolsPath,
+  OUT UINT32                         *SymbolsPathSize
   )
 {
   RETURN_STATUS        Status;
@@ -1002,7 +1002,7 @@ UeGetHiiDataRva (
 
 UINT32
 UeGetAddressOfEntryPoint (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
@@ -1082,7 +1082,7 @@ UeGetRelocsStripped (
 
 UINTN
 UeLoaderGetImageAddress (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   ASSERT (Context != NULL);
