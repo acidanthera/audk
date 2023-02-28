@@ -452,14 +452,12 @@ CreateIntermediate (
   const Elf_Rel        *Rel;
   UINTN                RIndex;
   char                 *Name;
-  UINT64               Pointer;
   UINT32               NumRelocs;
 
   Segments  = NULL;
   SIndex    = 0;
   Relocs    = NULL;
   NumRelocs = 0;
-  Pointer   = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -549,12 +547,6 @@ CreateIntermediate (
       Segments[SIndex].Write        = false;
       Segments[SIndex].Execute      = true;
       Segments[SIndex].Type         = ToolImageSectionTypeCode;
-
-      if (Pointer == 0) {
-        Pointer = Shdr->sh_addr;
-      }
-
-      Pointer += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -591,12 +583,6 @@ CreateIntermediate (
       Segments[SIndex].Write        = true;
       Segments[SIndex].Execute      = false;
       Segments[SIndex].Type         = ToolImageSectionTypeInitialisedData;
-
-      if (Pointer == 0) {
-        Pointer = Shdr->sh_addr;
-      }
-
-      Pointer += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -612,13 +598,7 @@ CreateIntermediate (
 
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
-
-        if (Pointer == 0) {
-          Pointer = Shdr->sh_addr;
-        }
-
-        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Pointer);
-        Pointer += mImageInfo.HiiInfo.DataSize;
+        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Shdr->sh_addr);
       }
     }
   }
