@@ -16,6 +16,7 @@
 
 #include <Guid/WinCertificate.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -298,7 +299,7 @@ PeCoffHashImageAuthenticode (
     DEBUG_RAISE ();
     return FALSE;
   }
-//
+  //
   // Perform the Section-related steps of the algorithm.
   //
   Result = InternalHashSections (
