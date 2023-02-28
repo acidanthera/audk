@@ -13,7 +13,9 @@
 
 SECTIONS {
 
-  .text CONSTANT(MAXPAGESIZE) : ALIGN(CONSTANT(MAXPAGESIZE)) {
+  . = ALIGNED_PE_HEADER_SIZE;
+
+  .text : ALIGN(CONSTANT(MAXPAGESIZE)) {
     *(.text .text.* .stub .gnu.linkonce.t.*)
     *(.rodata .rodata.* .data.rel.ro .data.rel.ro.* .gnu.linkonce.r.*)
     *(.got .got.*)

@@ -1858,7 +1858,7 @@ DEFINE GCC_ARM_CC_XIPFLAGS         = -mno-unaligned-access
 DEFINE GCC_AARCH64_CC_FLAGS        = DEF(GCC_ALL_CC_FLAGS) -mlittle-endian -fno-short-enums -fverbose-asm -funsigned-char  -ffunction-sections -fdata-sections -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-pic -fno-pie -ffixed-x18
 DEFINE GCC_AARCH64_CC_XIPFLAGS     = -mstrict-align -mgeneral-regs-only
 DEFINE GCC_DLINK_FLAGS_COMMON      = -nostdlib --pie
-DEFINE GCC_DLINK2_FLAGS_COMMON     = -Wl,--default-script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
+DEFINE GCC_DLINK2_FLAGS_COMMON     = -Wl,--defsym=ALIGNED_PE_HEADER_SIZE=0x400,--default-script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
 DEFINE GCC_IA32_X64_DLINK_COMMON   = DEF(GCC_DLINK_FLAGS_COMMON) --gc-sections
 DEFINE GCC_ARM_AARCH64_DLINK_COMMON= -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
 DEFINE GCC_LOONGARCH64_DLINK_COMMON= -Wl,--emit-relocs -nostdlib -Wl,--gc-sections -u $(IMAGE_ENTRY_POINT) -Wl,-e,$(IMAGE_ENTRY_POINT),-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
@@ -1961,7 +1961,7 @@ DEFINE GCC5_ASLCC_FLAGS              = DEF(GCC49_ASLCC_FLAGS) -fno-lto
 DEFINE GCC5_RISCV_ALL_CC_FLAGS                    = -g -fshort-wchar -fno-strict-aliasing -Wall -Werror -Wno-array-bounds -ffunction-sections -fdata-sections -include AutoGen.h -fno-common -DSTRING_ARRAY_NAME=$(BASE_NAME)Strings -msmall-data-limit=0
 DEFINE GCC5_RISCV_ALL_DLINK_COMMON                = -nostdlib -Wl,-n,-q,--gc-sections -z max-page-size=0x1000
 DEFINE GCC5_RISCV_ALL_DLINK_FLAGS                 = DEF(GCC5_RISCV_ALL_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map
-DEFINE GCC5_RISCV_ALL_DLINK2_FLAGS                =,--default-script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
+DEFINE GCC5_RISCV_ALL_DLINK2_FLAGS                = -Wl,--defsym=ALIGNED_PE_HEADER_SIZE=0x400,--default-script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
 DEFINE GCC5_RISCV_ALL_ASM_FLAGS                   = -c -x assembler -imacros $(DEST_DIR_DEBUG)/AutoGen.h
 DEFINE GCC5_RISCV_ALL_CC_FLAGS_WARNING_DISABLE    = -Wno-tautological-compare -Wno-pointer-compare
 
@@ -2875,7 +2875,7 @@ DEFINE CLANGDWARF_IA32_PREFIX       = ENV(CLANG_BIN)
 DEFINE CLANGDWARF_X64_PREFIX        = ENV(CLANG_BIN)
 
 # LLVM/CLANG doesn't support -n link option. So, it can't share the same IA32_X64_DLINK_COMMON flag.
-DEFINE CLANGDWARF_IA32_X64_DLINK_COMMON   = -nostdlib -Wl,-q,--gc-sections -z max-page-size=0x1000 -Wl,-z,notext
+DEFINE CLANGDWARF_IA32_X64_DLINK_COMMON   = -nostdlib -Wl,-q,--gc-sections -z max-page-size=0x1000 -Wl,-z,notext,--defsym=ALIGNED_PE_HEADER_SIZE=0x400
 DEFINE CLANGDWARF_IA32_X64_ASLDLINK_FLAGS = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,ReferenceAcpiTable -u ReferenceAcpiTable
 DEFINE CLANGDWARF_IA32_X64_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map,--whole-archive
 DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
