@@ -193,4 +193,4 @@
   MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsicArmVirt.inf
   MdePkg/Library/BaseStackCheckLib/BaseStackCheckLib.inf
 
-[BuildOptions]
+!include MdePkg/MdeBuildOptions.dsc.inc
