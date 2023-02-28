@@ -131,7 +131,8 @@
   NetworkPkg/Library/DxeTcpIoLib/DxeTcpIoLib.inf
   NetworkPkg/Library/DxeUdpIoLib/DxeUdpIoLib.inf
 
-  !include NetworkPkg/Network.dsc.inc
+!include NetworkPkg/Network.dsc.inc
+!include MdePkg/MdeBuildOptions.dsc.inc
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES

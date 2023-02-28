@@ -20,10 +20,12 @@
   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
   SKUID_IDENTIFIER               = DEFAULT
 
-!include MdePkg/MdeLibs.dsc.inc
+!include MdePkg/MdeBuildOptions.dsc.inc
 
 [BuildOptions]
   *_*_*_CC_FLAGS                       = -D DISABLE_NEW_DEPRECATED_INTERFACES
+
+!include MdePkg/MdeLibs.dsc.inc
 
 [LibraryClasses]
   #
