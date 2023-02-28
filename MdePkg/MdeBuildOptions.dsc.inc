@@ -13,19 +13,19 @@
 
 #
 # MDEPKG_REDUCE_FW_SIZE:
-#   Align boot-time images at a 1024 bytes boundary to reduce firmware size.
+#   Align boot-time images at a 32 bytes boundary to reduce firmware size.
 #
 
 !if $(MDEPKG_REDUCE_FW_SIZE) == TRUE
   [BuildOptions]
-    MSFT:*_*_*_DLINK_FLAGS     = /ALIGN:1024
-    INTEL:*_*_*_DLINK_FLAGS    = /ALIGN:1024
-    CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:1024 /FILEALIGN:1024
-    GCC:*_*_*_DLINK_FLAGS      = -z max-page-size=0x400
-    CLANGGCC:*_*_*_DLINK_FLAGS = -z max-page-size=0x400
-    XCODE:*_*_*_DLINK_FLAGS    = -segalign 0x400 -seg1addr 0x400
-    XCODE:*_*_*_ASLDLINK_FLAGS = -segalign 0x400 -seg1addr 0x400
-    XCODE:*_*_*_MTOC_FLAGS     = -align 0x400
+    MSFT:*_*_*_DLINK_FLAGS     = /ALIGN:32
+    INTEL:*_*_*_DLINK_FLAGS    = /ALIGN:32
+    CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:32 /FILEALIGN:32
+    GCC:*_*_*_DLINK_FLAGS      = -z max-page-size=0x20
+    CLANGGCC:*_*_*_DLINK_FLAGS = -z max-page-size=0x20
+    XCODE:*_*_*_DLINK_FLAGS    = -segalign 0x20 -seg1addr 0x400
+    XCODE:*_*_*_ASLDLINK_FLAGS = -segalign 0x20 -seg1addr 0x400
+    XCODE:*_*_*_MTOC_FLAGS     = -align 0x20
 !endif
 
 !if $(MDEPKG_MERGE_RODATA_INTO_TEXT) == TRUE

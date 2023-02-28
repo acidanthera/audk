@@ -459,6 +459,7 @@ CreateIntermediate (
   SIndex    = 0;
   Relocs    = NULL;
   NumRelocs = 0;
+  Pointer   = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -514,10 +515,6 @@ CreateIntermediate (
 
     mImageInfo.RelocInfo.Relocs = Relocs;
   }
-  //
-  // Assume 4K alignment, which must be enough for all PE headers.
-  //
-  Pointer = mPeAlignment;
 
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
@@ -546,13 +543,18 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
 
-      Segments[SIndex].ImageAddress = Pointer;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr;
       Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = false;
       Segments[SIndex].Execute      = true;
       Segments[SIndex].Type         = ToolImageSectionTypeCode;
-      Pointer                      += Segments[SIndex].DataSize;
+
+      if (Pointer == 0) {
+        Pointer = Shdr->sh_addr;
+      }
+
+      Pointer += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -583,13 +585,18 @@ CreateIntermediate (
         memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
       }
 
-      Segments[SIndex].ImageAddress = Pointer;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr;
       Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = true;
       Segments[SIndex].Execute      = false;
       Segments[SIndex].Type         = ToolImageSectionTypeInitialisedData;
-      Pointer                      += Segments[SIndex].DataSize;
+
+      if (Pointer == 0) {
+        Pointer = Shdr->sh_addr;
+      }
+
+      Pointer += Segments[SIndex].DataSize;
       ++SIndex;
       continue;
     }
@@ -605,6 +612,11 @@ CreateIntermediate (
 
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
+
+        if (Pointer == 0) {
+          Pointer = Shdr->sh_addr;
+        }
+
         SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Pointer);
         Pointer += mImageInfo.HiiInfo.DataSize;
       }
