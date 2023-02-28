@@ -160,9 +160,9 @@ UeRelocateImageForRuntime (
 
 RETURN_STATUS
 UeGetSymbolsPath (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    CONST CHAR8              **SymbolsPath,
-  OUT    UINT32                   *SymbolsPathSize
+  IN  CONST UE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT CONST CHAR8                    **SymbolsPath,
+  OUT UINT32                         *SymbolsPathSize
   );
 
 RETURN_STATUS
@@ -186,7 +186,7 @@ UeGetHiiDataRva (
 
 UINT32
 UeGetAddressOfEntryPoint (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UE_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT16
@@ -226,7 +226,7 @@ UeGetRelocsStripped (
 
 UINTN
 UeLoaderGetImageAddress (
-  IN OUT UE_LOADER_IMAGE_CONTEXT  *Context
+  IN CONST UE_LOADER_IMAGE_CONTEXT  *Context
   );
 
 UINT8
