@@ -31,10 +31,6 @@ FatDelete (
   EFI_STATUS  Status;
   UINTN       Round;
 
-  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
-    return EFI_WRITE_PROTECTED;
-  }
-
   IFile = IFILE_FROM_FHAND (FHand);
   OFile = IFile->OFile;
 
@@ -48,7 +44,7 @@ FatDelete (
   //
   // If the file is read-only, then don't delete it
   //
-  if (IFile->ReadOnly) {
+  if (IFile->ReadOnly || FeaturePcdGet (PcdFatReadOnlyMode)) {
     Status = EFI_WRITE_PROTECTED;
     goto Done;
   }
