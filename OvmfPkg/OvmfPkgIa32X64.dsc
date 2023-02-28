@@ -57,6 +57,9 @@
   DEFINE LINUX_LOADER            = FALSE
   DEFINE WINDOWS_10_IA32         = FALSE
 
+  DEFINE MDEPKG_REDUCE_FW_SIZE         = FALSE
+  DEFINE MDEPKG_MERGE_RODATA_INTO_TEXT = FALSE
+
   #
   # Device drivers
   #
@@ -114,11 +117,7 @@
 !endif
 
 !include NetworkPkg/NetworkBuildOptions.dsc.inc
-
-  GCC:*_*_*_DLINK_FLAGS = -z common-page-size=0x1000
-  XCODE:*_*_*_DLINK_FLAGS = -seg1addr 0x1000 -segalign 0x1000
-  XCODE:*_*_*_MTOC_FLAGS = -align 0x1000
-  CLANGPDB:*_*_*_DLINK_FLAGS = /FILEALIGN:4096 /ALIGN:4096
+!include MdePkg/MdeBuildOptions.dsc.inc
 
 ################################################################################
 #
