@@ -16,6 +16,7 @@
 
 #include <IndustryStandard/PeImage2.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
@@ -139,7 +140,7 @@ PeCoffGetPdbPath (
     DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
-//
+  //
   // Determine the raw file offset of the Debug Directory.
   //
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
