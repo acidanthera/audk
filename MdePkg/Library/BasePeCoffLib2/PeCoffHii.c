@@ -15,6 +15,7 @@
 
 #include <IndustryStandard/PeImage2.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
@@ -266,7 +267,7 @@ PeCoffGetHiiDataRva (
   ResourceDataEntry = (CONST EFI_IMAGE_RESOURCE_DATA_ENTRY *) (CONST VOID *) (
                         (CONST CHAR8 *) Context->ImageBuffer + Offset
                         );
-//
+  //
   // Verify the "HII" data is in bounds of the Image buffer.
   //
   Overflow = BaseOverflowAddU32 (
