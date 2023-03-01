@@ -608,6 +608,21 @@ UnitTestDebugAssert (
     }                                        \
   } while (FALSE)
 
+#define DEBUG_RAISE()                                                                                         \
+    do {                                                                                                      \
+      if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_DEBUG_PRINT_ENABLED) != 0) {                  \
+        DEBUG ((DEBUG_WARN, "DEBUG RAISE: Constraint violation in %a:%a:%u\n", __FILE__, __func__, __LINE__));\
+      }                                                                                                       \
+                                                                                                              \
+      if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_DEBUG_ASSERT_ENABLED) != 0) {                 \
+        ASSERT (FALSE);                                                                                       \
+      }                                                                                                       \
+                                                                                                              \
+      if ((PcdGet8 (PcdDebugRaisePropertyMask) & DEBUG_PROPERTY_ASSERT_BREAKPOINT_ENABLED) != 0) {            \
+        CpuBreakpoint ();                                                                                     \
+      }                                                                                                       \
+    } while (FALSE)
+
 /**
   Macro that calls DebugAssert() if the containing record does not have a
   matching signature.  If the signatures matches, then a pointer to the data
