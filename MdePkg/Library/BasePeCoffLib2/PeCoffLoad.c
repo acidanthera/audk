@@ -16,6 +16,7 @@
 
 #include <IndustryStandard/PeImage2.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
