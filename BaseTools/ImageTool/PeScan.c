@@ -212,7 +212,6 @@ ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
   OUT image_tool_hii_info_t        *HiiInfo,
   OUT image_tool_reloc_info_t      *RelocInfo,
-  OUT image_tool_debug_info_t      *DebugInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
 {
@@ -223,23 +222,10 @@ ScanPeGetSegmentInfo (
   uint32_t                       Index;
   UINT32                         Size;
 
-  const EFI_IMAGE_NT_HEADERS            *PeHdr;
-  const EFI_IMAGE_DATA_DIRECTORY        *DebugDir;
-  UINT32                                DebugDirTop;
-  bool                                  Overflow;
-  UINT32                                IndexD;
-  const EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *DebugEntry;
-  const char                            *CodeView;
-  UINT32                                DebugTop;
-  UINT32                                PdbOffset;
-
   assert (SegmentInfo != NULL);
   assert (HiiInfo     != NULL);
   assert (RelocInfo   != NULL);
-  assert (DebugInfo   != NULL);
   assert (Context     != NULL);
-
-  DebugDir = NULL;
 
   SegmentInfo->SegmentAlignment = PeCoffGetSectionAlignment (Context);
 
@@ -252,16 +238,6 @@ ScanPeGetSegmentInfo (
   }
 
   FileBuffer = (const char *)Context->FileBuffer;
-
-  PeHdr = (const EFI_IMAGE_NT_HEADERS *)(const void *)(FileBuffer + Context->ExeHdrOffset);
-  if (PeHdr->NumberOfRvaAndSizes > EFI_IMAGE_DIRECTORY_ENTRY_DEBUG) {
-    DebugDir = PeHdr->DataDirectory + EFI_IMAGE_DIRECTORY_ENTRY_DEBUG;
-    Overflow = BaseOverflowAddU32 (DebugDir->VirtualAddress, DebugDir->Size, &DebugDirTop);
-    if (Overflow || (DebugDirTop > Context->SizeOfImage)) {
-      fprintf (stderr, "ImageTool: Corrupted DEBUG directory entry\n");
-      DebugDir = NULL;
-    }
-  }
 
   ImageSegment = SegmentInfo->Segments;
   for (Index = 0; Index < NumSections; ++Index, ++Section) {
@@ -337,53 +313,6 @@ ScanPeGetSegmentInfo (
       if (!ScanPeGetRelocInfo (RelocInfo, Section, Context)) {
         fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
         return false;
-      }
-    }
-
-    if ((DebugDir != NULL)
-      && (DebugDir->VirtualAddress >= Section->VirtualAddress)
-      && (DebugDirTop <= Section->VirtualAddress + Section->VirtualSize)) {
-      DebugEntry = (const EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *)(const void *)(
-        FileBuffer + Section->PointerToRawData + (DebugDir->VirtualAddress - Section->VirtualAddress));
-
-      for (IndexD = 0; (IndexD + sizeof (*DebugEntry)) <= DebugDir->Size; IndexD += sizeof (*DebugEntry), ++DebugEntry) {
-        if (DebugEntry->Type == EFI_IMAGE_DEBUG_TYPE_CODEVIEW) {
-          Overflow = BaseOverflowAddU32 (DebugEntry->FileOffset, DebugEntry->SizeOfData, &DebugTop);
-          if (Overflow || (DebugTop > Context->FileSize)) {
-            fprintf (stderr, "ImageTool: Corrupted DEBUG information\n");
-            continue;
-          }
-
-          CodeView = FileBuffer + DebugEntry->FileOffset;
-          switch (*(const UINT32 *)(const void *) CodeView) {
-            case CODEVIEW_SIGNATURE_NB10:
-              PdbOffset = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY);
-              break;
-            case CODEVIEW_SIGNATURE_RSDS:
-              PdbOffset = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY);
-              break;
-            case CODEVIEW_SIGNATURE_MTOC:
-              PdbOffset = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_MTOC_ENTRY);
-              break;
-            default:
-              fprintf (stderr, "ImageTool: Unknown CODEVIEW_SIGNATURE\n");
-              continue;
-          }
-
-          Overflow = BaseOverflowSubU32 (DebugEntry->SizeOfData, PdbOffset, &DebugInfo->SymbolsPathLen);
-          if (Overflow || (DebugInfo->SymbolsPathLen == 0)) {
-            fprintf (stderr, "ImageTool: Corrupted DEBUG string\n");
-            continue;
-          }
-
-          DebugInfo->SymbolsPath = calloc (1, DebugInfo->SymbolsPathLen);
-          if (DebugInfo->SymbolsPath == NULL) {
-            fprintf (stderr, "ImageTool: Could not allocate memory for SymbolsPath\n");
-            return false;
-          }
-
-          memmove (DebugInfo->SymbolsPath, CodeView + PdbOffset, DebugInfo->SymbolsPathLen - 1);
-        }
       }
     }
   }
@@ -500,7 +429,13 @@ ToolContextConstructPe (
     return false;
   }
 
-  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Image->RelocInfo, &Image->DebugInfo, &Context);
+  Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
+  if (!Result) {
+    fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
+    return false;
+  }
+
+  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Image->RelocInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
     return false;
