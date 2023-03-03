@@ -14,7 +14,6 @@
 #include <Library/BaseOverflowLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PcdLib.h>
 #include <Library/UefiImageLib.h>
 
 RETURN_STATUS

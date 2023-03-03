@@ -20,7 +20,6 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PeCoffLib2.h>
-#include <Library/PcdLib.h>
 #include <Library/UefiImageLib.h>
 
 #include "PeCoffSupport.h"

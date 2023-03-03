@@ -19,7 +19,6 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 
 #include "BasePeCoffLib2Internals.h"
