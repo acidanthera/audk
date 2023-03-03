@@ -12,6 +12,35 @@
 
 static
 bool
+OverflowGetDestinationSize (
+  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context,
+  OUT UINT32                       *Size
+  )
+{
+  UINT32 AlignedSize;
+  UINT32 SegmentAlignment;
+
+  assert (Context != NULL);
+  assert (Size    != NULL);
+
+  AlignedSize      = PeCoffGetSizeOfImage (Context);
+  SegmentAlignment = PeCoffGetSectionAlignment (Context);
+
+  if (SegmentAlignment < EFI_PAGE_SIZE) {
+    SegmentAlignment = EFI_PAGE_SIZE;
+  }
+  //
+  // The Image needs to be at least EFI_PAGE_SIZE aligned inside the calloc() buffer.
+  //
+  return BaseOverflowAddU32 (
+    AlignedSize,
+    SegmentAlignment - 1,
+    Size
+    );
+}
+
+static
+bool
 ScanPeGetHeaderInfo (
   OUT image_tool_header_info_t     *HeaderInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context,
@@ -69,9 +98,8 @@ ScanPeGetHeaderInfo (
 static
 bool
 ScanPeGetRelocInfo (
-  OUT image_tool_reloc_info_t        *RelocInfo,
-  IN  const EFI_IMAGE_SECTION_HEADER *Section,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT   *Context
+  OUT image_tool_reloc_info_t       *RelocInfo,
+  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   BOOLEAN                               Overflow;
@@ -84,18 +112,18 @@ ScanPeGetRelocInfo (
   UINT32                                NumRelocs;
   UINT32                                RelocIndex;
   uint32_t                              RelocDirSize;
-  const char                            *FileBuffer;
+  const char                            *ImageBuffer;
   UINT16                                RelocType;
   UINT16                                RelocOffset;
 
-  assert (Context != NULL);
-  assert (Section != NULL);
+  assert (RelocInfo != NULL);
+  assert (Context   != NULL);
 
   RelocInfo->RelocsStripped = false;
 
   // FIXME: PE/COFF context access
-  RelocBlockRva = Section->PointerToRawData;
-  RelocDirSize  = Section->VirtualSize;
+  RelocBlockRva = Context->RelocDirRva;
+  RelocDirSize  = Context->RelocDirSize;
   //
   // Verify the Relocation Directory is not empty.
   //
@@ -130,9 +158,9 @@ ScanPeGetRelocInfo (
   //
   // Apply all Base Relocations of the Image.
   //
-  FileBuffer = (const char *)Context->FileBuffer;
+  ImageBuffer = (char *)PeCoffLoaderGetImageAddress (Context);
   while (RelocBlockRva <= RelocBlockRvaMax) {
-    RelocBlock = (const EFI_IMAGE_BASE_RELOCATION_BLOCK *)(const void *)(FileBuffer + RelocBlockRva);
+    RelocBlock = (const EFI_IMAGE_BASE_RELOCATION_BLOCK *)(const void *)(ImageBuffer + RelocBlockRva);
     //
     // Verify the Base Relocation Block size is well-formed.
     //
@@ -211,20 +239,18 @@ bool
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
   OUT image_tool_hii_info_t        *HiiInfo,
-  OUT image_tool_reloc_info_t      *RelocInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
 {
   const EFI_IMAGE_SECTION_HEADER *Section;
   uint32_t                       NumSections;
   image_tool_segment_t           *ImageSegment;
-  const char                     *FileBuffer;
+  const char                     *ImageBuffer;
   uint32_t                       Index;
   UINT32                         Size;
 
   assert (SegmentInfo != NULL);
   assert (HiiInfo     != NULL);
-  assert (RelocInfo   != NULL);
   assert (Context     != NULL);
 
   SegmentInfo->SegmentAlignment = PeCoffGetSectionAlignment (Context);
@@ -237,7 +263,7 @@ ScanPeGetSegmentInfo (
     return false;
   }
 
-  FileBuffer = (const char *)Context->FileBuffer;
+  ImageBuffer = (char *)PeCoffLoaderGetImageAddress (Context);
 
   ImageSegment = SegmentInfo->Segments;
   for (Index = 0; Index < NumSections; ++Index, ++Section) {
@@ -260,8 +286,7 @@ ScanPeGetSegmentInfo (
 
       memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
 
-      Size = MAX (Section->VirtualSize, Section->SizeOfRawData);
-      Size = ALIGN_VALUE (Size, SegmentInfo->SegmentAlignment);
+      Size = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
 
       ImageSegment->Data = calloc (1, Size);
       if (ImageSegment->Data == NULL) {
@@ -270,7 +295,11 @@ ScanPeGetSegmentInfo (
         return false;
       }
 
-      memmove (ImageSegment->Data, FileBuffer + Section->PointerToRawData, Section->SizeOfRawData);
+      memmove (
+        ImageSegment->Data,
+        ImageBuffer + Section->VirtualAddress,
+        MIN (Section->VirtualSize, Section->SizeOfRawData)
+        );
 
       ImageSegment->DataSize     = Size;
       ImageSegment->ImageAddress = Section->VirtualAddress;
@@ -297,8 +326,7 @@ ScanPeGetSegmentInfo (
       ++SegmentInfo->NumSegments;
       ++ImageSegment;
     } else if (memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) == 0) {
-      Size = MAX (Section->VirtualSize, Section->SizeOfRawData);
-      Size = ALIGN_VALUE (Size, SegmentInfo->SegmentAlignment);
+      Size = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
 
       HiiInfo->Data = calloc (1, Size);
       if (HiiInfo->Data == NULL) {
@@ -306,14 +334,13 @@ ScanPeGetSegmentInfo (
         return false;
       }
 
-      memmove (HiiInfo->Data, FileBuffer + Section->PointerToRawData, Section->SizeOfRawData);
+      memmove (
+        HiiInfo->Data,
+        ImageBuffer + Section->VirtualAddress,
+        MIN (Section->VirtualSize, Section->SizeOfRawData)
+        );
 
       HiiInfo->DataSize = Size;
-    } else if (memcmp (Section->Name, PE_COFF_SECT_NAME_RELOC, sizeof (Section->Name)) == 0) {
-      if (!ScanPeGetRelocInfo (RelocInfo, Section, Context)) {
-        fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
-        return false;
-      }
     }
   }
 
@@ -405,6 +432,11 @@ ToolContextConstructPe (
 {
   PE_COFF_LOADER_IMAGE_CONTEXT Context;
   RETURN_STATUS                Status;
+  UINT32                       DestinationSize;
+  bool                         Overflow;
+  void                         *Destination;
+  uintptr_t                    Addend;
+  void                         *AlignedDest;
   bool                         Result;
 
   assert (Image != NULL);
@@ -421,25 +453,57 @@ ToolContextConstructPe (
     return false;
   }
 
+  Overflow = OverflowGetDestinationSize (&Context, &DestinationSize);
+  if (Overflow) {
+    fprintf (stderr, "ImageTool: DestinationSize is too huge\n");
+    return false;
+  }
+
+  Destination = calloc (1, DestinationSize);
+  if (Destination == NULL) {
+    fprintf (stderr, "ImageTool: Could not allocate Destination buffer\n");
+    return false;
+  }
+
+  Addend      = ALIGN_VALUE_ADDEND ((uintptr_t)Destination, EFI_PAGE_SIZE);
+  AlignedDest = (char *)Destination + Addend;
+
+  Status = PeCoffLoadImage (&Context, AlignedDest, DestinationSize - Addend);
+  if (RETURN_ERROR (Status)) {
+    fprintf (stderr, "ImageTool: Could not Load Image\n");
+    free (Destination);
+    return false;
+  }
+
   memset (Image, 0, sizeof (*Image));
 
   Result  = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context, ModuleType);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
+    free (Destination);
     return false;
   }
 
   Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
+    free (Destination);
     return false;
   }
 
-  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Image->RelocInfo, &Context);
+  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
+    free (Destination);
     return false;
   }
+
+  Result = ScanPeGetRelocInfo (&Image->RelocInfo, &Context);
+  if (!Result) {
+    fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
+  }
+
+  free (Destination);
 
   return Result;
 }
