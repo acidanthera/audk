@@ -115,7 +115,7 @@ GetMachineTypeName (
 {
   UINTN  Index;
 
-  for (Index = 0; Index < sizeof (mMachineTypeInfo)/sizeof (mMachineTypeInfo[0]); Index++) {
+  for (Index = 0; Index < sizeof (mMachineTypeInfo)/sizeof (mMachineTypeInfo[0]); ++Index) {
     if (mMachineTypeInfo[Index].MachineType == MachineType) {
       return mMachineTypeInfo[Index].MachineTypeName;
     }
@@ -269,8 +269,8 @@ CoreInitializeImageServices (
   //
   // Fill in DXE globals
   //
-  gDxeCoreImageHandle      = Image->Handle;
-  gDxeCoreLoadedImage      = &Image->Info;
+  gDxeCoreImageHandle = Image->Handle;
+  gDxeCoreLoadedImage = &Image->Info;
 
   //
   // Create the PE/COFF emulator protocol registration event
@@ -404,8 +404,8 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   // Test the memory range for loading the image in the DXE code range.
   //
-  if ((gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress <  ImageBase + ImageSize) ||
-      (DxeCodeBase >  ImageBase))
+  if ((gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress < ImageBase + ImageSize) ||
+      (DxeCodeBase > ImageBase))
   {
     return EFI_NOT_FOUND;
   }
@@ -415,7 +415,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   BaseOffsetPageNumber = EFI_SIZE_TO_PAGES ((UINT32)(ImageBase - DxeCodeBase));
   TopOffsetPageNumber  = EFI_SIZE_TO_PAGES ((UINT32)(ImageBase + ImageSize - DxeCodeBase));
-  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; Index++) {
+  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; ++Index) {
     if ((mDxeCodeMemoryRangeUsageBitMap[Index / 64] & LShiftU64 (1, (Index % 64))) != 0) {
       //
       // This page is already used.
@@ -427,7 +427,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   // Being here means the memory range is available.  So mark the bits for the memory range
   //
-  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; Index++) {
+  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; ++Index) {
     mDxeCodeMemoryRangeUsageBitMap[Index / 64] |= LShiftU64 (1, (Index % 64));
   }
 
@@ -477,8 +477,8 @@ GetUefiImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage = UefiImageGetImageSize (ImageContext);
-  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
+  SizeOfImage  = UefiImageGetImageSize (ImageContext);
+  Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
   *LoadAddress = FixLoadingAddress;
 
    DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
@@ -561,15 +561,15 @@ CoreLoadPeImage (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS  Status;
-  BOOLEAN     DstBufAlocated;
-  UINT32                    Size;
-  EFI_MEMORY_TYPE ImageCodeMemoryType;
-  EFI_MEMORY_TYPE ImageDataMemoryType;
-  PE_COFF_LOADER_RUNTIME_CONTEXT      *RelocationData;
-  EFI_PHYSICAL_ADDRESS BufferAddress;
-  UINTN                LoadAddress;
-  UINT32               RelocDataSize;
+  EFI_STATUS                      Status;
+  BOOLEAN                         DstBufAlocated;
+  UINT32                          Size;
+  EFI_MEMORY_TYPE                 ImageCodeMemoryType;
+  EFI_MEMORY_TYPE                 ImageDataMemoryType;
+  PE_COFF_LOADER_RUNTIME_CONTEXT  *RelocationData;
+  EFI_PHYSICAL_ADDRESS            BufferAddress;
+  UINTN                           LoadAddress;
+  UINT32                          RelocDataSize;
 
   RelocationData = NULL;
 
@@ -680,7 +680,7 @@ CoreLoadPeImage (
     }
 
     DstBufAlocated = TRUE;
-    *DstBuffer = BufferAddress;
+    *DstBuffer     = BufferAddress;
   } else {
     //
     // Caller provided the destination buffer
@@ -705,8 +705,8 @@ CoreLoadPeImage (
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    Image->NumberOfPages             = EFI_SIZE_TO_PAGES (Size);
-    BufferAddress = *DstBuffer;
+    Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
+    BufferAddress        = *DstBuffer;
   }
 
   Image->ImageBasePage = BufferAddress;
@@ -945,14 +945,14 @@ CoreUnloadAndCloseImage (
                &HandleBuffer
                );
     if (!EFI_ERROR (Status)) {
-      for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
+      for (HandleIndex = 0; HandleIndex < HandleCount; ++HandleIndex) {
         Status = CoreProtocolsPerHandle (
                    HandleBuffer[HandleIndex],
                    &ProtocolGuidArray,
                    &ArrayCount
                    );
         if (!EFI_ERROR (Status)) {
-          for (ProtocolIndex = 0; ProtocolIndex < ArrayCount; ProtocolIndex++) {
+          for (ProtocolIndex = 0; ProtocolIndex < ArrayCount; ++ProtocolIndex) {
             Status = CoreOpenProtocolInformation (
                        HandleBuffer[HandleIndex],
                        ProtocolGuidArray[ProtocolIndex],
@@ -960,7 +960,7 @@ CoreUnloadAndCloseImage (
                        &OpenInfoCount
                        );
             if (!EFI_ERROR (Status)) {
-              for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
+              for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; ++OpenInfoIndex) {
                 if (OpenInfo[OpenInfoIndex].AgentHandle == Image->Handle) {
                   Status = CoreCloseProtocol (
                              HandleBuffer[HandleIndex],
