@@ -331,9 +331,6 @@ SetRelocs (
 #if defined(EFI_TARGET64)
   UINT32         Index2;
   BOOLEAN        New;
-  INT64          Offset;
-  Elf_Sym        *Sym;
-  UINT32         Value;
 #elif defined(EFI_TARGET32)
   UINT32         MovwOffset;
 
@@ -420,118 +417,20 @@ SetRelocs (
             return RETURN_UNSUPPORTED;
         }
       } else if (mEhdr->e_machine == EM_AARCH64) {
-        Sym = GetSymbol (RelShdr->sh_link, ELF_R_SYM(Rel->r_info));
-
         switch (ELF_R_TYPE(Rel->r_info)) {
+          case R_AARCH64_NONE0:
+          case R_AARCH64_NONE:
           case R_AARCH64_LD64_GOTOFF_LO15:
           case R_AARCH64_LD64_GOTPAGE_LO15:
-            //
-            // Convert into an ADR instruction that refers to the symbol directly.
-            //
-            Offset = Sym->st_value - Rel->r_offset;
-
-            Value  = (GetValue (Rel->r_offset) & 0x1000001f);
-            Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
-            // WriteValue (Value, Rel->r_offset);
-
-            if (Offset < -0x100000 || Offset > 0xfffff) {
-              fprintf (stderr, "ImageTool: Failed to relax GOT based symbol reference - image is too big (>1 MiB)\n");
-              return RETURN_UNSUPPORTED;
-            }
-            break;
           case R_AARCH64_LD64_GOT_LO12_NC:
-            //
-            // Convert into an ADD instruction - see R_AARCH64_ADR_GOT_PAGE below.
-            //
-            Value  = (GetValue (Rel->r_offset) & 0x3ff);
-            Value |= 0x91000000 | ((Sym->st_value & 0xfff) << 10);
-            // WriteValue (Value, Rel->r_offset);
-            break;
           case R_AARCH64_ADR_GOT_PAGE:
-            //
-            // This relocation points to the GOT entry that contains the absolute
-            // address of the symbol we are referring to. Since EDK2 only uses
-            // fully linked binaries, we can avoid the indirection, and simply
-            // refer to the symbol directly. This implies having to patch the
-            // subsequent LDR instruction (covered by a R_AARCH64_LD64_GOT_LO12_NC
-            // relocation) into an ADD instruction - this is handled above.
-            //
-            Offset = (Sym->st_value - (Rel->r_offset & ~0xfff)) >> 12;
-
-            Value  = (GetValue (Rel->r_offset) & 0x9000001f);
-            Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
-            // WriteValue (Value, Rel->r_offset);
-            /* fall through */
-
           case R_AARCH64_ADR_PREL_PG_HI21:
-            //
-            // In order to handle Cortex-A53 erratum #843419, the LD linker may
-            // convert ADRP instructions into ADR instructions, but without
-            // updating the static relocation type, and so we may end up here
-            // while the instruction in question is actually ADR. So let's
-            // just disregard it: the section offset check we apply below to
-            // ADR instructions will trigger for its R_AARCH64_xxx_ABS_LO12_NC
-            // companion instruction as well, so it is safe to omit it here.
-            //
-            if ((Value & BIT31) == 0) {
-              break;
-            }
-
-            //
-            // AArch64 PG_H21 relocations are typically paired with ABS_LO12
-            // relocations, where a PC-relative reference with +/- 4 GB range is
-            // split into a relative high part and an absolute low part. Since
-            // the absolute low part represents the offset into a 4 KB page, we
-            // either have to convert the ADRP into an ADR instruction, or we
-            // need to use a section alignment of at least 4 KB, so that the
-            // binary appears at a correct offset at runtime. In any case, we
-            // have to make sure that the 4 KB relative offsets of both the
-            // section containing the reference as well as the section to which
-            // it refers have not been changed during PE/COFF conversion (i.e.,
-            // in ScanSections64() above).
-            //
-            if (mPeAlignment < 0x1000) {
-              //
-              // Attempt to convert the ADRP into an ADR instruction.
-              // This is only possible if the symbol is within +/- 1 MB.
-              //
-
-              // Decode the ADRP instruction
-              Offset = (INT32)((Value & 0xffffe0) << 8);
-              Offset = (Offset << (6 - 5)) | ((Value & 0x60000000) >> (29 - 12));
-
-              //
-              // ADRP offset is relative to the previous page boundary,
-              // whereas ADR offset is relative to the instruction itself.
-              // So fix up the offset so it points to the page containing
-              // the symbol.
-              //
-              Offset -= (UINTN)(Rel->r_offset) & 0xfff;
-
-              if (Offset < -0x100000 || Offset > 0xfffff) {
-                fprintf (stderr, "ImageTool: Due to its size (> 1 MB), this module requires 4 KB section alignment\n");
-                return RETURN_UNSUPPORTED;
-              }
-
-              // Re-encode the offset as an ADR instruction
-              Value &= 0x1000001f;
-              Value |= ((Offset & 0x1ffffc) << (5 - 2)) | ((Offset & 0x3) << 29);
-              // WriteValue (Value, Rel->r_offset);
-            }
-            /* fall through */
-
           case R_AARCH64_ADD_ABS_LO12_NC:
           case R_AARCH64_LDST8_ABS_LO12_NC:
           case R_AARCH64_LDST16_ABS_LO12_NC:
           case R_AARCH64_LDST32_ABS_LO12_NC:
           case R_AARCH64_LDST64_ABS_LO12_NC:
           case R_AARCH64_LDST128_ABS_LO12_NC:
-            if (mPeAlignment != 0x1000) {
-              fprintf (stderr, "ImageTool: AARCH64 small code model requires identical ELF and PE/COFF section offsets modulo 4 KB\n");
-              return RETURN_UNSUPPORTED;
-            }
-            /* fall through */
-
           case R_AARCH64_ADR_PREL_LO21:
           case R_AARCH64_CONDBR19:
           case R_AARCH64_LD_PREL_LO19:
@@ -540,37 +439,33 @@ SetRelocs (
           case R_AARCH64_PREL64:
           case R_AARCH64_PREL32:
           case R_AARCH64_PREL16:
-            //
-            // The GCC toolchains (i.e., binutils) may corrupt section relative
-            // relocations when emitting relocation sections into fully linked
-            // binaries. More specifically, they tend to fail to take into
-            // account the fact that a '.rodata + XXX' relocation needs to have
-            // its addend recalculated once .rodata is merged into the .text
-            // section, and the relocation emitted into the .rela.text section.
-            //
-            // We cannot really recover from this loss of information, so the
-            // only workaround is to prevent having to recalculate any relative
-            // relocations at all, by using a linker script that ensures that
-            // the offset between the Place and the Symbol is the same in both
-            // the ELF and the PE/COFF versions of the binary.
-            //
             break;
-
-            // Absolute relocations.
           case R_AARCH64_ABS64:
+          case R_AARCH64_RELATIVE:
+            New = TRUE;
 
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
-            ++RelNum;
+            for (Index2 = 0; Index2 < RelNum; ++Index2) {
+              if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+                New = FALSE;
+              }
+            }
+
+            if (New) {
+              mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+              ++RelNum;
+            }
+
             break;
           case R_AARCH64_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
             mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
             ++RelNum;
+
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       }
@@ -727,7 +622,11 @@ CreateIntermediate (
             ++NumRelocs;
           }
         } else if (mEhdr->e_machine == EM_AARCH64) {
-
+          if ((ELF_R_TYPE(Rel->r_info) == R_AARCH64_ABS64)
+            || (ELF_R_TYPE(Rel->r_info) == R_AARCH64_RELATIVE)
+            || (ELF_R_TYPE(Rel->r_info) == R_AARCH64_ABS32)) {
+            ++NumRelocs;
+          }
         }
 #elif defined(EFI_TARGET32)
         if (mEhdr->e_machine == EM_386) {
