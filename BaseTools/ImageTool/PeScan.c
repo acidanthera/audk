@@ -298,7 +298,7 @@ ScanPeGetSegmentInfo (
       memmove (
         ImageSegment->Data,
         ImageBuffer + Section->VirtualAddress,
-        MIN (Section->VirtualSize, Section->SizeOfRawData)
+        Section->VirtualSize
         );
 
       ImageSegment->DataSize     = Size;
@@ -337,7 +337,7 @@ ScanPeGetSegmentInfo (
       memmove (
         HiiInfo->Data,
         ImageBuffer + Section->VirtualAddress,
-        MIN (Section->VirtualSize, Section->SizeOfRawData)
+        Section->VirtualSize
         );
 
       HiiInfo->DataSize = Size;
