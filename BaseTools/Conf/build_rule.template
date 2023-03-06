@@ -302,7 +302,6 @@
 
     <Command.GCC>
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(DLINK2_FLAGS)
-        "$(OBJCOPY)" $(OBJCOPY_FLAGS) ${dst}
 
     <Command.XCODE>
         "$(DLINK)" $(DLINK_FLAGS) -o ${dst} $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
@@ -320,8 +319,6 @@
 
     <Command.GCC>
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS) $(DLINK_XIPFLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(CC_XIPFLAGS) $(DLINK2_FLAGS)
-        "$(OBJCOPY)" $(OBJCOPY_FLAGS) ${dst}
-
 
 [Static-Library-File.USER_DEFINED, Static-Library-File.HOST_APPLICATION]
     <InputFile>
