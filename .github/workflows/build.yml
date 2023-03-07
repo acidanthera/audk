@@ -187,6 +187,31 @@ jobs:
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
 
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: Ia32,X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: XCODE5
+
+      - name: Zip artifacts
+        run: zip XCODE5_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: XCODE5 Firmware Artifacts
+          path: XCODE5_fw_artifacts.zip
+
   build-windows:
     name: Windows VS2019
     runs-on: windows-2019
@@ -353,6 +378,31 @@ jobs:
           ARCHS: IA32,X64
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: Ia32,X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: VS2019
+
+      - name: Zip artifacts
+        run: zip VS2019_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: VS2019 Firmware Artifacts
+          path: VS2019_fw_artifacts.zip
 
   build-linux-clangpdb:
     name: Linux CLANGPDB
@@ -538,6 +588,31 @@ jobs:
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
 
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: Ia32,X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGPDB
+
+      - name: Zip artifacts
+        run: zip CLANGPDB_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: CLANGPDB Firmware Artifacts
+          path: CLANGPDB_fw_artifacts.zip
+
   build-linux-clangdwarf:
     name: Linux CLANGDWARF
     runs-on: ubuntu-22.04
@@ -722,6 +797,31 @@ jobs:
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
 
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: Ia32,X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGDWARF
+
+      - name: Zip artifacts
+        run: zip CLANGDWARF_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: CLANGDWARF Firmware Artifacts
+          path: CLANGDWARF_fw_artifacts.zip
+
   build-linux-gcc5:
     name: Linux GCC5
     runs-on: ubuntu-22.04
@@ -905,3 +1005,99 @@ jobs:
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: Ia32,X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: GCC5
+
+      - name: Zip artifacts
+        run: zip GCC5_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: GCC5 Firmware Artifacts
+          path: GCC5_fw_artifacts.zip
+
+  test-firmwares:
+    name: Test
+    runs-on: ubuntu-22.04
+    needs: [build-macos, build-windows, build-linux-clangpdb, build-linux-clangdwarf, build-linux-gcc5]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "XCODE5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+        ]
+    steps:
+      - name: Checkout ocbuild repository
+        uses: actions/checkout@v3
+        with:
+          repository: acidanthera/ocbuild
+          ref: master
+          path: ./
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip qemu-system-x86
+          python3 -m pip install -r requirements.txt
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.package.toolchain }} Firmware Artifacts
+
+      - name: Unzip artifacts
+        run: unzip "$TOOLCHAIN"_fw_artifacts.zip
+        env:
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestConsole
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestLinux
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}

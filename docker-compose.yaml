@@ -20,6 +20,7 @@ services:
     - SKIP_TESTS
     - SKIP_BUILD
     - SKIP_PACKAGE
+    - BUILD_ARGUMENTS
     volumes:
       - .:/com.docker.devenvironments.code
     working_dir: /com.docker.devenvironments.code
