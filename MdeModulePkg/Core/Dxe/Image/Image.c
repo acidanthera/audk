@@ -584,7 +584,7 @@ CoreLoadPeImage (
       GetMachineTypeName (UefiImageGetMachine (ImageContext)),
       mDxeCoreImageMachineTypeName
       ));
-    ASSERT (FALSE);
+
     return EFI_UNSUPPORTED;
   }
 
