@@ -23,9 +23,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Common/UefiCapsule.h>
 #include <Common/PiFirmwareFile.h>
 #include <Common/PiFirmwareVolume.h>
-#include <Guid/PiFirmwareFileSystem.h>
-#include <IndustryStandard/PeImage.h>
-#include <Protocol/GuidedSectionExtraction.h>
+#include <Guid/FirmwareFileSystem2.h>
+#include <Common/PeImageEx.h>
+#include <Common/GuidedSectionExtractionEx.h>
 
 #include "Compress.h"
 #include "Decompress.h"
@@ -1395,7 +1395,7 @@ Returns:
     break;
   }
 
-  if (!CompareGuid (
+  if (!BtCompareGuid (
        &FileHeader->Name,
        &gPeiAprioriFileNameGuid
        ))
@@ -1404,7 +1404,7 @@ Returns:
     printf("PEI APRIORI FILE:\n");
     return PrintAprioriFile (FileHeader);
   }
-  if (!CompareGuid (
+  if (!BtCompareGuid (
        &FileHeader->Name,
        &gAprioriGuid
        ))
@@ -1418,6 +1418,7 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 RebaseImageRead (
   IN     VOID    *FileHandle,
   IN     UINTN   FileOffset,
@@ -2082,7 +2083,7 @@ Returns:
           );
         free (ExtractionTool);
 
-        if (!CompareGuid (
+        if (!BtCompareGuid (
                EfiGuid,
                &gEfiCrc32GuidedSectionExtractionProtocolGuid
                )
@@ -2128,7 +2129,7 @@ Returns:
       //
       // Check for CRC32 sections which we can handle internally if needed.
       //
-      } else if (!CompareGuid (
+      } else if (!BtCompareGuid (
                    EfiGuid,
                    &gEfiCrc32GuidedSectionExtractionProtocolGuid
                    )

@@ -9,6 +9,7 @@
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 
 EDK2_PATH ?= $(MAKEROOT)/../../..
+EDK2_OBJPATH ?= $(MAKEROOT)/obj/edk2
 
 ifndef HOST_ARCH
   #
@@ -84,7 +85,11 @@ $(error Bad HOST_ARCH)
 endif
 
 INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE)
-INCLUDE += -I $(EDK2_PATH)/MdePkg/Include
+
+INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/ -I $(EDK2_PATH)/MdeModulePkg/Include/
+
+EDK2_INCLUDE = -include $(MAKEROOT)/Include/Common/AutoGen.h
+
 CPPFLAGS = $(INCLUDE)
 
 # keep EXTRA_OPTFLAGS last
@@ -114,6 +119,12 @@ else
 LDFLAGS =
 CXXFLAGS = -Wno-unused-result
 endif
+
+CPPFLAGS += -fshort-wchar -flto -DUSING_LTO
+ifeq ($(HOST_ARCH), X64)
+  CPPFLAGS += "-DEFIAPI=__attribute__((ms_abi))"
+endif
+
 ifeq ($(HOST_ARCH), IA32)
 #
 # Snow Leopard  is a 32-bit and 64-bit environment. uname -m returns i386, but gcc defaults

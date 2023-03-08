@@ -168,7 +168,7 @@ LookupGuidedSectionToolPath (
   }
 
   for ( ; GuidTool != NULL; GuidTool = GuidTool->Next) {
-    if (CompareGuid (&(GuidTool->Guid), SectionGuid) == 0) {
+    if (BtCompareGuid (&(GuidTool->Guid), SectionGuid) == 0) {
       return CloneString (GuidTool->Path);
     }
   }

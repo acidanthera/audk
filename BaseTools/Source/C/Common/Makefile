@@ -30,6 +30,67 @@ OBJECTS = \
   StringFuncs.obj \
   TianoCompress.obj
 
+OBJECTS = $(OBJECTS) AutoGen.obj DebugLib.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\BaseDebugPrintErrorLevelLib.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\ARShiftU64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\BitField.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\CheckSum.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\DivS64x64Remainder.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\DivU64x32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\DivU64x32Remainder.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\DivU64x64Remainder.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\FilePaths.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\GetPowerOfTwo32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\GetPowerOfTwo64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\HighBitSet32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\HighBitSet64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\LinkedList.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\LowBitSet32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\LRotU32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\LRotU64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\LShiftU64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\Math64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\ModU64x32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\MultS64x64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\MultU64x32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\MultU64x64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\QuickSort.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\RRotU32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\RRotU64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\RShiftU64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\SafeString.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\String.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\SwapBytes16.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\SwapBytes32.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\SwapBytes64.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseLib\Unaligned.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\CompareMemWrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\CopyMem.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\CopyMemWrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\IsZeroBufferWrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\MemLibGeneric.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\MemLibGuid.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\ScanMem8Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\ScanMem16Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\ScanMem32Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\ScanMem64Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\SetMem.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\SetMem16Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\SetMem32Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\SetMem64Wrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\SetMemWrapper.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\ZeroMemWrapper.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLib.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLibInternal.obj
+
 !INCLUDE ..\Makefiles\ms.lib
 
 

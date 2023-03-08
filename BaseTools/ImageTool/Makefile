@@ -4,12 +4,14 @@
 # Copyright (c) 2022, Mikhail Krichanov. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 #
+EDK2_PATH = ..\..
+
 !INCLUDE ..\Source\C\Makefiles\ms.common
 
 APP = ImageTool
 
 OC_USER  = ..\..\OpenCorePkg
-UDK_PATH = ..\..
+UDK_PATH = $(EDK2_PATH)
 UDK_ARCH = $(HOST_ARCH)
 OUT_DIR  = .\Windows
 
