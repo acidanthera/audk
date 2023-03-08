@@ -800,7 +800,7 @@ typedef UINTN *BASE_LIST;
   @param  Message     Raised compiler diagnostic message when expression is false.
 
 **/
-#if defined (__cplusplus)
+#if defined (__cpp_static_assert)
 #define STATIC_ASSERT  static_assert
 #elif defined (__GNUC__) || defined (__clang__)
 #define STATIC_ASSERT  _Static_assert
