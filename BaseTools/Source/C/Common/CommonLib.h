@@ -113,35 +113,6 @@ LongFilePath (
  IN CHAR8 *FileName
 );
 
-
-BOOLEAN
-IsHexStr (
-   CHAR16   *Str
-  );
-
-UINTN
-Strtoi (
-   CHAR16  *Str
-  );
-
-VOID
-Strtoi64 (
-    CHAR16  *Str,
-   UINT64  *Data
-  );
-
-VOID
-StrToAscii (
-       CHAR16 *Str,
-    CHAR8  **AsciiStr
-  );
-
-CHAR16 *
-SplitStr (
-    CHAR16 **List,
-       CHAR16 Separator
-  );
-
 /*++
 
 Routine Description:
