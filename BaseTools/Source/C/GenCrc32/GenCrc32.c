@@ -304,7 +304,7 @@ Returns:
   // Calculate Crc32 value
   //
   if (FileAction == CRC32_ENCODE) {
-    Status = CalculateCrc32 (FileBuffer, FileSize, &Crc32Value);
+    Status = BtCalculateCrc32 (FileBuffer, FileSize, &Crc32Value);
     if (Status != EFI_SUCCESS) {
       Error (NULL, 0, 3000, "Invalid", "Calculate CRC32 value failed!");
       goto Finish;
@@ -324,7 +324,7 @@ Returns:
       Error (NULL, 0, 3000, "Invalid", "Input file is invalid!");
       goto Finish;
     }
-    Status = CalculateCrc32 (FileBuffer + sizeof (UINT32), FileSize - sizeof (UINT32), &Crc32Value);
+    Status = BtCalculateCrc32 (FileBuffer + sizeof (UINT32), FileSize - sizeof (UINT32), &Crc32Value);
     if (Status != EFI_SUCCESS) {
       Error (NULL, 0, 3000, "Invalid", "Calculate CRC32 value failed!");
       goto Finish;

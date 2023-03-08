@@ -16,6 +16,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <limits.h>
 #endif
 
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
+#include <Library/MemoryAllocationLib.h>
+
 #define PRINTED_GUID_BUFFER_SIZE  37  // including null-termination
 
 #ifdef PATH_MAX
@@ -41,8 +46,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define IS_SLASH(a)                ((a) == L'/')
 #define IS_NULL(a)                 ((a) == L'\0')
 
-#define ASSERT(x) assert(x)
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -50,38 +53,8 @@ extern "C" {
 //
 // Function declarations
 //
-VOID
-PeiZeroMem (
-  IN VOID   *Buffer,
-  IN UINTN  Size
-  )
-;
-
-VOID
-PeiCopyMem (
-  IN VOID   *Destination,
-  IN VOID   *Source,
-  IN UINTN  Length
-  )
-;
-
-VOID
-ZeroMem (
-  IN VOID   *Buffer,
-  IN UINTN  Size
-  )
-;
-
-VOID
-CopyMem (
-  IN VOID   *Destination,
-  IN VOID   *Source,
-  IN UINTN  Length
-  )
-;
-
 INTN
-CompareGuid (
+BtCompareGuid (
   IN EFI_GUID     *Guid1,
   IN EFI_GUID     *Guid2
   )
@@ -95,26 +68,6 @@ GetFileImage (
   )
 ;
 
-/*++
-
-Routine Description:
-
-  This function opens a file and writes OutputFileImage into the file.
-
-Arguments:
-
-  OutputFileName     The name of the file to write.
-  OutputFileImage    A pointer to the memory buffer.
-  BytesToWrite       The size of the memory buffer.
-
-Returns:
-
-  EFI_SUCCESS              The function completed successfully.
-  EFI_INVALID_PARAMETER    One of the input parameters was invalid.
-  EFI_ABORTED              An error occurred.
-  EFI_OUT_OF_RESOURCES     No resource to complete operations.
-
-**/
 EFI_STATUS
 PutFileImage (
   IN CHAR8    *OutputFileName,
@@ -123,29 +76,17 @@ PutFileImage (
   )
 ;
 
-UINT8
-CalculateChecksum8 (
-  IN UINT8        *Buffer,
-  IN UINTN        Size
-  )
-;
-
-UINT8
-CalculateSum8 (
-  IN UINT8        *Buffer,
-  IN UINTN        Size
-  )
-;
+#define CalculateChecksum8   CalculateCheckSum8
 
 UINT16
-CalculateChecksum16 (
+BtCalculateChecksum16 (
   IN UINT16       *Buffer,
   IN UINTN        Size
   )
 ;
 
 UINT16
-CalculateSum16 (
+BtCalculateSum16 (
   IN UINT16       *Buffer,
   IN UINTN        Size
   )
@@ -172,231 +113,6 @@ LongFilePath (
  IN CHAR8 *FileName
 );
 
-UINTN
-StrLen (
-  CONST CHAR16   *String
-  );
-
-VOID *
-AllocateCopyPool (
-  UINTN       AllocationSize,
-  CONST VOID  *Buffer
-  );
-
-INTN
-StrnCmp (
-  CONST CHAR16              *FirstString,
-  CONST CHAR16              *SecondString,
-  UINTN                     Length
-  );
-
-RETURN_STATUS
-StrToGuid (
-  CONST CHAR16       *String,
-  EFI_GUID               *Guid
-  );
-
-RETURN_STATUS
-StrHexToBytes (
-  CONST CHAR16       *String,
-  UINTN              Length,
-  UINT8              *Buffer,
-  UINTN              MaxBufferSize
-  );
-
-UINTN
-InternalHexCharToUintn (
-  CHAR16                    Char
-  );
-
-VOID *
-InternalAllocateCopyPool (
-   UINTN            AllocationSize,
-   CONST VOID       *Buffer
-  );
-
-BOOLEAN
-InternalIsDecimalDigitCharacter (
-        CHAR16                    Char
-  );
-
-UINT32
-SwapBytes32 (
-        UINT32                    Value
-  );
-
-UINT16
-SwapBytes16 (
-        UINT16                    Value
-  );
-
-EFI_GUID *
-CopyGuid (
-   EFI_GUID       *DestinationGuid,
-   CONST EFI_GUID  *SourceGuid
-  );
-
-UINT64
-WriteUnaligned64 (
-   UINT64                    *Buffer,
-   UINT64                    Value
-  );
-
-UINT64
-ReadUnaligned64 (
-   CONST UINT64              *Buffer
-  );
-
-UINTN
-StrSize (
-  CONST CHAR16              *String
-  );
-
-UINT64
-StrHexToUint64 (
-  CONST CHAR16             *String
-  );
-
-UINT64
-StrDecimalToUint64 (
-  CONST CHAR16              *String
-  );
-
-RETURN_STATUS
-StrHexToUint64S (
-    CONST CHAR16       *String,
-    CHAR16             **EndPointer,
-    UINT64             *Data
-  );
-
-RETURN_STATUS
-StrDecimalToUint64S (
-    CONST CHAR16             *String,
-         CHAR16             **EndPointer,  OPTIONAL
-         UINT64             *Data
-  );
-
-VOID *
-ReallocatePool (
-   UINTN  OldSize,
-   UINTN  NewSize,
-   VOID   *OldBuffer  OPTIONAL
-  );
-
-VOID *
-InternalReallocatePool (
-   UINTN            OldSize,
-   UINTN            NewSize,
-   VOID             *OldBuffer  OPTIONAL
-  );
-
-VOID *
-InternalAllocateZeroPool (
-   UINTN            AllocationSize
-  ) ;
-
-VOID *
-InternalAllocatePool (
-   UINTN            AllocationSize
-  );
-
-UINTN
-StrnLenS (
-   CONST CHAR16              *String,
-   UINTN                     MaxSize
-  );
-
-CHAR16
-InternalCharToUpper (
-        CHAR16                    Char
-  );
-
-INTN
-StrCmp (
-  CONST CHAR16              *FirstString,
-  CONST CHAR16              *SecondString
-  );
-
-UINT64
-SwapBytes64 (
-  UINT64                    Value
-  );
-
-UINT64
-InternalMathSwapBytes64 (
-  UINT64                    Operand
-  );
-
-RETURN_STATUS
-StrToIpv4Address (
-  CONST CHAR16       *String,
-  CHAR16             **EndPointer,
-  EFI_IPv4_ADDRESS       *Address,
-  UINT8              *PrefixLength
-  );
-
-RETURN_STATUS
-StrToIpv6Address (
-  CONST CHAR16       *String,
-  CHAR16             **EndPointer,
-  EFI_IPv6_ADDRESS       *Address,
-  UINT8              *PrefixLength
-  );
-
-RETURN_STATUS
-StrCpyS (
-  CHAR16       *Destination,
-  UINTN        DestMax,
-  CONST CHAR16 *Source
-  );
-
-RETURN_STATUS
-UnicodeStrToAsciiStrS (
-  CONST CHAR16              *Source,
-  CHAR8                     *Destination,
-  UINTN                     DestMax
-  );
-VOID *
-AllocatePool (
-  UINTN  AllocationSize
-  );
-
-UINT16
-WriteUnaligned16 (
-  UINT16                    *Buffer,
-  UINT16                    Value
-  );
-
-UINT16
-ReadUnaligned16 (
-  CONST UINT16              *Buffer
-  );
-
-VOID *
-AllocateZeroPool (
-  UINTN  AllocationSize
-  );
-
-BOOLEAN
-InternalIsHexaDecimalDigitCharacter (
-  CHAR16                    Char
-  );
-
-BOOLEAN
-InternalSafeStringIsOverlap (
-  IN VOID    *Base1,
-  IN UINTN   Size1,
-  IN VOID    *Base2,
-  IN UINTN   Size2
-  );
-
-BOOLEAN
-InternalSafeStringNoStrOverlap (
-  IN CHAR16  *Str1,
-  IN UINTN   Size1,
-  IN CHAR16  *Str2,
-  IN UINTN   Size2
-  );
 
 BOOLEAN
 IsHexStr (
