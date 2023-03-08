@@ -19,6 +19,7 @@
 #include <Library/CpuLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
 
 #define OR_SEED              0x0101010101010101ull
 #define CLEAR_SEED           0xFFFFFFFFFFFFFFFFull
