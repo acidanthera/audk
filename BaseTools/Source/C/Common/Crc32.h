@@ -1,5 +1,5 @@
 /** @file
-Header file for CalculateCrc32 routine
+Header file for BtCalculateCrc32 routine
 
 Copyright (c) 2004 - 2018, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Common/UefiBaseTypes.h>
 
 EFI_STATUS
-CalculateCrc32 (
+BtCalculateCrc32 (
   IN  UINT8                             *Data,
   IN  UINTN                             DataSize,
   IN OUT UINT32                         *CrcOut
@@ -21,7 +21,7 @@ CalculateCrc32 (
 
 Routine Description:
 
-  The CalculateCrc32 routine.
+  The BtCalculateCrc32 routine.
 
 Arguments:
 

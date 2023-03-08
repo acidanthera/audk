@@ -43,7 +43,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 #pragma warning(default : 4115)
 #pragma warning(default : 4201)
-#pragma warning(default : 4214)
 
 #endif
 
@@ -62,5 +61,16 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 #undef LoadImage
 #undef CreateEvent
+
+//
+// FAR is used as a struct member name by DebugSupport.h.
+//
+#undef FAR
+
+//
+// These two macros collide with re-definitions and case labels.
+//
+#undef ERROR
+#undef MAX_PATH
 
 #endif
