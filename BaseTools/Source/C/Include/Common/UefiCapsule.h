@@ -9,18 +9,10 @@
 
 **/
 
-#ifndef _EFI_CAPSULE_H_
-#define _EFI_CAPSULE_H_
+#ifndef _BT_EFI_CAPSULE_H_
+#define _BT_EFI_CAPSULE_H_
 
-typedef struct {
-  EFI_GUID          CapsuleGuid;
-  UINT32            HeaderSize;
-  UINT32            Flags;
-  UINT32            CapsuleImageSize;
-} EFI_CAPSULE_HEADER;
+#include <Common/UefiBaseTypes.h>
+#include <Uefi/UefiSpec.h>
 
-#define CAPSULE_FLAGS_PERSIST_ACROSS_RESET          0x00010000
-#define CAPSULE_FLAGS_POPULATE_SYSTEM_TABLE         0x00020000
-#define CAPSULE_FLAGS_INITIATE_RESET                0x00040000
-
-#endif // #ifndef _EFI_CAPSULE_H_
+#endif  // #ifndef _EFI_CAPSULE_H_

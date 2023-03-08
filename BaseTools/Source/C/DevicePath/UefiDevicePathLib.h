@@ -24,6 +24,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
 
+
+#include <Protocol/DebugPort.h>
+#define EFI_UART_DEVICE_PATH_GUID  DEVICE_PATH_MESSAGING_UART_FLOW_CONTROL
+
+
 #define END_DEVICE_PATH_LENGTH               (sizeof (EFI_DEVICE_PATH_PROTOCOL))
 #define MAX_DEVICE_PATH_NODE_COUNT   1024
 #define SIZE_64KB   0x00010000
@@ -435,5 +440,112 @@ EFI_DEVICE_PATH_PROTOCOL *
 ConvertTextToDevicePath (
    CONST CHAR16 *TextDevicePath
   );
+
+
+
+VOID
+SetDevicePathEndNode (
+   VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathValid (
+   CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath,
+   UINTN                    MaxSize
+  );
+
+UINT8
+DevicePathType (
+   CONST VOID  *Node
+  );
+
+UINT8
+DevicePathSubType (
+   CONST VOID  *Node
+  );
+
+UINTN
+DevicePathNodeLength (
+   CONST VOID  *Node
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+NextDevicePathNode (
+   CONST VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathEndType (
+   CONST VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathEnd (
+   CONST VOID  *Node
+  );
+BOOLEAN
+IsDevicePathEndInstance (
+   CONST VOID  *Node
+  );
+
+UINT16
+SetDevicePathNodeLength (
+    VOID  *Node,
+   UINTN     Length
+  );
+
+VOID
+SetDevicePathEndNode (
+   VOID  *Node
+  );
+
+UINTN
+UefiDevicePathLibGetDevicePathSize (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibDuplicateDevicePath (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePath (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *FirstDevicePath,
+   CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePathNode (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePathInstance (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibGetNextDevicePathInstance (
+    EFI_DEVICE_PATH_PROTOCOL    **DevicePath,
+   UINTN                          *Size
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibCreateDeviceNode (
+   UINT8                           NodeType,
+   UINT8                           NodeSubType,
+   UINT16                          NodeLength
+  );
+
+BOOLEAN
+UefiDevicePathLibIsDevicePathMultiInstance (
+   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  );
+
+
+
 
 #endif

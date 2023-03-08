@@ -12,7 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Common/UefiBaseTypes.h>
 #include <CommonLib.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 #include "PeCoffLib.h"
 
 typedef union {

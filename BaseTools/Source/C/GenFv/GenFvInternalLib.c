@@ -1047,7 +1047,7 @@ Returns:
   Status = GetSectionByType (FfsFile, EFI_SECTION_FREEFORM_SUBTYPE_GUID, 1,
              &PadSection);
   if (EFI_ERROR (Status) ||
-      CompareGuid (&PadSection.FreeformSubtypeSection->SubTypeGuid,
+      BtCompareGuid (&PadSection.FreeformSubtypeSection->SubTypeGuid,
         &mEfiFfsSectionAlignmentPaddingGuid) != 0) {
     return FALSE;
   }
@@ -1254,7 +1254,7 @@ Returns:
   // Verify the input file is the duplicated file in this Fv image
   //
   for (Index1 = 0; Index1 < Index; Index1 ++) {
-    if (CompareGuid ((EFI_GUID *) FileBuffer, &mFileGuidArray [Index1]) == 0) {
+    if (BtCompareGuid ((EFI_GUID *) FileBuffer, &mFileGuidArray [Index1]) == 0) {
       Error (NULL, 0, 2000, "Invalid parameter", "the %dth file and %uth file have the same file GUID.", (unsigned) Index1 + 1, (unsigned) Index + 1);
       PrintGuid ((EFI_GUID *) FileBuffer);
       free (FileBuffer);
@@ -2679,8 +2679,8 @@ Returns:
                   mFvDataInfo.FvNameGuid.Data4[7]);
   }
 
-  if (CompareGuid (&mFvDataInfo.FvFileSystemGuid, &mEfiFirmwareFileSystem2Guid) == 0 ||
-    CompareGuid (&mFvDataInfo.FvFileSystemGuid, &mEfiFirmwareFileSystem3Guid) == 0) {
+  if (BtCompareGuid (&mFvDataInfo.FvFileSystemGuid, &mEfiFirmwareFileSystem2Guid) == 0 ||
+    BtCompareGuid (&mFvDataInfo.FvFileSystemGuid, &mEfiFirmwareFileSystem3Guid) == 0) {
     mFvDataInfo.IsPiFvImage = TRUE;
   }
 
@@ -2821,7 +2821,7 @@ Returns:
   //
   FvHeader->HeaderLength  = (UINT16) (((UINTN) &(FvHeader->BlockMap[Index + 1])) - (UINTN) FvImage);
   FvHeader->Checksum      = 0;
-  FvHeader->Checksum      = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+  FvHeader->Checksum      = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
 
   //
   // If there is no FFS file, generate one empty FV
@@ -2901,7 +2901,7 @@ Returns:
     // Fv Extension header change update Fv Header Check sum
     //
     FvHeader->Checksum      = 0;
-    FvHeader->Checksum      = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum      = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
   //
@@ -2967,7 +2967,7 @@ Returns:
     // Update Checksum for FvHeader
     //
     FvHeader->Checksum = 0;
-    FvHeader->Checksum = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
   if (mRiscV) {
@@ -2983,7 +2983,7 @@ Returns:
     // Update Checksum for FvHeader
     //
     FvHeader->Checksum = 0;
-    FvHeader->Checksum = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
   if (mLoongArch) {
@@ -2996,7 +2996,7 @@ Returns:
     // Update Checksum for FvHeader
     //
     FvHeader->Checksum = 0;
-    FvHeader->Checksum = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
   //
@@ -3009,16 +3009,16 @@ Returns:
     // Update Checksum for FvHeader
     //
     FvHeader->Checksum      = 0;
-    FvHeader->Checksum      = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum      = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
   //
   // If there are large FFS in FV, the file system GUID should set to system 3 GUID.
   //
-  if (mIsLargeFfs && CompareGuid (&FvHeader->FileSystemGuid, &mEfiFirmwareFileSystem2Guid) == 0) {
+  if (mIsLargeFfs && BtCompareGuid (&FvHeader->FileSystemGuid, &mEfiFirmwareFileSystem2Guid) == 0) {
     memcpy (&FvHeader->FileSystemGuid, &mEfiFirmwareFileSystem3Guid, sizeof (EFI_GUID));
     FvHeader->Checksum      = 0;
-    FvHeader->Checksum      = CalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+    FvHeader->Checksum      = BtCalculateChecksum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
   }
 
 WriteFile:
@@ -3341,6 +3341,7 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 FfsRebaseImageRead (
   IN     VOID    *FileHandle,
   IN     UINTN   FileOffset,
@@ -4414,7 +4415,7 @@ Returns:
   //
   // Set Default Capsule Guid value
   //
-  if (CompareGuid (&mCapDataInfo.CapGuid, &mZeroGuid) == 0) {
+  if (BtCompareGuid (&mCapDataInfo.CapGuid, &mZeroGuid) == 0) {
     memcpy (&mCapDataInfo.CapGuid, &mDefaultCapsuleGuid, sizeof (EFI_GUID));
   }
   //
