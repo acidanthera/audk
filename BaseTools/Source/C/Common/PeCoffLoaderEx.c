@@ -10,18 +10,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 --*/
 
 #include <Common/UefiBaseTypes.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 #include "PeCoffLib.h"
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
-
-
-#define EXT_IMM64(Value, Address, Size, InstPos, ValPos)  \
-    Value |= (((UINT64)((*(Address) >> InstPos) & (((UINT64)1 << Size) - 1))) << ValPos)
-
-#define INS_IMM64(Value, Address, Size, InstPos, ValPos)  \
-    *(UINT32*)Address = (*(UINT32*)Address & ~(((1 << Size) - 1) << InstPos)) | \
-          ((UINT32)((((UINT64)Value >> ValPos) & (((UINT64)1 << Size) - 1))) << InstPos)
 
 #define IMM64_IMM7B_INST_WORD_X         3
 #define IMM64_IMM7B_SIZE_X              7
@@ -166,6 +158,7 @@ PeCoffLoaderRelocateRiscVImage (
 
 **/
 UINT16
+EFIAPI
 ThumbMovtImmediateAddress (
   IN UINT16 *Instruction
   )
@@ -196,6 +189,7 @@ ThumbMovtImmediateAddress (
   @param  Address       New address to patch into the instruction
 **/
 VOID
+EFIAPI
 ThumbMovtImmediatePatch (
   IN OUT UINT16 *Instruction,
   IN     UINT16 Address

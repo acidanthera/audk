@@ -62,12 +62,12 @@ CommonLibBinderCompareMem (
 }
 
 BOOLEAN
-CommonLibBinderCompareGuid (
+CommonLibBinderBtCompareGuid (
   IN EFI_GUID *Guid1,
   IN EFI_GUID *Guid2
   )
 {
-  return CompareGuid (Guid1, Guid2) ? FALSE : TRUE;
+  return BtCompareGuid (Guid1, Guid2) ? FALSE : TRUE;
 }
 
 

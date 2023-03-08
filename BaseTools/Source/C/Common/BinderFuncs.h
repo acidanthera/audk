@@ -52,7 +52,7 @@ CommonLibBinderCompareMem (
   );
 
 BOOLEAN
-CommonLibBinderCompareGuid (
+CommonLibBinderBtCompareGuid (
   IN EFI_GUID *Guid1,
   IN EFI_GUID *Guid2
   );
