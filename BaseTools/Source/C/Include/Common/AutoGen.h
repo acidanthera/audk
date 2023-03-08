@@ -51,6 +51,13 @@ extern UINT64 _gPcd_SkuId_Array[];
 #define _PCD_GET_MODE_32_PcdMaximumLinkedListLength  _PCD_VALUE_PcdMaximumLinkedListLength
 //#define _PCD_SET_MODE_32_PcdMaximumLinkedListLength  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
 
+#define _PCD_TOKEN_PcdMaximumDevicePathNodeCount  0U
+#define _PCD_SIZE_PcdMaximumDevicePathNodeCount 4
+#define _PCD_GET_MODE_SIZE_PcdMaximumDevicePathNodeCount  _PCD_SIZE_PcdMaximumDevicePathNodeCount
+#define _PCD_VALUE_PcdMaximumDevicePathNodeCount  0U
+#define _PCD_GET_MODE_32_PcdMaximumDevicePathNodeCount  _PCD_VALUE_PcdMaximumDevicePathNodeCount
+//#define _PCD_SET_MODE_32_PcdMaximumDevicePathNodeCount  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
 #define _PCD_TOKEN_PcdVerifyNodeInList  0U
 #define _PCD_SIZE_PcdVerifyNodeInList 1
 #define _PCD_GET_MODE_SIZE_PcdVerifyNodeInList  _PCD_SIZE_PcdVerifyNodeInList
