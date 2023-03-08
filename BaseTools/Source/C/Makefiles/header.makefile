@@ -8,6 +8,9 @@
 # Copyright (c) 2007 - 2018, Intel Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
 
+EDK2_PATH ?= $(MAKEROOT)/../../..
+EDK2_OBJPATH ?= $(MAKEROOT)/obj/edk2
+
 ifndef HOST_ARCH
   #
   # If HOST_ARCH is not defined, then we use 'uname -m' to attempt
@@ -61,27 +64,38 @@ endif
 LINKER ?= $(CC)
 ifeq ($(HOST_ARCH), IA32)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/Ia32/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/Ia32/
 
 else ifeq ($(HOST_ARCH), X64)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/X64/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/X64/
 
 else ifeq ($(HOST_ARCH), ARM)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/Arm/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/Arm/
 
 else ifeq ($(HOST_ARCH), AARCH64)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/AArch64/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/AArch64/
 
 else ifeq ($(HOST_ARCH), RISCV64)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/RiscV64/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/RiscV64/
 
 else ifeq ($(HOST_ARCH), LOONGARCH64)
 ARCH_INCLUDE = -I $(MAKEROOT)/Include/LoongArch64/
+ARCH_INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/LoongArch64/
 
 else
 $(error Bad HOST_ARCH)
 endif
 
 INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE)
+
+INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/ -I $(EDK2_PATH)/MdeModulePkg/Include/
+
+EDK2_INCLUDE = -include $(MAKEROOT)/Include/Common/AutoGen.h
+
 CPPFLAGS = $(INCLUDE)
 
 # keep EXTRA_OPTFLAGS last
@@ -111,6 +125,12 @@ else
 LDFLAGS =
 CXXFLAGS = -Wno-unused-result
 endif
+
+CPPFLAGS += -fshort-wchar -flto -DUSING_LTO
+ifeq ($(HOST_ARCH), X64)
+  CPPFLAGS += "-DEFIAPI=__attribute__((ms_abi))"
+endif
+
 ifeq ($(HOST_ARCH), IA32)
 #
 # Snow Leopard  is a 32-bit and 64-bit environment. uname -m returns i386, but gcc defaults
