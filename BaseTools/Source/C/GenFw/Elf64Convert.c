@@ -24,7 +24,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <ctype.h>
 
 #include <Common/UefiBaseTypes.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 
 #include "PeCoffLib.h"
 #include "EfiUtilityMsgs.h"

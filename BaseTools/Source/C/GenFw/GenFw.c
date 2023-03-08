@@ -21,7 +21,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <ctype.h>
 
 #include <Common/UefiBaseTypes.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 #include <Common/UefiInternalFormRepresentation.h>
 
 //
@@ -793,6 +793,7 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 RebaseImageRead (
   IN     VOID    *FileHandle,
   IN     UINTN   FileOffset,

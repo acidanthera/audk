@@ -277,7 +277,7 @@ Returns:
   // Loop as long as we have a valid file
   //
   while (CurrentFile) {
-    if (!CompareGuid (&CurrentFile->Name, FileName)) {
+    if (!BtCompareGuid (&CurrentFile->Name, FileName)) {
       *File = CurrentFile;
       return EFI_SUCCESS;
     }
@@ -602,7 +602,7 @@ Returns:
   //
   // Verify header checksum
   //
-  Checksum = CalculateSum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
+  Checksum = BtCalculateSum16 ((UINT16 *) FvHeader, FvHeader->HeaderLength / sizeof (UINT16));
 
   if (Checksum != 0) {
     Error (NULL, 0, 0006, "invalid FV header checksum", NULL);
