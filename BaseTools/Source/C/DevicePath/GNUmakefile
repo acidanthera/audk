@@ -9,7 +9,14 @@ MAKEROOT ?= ..
 
 APPNAME = DevicePath
 
-OBJECTS = DevicePath.o UefiDevicePathLib.o DevicePathFromText.o  DevicePathUtilities.o
+OBJECTS = DevicePath.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdePkg/Library/UefiDevicePathLib/DevicePathFromText.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/UefiDevicePathLib/DevicePathToText.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/UefiDevicePathLib/DevicePathUtilities.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/UefiDevicePathLib/DevicePathUtilitiesBase.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.o
 
 include $(MAKEROOT)/Makefiles/app.makefile
 
