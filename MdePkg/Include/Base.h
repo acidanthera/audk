@@ -797,7 +797,7 @@ typedef UINTN *BASE_LIST;
 **/
 #ifdef MDE_CPU_EBC
 #define STATIC_ASSERT(Expression, Message)
-#elif defined (_MSC_EXTENSIONS) || defined (__cplusplus)
+#elif defined (_MSC_EXTENSIONS) || defined (__cpp_static_assert)
 #define STATIC_ASSERT  static_assert
 #else
 #define STATIC_ASSERT  _Static_assert
