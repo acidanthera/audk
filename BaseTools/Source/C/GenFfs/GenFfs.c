@@ -6,6 +6,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
+#include "WinNtInclude.h"
+
 #ifndef __GNUC__
 #define RUNTIME_FUNCTION  _WINNT_DUP_RUNTIME_FUNCTION
 #include <windows.h>
@@ -25,7 +27,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Common/UefiBaseTypes.h>
 #include <Common/PiFirmwareFile.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 #include <Guid/FfsSectionAlignmentPadding.h>
 
 #include "CommonLib.h"
@@ -471,6 +473,7 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 FfsRebaseImageRead (
     IN      VOID    *FileHandle,
     IN      UINTN   FileOffset,
@@ -897,7 +900,7 @@ Returns:
     goto Finish;
   }
 
-  if (CompareGuid (&FileGuid, &mZeroGuid) == 0) {
+  if (BtCompareGuid (&FileGuid, &mZeroGuid) == 0) {
     Error (NULL, 0, 1001, "Missing option", "fileguid");
     goto Finish;
   }

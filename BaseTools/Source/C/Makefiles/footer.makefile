@@ -17,6 +17,10 @@ install: $(MAKEROOT)/libs-$(HOST_ARCH) $(LIBRARY)
 $(LIBRARY): $(OBJECTS)
 	$(AR) crs $@ $^
 
+$(EDK2_OBJPATH)/%.o : $(EDK2_PATH)/%.c
+	@mkdir -p $(@D)
+	$(CC)  -c $(CPPFLAGS) $(CFLAGS) $(EDK2_INCLUDE) $< -o $@
+
 %.o : %.c
 	$(CC)  -c $(CPPFLAGS) $(CFLAGS) $< -o $@
 
@@ -26,5 +30,6 @@ $(LIBRARY): $(OBJECTS)
 .PHONY: clean
 clean:
 	@rm -f $(OBJECTS) $(LIBRARY) $(DEPFILES)
+	@rm -rf $(EDK2_OBJPATH)
 
 -include $(DEPFILES)
