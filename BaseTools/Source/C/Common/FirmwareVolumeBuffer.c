@@ -62,7 +62,7 @@ FvBufGetSecFileLen (
 
 STATIC
 UINT16
-FvBufCalculateChecksum16 (
+FvBufBtCalculateChecksum16 (
   IN UINT16       *Buffer,
   IN UINTN        Size
   );
@@ -198,7 +198,7 @@ Returns:
       return Status;
     }
 
-    if (CommonLibBinderCompareGuid (Name, &NextFile->Name)) {
+    if (CommonLibBinderBtCompareGuid (Name, &NextFile->Name)) {
       continue;
     }
     else {
@@ -300,7 +300,7 @@ Returns:
 
   FvHeader->Checksum = 0;
   FvHeader->Checksum =
-    FvBufCalculateChecksum16 (
+    FvBufBtCalculateChecksum16 (
       (UINT16*) FvHeader,
       FvHeader->HeaderLength / sizeof (UINT16)
       );
@@ -1069,7 +1069,7 @@ Returns:
       return Status;
     }
 
-    if (CommonLibBinderCompareGuid (Name, &NextFile->Name)) {
+    if (CommonLibBinderBtCompareGuid (Name, &NextFile->Name)) {
       if (File != NULL) {
         *File = NextFile;
       }
@@ -1643,7 +1643,7 @@ Returns:
 
 STATIC
 UINT16
-FvBufCalculateSum16 (
+FvBufBtCalculateSum16 (
   IN UINT16       *Buffer,
   IN UINTN        Size
   )
@@ -1682,7 +1682,7 @@ Returns:
 
 STATIC
 UINT16
-FvBufCalculateChecksum16 (
+FvBufBtCalculateChecksum16 (
   IN UINT16       *Buffer,
   IN UINTN        Size
   )
@@ -1703,7 +1703,7 @@ Returns:
 
 --*/
 {
-  return (UINT16)(0x10000 - FvBufCalculateSum16 (Buffer, Size));
+  return (UINT16)(0x10000 - FvBufBtCalculateSum16 (Buffer, Size));
 }
 
 
