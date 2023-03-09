@@ -29,13 +29,11 @@
   # Defines for default states.  These can be changed on the command line.
   # -D FLAG=VALUE
   #
-  DEFINE SECURE_BOOT_ENABLE      = TRUE
-  DEFINE SMM_REQUIRE             = TRUE
+  DEFINE SECURE_BOOT_ENABLE      = FALSE
+  DEFINE SMM_REQUIRE             = FALSE
   DEFINE SOURCE_DEBUG_ENABLE     = FALSE
 
 !include OvmfPkg/OvmfTpmDefines.dsc.inc
-
-  DEFINE DEBUG_ON_SERIAL_PORT = TRUE
 
   #
   # Shell can be useful for debugging but should not be enabled for production
