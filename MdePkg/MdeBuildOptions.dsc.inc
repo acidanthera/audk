@@ -32,13 +32,5 @@
   [BuildOptions]
     MSFT:*_*_*_DLINK_FLAGS        = /MERGE:.rdata=.text
     CLANGPDB:*_*_*_DLINK_FLAGS    = /MERGE:.rdata=.text
-    GCC:*_*_*_DLINK2_FLAGS        = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Merge.lds
-    GCC:*_*_*_ASLDLINK_FLAGS      = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Merge.lds
-    CLANGGCC:*_*_*_DLINK2_FLAGS   = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Merge.lds
-    CLANGGCC:*_*_*_ASLDLINK_FLAGS = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Merge.lds
     XCODE:*_*_*_DLINK_FLAGS       = -rename_section __DATA_CONST __text_const __TEXT __const -rename_section __DATA_CONST __cstring __TEXT __cstring -rename_section __DATA_CONST __ustring __TEXT __ustring -rename_section __DATA_CONST __const __TEXT __data_const
-!else
-  [BuildOptions]
-    CLANGGCC:*_*_*_DLINK2_FLAGS   = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
-    CLANGGCC:*_*_*_ASLDLINK_FLAGS = -Wl,--script=$(EDK_TOOLS_PATH)/Scripts/Base.lds
 !endif
