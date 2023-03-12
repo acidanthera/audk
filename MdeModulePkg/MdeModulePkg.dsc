@@ -516,4 +516,4 @@
 [Components.X64]
   MdeModulePkg/Universal/CapsulePei/CapsuleX64.inf
 
-!include MdePkg/MdeBuildOptions.dsc.inc
+[BuildOptions]

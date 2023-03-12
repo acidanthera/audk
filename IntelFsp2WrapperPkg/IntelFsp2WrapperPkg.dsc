@@ -101,7 +101,5 @@
   gEfiMdePkgTokenSpaceGuid.PcdDebugPrintErrorLevel|0x80080046
   gEfiMdePkgTokenSpaceGuid.PcdReportStatusCodePropertyMask|0x07
 
-!include MdePkg/MdeBuildOptions.dsc.inc
-
 [BuildOptions]
   *_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES

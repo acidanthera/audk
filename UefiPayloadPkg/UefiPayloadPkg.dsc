@@ -134,8 +134,6 @@
 
   DEFINE MULTIPLE_DEBUG_PORT_SUPPORT = FALSE
 
-!include MdePkg/MdeBuildOptions.dsc.inc
-
 [BuildOptions]
   *_*_*_CC_FLAGS                 = -D DISABLE_NEW_DEPRECATED_INTERFACES
 !if $(USE_CBMEM_FOR_CONSOLE) == FALSE
