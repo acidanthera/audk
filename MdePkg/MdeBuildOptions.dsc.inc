@@ -33,4 +33,5 @@
     MSFT:*_*_*_DLINK_FLAGS        = /MERGE:.rdata=.text
     CLANGPDB:*_*_*_DLINK_FLAGS    = /MERGE:.rdata=.text
     XCODE:*_*_*_DLINK_FLAGS       = -rename_section __DATA_CONST __text_const __TEXT __const -rename_section __DATA_CONST __cstring __TEXT __cstring -rename_section __DATA_CONST __ustring __TEXT __ustring -rename_section __DATA_CONST __const __TEXT __data_const
+  # GCC/CLANGGCC:                   To enable this feature uncomment MERGE_RODATA_INTO_TEXT definition in tools_def.txt.
 !endif
