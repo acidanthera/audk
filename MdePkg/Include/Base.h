@@ -765,23 +765,30 @@ typedef UINTN *BASE_LIST;
 
   @return  Alignment requirement, in Bytes, of TYPE.
 **/
-#if defined (__cplusplus)
-//
-// Standard C++ operator.
-//
-#define ALIGNOF(TYPE)  alignof (TYPE)
-#elif defined (__GNUC__) || defined (__clang__) || (defined (_MSC_VER) && _MSC_VER >= 1900)
-//
-// All supported versions of GCC and Clang, as well as MSVC 2015 and later,
-// support the standard operator _Alignof.
-//
-#define ALIGNOF(TYPE)  _Alignof (TYPE)
-#elif defined (_MSC_EXTENSIONS)
-//
-// Earlier versions of MSVC, at least MSVC 2008 and later, support the vendor
-// extension __alignof.
-//
-#define ALIGNOF(TYPE)  __alignof (TYPE)
+#if defined(__cplusplus) && __cplusplus >= 201103L
+  //
+  // C++ 11 and later support the standard operator alignof.
+  //
+  #define ALIGNOF(TYPE)  alignof (TYPE)
+#elif ((defined(__GNUC__) || (defined(_MSC_VER) && _MSC_VER >= 1900)) && !defined (__cplusplus)) || defined(__clang__)
+  //
+  // All supported versions of GCC and Clang, as well as MSVC 2015 and later,
+  // support the standard operator _Alignof in C mode. GCC and MSVC do not
+  // support it in C++ mode though.
+  //
+  #define ALIGNOF(TYPE)  _Alignof (TYPE)
+#elif defined(__GNUC__)
+  //
+  // GCC does not support _Alignof in C++ mode, unlike Clang. The vendor-
+  // extenstion is supported in both C and C++ mode.
+  //
+  #define ALIGNOF(TYPE)  __alignof__ (TYPE)
+#elif defined(_MSC_EXTENSIONS)
+  //
+  // Earlier versions of MSVC, at least MSVC 2008 and later, as well as current
+  // versions in C++ mode support the vendor-extension __alignof.
+  //
+  #define ALIGNOF(TYPE)  __alignof (TYPE)
 #else
 //
 // For compilers that do not support inbuilt alignof operators, use OFFSET_OF.
