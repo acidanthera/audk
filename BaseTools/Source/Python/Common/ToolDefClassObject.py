@@ -103,30 +103,30 @@ class ToolDefClassObject(object):
         else:
             EdkLogger.error("tools_def.txt parser", FILE_NOT_FOUND, ExtraData=FileName)
 
-        BranchPath = 0
+        Branch = 0
         for Index in range(len(FileContent)):
             Line = FileContent[Index].strip()
             if Line == "" or Line[0] == '#':
                 continue
 
             if Line.startswith("!ifdef"):
-                Branch = Line[6:].strip()
-                Done, Branch = self.ExpandMacros(Branch)
-                if Done:
-                    BranchPath = 1
+                Condition = Line[6:].strip()
+                Reference = GlobalData.gMacroRefPattern.findall(Condition)
+                if Reference[0] in GlobalData.gCommandLineDefines:
+                    Branch = 1
                 else:
-                    BranchPath = -1
+                    Branch = -1
                 continue
 
             if Line.startswith("!else"):
-                BranchPath *= -1
+                Branch *= -1
                 continue
 
             if Line.startswith("!endif"):
-                BranchPath = 0
+                Branch = 0
                 continue
 
-            if BranchPath == -1:
+            if Branch == -1:
                 continue
 
             if Line.startswith("!include"):
