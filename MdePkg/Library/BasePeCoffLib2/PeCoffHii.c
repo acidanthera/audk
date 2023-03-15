@@ -15,7 +15,6 @@
 
 #include <IndustryStandard/PeImage2.h>
 
-#include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PeCoffLib2.h>

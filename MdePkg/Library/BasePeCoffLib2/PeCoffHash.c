@@ -16,7 +16,6 @@
 
 #include <Guid/WinCertificate.h>
 
-#include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
