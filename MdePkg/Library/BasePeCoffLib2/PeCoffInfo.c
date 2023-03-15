@@ -12,8 +12,10 @@
 #include <Uefi/UefiBaseType.h>
 #include <Uefi/UefiSpec.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 
 #include "BasePeCoffLib2Internals.h"

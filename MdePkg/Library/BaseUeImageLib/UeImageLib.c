@@ -12,9 +12,11 @@
 
 #include <IndustryStandard/UeImage.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
+#include <Library/PcdLib.h>
 #include <Library/UefiImageLib.h>
 #include <Library/UeImageLib.h>
 

@@ -15,10 +15,12 @@
 
 #include <IndustryStandard/PeImage2.h>
 
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
 #include <Library/UefiImageExtraActionLib.h>
+#include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 
 #include "BasePeCoffLib2Internals.h"
