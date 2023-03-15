@@ -56,9 +56,6 @@
   DEFINE LINUX_LOADER            = FALSE
   DEFINE WINDOWS_10_IA32         = FALSE
 
-  DEFINE MDEPKG_REDUCE_FW_SIZE         = FALSE
-  DEFINE MDEPKG_MERGE_RODATA_INTO_TEXT = FALSE
-
   #
   # Device drivers
   #
@@ -111,7 +108,6 @@
 !endif
 
 !include NetworkPkg/NetworkBuildOptions.dsc.inc
-!include MdePkg/MdeBuildOptions.dsc.inc
 
 ################################################################################
 #
