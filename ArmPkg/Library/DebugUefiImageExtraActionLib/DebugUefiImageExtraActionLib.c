@@ -74,7 +74,7 @@ UefiImageLoaderRelocateImageExtraAction (
   RETURN_STATUS Status;
   CONST CHAR8   *PdbPath;
   UINT32        PdbPathSize;
-#if !defined(MDEPKG_NDEBUG)
+#if defined (__CC_ARM) || defined (__GNUC__)
   CHAR8         Temp[512];
 #endif
 
@@ -119,7 +119,7 @@ UefiImageLoaderUnloadImageExtraAction (
   RETURN_STATUS Status;
   CONST CHAR8   *PdbPath;
   UINT32        PdbPathSize;
-#if !defined(MDEPKG_NDEBUG)
+#if defined (__CC_ARM) || defined (__GNUC__)
   CHAR8         Temp[512];
 #endif
 
