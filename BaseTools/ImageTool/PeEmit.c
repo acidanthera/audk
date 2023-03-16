@@ -496,6 +496,7 @@ ToolImageEmitPeHeaders (
   PePlusHdr->SectionAlignment    = Image->SegmentInfo.SegmentAlignment;
   PePlusHdr->FileAlignment       = Context->FileAlignment;
   PePlusHdr->SizeOfHeaders       = AlignedHeaderSize;
+  PePlusHdr->SizeOfImage         = AlignedHeaderSize;
   PePlusHdr->ImageBase           = (UINTN)Image->HeaderInfo.PreferredAddress;
   PePlusHdr->Subsystem           = Image->HeaderInfo.Subsystem;
   PePlusHdr->NumberOfRvaAndSizes = Context->HdrInfo.NumberOfRvaAndSizes;
@@ -565,6 +566,8 @@ ToolImageEmitPeSections (
 
   for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     Segment = &Image->SegmentInfo.Segments[Index];
+
+    Context->PeHdr->SizeOfImage += Segment->ImageSize;
 
     if (FirstCode && (Segment->Type == ToolImageSectionTypeCode)) {
       Context->PeHdr->BaseOfCode = (UINT32)Segment->ImageAddress;
@@ -648,6 +651,8 @@ ToolImageEmitPeRelocTable (
   }
 
   Image = Context->Image;
+
+  Context->PeHdr->SizeOfImage += ALIGN_VALUE (Context->RelocTableSize, Image->SegmentInfo.SegmentAlignment);
 
   assert (Image->RelocInfo.NumRelocs > 0);
   assert (Image->RelocInfo.NumRelocs <= MAX_UINT32);
@@ -748,6 +753,8 @@ ToolImageEmitPeDebugTable (
     return true;
   }
 
+  Context->PeHdr->SizeOfImage += ALIGN_VALUE (Context->DebugTableSize, Image->SegmentInfo.SegmentAlignment);
+
   assert (Image->DebugInfo.SymbolsPathLen <= Context->DebugTableSize);
   assert (Context->DebugTableSize <= *BufferSize);
 
@@ -797,6 +804,8 @@ ToolImageEmitPeHiiTable (
   if (Context->HiiTableSize == 0) {
     return true;
   }
+
+  Context->PeHdr->SizeOfImage += ALIGN_VALUE (Image->HiiInfo.DataSize, Image->SegmentInfo.SegmentAlignment);
 
   assert (Image->HiiInfo.DataSize <= Context->HiiTableSize);
   assert (Context->HiiTableSize <= *BufferSize);
@@ -979,7 +988,6 @@ ToolImageEmitPe (
   assert (RemainingSize == ExpectedSize);
   assert (RemainingSize == 0);
 
-  Context.PeHdr->SizeOfImage            = Context.UnsignedFileSize;
   Context.PeHdr->SizeOfInitializedData += Context.ExtraSectionsSize;
 
   *FileSize = Context.UnsignedFileSize;
