@@ -449,7 +449,7 @@ ToolImageEmitUeHeader (
   UeHdr->NumSections       = Context->HdrInfo.NumSections;
   UeHdr->Subsystem         = (UINT8)Image->HeaderInfo.Subsystem;
   UeHdr->Machine           = (UINT8)Image->HeaderInfo.Machine;
-  UeHdr->PreferredAddress  = Image->HeaderInfo.PreferredAddress;
+  UeHdr->PreferredAddress  = Image->HeaderInfo.BaseAddress;
   UeHdr->EntryPointAddress = Image->HeaderInfo.EntryPointAddress;
   UeHdr->ImageInfo2        = Context->UnsignedFileSize;
   assert (UeHdr->ImageInfo2 == UE_HEADER_UNSIGNED_SIZE (UeHdr->ImageInfo2));

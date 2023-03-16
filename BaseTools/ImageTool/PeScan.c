@@ -50,7 +50,7 @@ ScanPeGetHeaderInfo (
   assert (HeaderInfo != NULL);
   assert (Context    != NULL);
 
-  HeaderInfo->PreferredAddress  = (uint64_t)PeCoffGetImageBase (Context);
+  HeaderInfo->BaseAddress       = (uint64_t)PeCoffGetImageBase (Context);
   HeaderInfo->EntryPointAddress = PeCoffGetAddressOfEntryPoint (Context);
   // FIXME:
   HeaderInfo->Machine = PeCoffGetMachine (Context);

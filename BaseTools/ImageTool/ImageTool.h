@@ -74,7 +74,7 @@ typedef struct {
 #define PAGE_OFF(x) ((x) & 4095U)
 
 typedef struct {
-  uint64_t PreferredAddress;
+  uint64_t BaseAddress;
   uint32_t EntryPointAddress;
   uint16_t Machine;
   uint16_t Subsystem;

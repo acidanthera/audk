@@ -779,7 +779,7 @@ ScanElf (
 
   memset (&mImageInfo, 0, sizeof (mImageInfo));
 
-  mImageInfo.HeaderInfo.PreferredAddress  = 0;
+  mImageInfo.HeaderInfo.BaseAddress       = 0;
   mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)mEhdr->e_entry;
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;

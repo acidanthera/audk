@@ -497,7 +497,7 @@ ToolImageEmitPeHeaders (
   PePlusHdr->FileAlignment       = Context->FileAlignment;
   PePlusHdr->SizeOfHeaders       = AlignedHeaderSize;
   PePlusHdr->SizeOfImage         = AlignedHeaderSize;
-  PePlusHdr->ImageBase           = (UINTN)Image->HeaderInfo.PreferredAddress;
+  PePlusHdr->ImageBase           = (UINTN)Image->HeaderInfo.BaseAddress;
   PePlusHdr->Subsystem           = Image->HeaderInfo.Subsystem;
   PePlusHdr->NumberOfRvaAndSizes = Context->HdrInfo.NumberOfRvaAndSizes;
 
