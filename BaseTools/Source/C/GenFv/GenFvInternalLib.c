@@ -1580,7 +1580,6 @@ Returns:
   EFI_STATUS                Status;
   EFI_FILE_SECTION_POINTER  Pe32Section;
   UINT32                    EntryPoint;
-  UINT32                    BaseOfCode;
   UINT16                    MachineType;
   EFI_PHYSICAL_ADDRESS      PeiCorePhysicalAddress;
   EFI_PHYSICAL_ADDRESS      SecCorePhysicalAddress;
@@ -1662,7 +1661,6 @@ Returns:
   Status = GetPe32Info (
             (VOID *) ((UINTN) Pe32Section.Pe32Section + SecHeaderSize),
             &EntryPoint,
-            &BaseOfCode,
             &MachineType
             );
 
@@ -1715,7 +1713,6 @@ Returns:
     Status = GetPe32Info (
               (VOID *) ((UINTN) Pe32Section.Pe32Section + SecHeaderSize),
               &EntryPoint,
-              &BaseOfCode,
               &MachineType
               );
 
@@ -2016,7 +2013,6 @@ Returns:
 {
   EFI_STATUS                  Status;
   UINT32                      EntryPoint;
-  UINT32                      BaseOfCode;
 
   if (CoreMachineType == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -2025,7 +2021,6 @@ Returns:
   Status = GetPe32Info(
     (VOID *)((UINTN)Pe32Section.Pe32Section + GetSectionHeaderLength(Pe32Section.CommonHeader)),
     &EntryPoint,
-    &BaseOfCode,
     CoreMachineType
     );
   if (EFI_ERROR(Status)) {
@@ -2066,7 +2061,6 @@ Returns:
 {
   EFI_STATUS                  Status;
   UINT32                      EntryPoint;
-  UINT32                      BaseOfCode;
   UINT16                      MachineType;
   EFI_PHYSICAL_ADDRESS        EntryPhysicalAddress;
 
@@ -2077,7 +2071,6 @@ Returns:
   Status = GetPe32Info(
     (VOID *)((UINTN)Pe32Section.Pe32Section + GetSectionHeaderLength(Pe32Section.CommonHeader)),
     &EntryPoint,
-    &BaseOfCode,
     &MachineType
     );
   if (EFI_ERROR(Status)) {
@@ -2526,7 +2519,6 @@ EFI_STATUS
 GetPe32Info (
   IN UINT8                  *Pe32,
   OUT UINT32                *EntryPoint,
-  OUT UINT32                *BaseOfCode,
   OUT UINT16                *MachineType
   )
 /*++
@@ -2541,7 +2533,6 @@ Arguments:
 
   Pe32          Beginning of the PE32.
   EntryPoint    Offset from the beginning of the PE32 to the image entry point.
-  BaseOfCode    Base address of code.
   MachineType   Magic number for the machine type.
 
 Returns:
@@ -2573,7 +2564,6 @@ Returns:
     // By TeImage Header to get output
     //
     *EntryPoint   = TeHeader->AddressOfEntryPoint + sizeof (EFI_TE_IMAGE_HEADER) - TeHeader->StrippedSize;
-    *BaseOfCode   = TeHeader->BaseOfCode + sizeof (EFI_TE_IMAGE_HEADER) - TeHeader->StrippedSize;
     *MachineType  = TeHeader->Machine;
   } else {
 
@@ -2606,7 +2596,6 @@ Returns:
     // Get output
     //
     *EntryPoint   = ImgHdr->Pe32.OptionalHeader.AddressOfEntryPoint;
-    *BaseOfCode   = ImgHdr->Pe32.OptionalHeader.BaseOfCode;
     *MachineType  = ImgHdr->Pe32.FileHeader.Machine;
   }
 
