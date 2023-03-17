@@ -736,6 +736,7 @@ typedef struct {
 #define R_ARM_THM_MOVW_PREL_NC   49
 #define R_ARM_THM_MOVT_PREL      50
 #define R_ARM_THM_JMP6           52
+#define R_ARM_THM_JUMP19         51
 #define R_ARM_THM_ALU_PREL_11_0  53
 #define R_ARM_THM_PC12           54
 #define R_ARM_REL32_NOI          56
@@ -753,21 +754,14 @@ typedef struct {
 #define R_ARM_LDC_PC_G1          68
 #define R_ARM_LDC_PC_G2          69
 #define R_ARM_GOT_PREL           96
+#define R_ARM_GNU_VTENTRY        100
+#define R_ARM_GNU_VTINHERIT      101
 #define R_ARM_THM_JUMP11         102
 #define R_ARM_THM_JUMP8          103
 #define R_ARM_TLS_GD32           104
 #define R_ARM_TLS_LDM32          105
 #define R_ARM_TLS_IE32           107
 
-#define R_ARM_THM_JUMP19      51
-#define  R_ARM_GNU_VTENTRY    100
-#define  R_ARM_GNU_VTINHERIT  101
-#define  R_ARM_RSBREL32       250
-#define  R_ARM_THM_RPC22      251
-#define  R_ARM_RREL32         252
-#define  R_ARM_RABS32         253
-#define  R_ARM_RPC24          254
-#define  R_ARM_RBASE          255
 
 #define  R_PPC_NONE             0/* No relocation. */
 #define  R_PPC_ADDR32           1

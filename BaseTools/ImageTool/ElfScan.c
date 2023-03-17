@@ -328,10 +328,6 @@ SetRelocs (
 #if defined(EFI_TARGET64)
   UINT32         Index2;
   BOOLEAN        New;
-#elif defined(EFI_TARGET32)
-  UINT32         MovwOffset;
-
-  MovwOffset = 0;
 #endif
   RelNum = 0;
 
@@ -496,10 +492,6 @@ SetRelocs (
       } else if (mEhdr->e_machine == EM_ARM) {
         switch (ELF32_R_TYPE(Rel->r_info)) {
           case R_ARM_NONE:
-          case R_ARM_RBASE:
-            // No relocation - no action required
-            // break skipped
-
           case R_ARM_PC24:
           case R_ARM_REL32:
           case R_ARM_XPC25:
@@ -535,33 +527,22 @@ SetRelocs (
           case R_ARM_TLS_GD32:
           case R_ARM_TLS_LDM32:
           case R_ARM_TLS_IE32:
-            // Thease are all PC-relative relocations and don't require modification
-            // GCC does not seem to have the concept of a application that just needs to get relocated.
             break;
           case R_ARM_THM_MOVW_ABS_NC:
-            // MOVW is only lower 16-bits of the addres
-            // ThumbMovtImmediatePatch ((UINT16 *)Targ, (UINT16)Sym->st_value);
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_ARM_MOV32T;
             mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
             ++RelNum;
-            // PE/COFF treats MOVW/MOVT relocation as single 64-bit instruction
-            // Track this address so we can log an error for unsupported sequence of MOVW/MOVT
-            MovwOffset = Rel->r_offset;
 
             break;
           case R_ARM_THM_MOVT_ABS:
-            // MOVT is only upper 16-bits of the addres
-            // ThumbMovtImmediatePatch ((UINT16 *)Targ, (UINT16)(Sym->st_value >> 16));
-
-            if ((MovwOffset + 4) != Rel->r_offset) {
-              fprintf (stderr, "ImageTool: PE/COFF requires MOVW+MOVT instruction sequence (%x + 4) != %x\n", MovwOffset, Rel->r_offset);
-              return RETURN_UNSUPPORTED;
-            }
-
+            //
+            // The immediate fields of a contiguous MOVW+MOVT pair in Thumb mode
+            // is treated as a single 64-bit instruction starting at the address
+            // provided by R_ARM_THM_MOVW_ABS_NC relocation.
+            //
             break;
           case R_ARM_ABS32:
-          case R_ARM_RABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
             mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
@@ -641,7 +622,6 @@ CreateIntermediate (
           }
         } else if (mEhdr->e_machine == EM_ARM) {
           if ((ELF_R_TYPE(Rel->r_info) == R_ARM_THM_MOVW_ABS_NC)
-            || (ELF_R_TYPE(Rel->r_info) == R_ARM_RABS32)
             || (ELF_R_TYPE(Rel->r_info) == R_ARM_ABS32)) {
             ++NumRelocs;
           }
