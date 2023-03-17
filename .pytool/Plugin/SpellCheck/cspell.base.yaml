@@ -106,7 +106,6 @@
         "Trustzone",
         "Fastboot",
         "framebuffer",
-        "genfw",
         "TTYTERM",
         "miniport",
         "LFENCE",
