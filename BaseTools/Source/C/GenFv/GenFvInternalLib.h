@@ -308,7 +308,6 @@ EFI_STATUS
 GetPe32Info (
   IN UINT8    *Pe32,
   OUT UINT32  *EntryPoint,
-  OUT UINT32  *BaseOfCode,
   OUT UINT16  *MachineType
   );
 
