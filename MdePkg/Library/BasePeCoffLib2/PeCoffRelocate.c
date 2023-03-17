@@ -195,7 +195,7 @@ ThumbMovwMovtImmediatePatch (
 STATIC
 VOID
 ThumbMovwMovtImmediateFixup (
-  IN OUT VOID    *Fixup,
+  IN OUT VOID    *Instructions,
   IN     UINT64  Adjust
   )
 {
@@ -203,8 +203,8 @@ ThumbMovwMovtImmediateFixup (
   //
   // Relocate the instruction pair.
   //
-  Fixup32 = ThumbMovwMovtImmediateAddress (Fixup) + (UINT32) Adjust;
-  ThumbMovwMovtImmediatePatch (Fixup, Fixup32);
+  Fixup32 = ThumbMovwMovtImmediateAddress (Instructions) + (UINT32) Adjust;
+  ThumbMovwMovtImmediatePatch (Instructions, Fixup32);
 }
 
 /**
@@ -379,9 +379,9 @@ InternalApplyRelocation (
       }
       //
       // Verify the Base Relocation target is sufficiently aligned.
-      // The ARM THunb instruction pait must start on a 32-bit boundary.
+      // The ARM Thumb instruction pair must start on a 16-bit boundary.
       //
-      if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT32))) {
+      if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT16))) {
         DEBUG_RAISE ();
         return RETURN_VOLUME_CORRUPTED;
       }
