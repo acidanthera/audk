@@ -564,15 +564,15 @@ CoreLoadPeImage (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS                      Status;
-  BOOLEAN                         DstBufAlocated;
-  UINT32                          Size;
-  EFI_MEMORY_TYPE                 ImageCodeMemoryType;
-  EFI_MEMORY_TYPE                 ImageDataMemoryType;
-  PE_COFF_LOADER_RUNTIME_CONTEXT  *RelocationData;
-  EFI_PHYSICAL_ADDRESS            BufferAddress;
-  UINTN                           LoadAddress;
-  UINT32                          RelocDataSize;
+  EFI_STATUS                        Status;
+  BOOLEAN                           DstBufAlocated;
+  UINT32                            Size;
+  EFI_MEMORY_TYPE                   ImageCodeMemoryType;
+  EFI_MEMORY_TYPE                   ImageDataMemoryType;
+  UEFI_IMAGE_LOADER_RUNTIME_CONTEXT *RelocationData;
+  EFI_PHYSICAL_ADDRESS              BufferAddress;
+  UINTN                             LoadAddress;
+  UINT32                            RelocDataSize;
 
   RelocationData = NULL;
 
