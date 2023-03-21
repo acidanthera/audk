@@ -19,7 +19,6 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
-#include <Library/UefiImageExtraActionLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 
@@ -451,7 +450,6 @@ PeCoffRelocateImage (
   // Verify the Relocation Directory is not empty.
   //
   if (Context->RelocDirSize == 0) {
-    UefiImageLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
@@ -467,7 +465,6 @@ PeCoffRelocateImage (
   // prefered location.
   //
   if (RuntimeContext == NULL && Adjust == 0) {
-    UefiImageLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
@@ -623,7 +620,6 @@ PeCoffRelocateImage (
       );
   }
 
-  UefiImageLoaderRelocateImageExtraAction (Context);
   return RETURN_SUCCESS;
 }
 

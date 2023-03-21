@@ -22,6 +22,7 @@
 #include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 
 #include "PeCoffSupport.h"
 
@@ -106,12 +107,19 @@ UefiImageRelocateImage (
   IN     UINT32                             RuntimeContextSize
   )
 {
-  return PeCoffRelocateImage (
-           Context,
-           BaseAddress,
-           RuntimeContext,
-           RuntimeContextSize
-           );
+  RETURN_STATUS Status;
+
+  Status = PeCoffRelocateImage (
+             Context,
+             BaseAddress,
+             RuntimeContext,
+             RuntimeContextSize
+             );
+  if (!RETURN_ERROR (Status)) {
+    UefiImageLoaderRelocateImageExtraAction (Context);
+  }
+
+  return Status;
 }
 
 RETURN_STATUS

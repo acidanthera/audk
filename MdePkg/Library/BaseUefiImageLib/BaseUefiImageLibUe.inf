@@ -31,6 +31,7 @@
   DebugLib
   MemoryAllocationLib
   UeImageLib
+  UefiImageExtraActionLib
 
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask

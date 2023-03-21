@@ -22,6 +22,7 @@
 #include <Library/PcdLib.h>
 #include <Library/UeImageLib.h>
 #include <Library/UefiImageLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 
 #include "UeSupport.h"
 
@@ -100,10 +101,14 @@ UefiImageRelocateImage (
   IN     UINT32                             RuntimeContextSize
   )
 {
-  return UeRelocateImage (
-           Context,
-           BaseAddress
-           );
+  RETURN_STATUS Status;
+
+  Status = UeRelocateImage (Context, BaseAddress);
+  if (!RETURN_ERROR (Status)) {
+    UefiImageLoaderRelocateImageExtraAction (Context);
+  }
+
+  return Status;
 }
 
 RETURN_STATUS

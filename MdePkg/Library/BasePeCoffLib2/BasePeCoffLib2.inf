@@ -34,7 +34,6 @@
   BaseOverflowLib
   DebugLib
   MemoryAllocationLib
-  UefiImageExtraActionLib
 
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch
