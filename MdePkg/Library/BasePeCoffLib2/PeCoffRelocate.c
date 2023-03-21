@@ -379,9 +379,9 @@ InternalApplyRelocation (
       }
       //
       // Verify the Base Relocation target is sufficiently aligned.
-      // The ARM Thumb instruction pair must start on a 32-bit boundary.
+      // The ARM Thumb instruction pair must start on a 16-bit boundary.
       //
-      if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT32))) {
+      if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT16))) {
         DEBUG_RAISE ();
         return RETURN_VOLUME_CORRUPTED;
       }
