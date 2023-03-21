@@ -222,9 +222,9 @@ GetImageInfoByIp (
   IN  UINTN        CurrentEip
   )
 {
-  RETURN_STATUS                Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT ImageContext;
-  UINT32                       PdbPathSize;
+  RETURN_STATUS                   Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINT32                          PdbPathSize;
 
   Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip);
   if (RETURN_ERROR (Status)) {
