@@ -745,14 +745,10 @@ Returns:
   EFI_PHYSICAL_ADDRESS                FunctionAddress;
   UINT32                              FunctionType;
   CHAR8                               FunctionTypeName [MAX_LINE_LEN];
-  UINT32                              Index;
   UINT32                              AddressOfEntryPoint;
   UINT32                              Offset;
   EFI_IMAGE_OPTIONAL_HEADER_UNION     *ImgHdr;
-  EFI_IMAGE_SECTION_HEADER            *SectionHeader;
   long long                           TempLongAddress;
-  UINT32                              TextVirtualAddress;
-  UINT32                              DataVirtualAddress;
   EFI_PHYSICAL_ADDRESS                LinkTimeBaseAddress;
   BOOLEAN                             IsUseClang;
 
@@ -824,13 +820,6 @@ Returns:
   ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *) ((UINT8 *) pImageContext->Handle + pImageContext->PeCoffHeaderOffset);
   AddressOfEntryPoint = ImgHdr->Pe32.OptionalHeader.AddressOfEntryPoint;
   Offset = 0;
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-                      (UINT8 *) ImgHdr +
-                      sizeof (UINT32) +
-                      sizeof (EFI_IMAGE_FILE_HEADER) +
-                      ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-                      );
-  Index = ImgHdr->Pe32.FileHeader.NumberOfSections;
 
   //
   // module information output
@@ -847,21 +836,7 @@ Returns:
   fprintf (FvMapFile, "Type=PE");
   fprintf (FvMapFile, ")\n");
 
-  fprintf (FvMapFile, "(GUID=%s", FileGuidName);
-  TextVirtualAddress = 0;
-  DataVirtualAddress = 0;
-  for (; Index > 0; Index --, SectionHeader ++) {
-    if (stricmp ((CHAR8 *)SectionHeader->Name, ".text") == 0) {
-      TextVirtualAddress = SectionHeader->VirtualAddress;
-    } else if (stricmp ((CHAR8 *)SectionHeader->Name, ".data") == 0) {
-      DataVirtualAddress = SectionHeader->VirtualAddress;
-    } else if (stricmp ((CHAR8 *)SectionHeader->Name, ".sdata") == 0) {
-      DataVirtualAddress = SectionHeader->VirtualAddress;
-    }
-  }
-  fprintf (FvMapFile, " .textbaseaddress=0x%010llx", (unsigned long long) (ImageBaseAddress + TextVirtualAddress));
-  fprintf (FvMapFile, " .databaseaddress=0x%010llx", (unsigned long long) (ImageBaseAddress + DataVirtualAddress));
-  fprintf (FvMapFile, ")\n\n");
+  fprintf (FvMapFile, "(GUID=%s)\n\n", FileGuidName);
 
   //
   // Open PeMapFile
