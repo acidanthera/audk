@@ -69,12 +69,6 @@
 !if $(TOOL_CHAIN_TAG) != "XCODE5" && $(TOOL_CHAIN_TAG) != "CLANGPDB"
   GCC:*_*_*_CC_FLAGS                   = -mno-mmx -mno-sse
 !endif
-!if $(SOURCE_DEBUG_ENABLE) == TRUE
-  MSFT:*_*_X64_GENFW_FLAGS  = --keepexceptiontable
-  GCC:*_*_X64_GENFW_FLAGS   = --keepexceptiontable
-  INTEL:*_*_X64_GENFW_FLAGS = --keepexceptiontable
-!endif
-  RELEASE_*_*_GENFW_FLAGS = --zero
 
   #
   # Disable deprecated APIs.
@@ -822,4 +816,3 @@
     <LibraryClasses>
       NULL|MdeModulePkg/Library/VarCheckUefiLib/VarCheckUefiLib.inf
   }
-

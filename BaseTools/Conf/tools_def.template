@@ -2812,17 +2812,14 @@ NOOPT_CLANGPDB_IA32_DLINK2_FLAGS     =
 DEBUG_CLANGPDB_X64_CC_FLAGS         = DEF(CLANGPDB_ALL_CC_FLAGS) -m64 "-DEFIAPI=__attribute__((ms_abi))" -mno-red-zone -mcmodel=small -Oz -flto DEF(CLANGPDB_X64_TARGET) -gcodeview  -funwind-tables
 DEBUG_CLANGPDB_X64_DLINK_FLAGS      = DEF(MSFT_DLINK_COMMON) /MACHINE:X64 /DEBUG:GHASH /MLLVM:-exception-model=wineh /lldmap
 DEBUG_CLANGPDB_X64_DLINK2_FLAGS     =
-DEBUG_CLANGPDB_X64_GENFW_FLAGS      = --keepexceptiontable
 
 RELEASE_CLANGPDB_X64_CC_FLAGS       = DEF(CLANGPDB_ALL_CC_FLAGS) -m64 "-DEFIAPI=__attribute__((ms_abi))" -mno-red-zone -mcmodel=small -Oz -flto DEF(CLANGPDB_X64_TARGET) -fno-unwind-tables
 RELEASE_CLANGPDB_X64_DLINK_FLAGS    = DEF(MSFT_DLINK_COMMON) /IGNORE:4254 /MACHINE:X64 /MLLVM:-exception-model=wineh /lldmap
 RELEASE_CLANGPDB_X64_DLINK2_FLAGS   =
-RELEASE_CLANGPDB_X64_GENFW_FLAGS    =
 
 NOOPT_CLANGPDB_X64_CC_FLAGS         = DEF(CLANGPDB_ALL_CC_FLAGS) -m64 "-DEFIAPI=__attribute__((ms_abi))" -mno-red-zone -mcmodel=small -O0 DEF(CLANGPDB_X64_TARGET) -gcodeview -funwind-tables
 NOOPT_CLANGPDB_X64_DLINK_FLAGS      = DEF(MSFT_DLINK_COMMON) /MACHINE:X64 /DEBUG:GHASH /MLLVM:-exception-model=wineh /lldmap
 NOOPT_CLANGPDB_X64_DLINK2_FLAGS     =
-NOOPT_CLANGPDB_X64_GENFW_FLAGS      = --keepexceptiontable
 
 ####################################################################################
 #
@@ -3032,12 +3029,6 @@ RELEASE_XCODE5_X64_CC_FLAGS   = -target x86_64-pc-win32-macho -c    -Os       -W
 ##################
 *_*_*_OPTROM_PATH                   = EfiRom
 *_*_*_OPTROM_FLAGS                  = -e
-
-##################
-# GenFw tool definitions
-##################
-*_*_*_GENFW_PATH                   = GenFw
-*_*_*_GENFW_FLAGS                  =
 
 ##################
 # Asl Compiler definitions
