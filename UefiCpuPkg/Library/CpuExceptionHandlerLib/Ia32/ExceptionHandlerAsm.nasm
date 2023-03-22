@@ -446,6 +446,7 @@ ASM_PFX(AsmGetTemplateAddressMap):
     mov dword [ebx],      AsmIdtVectorBegin
     mov dword [ebx + 0x4], (AsmIdtVectorEnd - AsmIdtVectorBegin) / NUM_VECTORS
     mov dword [ebx + 0x8], HookAfterStubBegin
+    mov dword [ebx + 0xC], HookAfterStubHeaderEnd - HookAfterStubBegin
 
     popad
     pop     ebp

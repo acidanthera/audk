@@ -65,6 +65,7 @@ AsmIdtVectorBegin:
 %rep  NUM_VECTORS
     push    strict dword %[Vector] ; This instruction pushes sign-extended 8-byte value on stack
     push    rax
+    ; This code is not copied, thus relative addressing is safe.
     lea     rax, [ASM_PFX(CommonInterruptEntry)]
     jmp     rax
 %assign Vector Vector+1
@@ -75,7 +76,9 @@ HookAfterStubHeaderBegin:
     push    strict dword 0      ; 0 will be fixed
 VectorNum:
     push    rax
-    lea     rax, [HookAfterStubHeaderEnd]
+    ; This code is copied, thus relative addressing would not be safe and we
+    ; need to utilize the absolute address.
+    mov     rax, HookAfterStubHeaderEnd
     jmp     rax
 HookAfterStubHeaderEnd:
     mov     rax, rsp
@@ -463,6 +466,8 @@ ASM_PFX(AsmGetTemplateAddressMap):
     mov     qword [rcx + 0x8],  (AsmIdtVectorEnd - AsmIdtVectorBegin) / NUM_VECTORS
     lea     rax, [HookAfterStubHeaderBegin]
     mov     qword [rcx + 0x10], rax
+    mov     qword [rcx + 0x18], HookAfterStubHeaderEnd - HookAfterStubHeaderBegin
+
     ret
 
 ;-------------------------------------------------------------------------------------
