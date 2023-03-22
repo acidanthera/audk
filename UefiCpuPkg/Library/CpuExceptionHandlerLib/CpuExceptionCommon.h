@@ -58,6 +58,7 @@ typedef struct {
   UINTN    ExceptionStart;
   UINTN    ExceptionStubHeaderSize;
   UINTN    HookAfterStubHeaderStart;
+  UINTN    HookAfterStubHeaderSize;
 } EXCEPTION_HANDLER_TEMPLATE_MAP;
 
 typedef struct {
