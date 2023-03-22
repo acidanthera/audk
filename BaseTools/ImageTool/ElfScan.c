@@ -413,7 +413,7 @@ SetRelocs (
             //
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx\n", ELF_R_TYPE(Rel->r_info));
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       } else if (mEhdr->e_machine == EM_AARCH64) {
@@ -485,7 +485,7 @@ SetRelocs (
           case R_386_PC32:
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       } else if (mEhdr->e_machine == EM_ARM) {
@@ -563,7 +563,7 @@ SetRelocs (
 
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x\n", ELF_R_TYPE(Rel->r_info));
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       }
