@@ -234,6 +234,9 @@ CoreInitializeImageServices (
   //
   Image = &mCorePrivateImage;
 
+  //
+  // FIXME: This is not a proper solution, because DxeCore may not be XIP
+  //
   Status = UefiImageInitializeContext (
              ImageContext,
              (VOID *) (UINTN) DxeCoreImageBaseAddress,
