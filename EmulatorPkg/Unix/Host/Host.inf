@@ -61,6 +61,7 @@
   PpiListLib
   PeiServicesLib
   StackCheckLib
+  CommonMemoryAllocationLib
 
 [Ppis]
   gEfiPeiStatusCodePpiGuid                      # PPI ALWAYS_PRODUCED
