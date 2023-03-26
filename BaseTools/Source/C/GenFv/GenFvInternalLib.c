@@ -54,10 +54,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
                                     (((Imm32) >> 2) & 0x7fffff))
 #define ARM_JUMP_TO_THUMB(Offset)  _ARM_JUMP_TO_THUMB((Offset) - 8)
 
-#define ALIGN_VALUE_ADDEND(Value, Alignment)  (((Alignment) - (Value)) & ((Alignment) - 1U))
-#define ALIGN_VALUE(Value, Alignment) ((Value) + ALIGN_VALUE_ADDEND (Value, Alignment))
-#define IS_ALIGNED(Value, Alignment)  (((Value) & ((Alignment) - 1U)) == 0U)
-
 /*
  * Arm instruction to return from exception (MOVS PC, LR)
  */
