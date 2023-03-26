@@ -1071,34 +1071,6 @@ AllocatePageTableMemory (
   IN UINTN  Pages
   );
 
-/**
-  Allocate pages for code.
-
-  @param[in]  Pages Number of pages to be allocated.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateCodePages (
-  IN UINTN  Pages
-  );
-
-/**
-  Allocate aligned pages for code.
-
-  @param[in]  Pages                 Number of pages to be allocated.
-  @param[in]  Alignment             The requested alignment of the allocation.
-                                    Must be a power of two.
-                                    If Alignment is zero, then byte alignment is used.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateAlignedCodePages (
-  IN UINTN  Pages,
-  IN UINTN  Alignment
-  );
-
 //
 // S3 related global variable and function prototype.
 //

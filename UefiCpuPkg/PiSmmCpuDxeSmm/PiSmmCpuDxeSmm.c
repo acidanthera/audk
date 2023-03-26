@@ -1380,112 +1380,33 @@ ConfigSmmCodeAccessCheck (
 }
 
 /**
-  Allocate pages for code.
+  This API provides a way to allocate memory for page table.
 
-  @param[in]  Pages Number of pages to be allocated.
+  This API can be called more once to allocate memory for page tables.
 
-  @return Allocated memory.
+  Allocates the number of 4KB pages of type EfiRuntimeServicesData and returns a pointer to the
+  allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If Pages is 0, then NULL
+  is returned.  If there is not enough memory remaining to satisfy the request, then NULL is
+  returned.
+
+  @param  Pages                 The number of 4 KB pages to allocate.
+
+  @return A pointer to the allocated buffer or NULL if allocation fails.
+
 **/
 VOID *
-AllocateCodePages (
+AllocatePageTableMemory (
   IN UINTN  Pages
   )
 {
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Memory;
+  VOID  *Buffer;
 
-  if (Pages == 0) {
-    return NULL;
+  Buffer = SmmCpuFeaturesAllocatePageTableMemory (Pages);
+  if (Buffer != NULL) {
+    return Buffer;
   }
 
-  Status = gSmst->SmmAllocatePages (AllocateAnyPages, EfiRuntimeServicesCode, Pages, &Memory);
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
-
-  return (VOID *)(UINTN)Memory;
-}
-
-/**
-  Allocate aligned pages for code.
-
-  @param[in]  Pages                 Number of pages to be allocated.
-  @param[in]  Alignment             The requested alignment of the allocation.
-                                    Must be a power of two.
-                                    If Alignment is zero, then byte alignment is used.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateAlignedCodePages (
-  IN UINTN  Pages,
-  IN UINTN  Alignment
-  )
-{
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Memory;
-  UINTN                 AlignedMemory;
-  UINTN                 AlignmentMask;
-  UINTN                 UnalignedPages;
-  UINTN                 RealPages;
-
-  //
-  // Alignment must be a power of two or zero.
-  //
-  ASSERT ((Alignment & (Alignment - 1)) == 0);
-
-  if (Pages == 0) {
-    return NULL;
-  }
-
-  if (Alignment > EFI_PAGE_SIZE) {
-    //
-    // Calculate the total number of pages since alignment is larger than page size.
-    //
-    AlignmentMask = Alignment - 1;
-    RealPages     = Pages + EFI_SIZE_TO_PAGES (Alignment);
-    //
-    // Make sure that Pages plus EFI_SIZE_TO_PAGES (Alignment) does not overflow.
-    //
-    ASSERT (RealPages > Pages);
-
-    Status = gSmst->SmmAllocatePages (AllocateAnyPages, EfiRuntimeServicesCode, RealPages, &Memory);
-    if (EFI_ERROR (Status)) {
-      return NULL;
-    }
-
-    AlignedMemory  = ((UINTN)Memory + AlignmentMask) & ~AlignmentMask;
-    UnalignedPages = EFI_SIZE_TO_PAGES (AlignedMemory - (UINTN)Memory);
-    if (UnalignedPages > 0) {
-      //
-      // Free first unaligned page(s).
-      //
-      Status = gSmst->SmmFreePages (Memory, UnalignedPages);
-      ASSERT_EFI_ERROR (Status);
-    }
-
-    Memory         = AlignedMemory + EFI_PAGES_TO_SIZE (Pages);
-    UnalignedPages = RealPages - Pages - UnalignedPages;
-    if (UnalignedPages > 0) {
-      //
-      // Free last unaligned page(s).
-      //
-      Status = gSmst->SmmFreePages (Memory, UnalignedPages);
-      ASSERT_EFI_ERROR (Status);
-    }
-  } else {
-    //
-    // Do not over-allocate pages in this case.
-    //
-    Status = gSmst->SmmAllocatePages (AllocateAnyPages, EfiRuntimeServicesCode, Pages, &Memory);
-    if (EFI_ERROR (Status)) {
-      return NULL;
-    }
-
-    AlignedMemory = (UINTN)Memory;
-  }
-
-  return (VOID *)AlignedMemory;
+  return AllocatePages (Pages);
 }
 
 /**
