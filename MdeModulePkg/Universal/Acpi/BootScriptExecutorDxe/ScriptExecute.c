@@ -12,8 +12,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "ScriptExecute.h"
-#include "Library/UefiImageLib.h"
-#include "Uefi/UefiBaseType.h"
 
 EFI_GUID  mBootScriptExecutorImageGuid = {
   0x9a8d3433, 0x9fe8, 0x42b6, { 0x87, 0xb, 0x1e, 0x31, 0xc8, 0x4e, 0xbe, 0x3b }
@@ -275,8 +273,9 @@ ReadyToLockEventNotify (
   UINTN                            BufferSize;
   EFI_HANDLE                       NewImageHandle;
   UINTN                            Pages;
-  EFI_PHYSICAL_ADDRESS             FfsBuffer;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT               ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
+  UINT32                           ImageSize;
+  UINT32                           ImageAlignment;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
   EFI_PHYSICAL_ADDRESS LoadAddress;
 
@@ -313,39 +312,36 @@ ReadyToLockEventNotify (
   //
   Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
-  UINT32 Size;
-  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &Size);
-  ASSERT_EFI_ERROR (Status);
-  Pages = EFI_SIZE_TO_PAGES (Size);
-  FfsBuffer = 0xFFFFFFFF;
-  Status    = gBS->AllocatePages (
-                     AllocateMaxAddress,
-                     EfiReservedMemoryType,
-                     Pages,
-                     &FfsBuffer
-                     );
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
+  Pages = EFI_SIZE_TO_PAGES (ImageSize);
+  LoadAddress = 0xFFFFFFFF;
+  Status    = AllocateAlignedPagesEx (
+                AllocateMaxAddress,
+                EfiReservedMemoryType,
+                Pages,
+                ImageAlignment,
+                &LoadAddress
+                );
   ASSERT_EFI_ERROR (Status);
 
   //
   // Make sure that the buffer can be used to store code.
   //
-  Status = gDS->GetMemorySpaceDescriptor (FfsBuffer, &MemDesc);
+  Status = gDS->GetMemorySpaceDescriptor (LoadAddress, &MemDesc);
   if (!EFI_ERROR (Status) && ((MemDesc.Attributes & EFI_MEMORY_XP) != 0)) {
     gDS->SetMemorySpaceAttributes (
-           FfsBuffer,
+           LoadAddress,
            EFI_PAGES_TO_SIZE (Pages),
            MemDesc.Attributes & (~EFI_MEMORY_XP)
            );
   }
 
-  LoadAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
   // Load the image to our new buffer
   //
-  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, Size, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, ImageSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
-
-  LoadAddress = UefiImageLoaderGetImageAddress (&ImageContext);
 
   //
   // Free the buffer allocated by ReadSection since the image has been relocated in the new buffer

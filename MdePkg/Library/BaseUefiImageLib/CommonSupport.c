@@ -31,42 +31,6 @@ UefiImageInitializeContext (
   return UefiImageInitializeContextPostHash (Context);
 }
 
-RETURN_STATUS
-UefiImageLoaderGetDestinationSize (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    UINT32                           *Size
-  )
-{
-  BOOLEAN Overflow;
-  UINT32  AlignedSize;
-  UINT32  SegmentAlignment;
-
-  ASSERT (Context != NULL);
-  ASSERT (Size != NULL);
-
-  AlignedSize      = UefiImageGetImageSize (Context);
-  SegmentAlignment = UefiImageGetSegmentAlignment (Context);
-  //
-  // If the Image segment alignment is larger than the UEFI page size,
-  // sufficient alignment cannot be guaranteed by the allocater. Allodate an
-  // additional Image page to be able to manually align within the buffer.
-  //
-  if (SegmentAlignment > EFI_PAGE_SIZE) {
-    Overflow = BaseOverflowAddU32 (
-                 AlignedSize,
-                 SegmentAlignment - EFI_PAGE_SIZE,
-                 &AlignedSize
-                 );
-    if (Overflow) {
-      return RETURN_UNSUPPORTED;
-    }
-  }
-
-  *Size = AlignedSize;
-
-  return RETURN_SUCCESS;
-}
-
 UINTN
 UefiImageLoaderGetImageEntryPoint (
   IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context

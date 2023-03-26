@@ -977,6 +977,8 @@ ExecuteSmmCoreFromSmram (
   VOID                          *SourceBuffer;
   UINTN                         SourceSize;
   UINT32                        DestinationSize;
+  UINT32                        DestinationAlignment;
+  UINT32                        AlignSubtrahend;
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
   EFI_PHYSICAL_ADDRESS          LoadAddress;
@@ -1012,13 +1014,8 @@ ExecuteSmmCoreFromSmram (
     return EFI_UNSUPPORTED;
   }
 
-  Status = UefiImageLoaderGetDestinationSize (
-             &gSmmCorePrivate->PiSmmCoreImageContext,
-             &DestinationSize
-             );
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
+  DestinationSize      = UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext);
+  DestinationAlignment = UefiImageGetSegmentAlignment (&gSmmCorePrivate->PiSmmCoreImageContext);
   //
   // if Loading module at Fixed Address feature is enabled, the SMM core driver will be loaded to
   // the address assigned by build tool.
@@ -1043,7 +1040,11 @@ ExecuteSmmCoreFromSmram (
       // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
       // specified by SmramRange
       //
-      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize);
+      AlignSubtrahend = ALIGN_VALUE_SUBTRAHEND (
+                          SmramRange->CpuStart + SmramRange->PhysicalSize,
+                          DestinationAlignment
+                          );
+      PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize) + (UINTN)EFI_SIZE_TO_PAGES ((UINTN)AlignSubtrahend);
 
       ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
       ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));
@@ -1064,7 +1065,11 @@ ExecuteSmmCoreFromSmram (
     // Allocate memory for the image being loaded from the EFI_SRAM_DESCRIPTOR
     // specified by SmramRange
     //
-    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize);
+    AlignSubtrahend = ALIGN_VALUE_SUBTRAHEND (
+                        SmramRange->CpuStart + SmramRange->PhysicalSize,
+                        DestinationAlignment
+                        );
+    PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DestinationSize) + (UINTN)EFI_SIZE_TO_PAGES ((UINTN)AlignSubtrahend);
 
     ASSERT ((SmramRange->PhysicalSize & EFI_PAGE_MASK) == 0);
     ASSERT (SmramRange->PhysicalSize > EFI_PAGES_TO_SIZE (PageCount));

@@ -45,6 +45,7 @@
   PerformanceLib
   HobLib
   FspWrapperPlatformLib
+  MemoryAllocationLib
 
 [Protocols]
   gEfiPciEnumerationCompleteProtocolGuid            ## CONSUMES

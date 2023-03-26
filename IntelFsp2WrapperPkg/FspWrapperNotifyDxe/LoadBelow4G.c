@@ -16,6 +16,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DxeServicesLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/UefiLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/MemoryAllocationLibEx.h>
 
 /**
   Relocate this image under 4G memory.
@@ -37,10 +39,11 @@ RelocateImageUnder4GIfNeeded (
   UINT8                         *Buffer;
   UINTN                         BufferSize;
   EFI_HANDLE                    NewImageHandle;
-  UINT32                                        DestinationSize;
+  UINT32                        ImageSize;
+  UINT32                        ImageAlignment;
   UINTN                         Pages;
   EFI_PHYSICAL_ADDRESS          FfsBuffer;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT               ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   VOID                          *Interface;
 
   //
@@ -89,17 +92,18 @@ RelocateImageUnder4GIfNeeded (
   //
   Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
-  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &DestinationSize);
-  ASSERT_EFI_ERROR (Status);
-  Pages = EFI_SIZE_TO_PAGES (DestinationSize);
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
+  Pages = EFI_SIZE_TO_PAGES (ImageSize);
 
   FfsBuffer = 0xFFFFFFFF;
-  Status    = gBS->AllocatePages (
-                     AllocateMaxAddress,
-                     EfiBootServicesCode,
-                     Pages,
-                     &FfsBuffer
-                     );
+  Status    = AllocateAlignedPagesEx (
+                AllocateMaxAddress,
+                EfiBootServicesCode,
+                Pages,
+                ImageAlignment,
+                &FfsBuffer
+                );
   ASSERT_EFI_ERROR (Status);
   //
   // Load and relocate the image to our new buffer
@@ -107,7 +111,7 @@ RelocateImageUnder4GIfNeeded (
   Status = UefiImageLoadImageForExecution (
              &ImageContext,
              (VOID *) (UINTN) FfsBuffer,
-             DestinationSize,
+             ImageSize,
              NULL,
              0
              );
@@ -118,11 +122,11 @@ RelocateImageUnder4GIfNeeded (
   //
   gBS->FreePool (Buffer);
 
-  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", UefiImageLoaderGetImageAddress (&ImageContext), UefiImageLoaderGetImageEntryPoint (&ImageContext)));
+  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08llx EntryPoint=0x%08x\n", FfsBuffer, UefiImageLoaderGetImageEntryPoint (&ImageContext)));
   Status = ((EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", UefiImageLoaderGetImageAddress (&ImageContext), Status));
-    gBS->FreePages (FfsBuffer, Pages);
+    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08llx start failed: %r\n", FfsBuffer, Status));
+    FreeAlignedPages ((VOID *)(UINTN)FfsBuffer, Pages);
   }
 
   //

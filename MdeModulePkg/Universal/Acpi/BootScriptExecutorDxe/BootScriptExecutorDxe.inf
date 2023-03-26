@@ -59,6 +59,7 @@
   CpuExceptionHandlerLib
   DevicePathLib
   DxeServicesTableLib
+  MemoryAllocationLib
 
 [Guids]
   gEfiBootScriptExecutorVariableGuid    ## PRODUCES ## UNDEFINED # SaveLockBox

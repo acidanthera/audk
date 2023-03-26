@@ -274,8 +274,9 @@ SmmLoadImage (
   EFI_STATUS                     Status;
   EFI_STATUS                     SecurityStatus;
   EFI_HANDLE                     DeviceHandle;
-  EFI_PHYSICAL_ADDRESS           DstBuffer;
+  VOID                           *DstBuffer;
   UINT32                         DstBufferSize;
+  UINT32                         DstBufferAlignment;
   EFI_DEVICE_PATH_PROTOCOL       *FilePath;
   EFI_DEVICE_PATH_PROTOCOL       *OriginalFilePath;
   EFI_DEVICE_PATH_PROTOCOL       *HandleFilePath;
@@ -425,10 +426,8 @@ SmmLoadImage (
     return EFI_UNSUPPORTED;
   }
 
-  Status = UefiImageLoaderGetDestinationSize (ImageContext, &DstBufferSize);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
+  DstBufferSize      = UefiImageGetImageSize (ImageContext);
+  DstBufferAlignment = UefiImageGetSegmentAlignment (ImageContext);
   //
   // if Loading module at Fixed Address feature is enabled, then  cut out a memory range started from TESG BASE
   // to hold the Smm driver code
@@ -444,45 +443,33 @@ SmmLoadImage (
       // following statements is to bypass SmmFreePages
       //
       PageCount = 0;
-      DstBuffer = LoadAddress;
+      DstBuffer = (VOID *)(UINTN)LoadAddress;
     } else {
       DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
       //
       // allocate the memory to load the SMM driver
       //
       PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DstBufferSize);
-      DstBuffer = (UINTN)(-1);
 
-      Status = SmmAllocatePages (
-                 AllocateMaxAddress,
-                 EfiRuntimeServicesCode,
-                 PageCount,
-                 &DstBuffer
-                 );
-      if (EFI_ERROR (Status)) {
+      DstBuffer = AllocateAlignedCodePages (PageCount, DstBufferAlignment);
+      if (DstBuffer == NULL) {
         if (Buffer != NULL) {
           gBS->FreePool (Buffer);
         }
 
-         return Status;
+         return EFI_OUT_OF_RESOURCES;
        }
     }
   } else {
     PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)DstBufferSize);
-    DstBuffer = (UINTN)(-1);
 
-    Status = SmmAllocatePages (
-               AllocateMaxAddress,
-               EfiRuntimeServicesCode,
-               PageCount,
-               &DstBuffer
-               );
-    if (EFI_ERROR (Status)) {
+    DstBuffer = AllocateAlignedCodePages (PageCount, DstBufferAlignment);
+    if (DstBuffer == NULL) {
       if (Buffer != NULL) {
         gBS->FreePool (Buffer);
       }
 
-      return Status;
+      return EFI_OUT_OF_RESOURCES;
     }
   }
 
@@ -491,7 +478,7 @@ SmmLoadImage (
   //
   Status = UefiImageLoadImageForExecution (
     ImageContext,
-    (VOID *) (UINTN) DstBuffer,
+    DstBuffer,
     DstBufferSize,
     NULL,
     0
@@ -501,17 +488,15 @@ SmmLoadImage (
       gBS->FreePool (Buffer);
     }
 
-    SmmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, PageCount);
     return Status;
   }
-
-  LoadAddress = UefiImageLoaderGetImageAddress (ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
   DriverEntry->ImageEntryPoint  = UefiImageLoaderGetImageEntryPoint (ImageContext);
-  DriverEntry->ImageBuffer      = DstBuffer;
+  DriverEntry->ImageBuffer      = (UINTN)DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
   //
@@ -523,7 +508,7 @@ SmmLoadImage (
       gBS->FreePool (Buffer);
     }
 
-    SmmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, PageCount);
     return Status;
   }
 
@@ -551,13 +536,13 @@ SmmLoadImage (
       gBS->FreePool (Buffer);
     }
 
-    SmmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, PageCount);
     return Status;
   }
 
   CopyMem (DriverEntry->LoadedImage->FilePath, FilePath, GetDevicePathSize (FilePath));
 
-  DriverEntry->LoadedImage->ImageBase     = (VOID *)(UINTN)LoadAddress;
+  DriverEntry->LoadedImage->ImageBase     = DstBuffer;
   DriverEntry->LoadedImage->ImageSize     = UefiImageGetImageSize (ImageContext);
   DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;
@@ -572,13 +557,13 @@ SmmLoadImage (
     }
 
     gBS->FreePool (DriverEntry->LoadedImage->FilePath);
-    SmmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, PageCount);
     return Status;
   }
 
   CopyMem (DriverEntry->SmmLoadedImage.FilePath, FilePath, GetDevicePathSize(FilePath));
 
-  DriverEntry->SmmLoadedImage.ImageBase = (VOID *)(UINTN)LoadAddress;
+  DriverEntry->SmmLoadedImage.ImageBase = DstBuffer;
   DriverEntry->SmmLoadedImage.ImageSize = UefiImageGetImageSize (ImageContext);
   DriverEntry->SmmLoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->SmmLoadedImage.ImageDataType = EfiRuntimeServicesData;
@@ -629,7 +614,7 @@ SmmLoadImage (
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD,
          "Loading SMM driver at 0x%11p EntryPoint=0x%11p ",
-         (VOID *)(UINTN)LoadAddress,
+         DstBuffer,
          FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))));
 
   //
