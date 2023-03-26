@@ -7,8 +7,6 @@
 **/
 
 #include <Base.h>
-#include <Uefi/UefiBaseType.h>
-#include <Uefi/UefiSpec.h>
 
 #include <IndustryStandard/UeImage.h>
 
@@ -487,9 +485,6 @@ UeLoadImage (
   IN     UINT32                   DestinationSize
   )
 {
-  UINT32 AlignOffset;
-  UINTN  DestAddress;
-
   UINT8  SegmentIndex;
   UINT32 SegmentFileOffset;
   UINT32 SegmentFileSize;
@@ -501,26 +496,9 @@ UeLoadImage (
 
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
-  ASSERT (Context->SegmentAlignment <= DestinationSize);
-  //
-  // Sufficiently align the Image data in memory.
-  //
-  if (Context->SegmentAlignment <= EFI_PAGE_SIZE) {
-    //
-    // The caller is required to allocate page memory, hence we have at least
-    // 4 KB alignment guaranteed.
-    //
-    AlignOffset = 0;
-    Context->ImageBuffer = Destination;
-  } else {
-    //
-    // Images aligned stricter than by the UEFI page size have an increased
-    // destination size to internally align the Image.
-    //
-    DestAddress = (UINTN) Destination;
-    AlignOffset = ALIGN_VALUE_ADDEND ((UINT32) DestAddress, Context->SegmentAlignment);
-    Context->ImageBuffer = (CHAR8 *) Destination + AlignOffset;
-  }
+  ASSERT (ADDRESS_IS_ALIGNED (Destination, Context->SegmentAlignment));
+
+  Context->ImageBuffer = Destination;
 
   //
   // Load all Image sections into the memory space.
@@ -532,11 +510,8 @@ UeLoadImage (
   //
   PrevSegmentDataEnd = 0;
 
-  SegmentFileOffset = Context->SegmentsFileOffset;
-  //
-  // Image segments are loaded at offset StartOffset to ensure alignment.
-  //
-  SegmentImageAddress = AlignOffset;
+  SegmentFileOffset   = Context->SegmentsFileOffset;
+  SegmentImageAddress = 0;
 
   SegmentIndex = 0;
   do {

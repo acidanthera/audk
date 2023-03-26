@@ -272,12 +272,11 @@ MmLoadImage (
   IN OUT EFI_MM_DRIVER_ENTRY  *DriverEntry
   )
 {
-  UINT32                          DestinationSize;
-  UINTN                           ImageSize;
+  UINT32                          ImageSize;
+  UINT32                          ImageAlignment;
   UINTN                           PageCount;
   EFI_STATUS                      Status;
-  EFI_PHYSICAL_ADDRESS            DstBuffer;
-  UINTN                           ImageBase;
+  VOID                            *DstBuffer;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
@@ -292,45 +291,30 @@ MmLoadImage (
     return Status;
   }
 
-  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &DestinationSize);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
+  ImageSize      = UefiImageGetImageSize (&ImageContext, &ImageSize);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
-  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN) DestinationSize);
-  DstBuffer = (UINTN)(-1);
+  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN) ImageSize);
 
-  Status = MmAllocatePages (
-             AllocateMaxAddress,
-             EfiRuntimeServicesCode,
-             PageCount,
-             &DstBuffer
-             );
-  if (EFI_ERROR (Status)) {
-    return Status;
+  DstBuffer = AllocateAlignedCodePages (PageCount, ImageAlignment);
+  if (DstBuffer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
   }
 
   //
   // Load the image to our new buffer
   //
-  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DestinationSize, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, ImageSize, NULL, 0);
   if (EFI_ERROR (Status)) {
-    MmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, PageCount);
     return Status;
   }
-
-  ImageBase = UefiImageLoaderGetImageAddress (&ImageContext);
-
-  //
-  // Flush the instruction cache so the image data are written before we execute it
-  //
-  ImageSize = UefiImageGetImageSize (&ImageContext);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint  = UefiImageLoaderGetImageEntryPoint (&ImageContext);
-  DriverEntry->ImageBuffer     = DstBuffer;
+  DriverEntry->ImageEntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
+  DriverEntry->ImageBuffer     = (UINTN)DstBuffer;
   DriverEntry->NumberOfPage    = PageCount;
 
   if (mEfiSystemTable != NULL) {
@@ -340,7 +324,7 @@ MmLoadImage (
                                               (VOID **)&DriverEntry->LoadedImage
                                               );
     if (EFI_ERROR (Status)) {
-      MmFreePages (DstBuffer, PageCount);
+      FreeAlignedPages (DstBuffer, PageCount);
       return Status;
     }
 
@@ -355,7 +339,7 @@ MmLoadImage (
     DriverEntry->LoadedImage->DeviceHandle = NULL;
     DriverEntry->LoadedImage->FilePath     = NULL;
 
-    DriverEntry->LoadedImage->ImageBase     = (VOID *) ImageBase;
+    DriverEntry->LoadedImage->ImageBase     = DstBuffer;
     DriverEntry->LoadedImage->ImageSize     = ImageSize;
     DriverEntry->LoadedImage->ImageCodeType = EfiRuntimeServicesCode;
     DriverEntry->LoadedImage->ImageDataType = EfiRuntimeServicesData;

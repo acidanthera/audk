@@ -169,8 +169,10 @@ LoadAndRelocateUefiImage (
   )
 {
   EFI_STATUS                    Status;
+  BOOLEAN                       Success;
   PEI_CORE_INSTANCE             *Private;
   UINT32                                DynamicImageSize;
+  UINT32                                DynamicImageAlignment;
   BOOLEAN                       IsXipImage;
   EFI_STATUS                    ReturnStatus;
   BOOLEAN                       IsS3Boot;
@@ -261,38 +263,38 @@ LoadAndRelocateUefiImage (
        (IsS3Boot && PcdGetBool (PcdShadowPeimOnS3Boot)))
       )
   {
-    Status = EFI_UNSUPPORTED;
+    Success = FALSE;
 
     if (PcdGet64(PcdLoadModuleAtFixAddressEnable) != 0 && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
       Status = GetUefiImageFixLoadingAssignedAddress(ImageContext, Private, &LoadAddress);
       if (!EFI_ERROR (Status)){
         DynamicImageSize = UefiImageGetImageSize (ImageContext);
 
-        if (LoadAddress != UefiImageGetPreferredAddress (ImageContext)) {
-          Status = EFI_UNSUPPORTED;
+        Success = LoadAddress == UefiImageGetPreferredAddress (ImageContext);
+
+        if (!Success) {
           DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
         }
       } else {
         DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
       }
     }
-    if (EFI_ERROR (Status)) {
+
+    if (!Success) {
       //
       // Allocate more buffer to avoid buffer overflow.
       //
-      Status = UefiImageLoaderGetDestinationSize (ImageContext, &DynamicImageSize);
-      if (RETURN_ERROR (Status)) {
-        return Status;
-      }
+      DynamicImageSize      = UefiImageGetImageSize (ImageContext);
+      DynamicImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
-      Status = PeiServicesAllocatePages (
-                 EfiBootServicesCode,
-                 EFI_SIZE_TO_PAGES (DynamicImageSize),
-                 &LoadAddress
-                 );
+      LoadAddress = (UINTN)AllocateAlignedCodePages (
+                             EFI_SIZE_TO_PAGES (DynamicImageSize),
+                             DynamicImageAlignment
+                             );
+      Success = LoadAddress != 0;
     }
 
-    if (!EFI_ERROR (Status)) {
+    if (Success) {
       LoadDynamically = TRUE;
       //
       // Load the image to our new buffer
