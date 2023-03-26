@@ -31,6 +31,7 @@ LoadUefiImage (
   RETURN_STATUS                 Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
   UINT32                            BufferSize;
+  UINT32                            BufferAlignment;
   VOID                          *Buffer;
 
   Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
@@ -39,16 +40,13 @@ LoadUefiImage (
     return Status;
   }
 
-  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &BufferSize);
-  if (EFI_ERROR (Status)) {
-    ASSERT_EFI_ERROR (Status);
-    return Status;
-  }
+  BufferSize      = UefiImageGetImageSize (&ImageContext);
+  BufferAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
   //
   // Allocate Memory for the image
   //
-  Buffer = AllocateCodePages (EFI_SIZE_TO_PAGES (BufferSize));
+  Buffer = AllocateAlignedCodePages (EFI_SIZE_TO_PAGES (BufferSize), BufferAlignment);
   if (Buffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -68,8 +66,8 @@ LoadUefiImage (
     return Status;
   }
 
-  *ImageAddress = UefiImageLoaderGetImageAddress (&ImageContext);
-  *ImageSize    = UefiImageGetImageSize (&ImageContext);
+  *ImageAddress = (UINTN)Buffer;
+  *ImageSize    = BufferSize;
   *EntryPoint   = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return EFI_SUCCESS;

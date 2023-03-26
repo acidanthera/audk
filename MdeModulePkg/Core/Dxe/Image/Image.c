@@ -8,8 +8,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeMain.h"
 #include "Image.h"
-#include "Library/UefiImageLib.h"
-#include "Uefi/UefiBaseType.h"
 
 //
 // Module Globals
@@ -514,11 +512,11 @@ CoreLoadPeImage (
   EFI_STATUS                        Status;
   BOOLEAN                           DstBufAlocated;
   UINT32                            Size;
+  UINT32                            Alignment;
   EFI_MEMORY_TYPE                   ImageCodeMemoryType;
   EFI_MEMORY_TYPE                   ImageDataMemoryType;
   UEFI_IMAGE_LOADER_RUNTIME_CONTEXT *RelocationData;
   EFI_PHYSICAL_ADDRESS              BufferAddress;
-  UINTN                             LoadAddress;
   UINT32                            RelocDataSize;
 
   RelocationData = NULL;
@@ -560,10 +558,8 @@ CoreLoadPeImage (
     return EFI_UNSUPPORTED;
   }
 
-  Status = UefiImageLoaderGetDestinationSize (ImageContext, &Size);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
+  Size      = UefiImageGetImageSize (ImageContext);
+  Alignment = UefiImageGetSegmentAlignment (ImageContext);
 
   BufferAddress = 0;
   //
@@ -606,7 +602,7 @@ CoreLoadPeImage (
     if (EFI_ERROR (Status)) {
       BufferAddress = UefiImageGetPreferredAddress (ImageContext);
       if ((BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
-        Status = CoreAllocatePages (
+        Status = AllocatePagesEx (
                    AllocateAddress,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
@@ -615,10 +611,11 @@ CoreLoadPeImage (
       }
 
       if (EFI_ERROR (Status) && !UefiImageGetRelocsStripped (ImageContext)) {
-        Status = CoreAllocatePages (
+        Status = AllocateAlignedPagesEx (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
                    Image->NumberOfPages,
+                   Alignment,
                    &BufferAddress
                    );
       }
@@ -703,8 +700,6 @@ CoreLoadPeImage (
     goto Done;
   }
 
-  LoadAddress = UefiImageLoaderGetImageAddress (ImageContext);
-
   //
   // Copy the machine type from the context to the image private data.
   //
@@ -719,7 +714,7 @@ CoreLoadPeImage (
   // Fill in the image information for the Loaded Image Protocol
   //
   Image->Type               = UefiImageGetSubsystem (ImageContext);
-  Image->Info.ImageBase     = (VOID *)(UINTN)LoadAddress;
+  Image->Info.ImageBase     = (VOID *)(UINTN)BufferAddress;
   Image->Info.ImageSize     = UefiImageGetImageSize (ImageContext);
   Image->Info.ImageCodeType = ImageCodeMemoryType;
   Image->Info.ImageDataType = ImageDataMemoryType;
@@ -756,7 +751,7 @@ CoreLoadPeImage (
     ASSERT_EFI_ERROR (Status);
   }
   if (!EFI_ERROR (Status)) {
-    Image->HiiData = (VOID *)(UINTN)(LoadAddress + Hiioff);
+    Image->HiiData = (VOID *)((UINTN)BufferAddress + Hiioff);
   }
 
   //
@@ -769,7 +764,7 @@ CoreLoadPeImage (
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD,
          "Loading driver at 0x%11p EntryPoint=0x%11p \n",
-         (VOID *)(UINTN)LoadAddress,
+         (VOID *)(UINTN)BufferAddress,
            FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))));
 
     Status = UefiImageGetModuleNameFromSymbolsPath (
@@ -798,7 +793,7 @@ Done:
 
   if (DstBufAlocated) {
     ZeroMem ((VOID *)(UINTN)BufferAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
-    CoreFreePages (BufferAddress, Image->NumberOfPages);
+    FreeAlignedPages ((VOID *)(UINTN)BufferAddress, Image->NumberOfPages);
     Image->ImageBasePage             = 0;
   }
 

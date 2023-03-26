@@ -12,7 +12,6 @@
 **/
 
 #include <Base.h>
-#include <Uefi/UefiBaseType.h>
 
 #include <IndustryStandard/PeImage2.h>
 
@@ -107,42 +106,15 @@ PeCoffLoadImage (
   IN     UINT32                        DestinationSize
   )
 {
-  UINT32                         AlignOffset;
-  UINT32                         AlignedSize;
   UINT32                         LoadedHeaderSize;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
-  UINTN                          DestAddress;
 
   ASSERT (Context != NULL);
   ASSERT (Destination != NULL);
-  ASSERT (Context->SectionAlignment <= DestinationSize);
-  //
-  // Sufficiently align the Image data in memory.
-  //
-  if (Context->SectionAlignment <= EFI_PAGE_SIZE) {
-    //
-    // The caller is required to allocate page memory, hence we have at least
-    // 4 KB alignment guaranteed.
-    //
-    AlignOffset = 0;
-    AlignedSize = DestinationSize;
-    Context->ImageBuffer = Destination;
-  } else {
-    //
-    // Images aligned stricter than by the UEFI page size have an increased
-    // destination size to internally align the Image.
-    //
-    DestAddress = (UINTN) Destination;
-    AlignOffset = ALIGN_VALUE_ADDEND ((UINT32) DestAddress, Context->SectionAlignment);
-    AlignedSize = DestinationSize - AlignOffset;
-    Context->ImageBuffer = (CHAR8 *) Destination + AlignOffset;
+  ASSERT (ADDRESS_IS_ALIGNED (Destination, Context->SectionAlignment));
+  ASSERT (Context->SizeOfImage <= DestinationSize);
 
-    ASSERT (Context->SizeOfImage <= AlignedSize);
-
-    ZeroMem (Destination, AlignOffset);
-  }
-
-  ASSERT (AlignedSize >= Context->SizeOfImage);
+  Context->ImageBuffer = Destination;
   //
   // Load the Image Headers into the memory space, if the policy demands it.
   //
@@ -158,7 +130,7 @@ PeCoffLoadImage (
   //
   // Load all Image sections into the memory space.
   //
-  InternalLoadSections (Context, LoadedHeaderSize, AlignedSize);
+  InternalLoadSections (Context, LoadedHeaderSize, DestinationSize);
 
   return RETURN_SUCCESS;
 }

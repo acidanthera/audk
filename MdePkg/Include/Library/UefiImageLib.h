@@ -140,26 +140,6 @@ UefiImageHashImageDefault (
   );
 
 /**
-  Calculate the size, in Bytes, required for the destination Image memory space
-  to load into with UefiImageLoadImage(). This potentially includes additional
-  space to internally align the Image within the destination buffer.
-
-  @param[in,out] Context  The context describing the Image. Must have been
-                          initialised by UefiImageInitializeContext().
-  @param[out]    Size     On output, the size, in Bytes, required to allocate
-                          the Image destination buffer.
-
-  @retval RETURN_SUCCESS  The Image destination size has been calculated
-                          successfully.
-  @retval other           The Image destination cannot be calculated.
-**/
-RETURN_STATUS
-UefiImageLoaderGetDestinationSize (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    UINT32                           *Size
-  );
-
-/**
   Load the Image into the destination memory space.
 
   @param[in,out] Context       The context describing the Image. Must have been
@@ -168,7 +148,7 @@ UefiImageLoaderGetDestinationSize (
                                from page memory.
   @param[in]  DestinationSize  The size, in Bytes, of Destination. Must be at
                                least as large as the size returned by
-                               UefiImageLoaderGetDestinationSize().
+                               UefiImageGetImageSize().
 
   @retval RETURN_SUCCESS  The Image was loaded successfully.
   @retval other           The Image could not be loaded successfully.
@@ -275,7 +255,7 @@ UefiImageRelocateImage (
                                      allocated from page memory.
   @param[in]     DestinationSize     The size, in Bytes, of Destination. Must be
                                      at least as large as the size returned by
-                                     UefiImageLoaderGetDestinationSize().
+                                     UefiImageGetImageSize().
   @param[out]    RuntimeContext      If not NULL, on output, a buffer
                                      bookkeeping data required for Image runtime
                                      relocation.
