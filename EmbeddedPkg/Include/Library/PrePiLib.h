@@ -12,6 +12,8 @@
 
 #include <Guid/ExtractSection.h>
 
+#include <Library/MemoryAllocationLib.h>
+
 /**
   This service enables discovery of additional firmware volumes.
 
@@ -681,85 +683,6 @@ VOID
 EFIAPI
 BuildUefiLoaderHob (
   VOID
-  );
-
-/**
-  Allocates one or more 4KB pages of type EfiBootServicesData.
-
-  Allocates the number of 4KB pages of MemoryType and returns a pointer to the
-  allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If Pages is 0, then NULL
-  is returned.  If there is not enough memory remaining to satisfy the request, then NULL is
-  returned.
-
-  @param  Pages                 The number of 4 KB pages to allocate.
-
-  @return A pointer to the allocated buffer or NULL if allocation fails.
-
-**/
-VOID *
-EFIAPI
-AllocatePages (
-  IN UINTN  Pages
-  );
-
-/**
-  Allocates one or more 4KB pages of type EfiRuntimeServicesData.
-
-  Allocates the number of 4KB pages of type EfiRuntimeServicesData and returns a pointer to the
-  allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If Pages is 0, then NULL
-  is returned.  If there is not enough memory remaining to satisfy the request, then NULL is
-  returned.
-
-  @param  Pages                 The number of 4 KB pages to allocate.
-
-  @return A pointer to the allocated buffer or NULL if allocation fails.
-
-**/
-VOID *
-EFIAPI
-AllocateRuntimePages (
-  IN UINTN  Pages
-  );
-
-/**
-  Allocates a buffer of type EfiBootServicesData.
-
-  Allocates the number bytes specified by AllocationSize of type EfiBootServicesData and returns a
-  pointer to the allocated buffer.  If AllocationSize is 0, then a valid buffer of 0 size is
-  returned.  If there is not enough memory remaining to satisfy the request, then NULL is returned.
-
-  @param  AllocationSize        The number of bytes to allocate.
-
-  @return A pointer to the allocated buffer or NULL if allocation fails.
-
-**/
-VOID *
-EFIAPI
-AllocatePool (
-  IN UINTN  AllocationSize
-  );
-
-/**
-  Allocates one or more 4KB pages of type EfiBootServicesData at a specified alignment.
-
-  Allocates the number of 4KB pages specified by Pages of type EfiBootServicesData with an
-  alignment specified by Alignment.  The allocated buffer is returned.  If Pages is 0, then NULL is
-  returned.  If there is not enough memory at the specified alignment remaining to satisfy the
-  request, then NULL is returned.
-  If Alignment is not a power of two and Alignment is not zero, then ASSERT().
-
-  @param  Pages                 The number of 4 KB pages to allocate.
-  @param  Alignment             The requested alignment of the allocation.  Must be a power of two.
-                                If Alignment is zero, then byte alignment is used.
-
-  @return A pointer to the allocated buffer or NULL if allocation fails.
-
-**/
-VOID *
-EFIAPI
-AllocateAlignedPages (
-  IN UINTN  Pages,
-  IN UINTN  Alignment
   );
 
 EFI_STATUS
