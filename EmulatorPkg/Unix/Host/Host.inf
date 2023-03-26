@@ -60,6 +60,7 @@
   ThunkProtocolList
   PpiListLib
   PeiServicesLib
+  CommonMemoryAllocationLib
 
 [Ppis]
   gEfiPeiStatusCodePpiGuid                      # PPI ALWAYS_PRODUCED
