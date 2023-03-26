@@ -746,12 +746,15 @@ SecUefiImageGetEntryPoint (
   EFI_STATUS                      Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
-  Status                  = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
+  Status = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
-
-  // FIXME: Why cannot the Image be in-place already?
+  //
+  // FIXME: This modifies the FD data (which is not possible on real platforms)
+  //        and thus re-relocation (i.e., PEIM shadowing) fails badly due to
+  //        not updating ImageBase.
+  //
   Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
   if (EFI_ERROR (Status)) {
     return Status;
@@ -872,7 +875,7 @@ IsPdbFile (
 
 void
 PrintLoadAddress (
-  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT       *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT       *ImageContext
   )
 {
   EFI_STATUS                   Status;
@@ -925,7 +928,7 @@ SecGdbScriptBreak (
 **/
 VOID
 GdbScriptAddImage (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   EFI_STATUS  Status;
@@ -934,7 +937,7 @@ GdbScriptAddImage (
 
   PrintLoadAddress (ImageContext);
 
-  Status = UefiImageGetSymbolsPath ((ImageContext, &PdbPath,) &PdbPathSize);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -987,7 +990,7 @@ GdbScriptAddImage (
 VOID
 EFIAPI
 SecUefiImageRelocateImageExtraAction (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   )
 {
   GdbScriptAddImage (ImageContext);
