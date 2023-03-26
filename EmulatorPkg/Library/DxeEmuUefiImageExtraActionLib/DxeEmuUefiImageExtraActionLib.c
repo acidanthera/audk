@@ -64,7 +64,7 @@ DxeEmuUefiImageLibExtraActionConstructor (
 VOID
 EFIAPI
 UefiImageLoaderRelocateImageExtraAction (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   if (mThunk != NULL) {
