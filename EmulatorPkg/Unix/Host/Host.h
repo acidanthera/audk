@@ -267,7 +267,7 @@ SecUefiImageGetEntryPoint (
 VOID
 EFIAPI
 SecUefiImageRelocateImageExtraAction (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID
