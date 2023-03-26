@@ -801,37 +801,21 @@ SecUefiImageGetEntryPoint (
   IN OUT VOID   **EntryPoint
   )
 {
-  EFI_STATUS                       Status;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
-  VOID                             *Dest;
-  UINT32                           DestSize;
+  EFI_STATUS                      Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
-  Status                  = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
+  Status = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
-
   //
-  // Allocate space in NT (not emulator) memory with ReadWrite and Execute attribute.
-  // Extra space is for alignment
+  // FIXME: This modifies the FD data (which is not possible on real platforms)
+  //        and thus re-relocation (i.e., PEIM shadowing) fails badly due to
+  //        not updating ImageBase.
   //
-  Status = UefiImageLoaderGetDestinationSize(&ImageContext, &DestSize);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Dest = VirtualAlloc (NULL, (SIZE_T) DestSize, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
-  if (Dest == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  Status = UefiImageLoadImage (&ImageContext, Dest, DestSize);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  Status = UefiImageRelocateImage (&ImageContext, (UINTN) Dest, NULL, 0);
-  if (EFI_ERROR (Status)) {
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  if (RETURN_ERROR (Status)) {
+    DEBUG_RAISE ();
     return Status;
   }
 
@@ -842,8 +826,8 @@ SecUefiImageGetEntryPoint (
 
 CHAR16 *
 AsciiToUnicode (
-  IN  CHAR8  *Ascii,
-  IN  UINTN  *StrLen OPTIONAL
+  IN  CONST CHAR8  *Ascii,
+  IN  UINTN        *StrLen OPTIONAL
   )
 
 /*++
@@ -930,8 +914,8 @@ Returns:
 --*/
 EFI_STATUS
 AddModHandle (
-  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext,
-  IN  VOID                          *ModHandle
+  IN  CONST CHAR8  *PdbPointer,
+  IN  VOID         *ModHandle
   )
 
 {
@@ -959,11 +943,11 @@ AddModHandle (
       // Make a copy of the string and store the ModHandle
       //
       Handle            = GetProcessHeap ();
-      Size              = AsciiStrLen (ImageContext->PdbPointer) + 1;
+      Size              = AsciiStrLen (PdbPointer) + 1;
       Array->PdbPointer = HeapAlloc (Handle, HEAP_ZERO_MEMORY, Size);
       ASSERT (Array->PdbPointer != NULL);
 
-      AsciiStrCpyS (Array->PdbPointer, Size, ImageContext->PdbPointer);
+      AsciiStrCpyS (Array->PdbPointer, Size, PdbPointer);
       Array->ModHandle = ModHandle;
       return EFI_SUCCESS;
     }
@@ -994,7 +978,7 @@ AddModHandle (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  return AddModHandle (ImageContext, ModHandle);
+  return AddModHandle (PdbPointer, ModHandle);
 }
 
 /**
@@ -1007,13 +991,13 @@ AddModHandle (
 **/
 VOID *
 RemoveModHandle (
-  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
+  IN  CONST CHAR8  *PdbPointer
   )
 {
   UINTN                   Index;
   PDB_NAME_TO_MOD_HANDLE  *Array;
 
-  if (ImageContext->PdbPointer == NULL) {
+  if (PdbPointer == NULL) {
     //
     // If no PDB pointer there is no ModHandle so return NULL
     //
@@ -1022,7 +1006,7 @@ RemoveModHandle (
 
   Array = mPdbNameModHandleArray;
   for (Index = 0; Index < mPdbNameModHandleArraySize; Index++, Array++) {
-    if ((Array->PdbPointer != NULL) && (AsciiStrCmp (Array->PdbPointer, ImageContext->PdbPointer) == 0)) {
+    if ((Array->PdbPointer != NULL) && (AsciiStrCmp (Array->PdbPointer, PdbPointer) == 0)) {
       //
       // If you find a match return it and delete the entry
       //
@@ -1065,6 +1049,8 @@ UefiImageLoaderRelocateImageExtraAction (
   UINT32                               Flags;
   DWORD                                NewProtection;
   DWORD                                OldProtection;
+  CONST CHAR8                          *PdbPointer;
+  UINT32                               PdbPointerSize;
 
   ASSERT (ImageContext != NULL);
   //
@@ -1078,16 +1064,22 @@ UefiImageLoaderRelocateImageExtraAction (
 
   DllEntryPoint = NULL;
 
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbPointerSize);
+  if (RETURN_ERROR (Status)) {
+    PdbPointer     = NULL;
+    PdbPointerSize = 0;
+  }
+
   //
   // Load the DLL if it's not an EBC image.
   //
-  if ((ImageContext->PdbPointer != NULL) &&
+  if ((PdbPointer != NULL) &&
       (UefiImageGetMachine (ImageContext) != EFI_IMAGE_MACHINE_EBC))
   {
     //
     // Convert filename from ASCII to Unicode
     //
-    DllFileName = AsciiToUnicode (ImageContext->PdbPointer, &Index);
+    DllFileName = AsciiToUnicode (PdbPointer, &Index);
 
     //
     // Check that we have a valid filename
@@ -1277,12 +1269,12 @@ UefiImageLoaderRelocateImageExtraAction (
     }
 
     if ((Library != NULL) && (DllEntryPoint != NULL)) {
-      Status = AddModHandle (ImageContext, Library);
+      Status = AddModHandle (PdbPointer, Library);
       if ((Status == EFI_SUCCESS) || (Status == EFI_ALREADY_STARTED)) {
         //
         // This DLL is either not loaded or already started, so source level debugging is supported.
         //
-        ImageContext->EntryPoint = (EFI_PHYSICAL_ADDRESS)(UINTN)DllEntryPoint;
+        ImageContext->ImageBuffer = (VOID *)((UINTN)DllEntryPoint - UefiImageGetEntryPointAddress (ImageContext));
         SecPrint ("LoadLibraryEx (\n\r  %S,\n\r  NULL, DONT_RESOLVE_DLL_REFERENCES) @ 0x%X\n\r", DllFileName, (int)(UINTN)Library);
       }
     } else {
@@ -1300,13 +1292,22 @@ UefiImageLoaderUnloadImageExtraAction (
   )
 {
   VOID  *ModHandle;
+  RETURN_STATUS  Status;
+  CONST CHAR8    *PdbPointer;
+  UINT32         PdbPointerSize;
 
   ASSERT (ImageContext != NULL);
 
-  ModHandle = RemoveModHandle (ImageContext);
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbPointerSize);
+  if (RETURN_ERROR (Status)) {
+    PdbPointer     = NULL;
+    PdbPointerSize = 0;
+  }
+
+  ModHandle = RemoveModHandle (PdbPointer);
   if (ModHandle != NULL) {
     FreeLibrary (ModHandle);
-    SecPrint ("FreeLibrary (\n\r  %s)\n\r", ImageContext->PdbPointer);
+    SecPrint ("FreeLibrary (\n\r  %s)\n\r", PdbPointer);
   } else {
     SecPrint ("WARNING: Unload image without source level debug\n\r");
   }
