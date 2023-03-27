@@ -1,0 +1,10 @@
+{
+  "name": "audk",
+  "build": {
+    "dockerfile": "../OpenCorePkg/Dockerfiles/oc-dev/Dockerfile",
+    "context": "../OpenCorePkg/Dockerfiles/oc-dev/",
+    "target": "oc-dev-edk2"
+  },
+  "workspaceMount": "source=${localWorkspaceFolder},target=/com.docker.devenvironments.code,type=bind,consistency=cached",
+  "workspaceFolder": "/com.docker.devenvironments.code"
+}
