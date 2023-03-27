@@ -68,6 +68,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
       - name: Install Dependencies
         run: |
@@ -77,6 +79,7 @@ jobs:
       - name: CI Bootstrap
         run: |
           src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
 
       # Initializes the CodeQL tools for scanning.
       - name: Initialize CodeQL
@@ -87,11 +90,6 @@ jobs:
           # Learn more about CodeQL language support at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
           config-file: ./.github/codeql/codeql-config.yml
           # Note: Add new queries to codeql-config.yml file as they are enabled.
-
-      - name: Init UDK submodules
-        run: |
-          git submodule update --init --recursive
-          touch UDK.ready
 
       - name: Prepare efibuild.sh
         run: |
