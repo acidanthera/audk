@@ -225,15 +225,6 @@ GetImageReadFunction (
   IN EFI_PHYSICAL_ADDRESS             *TopOfMemory
   );
 
-EFI_STATUS
-EFIAPI
-SecImageRead (
-  IN     VOID   *FileHandle,
-  IN     UINTN  FileOffset,
-  IN OUT UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  );
-
 CHAR16                            *
 AsciiToUnicode (
   IN  CHAR8  *Ascii,
