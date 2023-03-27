@@ -1,29 +1,12 @@
 name: audk
 services:
-  dev-edk2:
-    build:
-      context: Dockerfiles/oc-dev-edk2
-      tags:
-        - "oc-dev-edk2"
   build-package:
-    depends_on:
-      - dev-edk2
-    image: oc-dev-edk2
+    extends:
+      service: dev-edk2
+      file: OpenCorePkg/docker-compose.yaml
     environment:
-    - ARCHS
-    - ARCHS_EXT
-    - SELFPKG
-    - SELFPKG_DIR
-    - TARGETS
-    - RTARGETS
-    - TOOLCHAINS
-    - SKIP_TESTS
-    - SKIP_BUILD
-    - SKIP_PACKAGE
-    - BUILD_ARGUMENTS
-    volumes:
-      - .:/com.docker.devenvironments.code
-    working_dir: /com.docker.devenvironments.code
+      - SELFPKG
+      - SELFPKG_DIR
     entrypoint:
       - /bin/bash
       - -c
