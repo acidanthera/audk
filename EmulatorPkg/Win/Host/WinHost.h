@@ -121,35 +121,6 @@ Returns:
 --*/
 ;
 
-EFI_STATUS
-EFIAPI
-SecImageRead (
-  IN     VOID   *FileHandle,
-  IN     UINTN  FileOffset,
-  IN OUT UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  )
-
-/*++
-
-Routine Description:
-
-  TODO: Add function description
-
-Arguments:
-
-  FileHandle  - TODO: add argument description
-  FileOffset  - TODO: add argument description
-  ReadSize    - TODO: add argument description
-  Buffer      - TODO: add argument description
-
-Returns:
-
-  TODO: add return values
-
---*/
-;
-
 CHAR16                            *
 AsciiToUnicode (
   IN  CHAR8  *Ascii,
