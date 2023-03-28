@@ -94,11 +94,6 @@
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -D DISABLE_NEW_DEPRECATED_INTERFACES
-  #
-  # We need to avoid jump tables in SEC and BASE modules, so that the PE/COFF
-  # self-relocation code itself is guaranteed to be position independent.
-  #
-  GCC:*_*_*_CC_XIPFLAGS = -fno-jump-tables
 
 ################################################################################
 #
