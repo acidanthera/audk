@@ -784,7 +784,7 @@ ScanElf (
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
-  mImageInfo.DebugInfo.SymbolsPathLen     = strlen (ElfName) + 1;
+  mImageInfo.DebugInfo.SymbolsPathLen     = strlen (ElfName);
 
   switch (mEhdr->e_machine) {
     case EM_386:
@@ -805,14 +805,14 @@ ScanElf (
       return RETURN_UNSUPPORTED;
   }
 
-  mImageInfo.DebugInfo.SymbolsPath = calloc (1, mImageInfo.DebugInfo.SymbolsPathLen);
+  mImageInfo.DebugInfo.SymbolsPath = malloc (mImageInfo.DebugInfo.SymbolsPathLen + 1);
   if (mImageInfo.DebugInfo.SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Debug Data\n");
     free (mEhdr);
     return RETURN_OUT_OF_RESOURCES;
   };
 
-  memcpy (mImageInfo.DebugInfo.SymbolsPath, ElfName, mImageInfo.DebugInfo.SymbolsPathLen);
+  memmove (mImageInfo.DebugInfo.SymbolsPath, ElfName, mImageInfo.DebugInfo.SymbolsPathLen + 1);
 
   if ((strcmp (ModuleType, "BASE") == 0)
     || (strcmp (ModuleType, "SEC") == 0)

@@ -369,7 +369,7 @@ ScanPeGetDebugInfo (
     return false;
   }
 
-  DebugInfo->SymbolsPath = calloc (1, PdbPathSize);
+  DebugInfo->SymbolsPath = malloc (PdbPathSize);
   if (DebugInfo->SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for SymbolsPath\n");
     return false;

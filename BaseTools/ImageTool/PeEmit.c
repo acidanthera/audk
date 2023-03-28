@@ -180,7 +180,7 @@ EmitPeGetDebugSectionSize (
 
   if (Image->DebugInfo.SymbolsPath != NULL) {
     return !BaseOverflowAlignUpU32 (
-      sizeof (DebugData) + Image->DebugInfo.SymbolsPathLen,
+      sizeof (DebugData) + Image->DebugInfo.SymbolsPathLen + 1,
       Image->SegmentInfo.SegmentAlignment,
       DebugSize
     );
@@ -755,18 +755,18 @@ ToolImageEmitPeDebugTable (
 
   Context->PeHdr->SizeOfImage += ALIGN_VALUE (Context->DebugTableSize, Image->SegmentInfo.SegmentAlignment);
 
-  assert (Image->DebugInfo.SymbolsPathLen <= Context->DebugTableSize);
+  assert (Image->DebugInfo.SymbolsPathLen + 1 <= Context->DebugTableSize);
   assert (Context->DebugTableSize <= *BufferSize);
 
   Data = (DebugData *) *Buffer;
 
   Data->Dir.Type       = EFI_IMAGE_DEBUG_TYPE_CODEVIEW;
-  Data->Dir.SizeOfData = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY) + Image->DebugInfo.SymbolsPathLen;
+  Data->Dir.SizeOfData = sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY) + Image->DebugInfo.SymbolsPathLen + 1;
   Data->Dir.RVA        = (Context->UnsignedFileSize - ALIGN_VALUE (Context->DebugTableSize, Context->FileAlignment)) + sizeof (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY);
   Data->Dir.FileOffset = Data->Dir.RVA;
 
   Data->Nb10.Signature = CODEVIEW_SIGNATURE_NB10;
-  snprintf (Data->Name, Image->DebugInfo.SymbolsPathLen, "%s", Image->DebugInfo.SymbolsPath);
+  memmove (Data->Name, Image->DebugInfo.SymbolsPath, Image->DebugInfo.SymbolsPathLen + 1);
 
   *BufferSize -= Context->DebugTableSize;
   *Buffer     += Context->DebugTableSize;
