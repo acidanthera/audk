@@ -444,7 +444,7 @@ SmmLoadImage (
       // following statements is to bypass SmmFreePages
       //
       PageCount = 0;
-      DstBuffer = (UINTN)gLoadModuleAtFixAddressSmramBase;
+      DstBuffer = LoadAddress;
     } else {
       DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Failed to load module at fixed address. \n"));
       //
