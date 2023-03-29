@@ -308,10 +308,6 @@ struct _PEI_CORE_INSTANCE {
   // available or not.
   //
   UINT64                            *PeiCodeMemoryRangeUsageBitMap;
-  //
-  // This field points to the shadowed image read function
-  //
-  VOID                              *ShadowedImageRead;
 
   UINTN                             TempPeimCount;
 
