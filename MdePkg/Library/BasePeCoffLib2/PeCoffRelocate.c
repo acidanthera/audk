@@ -258,7 +258,6 @@ InternalApplyRelocation (
       FixupData[RelocIndex] = 0;
     }
 
-    UefiImageLoaderRelocateImageExtraAction (Context);
     return RETURN_SUCCESS;
   }
   //
@@ -624,6 +623,7 @@ PeCoffRelocateImage (
       );
   }
 
+  UefiImageLoaderRelocateImageExtraAction (Context);
   return RETURN_SUCCESS;
 }
 
