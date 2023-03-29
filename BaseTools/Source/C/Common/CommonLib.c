@@ -18,6 +18,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
 
+#include <Uefi/UefiSpec.h>
+#include <Library/PhaseMemoryAllocationLib.h>
+
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultCodeType = EfiBootServicesCode;
+
 INTN
 BtCompareGuid (
   IN EFI_GUID     *Guid1,
@@ -551,102 +557,70 @@ Returns:
 }
 
 
-VOID *
-InternalAllocatePool (
-   UINTN   AllocationSize
+EFI_STATUS
+EFIAPI
+PhaseAllocatePages (
+  IN     EFI_ALLOCATE_TYPE     Type,
+  IN     EFI_MEMORY_TYPE       MemoryType,
+  IN     UINTN                 Pages,
+  IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
-  VOID * Memory;
+  VOID   *Buffer;
+  UINTN  BufferSize;
 
-  Memory = malloc(AllocationSize);
-  ASSERT(Memory != NULL);
-  return Memory;
-}
+  ASSERT (Type == AllocateAnyPages);
 
+  BufferSize = EFI_PAGES_TO_SIZE (Pages);
 
-VOID *
-InternalReallocatePool (
-   UINTN            OldSize,
-   UINTN            NewSize,
-   VOID             *OldBuffer  OPTIONAL
-  )
-{
-  VOID  *NewBuffer;
+#ifndef _WIN32
+  Buffer = aligned_alloc (EFI_PAGE_SIZE, BufferSize);
+#else
+  Buffer = _aligned_malloc (BufferSize, EFI_PAGE_SIZE);
+#endif
 
-  NewBuffer = AllocateZeroPool (NewSize);
-  if (NewBuffer != NULL && OldBuffer != NULL) {
-    memcpy (NewBuffer, OldBuffer, MIN (OldSize, NewSize));
-    free(OldBuffer);
+  if (Buffer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
   }
-  return NewBuffer;
+
+  *Memory = (UINTN)Buffer;
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+PhaseFreePages (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 Pages
+  )
+{
+  VOID  *Buffer;
+
+  Buffer = (VOID *)(UINTN)Memory;
+
+#ifndef _WIN32
+  free (Buffer);
+#else
+  _aligned_free (Buffer);
+#endif
+
+  return EFI_SUCCESS;
 }
 
 VOID *
 EFIAPI
-ReallocatePool (
-   UINTN  OldSize,
-   UINTN  NewSize,
-   VOID   *OldBuffer  OPTIONAL
+PhaseAllocatePool (
+  IN EFI_MEMORY_TYPE  MemoryType,
+  IN UINTN            AllocationSize
   )
 {
-  return InternalReallocatePool (OldSize, NewSize, OldBuffer);
-}
-
-VOID *
-InternalAllocateCopyPool (
-   UINTN            AllocationSize,
-   CONST VOID       *Buffer
-  )
-{
-  VOID  *Memory;
-
-  ASSERT (Buffer != NULL);
-
-  Memory = malloc (AllocationSize);
-  if (Memory != NULL) {
-     Memory = memcpy (Memory, Buffer, AllocationSize);
-  }
-  return Memory;
-}
-
-VOID *
-EFIAPI
-AllocateCopyPool (
-   UINTN       AllocationSize,
-   CONST VOID  *Buffer
-  )
-{
-  return InternalAllocateCopyPool (AllocationSize, Buffer);
-}
-
-VOID *
-EFIAPI
-AllocateZeroPool (
-  UINTN  AllocationSize
-  )
-{
-  VOID * Memory;
-  Memory = malloc(AllocationSize);
-  ASSERT (Memory != NULL);
-  if (Memory == NULL) {
-    fprintf(stderr, "Not memory for malloc\n");
-  }
-  memset(Memory, 0, AllocationSize);
-  return Memory;
-}
-
-VOID *
-EFIAPI
-AllocatePool (
-  UINTN  AllocationSize
-  )
-{
-  return InternalAllocatePool (AllocationSize);
+  return malloc (AllocationSize);
 }
 
 VOID
 EFIAPI
-FreePool (
+PhaseFreePool (
   IN VOID  *Buffer
   )
 {
