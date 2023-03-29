@@ -305,59 +305,6 @@ CoreInitializeImageServices (
 }
 
 /**
-  Read image file (specified by UserHandle) into user specified buffer with specified offset
-  and length.
-
-  @param  UserHandle             Image file handle
-  @param  Offset                 Offset to the source file
-  @param  ReadSize               For input, pointer of size to read; For output,
-                                 pointer of size actually read.
-  @param  Buffer                 Buffer to write into
-
-  @retval EFI_SUCCESS            Successfully read the specified part of file
-                                 into buffer.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreReadImageFile (
-  IN     VOID   *UserHandle,
-  IN     UINTN  Offset,
-  IN OUT UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  )
-{
-  UINTN              EndPosition;
-  IMAGE_FILE_HANDLE  *FHand;
-
-  if ((UserHandle == NULL) || (ReadSize == NULL) || (Buffer == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (MAX_ADDRESS - Offset < *ReadSize) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  FHand = (IMAGE_FILE_HANDLE  *)UserHandle;
-  ASSERT (FHand->Signature == IMAGE_FILE_HANDLE_SIGNATURE);
-
-  //
-  // Move data from our local copy of the file
-  //
-  EndPosition = Offset + *ReadSize;
-  if (EndPosition > FHand->SourceSize) {
-    *ReadSize = (UINT32)(FHand->SourceSize - Offset);
-  }
-
-  if (Offset >= FHand->SourceSize) {
-    *ReadSize = 0;
-  }
-
-  CopyMem (Buffer, (CHAR8 *)FHand->Source + Offset, *ReadSize);
-  return EFI_SUCCESS;
-}
-
-/**
   To check memory usage bit map array to figure out if the memory range the image will be loaded in is available or not. If
   memory range is available, the function will mark the corresponding bits to 1 which indicates the memory range is used.
   The function is only invoked when load modules at fixed address feature is enabled.
