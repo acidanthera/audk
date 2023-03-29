@@ -220,12 +220,6 @@ GasketSecUnixFdAddress (
   )
 ;
 
-EFI_STATUS
-GetImageReadFunction (
-  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT          *ImageContext,
-  IN EFI_PHYSICAL_ADDRESS          *TopOfMemory
-  );
-
 CHAR16                            *
 AsciiToUnicode (
   IN  CHAR8  *Ascii,
