@@ -25,7 +25,7 @@ typedef struct {
   uint32_t                      RelocTableSize;
   uint32_t                      HiiTableSize;
   uint32_t                      DebugTableSize;
-  uint16_t                      FileAlignment;
+  uint32_t                      FileAlignment;
 } image_tool_pe_emit_context_t;
 
 static
@@ -887,7 +887,7 @@ ToolImageEmitPe (
   memset (&Context, 0, sizeof (Context));
 
   Context.Image         = Image;
-  Context.FileAlignment = (uint16_t)Image->SegmentInfo.SegmentAlignment;
+  Context.FileAlignment = Image->SegmentInfo.SegmentAlignment;
 
   Result = EmitPeGetHeaderSizes (Image, &Context.HdrInfo);
   if (!Result) {

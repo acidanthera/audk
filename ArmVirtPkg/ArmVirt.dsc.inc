@@ -262,6 +262,12 @@
   #
   GCC:*_*_*_CC_FLAGS = -DDISABLE_NEW_DEPRECATED_INTERFACES
 
+!if $(PROTECT_RT_IMAGES_AARCH64_64K) == TRUE
+  [BuildOptions.common.EDKII.DXE_RUNTIME_DRIVER, BuildOptions.common.EDKII.SMM_CORE, BuildOptions.common.EDKII.DXE_SMM_DRIVER, BuildOptions.common.MM_CORE_STANDALONE, BuildOptions.common.MM_STANDALONE]
+    GCC:*_*_AARCH64_DLINK_FLAGS  = -z max-page-size=0x10000
+    MSFT:*_*_AARCH64_DLINK_FLAGS = /ALIGN:65536 /FILEALIGN:65536
+!endif
+
 ################################################################################
 #
 # Pcd Section - list of all EDK II PCD Entries defined by this Platform
