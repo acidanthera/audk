@@ -907,6 +907,17 @@ STATIC_ASSERT (ALIGNOF (__VERIFY_UINT32_ENUM_SIZE) == sizeof (__VERIFY_UINT32_EN
 #define IS_POW2(Value)  ((Value) != 0U && ((Value) & ((Value) - 1U)) == 0U)
 
 /**
+  Determines the subtrahend to subtract from a value to round it down to the
+  previous boundary of a specified alignment.
+
+  @param   Value      The value to round down.
+  @param   Alignment  The alignment boundary used to return the subtrahend.
+
+  @return  Subtrahend to round Value down to alignment boundary Alignment.
+**/
+#define ALIGN_VALUE_SUBTRAHEND(Value, Alignment)  ((Value) & ((Alignment) - 1U))
+
+/**
   Checks whether a value is aligned by a specified alignment.
 
   @param   Value      The value to check.
@@ -914,7 +925,7 @@ STATIC_ASSERT (ALIGNOF (__VERIFY_UINT32_ENUM_SIZE) == sizeof (__VERIFY_UINT32_EN
 
   @return  Whether Value is aligned by Alignment.
 **/
-#define IS_ALIGNED(Value, Alignment)  (((Value) & ((Alignment) - 1U)) == 0U)
+#define IS_ALIGNED(Value, Alignment)  (ALIGN_VALUE_SUBTRAHEND (Value, Alignment) == 0U)
 
 /**
   Checks whether a pointer or address is aligned by a specified alignment.
