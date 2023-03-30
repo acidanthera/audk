@@ -1027,8 +1027,7 @@ DEFINE CLANGPDB_X64_PREFIX           = ENV(CLANG_BIN)
 DEFINE CLANGPDB_IA32_TARGET          = -target i686-unknown-windows-gnu
 DEFINE CLANGPDB_X64_TARGET           = -target x86_64-unknown-windows-gnu
 
-DEFINE CLANGPDB_WARNING_OVERRIDES    = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-unused-const-variable -Wno-varargs -Wno-unknown-warning-option -Wno-microsoft-enum-forward-reference
-DEFINE CLANGPDB_ALL_CC_FLAGS         = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGPDB_WARNING_OVERRIDES) -fno-stack-protector -funsigned-char -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -Wno-null-dereference -mno-implicit-float -mms-bitfields -mno-stack-arg-probe -nostdlib -nostdlibinc -fseh-exceptions
+DEFINE CLANGPDB_ALL_CC_FLAGS         = DEF(GCC5_ALL_CC_FLAGS) -Wno-unknown-warning-option -fno-stack-protector -funsigned-char -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -Wno-null-dereference -mno-implicit-float -mms-bitfields -mno-stack-arg-probe -nostdlib -nostdlibinc -fseh-exceptions
 
 ###########################
 # CLANGPDB IA32 definitions
@@ -1064,7 +1063,7 @@ NOOPT_CLANGPDB_IA32_DLINK_FLAGS      = DEF(MSFT_DLINK_COMMON) /MACHINE:X86 /DEBU
 NOOPT_CLANGPDB_IA32_DLINK2_FLAGS     =
 
 ##########################
-# CLANGWIN X64 definitions
+# CLANGPDB X64 definitions
 ##########################
 *_CLANGPDB_X64_CC_PATH              = DEF(CLANGPDB_X64_PREFIX)clang
 *_CLANGPDB_X64_SLINK_PATH           = DEF(CLANGPDB_X64_PREFIX)llvm-lib
@@ -1114,8 +1113,7 @@ NOOPT_CLANGPDB_X64_DLINK2_FLAGS     =
 *_CLANGDWARF_*_DEPS_FLAGS           = DEF(GCC_DEPS_FLAGS)
 *_CLANGDWARF_*_DTCPP_FLAGS          = DEF(GCC_DTCPP_FLAGS)
 
-DEFINE CLANGDWARF_WARNING_OVERRIDES = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-unused-const-variable -Wno-varargs -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-unused-const-variable
-DEFINE CLANGDWARF_ALL_CC_FLAGS      = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGDWARF_WARNING_OVERRIDES) -fno-stack-protector -mms-bitfields -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -msoft-float -mno-implicit-float  -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -funsigned-char -fno-ms-extensions -Wno-null-dereference
+DEFINE CLANGDWARF_ALL_CC_FLAGS      = DEF(GCC5_ALL_CC_FLAGS) -Wno-unknown-warning-option -fno-stack-protector -mms-bitfields -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -msoft-float -mno-implicit-float  -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -funsigned-char -fno-ms-extensions -Wno-null-dereference
 
 DEFINE CLANGDWARF_IA32_PREFIX       = ENV(CLANG_BIN)
 DEFINE CLANGDWARF_X64_PREFIX        = ENV(CLANG_BIN)
@@ -1206,7 +1204,7 @@ NOOPT_CLANGDWARF_X64_DLINK2_FLAGS     = -O0 -fuse-ld=lld
 ###########################
 # CLANGDWARF ARM definitions
 ###########################
-DEFINE CLANGDWARF_ARM_CC_FLAGS      = DEF(GCC_ARM_CC_FLAGS) DEF(CLANGDWARF_ARM_TARGET) DEF(CLANGDWARF_WARNING_OVERRIDES) -mno-movt
+DEFINE CLANGDWARF_ARM_CC_FLAGS      = DEF(GCC_ARM_CC_FLAGS) DEF(CLANGDWARF_ARM_TARGET)
 DEFINE CLANGDWARF_ARM_DLINK_FLAGS   = DEF(CLANGDWARF_ARM_TARGET) DEF(GCC_ARM_DLINK_FLAGS)
 
 *_CLANGDWARF_ARM_OBJCOPY_PATH       = ENV(CLANGDWARF_ARM_PREFIX)llvm-objcopy
@@ -1223,7 +1221,7 @@ DEFINE CLANGDWARF_ARM_DLINK_FLAGS   = DEF(CLANGDWARF_ARM_TARGET) DEF(GCC_ARM_DLI
 
 *_CLANGDWARF_ARM_ASLCC_FLAGS        = DEF(GCC_ASLCC_FLAGS) -fno-lto
 *_CLANGDWARF_ARM_ASLDLINK_FLAGS     = DEF(CLANGDWARF_ARM_TARGET) DEF(GCC_ARM_ASLDLINK_FLAGS)
-*_CLANGDWARF_ARM_ASM_FLAGS          = DEF(GCC_ASM_FLAGS) DEF(CLANGDWARF_ARM_TARGET) -march=armv7-a -Qunused-arguments
+*_CLANGDWARF_ARM_ASM_FLAGS          = DEF(GCC_ASM_FLAGS) DEF(CLANGDWARF_ARM_TARGET) -march=armv7-a
 *_CLANGDWARF_ARM_DLINK2_FLAGS       = DEF(GCC_DLINK2_FLAGS_COMMON) -fuse-ld=lld
 *_CLANGDWARF_ARM_PP_FLAGS           = DEF(GCC_PP_FLAGS) DEF(CLANGDWARF_ARM_TARGET) -march=armv7-a
 *_CLANGDWARF_ARM_RC_FLAGS           = DEF(GCC_ARM_RC_FLAGS)
@@ -1242,7 +1240,7 @@ RELEASE_CLANGDWARF_ARM_DLINK_FLAGS  = DEF(CLANGDWARF_ARM_DLINK_FLAGS) -flto -Wl,
 ###########################
 # CLANGDWARF AARCH64 definitions
 ###########################
-DEFINE CLANGDWARF_AARCH64_CC_FLAGS    = DEF(GCC_AARCH64_CC_FLAGS) DEF(CLANGDWARF_AARCH64_TARGET) -mcmodel=small DEF(CLANGDWARF_WARNING_OVERRIDES)
+DEFINE CLANGDWARF_AARCH64_CC_FLAGS    = DEF(GCC_AARCH64_CC_FLAGS) DEF(CLANGDWARF_AARCH64_TARGET) -mcmodel=small
 DEFINE CLANGDWARF_AARCH64_DLINK_FLAGS = DEF(CLANGDWARF_AARCH64_TARGET) DEF(GCC_AARCH64_DLINK_FLAGS) DEF(GCC_ALIGN)
 
 *_CLANGDWARF_AARCH64_OBJCOPY_PATH   = ENV(CLANGDWARF_AARCH64_PREFIX)llvm-objcopy
@@ -1259,7 +1257,7 @@ DEFINE CLANGDWARF_AARCH64_DLINK_FLAGS = DEF(CLANGDWARF_AARCH64_TARGET) DEF(GCC_A
 
 *_CLANGDWARF_AARCH64_ASLCC_FLAGS    = DEF(GCC_ASLCC_FLAGS) -fno-lto
 *_CLANGDWARF_AARCH64_ASLDLINK_FLAGS = DEF(CLANGDWARF_AARCH64_TARGET) DEF(GCC_AARCH64_ASLDLINK_FLAGS)
-*_CLANGDWARF_AARCH64_ASM_FLAGS      = DEF(GCC_ASM_FLAGS) DEF(CLANGDWARF_AARCH64_TARGET) -Qunused-arguments
+*_CLANGDWARF_AARCH64_ASM_FLAGS      = DEF(GCC_ASM_FLAGS) DEF(CLANGDWARF_AARCH64_TARGET)
 *_CLANGDWARF_AARCH64_DLINK2_FLAGS   = DEF(GCC_DLINK2_FLAGS_COMMON) -fuse-ld=lld
 *_CLANGDWARF_AARCH64_PP_FLAGS       = DEF(GCC_PP_FLAGS) DEF(CLANGDWARF_AARCH64_TARGET)
 *_CLANGDWARF_AARCH64_RC_FLAGS       = DEF(GCC_AARCH64_RC_FLAGS)
