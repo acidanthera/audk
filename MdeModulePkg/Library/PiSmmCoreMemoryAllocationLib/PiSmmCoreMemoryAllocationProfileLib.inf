@@ -1,8 +1,8 @@
 ## @file
-# Memory Allocation/Profile Library instance dedicated to SMM Core.
-# The implementation borrows the SMM Core Memory Allocation/Profile services as the primitive
-# for memory allocation/profile instead of using SMM System Table servces or SMM memory profile protocol in an indirect way.
-# It is assumed that this library instance must be linked with SMM Cre in this package.
+# Memory Profile Library instance dedicated to SMM Core.
+# The implementation borrows the SMM Core Memory Profile services as the primitive
+# for memory profile instead of using SMM System Table services or SMM memory profile protocol in an indirect way.
+# It is assumed that this library instance must be linked with SMM Core in this package.
 #
 # Copyright (c) 2010 - 2016, Intel Corporation. All rights reserved.<BR>
 #
@@ -18,7 +18,6 @@
   MODULE_TYPE                    = SMM_CORE
   VERSION_STRING                 = 1.0
   PI_SPECIFICATION_VERSION       = 0x0001000A
-  LIBRARY_CLASS                  = MemoryAllocationLib|SMM_CORE
   #
   # This function is defined in PiSmmCore.
   #
@@ -42,9 +41,7 @@
 
 [LibraryClasses]
   DebugLib
-  BaseMemoryLib
   UefiBootServicesTableLib
-  MemoryAllocationLib
 
 [Guids]
   gEdkiiMemoryProfileGuid   ## SOMETIMES_CONSUMES   ## GUID # Locate protocol
