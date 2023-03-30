@@ -1,9 +1,6 @@
 // /** @file
-// Instance of Memory Allocation Library using SMM Services Table,
-//  with memory profile support.
-//
-// Memory Allocation Library that uses services from the SMM Services Table to
-// allocate and free memory, with memory profile support.
+// Instance of Memory Profile Library using the EDK II SMM Memory Profile
+// Protocol.
 //
 // Copyright (c) 2010 - 2016, Intel Corporation. All rights reserved.<BR>
 //
@@ -12,7 +9,7 @@
 // **/
 
 
-#string STR_MODULE_ABSTRACT             #language en-US "Instance of Memory Allocation Library using SMM Services Table, with memory profile support"
+#string STR_MODULE_ABSTRACT             #language en-US "Instance of Memory Profile Library using the EDK II SMM Memory Profile Protocol"
 
-#string STR_MODULE_DESCRIPTION          #language en-US "This Memory Allocation Library uses services from the SMM Services Table to allocate and free memory, with memory profile support."
+#string STR_MODULE_DESCRIPTION          #language en-US "Instance of Memory Profile Library using the EDK II SMM Memory Profile Protocol."
 
