@@ -1,12 +1,12 @@
 /** @file
-  Null routines for memory profile for DxeCore.
+  Null routines for memory profile.
 
   Copyright (c) 2016 - 2018, Intel Corporation. All rights reserved.<BR>
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include <PiDxe.h>
+#include <Uefi.h>
 
 #include <Guid/MemoryProfile.h>
 
