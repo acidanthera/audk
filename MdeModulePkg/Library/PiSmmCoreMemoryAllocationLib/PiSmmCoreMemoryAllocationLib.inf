@@ -31,13 +31,10 @@
 #
 
 [Sources]
-  PiSmmCoreMemoryProfileLibNull.c
+  MemoryAllocationLib.c
 
 [Packages]
   MdePkg/MdePkg.dec
-  MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
-  DebugLib
-  BaseMemoryLib
-  UefiBootServicesTableLib
+  MemoryProfileLib
