@@ -12,35 +12,6 @@
 
 static
 bool
-OverflowGetDestinationSize (
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context,
-  OUT UINT32                       *Size
-  )
-{
-  UINT32 AlignedSize;
-  UINT32 SegmentAlignment;
-
-  assert (Context != NULL);
-  assert (Size    != NULL);
-
-  AlignedSize      = PeCoffGetSizeOfImage (Context);
-  SegmentAlignment = PeCoffGetSectionAlignment (Context);
-
-  if (SegmentAlignment < EFI_PAGE_SIZE) {
-    SegmentAlignment = EFI_PAGE_SIZE;
-  }
-  //
-  // The Image needs to be at least EFI_PAGE_SIZE aligned inside the calloc() buffer.
-  //
-  return BaseOverflowAddU32 (
-    AlignedSize,
-    SegmentAlignment - 1,
-    Size
-    );
-}
-
-static
-bool
 ScanPeGetHeaderInfo (
   OUT image_tool_header_info_t     *HeaderInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context,
@@ -432,11 +403,11 @@ ToolContextConstructPe (
 {
   PE_COFF_LOADER_IMAGE_CONTEXT Context;
   RETURN_STATUS                Status;
+  UINT32                       ImageSize;
+  UINT32                       ImageAlignment;
   UINT32                       DestinationSize;
-  bool                         Overflow;
+  UINT32                       DestinationPages;
   void                         *Destination;
-  uintptr_t                    Addend;
-  void                         *AlignedDest;
   bool                         Result;
 
   assert (Image != NULL);
@@ -453,25 +424,24 @@ ToolContextConstructPe (
     return false;
   }
 
-  Overflow = OverflowGetDestinationSize (&Context, &DestinationSize);
-  if (Overflow) {
-    fprintf (stderr, "ImageTool: DestinationSize is too huge\n");
-    return false;
-  }
+  ImageSize        = PeCoffGetSizeOfImage (&Context);
+  DestinationPages = EFI_SIZE_TO_PAGES (ImageSize);
+  DestinationSize  = EFI_PAGES_TO_SIZE (DestinationPages);
+  ImageAlignment   = PeCoffGetSectionAlignment (&Context);
 
-  Destination = calloc (1, DestinationSize);
+  Destination = AllocateAlignedCodePages (
+                  DestinationPages,
+                  ImageAlignment
+                  );
   if (Destination == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate Destination buffer\n");
     return false;
   }
 
-  Addend      = ALIGN_VALUE_ADDEND ((uintptr_t)Destination, EFI_PAGE_SIZE);
-  AlignedDest = (char *)Destination + Addend;
-
-  Status = PeCoffLoadImage (&Context, AlignedDest, DestinationSize - Addend);
+  Status = PeCoffLoadImage (&Context, Destination, DestinationSize);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not Load Image\n");
-    free (Destination);
+    FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
 
@@ -480,21 +450,21 @@ ToolContextConstructPe (
   Result  = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context, ModuleType);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
-    free (Destination);
+    FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
 
   Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
-    free (Destination);
+    FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
 
   Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
-    free (Destination);
+    FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
 
@@ -503,7 +473,7 @@ ToolContextConstructPe (
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
   }
 
-  free (Destination);
+  FreeAlignedPages (Destination, DestinationPages);
 
   return Result;
 }

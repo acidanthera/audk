@@ -18,6 +18,7 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <UserFile.h>
 #include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/ElfCommon.h"
 
