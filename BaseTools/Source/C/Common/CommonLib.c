@@ -557,6 +557,33 @@ Returns:
 }
 
 
+static
+void *
+InternalAlignedAlloc (
+  size_t  Alignment,
+  size_t  Size
+  )
+{
+#ifndef _WIN32
+  return aligned_alloc (Alignment, Size);
+#else
+  return _aligned_malloc (Size, Alignment);
+#endif
+}
+
+static
+void
+InternalAlignedFree (
+  void  *Ptr
+  )
+{
+#ifndef _WIN32
+  free (Ptr);
+#else
+  _aligned_free (Ptr);
+#endif
+}
+
 EFI_STATUS
 EFIAPI
 PhaseAllocatePages (
@@ -572,13 +599,7 @@ PhaseAllocatePages (
   ASSERT (Type == AllocateAnyPages);
 
   BufferSize = EFI_PAGES_TO_SIZE (Pages);
-
-#ifndef _WIN32
-  Buffer = aligned_alloc (EFI_PAGE_SIZE, BufferSize);
-#else
-  Buffer = _aligned_malloc (BufferSize, EFI_PAGE_SIZE);
-#endif
-
+  Buffer     = InternalAlignedAlloc (EFI_PAGE_SIZE, BufferSize);
   if (Buffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -598,12 +619,7 @@ PhaseFreePages (
   VOID  *Buffer;
 
   Buffer = (VOID *)(UINTN)Memory;
-
-#ifndef _WIN32
-  free (Buffer);
-#else
-  _aligned_free (Buffer);
-#endif
+  InternalAlignedFree (Buffer);
 
   return EFI_SUCCESS;
 }
@@ -615,7 +631,7 @@ PhaseAllocatePool (
   IN UINTN            AllocationSize
   )
 {
-  return malloc (AllocationSize);
+  return InternalAlignedAlloc (8, AllocationSize);
 }
 
 VOID
@@ -625,7 +641,7 @@ PhaseFreePool (
   )
 {
   ASSERT (Buffer != NULL);
-  free (Buffer);
+  InternalAlignedFree (Buffer);
 }
 
 VOID
