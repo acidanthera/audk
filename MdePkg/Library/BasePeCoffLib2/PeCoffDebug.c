@@ -44,13 +44,8 @@ PeCoffGetPdbPath (
   CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *CodeViewEntry;
 
   UINT32                                DebugDirTop;
-  UINT32                                DebugDirFileOffset;
-  UINT32                                DebugDirSectionOffset;
-  UINT32                                DebugDirSectionRawTop;
   UINT32                                DebugEntryFileOffset;
   UINT32                                DebugEntryFileOffsetTop;
-  CONST EFI_IMAGE_SECTION_HEADER        *Sections;
-  UINT16                                SectionIndex;
 
   CONST CHAR8                           *CodeView;
   UINT32                                PdbOffset;
@@ -140,61 +135,15 @@ PeCoffGetPdbPath (
     return RETURN_VOLUME_CORRUPTED;
   }
   //
-  // Determine the raw file offset of the Debug Directory.
+  // Verify the Debug Directory Image address is sufficiently aligned.
   //
-  Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
-               (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
-               );
-
-  for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
-    if (DebugDir->VirtualAddress >= Sections[SectionIndex].VirtualAddress
-     && DebugDirTop <= Sections[SectionIndex].VirtualAddress + Sections[SectionIndex].VirtualSize) {
-       break;
-     }
-  }
-  //
-  // Verify the Debug Directory was found among the Image sections.
-  //
-  if (SectionIndex == Context->NumberOfSections) {
-    DEBUG_RAISE ();
-    return RETURN_VOLUME_CORRUPTED;
-  }
-  //
-  // Verify the Debug Directory data is in bounds of the Image section.
-  //
-  // This arithmetic cannot overflow because we know
-  //   1) DebugDir->VirtualAddress + DebugDir->Size <= MAX_UINT32
-  //   2) Sections[SectionIndex].VirtualAddress <= DebugDir->VirtualAddress.
-  //
-  DebugDirSectionOffset = DebugDir->VirtualAddress - Sections[SectionIndex].VirtualAddress;
-  DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
-  if (DebugDirSectionRawTop > Sections[SectionIndex].SizeOfRawData) {
-    DEBUG_RAISE ();
-    return RETURN_VOLUME_CORRUPTED;
-  }
-  //
-  // Verify the Debug Directory raw file offset is sufficiently aligned.
-  //
-  DebugDirFileOffset = Sections[SectionIndex].PointerToRawData + DebugDirSectionOffset;
-
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    //
-    // This subtraction is safe because we know it holds that:
-    //   Context->TeStrippedOffset <= Sections[SectionIndex].PointerToRawData.
-    //
-    ASSERT (Context->TeStrippedOffset <= Sections[SectionIndex].PointerToRawData);
-    DebugDirFileOffset -= Context->TeStrippedOffset;
-  } else {
-    ASSERT (Context->TeStrippedOffset == 0);
-  }
-
-  if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
+  if (!IS_ALIGNED (DebugDir->VirtualAddress, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
     return RETURN_VOLUME_CORRUPTED;
   }
 
   DebugEntries = (CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (CONST VOID *) (
-                   (CONST CHAR8 *) Context->FileBuffer + DebugDirFileOffset
+                   (CONST CHAR8 *) Context->ImageBuffer + DebugDir->VirtualAddress
                    );
 
   NumDebugEntries = DebugDir->Size / sizeof (*DebugEntries);
@@ -236,8 +185,8 @@ PeCoffGetPdbPath (
     ASSERT (Context->TeStrippedOffset == 0);
   }
   //
-  // Verify the CodeView entry is in bounds of the Image buffer, and the
-  // CodeView entry RVA is sufficiently aligned.
+  // Verify the CodeView entry is in bounds of the raw file, and the
+  // CodeView entry raw file offset is sufficiently aligned.
   //
   Overflow = BaseOverflowAddU32 (
                DebugEntryFileOffset,
