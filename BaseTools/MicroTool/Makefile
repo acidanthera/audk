@@ -21,10 +21,13 @@ BASE = $(UDK_PATH)\MdePkg\Library\BaseLib
 OUT  = $(UDK_PATH)\MdePkg\Library\UefiDebugLibConOut
 PRIN = $(UDK_PATH)\MdePkg\Library\BasePrintLib
 ERRO = $(UDK_PATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib
+BMPN = $(UDK_PATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull
+CMEM = $(UDK_PATH)\MdeModulePkg\Library\CommonMemoryAllocationLib
 USER = $(OC_USER)\User\Library
 OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj
 OBJECTS = $(OBJECTS) {$(OUT)}DebugLib.obj {$(PRIN)}PrintLib.obj PrintLibInternal.obj {$(ERRO)}BaseDebugPrintErrorLevelLib.obj
 OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserBootServices.obj
+OBJECTS = $(OBJECTS) {$(BMPN)}BaseMemoryProfileLibNull.obj {$(CMEM)}CommonMemoryAllocationLib.obj {$(CMEM)}CommonMemoryAllocationLibEx.obj
 
 INC = -I . -I $(OC_USER)\User\Include -I $(OC_USER)\Include\Acidanthera
 INC = $(INC) -I $(UDK_PATH)\MdePkg\Include -I $(UDK_PATH)\MdePkg\Include\Library -I $(UDK_PATH)\MdePkg\Include\$(UDK_ARCH)
@@ -56,6 +59,14 @@ cleanall:
 
 {$(BASE)}.c.obj :
   $(CC) -c $(CFLAGS) $(INC) /wd 4005 $< -Fo$@
+	@move $@ $(OUT_DIR)\
+
+{$(BMPN)}.c.obj :
+  $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
+	@move $@ $(OUT_DIR)\
+
+{$(CMEM)}.c.obj :
+  $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 	@move $@ $(OUT_DIR)\
 
 {$(OUT)}.c.obj :
