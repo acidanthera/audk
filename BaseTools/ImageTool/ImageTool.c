@@ -107,7 +107,6 @@ PeXip (
   Pe = NULL;
 
   if (!Result) {
-    ToolImageDestruct (&Image);
     return RETURN_ABORTED;
   }
 

@@ -450,6 +450,7 @@ ToolContextConstructPe (
   Result  = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context, ModuleType);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
@@ -457,6 +458,7 @@ ToolContextConstructPe (
   Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
@@ -464,6 +466,7 @@ ToolContextConstructPe (
   Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return false;
   }
@@ -471,6 +474,7 @@ ToolContextConstructPe (
   Result = ScanPeGetRelocInfo (&Image->RelocInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
+    ToolImageDestruct (Image);
   }
 
   FreeAlignedPages (Destination, DestinationPages);
