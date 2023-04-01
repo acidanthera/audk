@@ -269,7 +269,7 @@ InternalApplyRelocation (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Overflow = BaseOverflowSubU32 (
@@ -279,7 +279,7 @@ InternalApplyRelocation (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Fixup = (CHAR8 *) Context->ImageBuffer + RelocTargetRva;
@@ -303,7 +303,7 @@ InternalApplyRelocation (
       //
       if (sizeof (UINT32) > RemRelocTargetSize) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the Image Base Relocation does not target the Image Relocation
@@ -312,7 +312,7 @@ InternalApplyRelocation (
       if (RelocTargetRva + sizeof (UINT32) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Relocate the target instruction.
@@ -336,7 +336,7 @@ InternalApplyRelocation (
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the Image Base Relocation does not target the Image Relocation
@@ -345,7 +345,7 @@ InternalApplyRelocation (
       if (RelocTargetRva + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Relocate target the instruction.
@@ -368,14 +368,14 @@ InternalApplyRelocation (
       //
       if ((PcdGet32 (PcdImageLoaderRelocTypePolicy) & PCD_RELOC_TYPE_POLICY_ARM) == 0) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the Base Relocation target is in bounds of the Image buffer.
       //
       if (sizeof (UINT64) > RemRelocTargetSize) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the Base Relocation target is sufficiently aligned.
@@ -383,7 +383,7 @@ InternalApplyRelocation (
       //
       if (!IS_ALIGNED (RelocTargetRva, ALIGNOF (UINT32))) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the Base Relocation does not target the Relocation Directory.
@@ -391,7 +391,7 @@ InternalApplyRelocation (
       if (RelocTargetRva + sizeof (UINT64) > Context->RelocDirRva
        && Context->RelocDirRva + Context->RelocDirSize > RelocTargetRva) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Relocate the target instruction.
@@ -493,7 +493,7 @@ PeCoffRelocateImage (
                  );
     if (Overflow) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   }
   //
@@ -513,7 +513,7 @@ PeCoffRelocateImage (
                  );
     if (Overflow) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Base Relocation Block is in bounds of the Relocation
@@ -521,7 +521,7 @@ PeCoffRelocateImage (
     //
     if (SizeOfRelocs > RelocBlockOffsetMax - RelocBlockOffset) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Advance to the next Base Relocation Block offset based on the alignment
@@ -534,7 +534,7 @@ PeCoffRelocateImage (
       //
       if (!IS_ALIGNED (RelocBlockSize, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     } else {
       //
@@ -603,7 +603,7 @@ PeCoffRelocateImage (
   //
   if (RelocBlockOffset != TopOfRelocDir) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Initialise the remaining uninitialised portion of the Image runtime
@@ -674,7 +674,7 @@ InternalApplyRelocationRuntime (
           return RETURN_SUCCESS;
         }
 
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
 
       Fixup32 += (UINT32) Adjust;
@@ -692,7 +692,7 @@ InternalApplyRelocationRuntime (
           return RETURN_SUCCESS;
         }
 
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
 
       Fixup64 += Adjust;
@@ -712,7 +712,7 @@ InternalApplyRelocationRuntime (
           return RETURN_SUCCESS;
         }
 
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
 
       ThumbMovwMovtImmediateFixup (Fixup, Adjust);

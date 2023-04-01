@@ -70,7 +70,7 @@ InternalVerifySections (
   // Images without Sections have no usable data, disallow them.
   //
   if (Context->NumberOfSections == 0) {
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Sections = (CONST EFI_IMAGE_SECTION_HEADER *) (CONST VOID *) (
@@ -89,7 +89,7 @@ InternalVerifySections (
     if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
       if (Context->ImageType == PeCoffLoaderTypeTe) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     } else {
       ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
@@ -109,7 +109,7 @@ InternalVerifySections (
                    );
       if (Overflow) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     } else {
       NextSectRva = Context->SizeOfHeaders;
@@ -128,7 +128,7 @@ InternalVerifySections (
     if (PcdGetBool (PcdImageLoaderWXorX) && !PcdGetBool (PcdImageLoaderRemoveXForWX)) {
       if ((Sections[SectionIndex].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     }
     //
@@ -140,12 +140,12 @@ InternalVerifySections (
     if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CONTIGUOUS_SECTIONS) == 0) {
       if (Sections[SectionIndex].VirtualAddress != NextSectRva) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     } else {
       if (Sections[SectionIndex].VirtualAddress < NextSectRva) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // If the Image section address is not aligned by the Image section
@@ -176,7 +176,7 @@ InternalVerifySections (
       if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
         if (Context->TeStrippedOffset > Sections[SectionIndex].PointerToRawData) {
           DEBUG_RAISE ();
-          return RETURN_UNSUPPORTED;
+          return RETURN_VOLUME_CORRUPTED;
         }
       } else {
         ASSERT (Context->TeStrippedOffset == 0);
@@ -189,7 +189,7 @@ InternalVerifySections (
                    );
       if (Overflow) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
 
       if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
@@ -201,7 +201,7 @@ InternalVerifySections (
 
       if (EffectiveSectRawEnd > FileSize) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     }
     //
@@ -214,7 +214,7 @@ InternalVerifySections (
                  );
     if (Overflow) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // VirtualSize does not need to be aligned, so align the result if needed.
@@ -227,7 +227,7 @@ InternalVerifySections (
                    );
       if (Overflow) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
     }
   }
@@ -311,14 +311,14 @@ InternalValidateRelocInfo (
     //
     if (sizeof (EFI_IMAGE_BASE_RELOCATION_BLOCK) > Context->RelocDirSize) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Relocation Directory does not overlap with the Image Headers.
     //
     if (StartAddress > Context->RelocDirRva) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Relocation Directory is contained in the Image memory space.
@@ -330,14 +330,14 @@ InternalValidateRelocInfo (
                  );
     if (Overflow || SectRvaEnd > Context->SizeOfImage) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Relocation Directory start is sufficiently aligned.
     //
     if (!IS_ALIGNED (Context->RelocDirRva, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK))) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   }
   //
@@ -346,7 +346,7 @@ InternalValidateRelocInfo (
   // FIXME: Only with force-aligned sections? What to do with XIP?
   if (!IS_ALIGNED (Context->ImageBase, (UINT64) Context->SectionAlignment)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   return RETURN_SUCCESS;
@@ -401,7 +401,7 @@ InternalInitializeTe (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   STATIC_ASSERT (
@@ -420,7 +420,7 @@ InternalInitializeTe (
   //
   if (Context->SizeOfHeaders - Context->TeStrippedOffset > FileSize) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   STATIC_ASSERT (
@@ -456,7 +456,7 @@ InternalInitializeTe (
   //
   if (TeHdr->AddressOfEntryPoint >= Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Context->Machine             = TeHdr->Machine;
@@ -542,7 +542,7 @@ InternalInitializePe (
       //
       if (sizeof (*Pe32) > FileSize - Context->ExeHdrOffset) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // The PE32 header offset is always sufficiently aligned.
@@ -580,7 +580,7 @@ InternalInitializePe (
       //
       if (sizeof (*Pe32Plus) > FileSize - Context->ExeHdrOffset) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Verify the PE32+ header offset is sufficiently aligned.
@@ -588,7 +588,7 @@ InternalInitializePe (
       if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
         && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS64))) {
         DEBUG_RAISE ();
-        return RETURN_UNSUPPORTED;
+        return RETURN_VOLUME_CORRUPTED;
       }
       //
       // Populate the common data with information from the Optional Header.
@@ -625,14 +625,14 @@ InternalInitializePe (
   //
   if (NumberOfRvaAndSizes > EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Image alignment is a power of 2.
   //
   if (!IS_POW2 (Context->SectionAlignment)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   STATIC_ASSERT (
@@ -653,7 +653,7 @@ InternalInitializePe (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Section Headers offset is sufficiently aligned.
@@ -661,7 +661,7 @@ InternalInitializePe (
   if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
     && !IS_ALIGNED (Context->SectionsOffset, ALIGNOF (EFI_IMAGE_SECTION_HEADER))) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // This arithmetic cannot overflow because all values are sufficiently
@@ -686,7 +686,7 @@ InternalInitializePe (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Image Header sizes are sane. SizeOfHeaders contains all header
@@ -694,19 +694,19 @@ InternalInitializePe (
   //
   if (MinSizeOfOptionalHeader > PeCommon->FileHeader.SizeOfOptionalHeader) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   if (MinSizeOfHeaders > Context->SizeOfHeaders) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Image Headers are in bounds of the file buffer.
   //
   if (Context->SizeOfHeaders > FileSize) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Populate the Image context with information from the Common Header.
@@ -724,7 +724,7 @@ InternalInitializePe (
 
     if (Context->RelocsStripped && Context->RelocDirSize != 0) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   } else {
     ASSERT (Context->RelocDirRva == 0);
@@ -744,14 +744,14 @@ InternalInitializePe (
                  );
     if (Overflow || SecDirEnd > FileSize) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Security Directory is sufficiently aligned.
     //
     if (!IS_ALIGNED (Context->SecDirOffset, IMAGE_CERTIFICATE_ALIGN)) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Security Directory size is sufficiently aligned, and that if
@@ -761,7 +761,7 @@ InternalInitializePe (
      && (!IS_ALIGNED (Context->SecDirSize, IMAGE_CERTIFICATE_ALIGN)
       || Context->SecDirSize < sizeof (WIN_CERTIFICATE))) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   } else {
     //
@@ -789,7 +789,7 @@ InternalInitializePe (
   //
   if (Context->AddressOfEntryPoint >= Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the basic Relocation information is well-formed.
@@ -836,7 +836,7 @@ PeCoffInitializeContext (
     if (sizeof (EFI_IMAGE_DOS_HEADER) > DosHdr->e_lfanew
      || DosHdr->e_lfanew > FileSize) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
 
     Context->ExeHdrOffset = DosHdr->e_lfanew;
@@ -863,7 +863,6 @@ PeCoffInitializeContext (
   // Verify the file buffer can hold a PE Common Header.
   //
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -871,7 +870,6 @@ PeCoffInitializeContext (
   //
   if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
     && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
 
@@ -883,7 +881,6 @@ PeCoffInitializeContext (
   // Verify the Image Executable Header has a PE signature.
   //
   if (*(CONST UINT32 *) (CONST VOID *) ((CONST CHAR8 *) FileBuffer + Context->ExeHdrOffset) != EFI_IMAGE_NT_SIGNATURE) {
-    DEBUG_RAISE ();
     return RETURN_UNSUPPORTED;
   }
   //
@@ -891,7 +888,6 @@ PeCoffInitializeContext (
   //
   Status = InternalInitializePe (Context, FileSize);
   if (Status != RETURN_SUCCESS) {
-    DEBUG_RAISE ();
     return Status;
   }
 

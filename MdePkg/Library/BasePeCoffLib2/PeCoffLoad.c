@@ -160,7 +160,7 @@ PeCoffLoadImageInplaceNoBase (
     if (Sections[SectionIndex].PointerToRawData != Sections[SectionIndex].VirtualAddress
      || Sections[SectionIndex].SizeOfRawData != AlignedSize) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   }
 

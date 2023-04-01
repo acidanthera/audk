@@ -381,7 +381,7 @@ PeCoffGetFirstCertificate (
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)
    || WinCertificate->dwLength > Context->SecDirSize) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the certificate size is sufficiently aligned, if the policy demands
@@ -391,7 +391,7 @@ PeCoffGetFirstCertificate (
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   }
 
@@ -446,7 +446,7 @@ PeCoffGetNextCertificate (
   //
   if (Context->SecDirSize - CertOffset < sizeof (WIN_CERTIFICATE)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the certificate has a well-formed size.
@@ -456,7 +456,7 @@ PeCoffGetNextCertificate (
                      );
   if (WinCertificate->dwLength < sizeof (WIN_CERTIFICATE)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the certificate size is sufficiently aligned, if the policy demands
@@ -465,7 +465,7 @@ PeCoffGetNextCertificate (
   if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_CERTIFICATE_SIZES) == 0) {
     if (!IS_ALIGNED (WinCertificate->dwLength, IMAGE_CERTIFICATE_ALIGN)) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   }
   //
@@ -478,7 +478,7 @@ PeCoffGetNextCertificate (
                );
   if (Overflow || CertEnd > Context->SecDirSize) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   *Certificate = WinCertificate;

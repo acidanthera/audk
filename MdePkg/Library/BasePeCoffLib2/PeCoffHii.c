@@ -97,7 +97,7 @@ PeCoffGetHiiDataRva (
   //
   if (!IS_ALIGNED (ResDirTable->VirtualAddress, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   // FIXME: Verify against first Image section / Headers due to XIP TE.
   //
@@ -110,7 +110,7 @@ PeCoffGetHiiDataRva (
                );
   if (Overflow || TopOffset > Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   ResourceDir = (CONST EFI_IMAGE_RESOURCE_DIRECTORY *) (CONST VOID *) (
@@ -127,7 +127,7 @@ PeCoffGetHiiDataRva (
                 ((UINT32) ResourceDir->NumberOfNamedEntries + ResourceDir->NumberOfIdEntries);
   if (TopOffset > ResDirTable->Size) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Try to locate the "HII" Resource entry.
@@ -151,7 +151,7 @@ PeCoffGetHiiDataRva (
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Resource Directory String offset is sufficiently aligned.
@@ -159,7 +159,7 @@ PeCoffGetHiiDataRva (
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u1.s.NameOffset;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY_STRING))) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
 
     ResourceDirString = (CONST EFI_IMAGE_RESOURCE_DIRECTORY_STRING *) (CONST VOID *) (
@@ -176,7 +176,7 @@ PeCoffGetHiiDataRva (
                  );
     if (Overflow || TopOffset > ResDirTable->Size) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the type name matches "HII".
@@ -211,7 +211,7 @@ PeCoffGetHiiDataRva (
     //
     if (ResourceDirEntry->u2.s.OffsetToDirectory > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (*ResourceDir->Entries)) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the next Relocation Directory offset is sufficiently aligned.
@@ -219,7 +219,7 @@ PeCoffGetHiiDataRva (
     Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.s.OffsetToDirectory;
     if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DIRECTORY))) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Resource Directory has at least one entry.
@@ -229,7 +229,7 @@ PeCoffGetHiiDataRva (
                     );
     if ((UINT32) ResourceDir->NumberOfIdEntries + ResourceDir->NumberOfNamedEntries == 0) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Always take the first entry for simplicity.
@@ -241,7 +241,7 @@ PeCoffGetHiiDataRva (
   //
   if (ResourceDirEntry->u2.s.DataIsDirectory != 0) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Resource Directory Table fits at least the Resource Directory.
@@ -252,7 +252,7 @@ PeCoffGetHiiDataRva (
     );
   if (ResourceDirEntry->u2.OffsetToData > ResDirTable->Size - sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Relocation Directory Entry offset is sufficiently aligned.
@@ -260,7 +260,7 @@ PeCoffGetHiiDataRva (
   Offset = ResDirTable->VirtualAddress + ResourceDirEntry->u2.OffsetToData;
   if (!IS_ALIGNED (Offset, ALIGNOF (EFI_IMAGE_RESOURCE_DATA_ENTRY))) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   ResourceDataEntry = (CONST EFI_IMAGE_RESOURCE_DATA_ENTRY *) (CONST VOID *) (
@@ -276,7 +276,7 @@ PeCoffGetHiiDataRva (
                );
   if (Overflow || HiiRvaEnd > Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   *HiiRva  = ResourceDataEntry->OffsetToData;

@@ -107,7 +107,7 @@ PeCoffGetPdbPath (
 
     default:
       ASSERT (FALSE);
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Debug Directory is not empty.
@@ -125,7 +125,7 @@ PeCoffGetPdbPath (
     // Since this violates the spec and nobody but Apple has access
     // to the DEBUG symbols, just ignore this debug information.
     //
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Debug Directory is in bounds of the Image buffer.
@@ -137,7 +137,7 @@ PeCoffGetPdbPath (
                );
   if (Overflow || DebugDirTop > Context->SizeOfImage) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Determine the raw file offset of the Debug Directory.
@@ -157,7 +157,7 @@ PeCoffGetPdbPath (
   //
   if (SectionIndex == Context->NumberOfSections) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Debug Directory data is in bounds of the Image section.
@@ -170,7 +170,7 @@ PeCoffGetPdbPath (
   DebugDirSectionRawTop = DebugDirSectionOffset + DebugDir->Size;
   if (DebugDirSectionRawTop > Sections[SectionIndex].SizeOfRawData) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the Debug Directory raw file offset is sufficiently aligned.
@@ -190,7 +190,7 @@ PeCoffGetPdbPath (
 
   if (!IS_ALIGNED (DebugDirFileOffset, ALIGNOF (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY))) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   DebugEntries = (CONST EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *) (CONST VOID *) (
@@ -217,7 +217,7 @@ PeCoffGetPdbPath (
 
   if (CodeViewEntry->SizeOfData < sizeof (UINT32)) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   DebugEntryFileOffset = CodeViewEntry->FileOffset;
@@ -230,7 +230,7 @@ PeCoffGetPdbPath (
                  );
     if (Overflow) {
       DEBUG_RAISE ();
-      return RETURN_UNSUPPORTED;
+      return RETURN_VOLUME_CORRUPTED;
     }
   } else {
     ASSERT (Context->TeStrippedOffset == 0);
@@ -247,7 +247,7 @@ PeCoffGetPdbPath (
   if (Overflow || DebugEntryFileOffsetTop > Context->FileSize
    || !IS_ALIGNED (DebugEntryFileOffset, ALIGNOF (UINT32))) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   CodeView = (CONST CHAR8 *) Context->FileBuffer + DebugEntryFileOffset;
@@ -298,7 +298,7 @@ PeCoffGetPdbPath (
                );
   if (Overflow || PdbNameSize == 0) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Verify the PDB path is correctly terminated.
@@ -306,7 +306,7 @@ PeCoffGetPdbPath (
   PdbName = CodeView + PdbOffset;
   if (PdbName[PdbNameSize - 1] != 0) {
     DEBUG_RAISE ();
-    return RETURN_UNSUPPORTED;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   *PdbPath     = PdbName;
