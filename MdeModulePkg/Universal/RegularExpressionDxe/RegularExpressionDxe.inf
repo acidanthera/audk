@@ -130,4 +130,4 @@
 
   # Not add -Wno-error=maybe-uninitialized option for XCODE
   # XCODE doesn't know this option
-  XCODE:*_*_*_CC_FLAGS =
+  XCODE:*_*_*_CC_FLAGS = -Wno-deprecated-non-prototype
