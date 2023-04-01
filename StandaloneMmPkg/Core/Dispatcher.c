@@ -274,9 +274,10 @@ MmLoadImage (
 {
   UINT32                          ImageSize;
   UINT32                          ImageAlignment;
-  UINTN                           PageCount;
   EFI_STATUS                      Status;
   VOID                            *DstBuffer;
+  UINT32                          DstBufferPages;
+  UINT32                          DstBufferSize;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
@@ -292,11 +293,11 @@ MmLoadImage (
   }
 
   ImageSize      = UefiImageGetImageSize (&ImageContext, &ImageSize);
+  DstBufferPages = EFI_SIZE_TO_PAGES (ImageSize);
+  DstBufferSize  = EFI_PAGES_TO_SIZE (DstBufferPages);
   ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
-  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN) ImageSize);
-
-  DstBuffer = AllocateAlignedCodePages (PageCount, ImageAlignment);
+  DstBuffer = AllocateAlignedCodePages (DstBufferPages, ImageAlignment);
   if (DstBuffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -304,9 +305,9 @@ MmLoadImage (
   //
   // Load the image to our new buffer
   //
-  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, ImageSize, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DstBufferSize, NULL, 0);
   if (EFI_ERROR (Status)) {
-    FreeAlignedPages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, DstBufferPages);
     return Status;
   }
 
@@ -315,7 +316,7 @@ MmLoadImage (
   //
   DriverEntry->ImageEntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
   DriverEntry->ImageBuffer     = (UINTN)DstBuffer;
-  DriverEntry->NumberOfPage    = PageCount;
+  DriverEntry->NumberOfPage    = DstBufferPages;
 
   if (mEfiSystemTable != NULL) {
     Status = mEfiSystemTable->BootServices->AllocatePool (
@@ -324,7 +325,7 @@ MmLoadImage (
                                               (VOID **)&DriverEntry->LoadedImage
                                               );
     if (EFI_ERROR (Status)) {
-      FreeAlignedPages (DstBuffer, PageCount);
+      FreeAlignedPages (DstBuffer, DstBufferPages);
       return Status;
     }
 
