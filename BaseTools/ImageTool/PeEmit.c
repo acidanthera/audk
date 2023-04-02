@@ -336,7 +336,7 @@ ToolImageEmitPeSectionHeaders (
     Sections[Index].PointerToRawData = SectionOffset;
     Sections[Index].VirtualAddress   = SectionOffset;
     Sections[Index].SizeOfRawData    = ALIGN_VALUE (Image->SegmentInfo.Segments[Index].DataSize, Context->FileAlignment);
-    Sections[Index].VirtualSize      = Sections[Index].SizeOfRawData;
+    Sections[Index].VirtualSize      = Image->SegmentInfo.Segments[Index].ImageSize;
 
     strncpy (
       (char *) Sections[Index].Name,
