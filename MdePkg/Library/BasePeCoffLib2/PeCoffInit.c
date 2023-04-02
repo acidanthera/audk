@@ -840,6 +840,13 @@ PeCoffInitializeContext (
     }
 
     Context->ExeHdrOffset = DosHdr->e_lfanew;
+    //
+    // Verify the Execution Header offset is sufficiently aligned.
+    //
+    if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
+      && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
+      return RETURN_UNSUPPORTED;
+    }
   } else if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
     //
     // Assume the Image starts with the Executable Header, determine whether it
@@ -863,13 +870,6 @@ PeCoffInitializeContext (
   // Verify the file buffer can hold a PE Common Header.
   //
   if (FileSize - Context->ExeHdrOffset < sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16)) {
-    return RETURN_UNSUPPORTED;
-  }
-  //
-  // Verify the Execution Header offset is sufficiently aligned.
-  //
-  if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
-    && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
     return RETURN_UNSUPPORTED;
   }
 
