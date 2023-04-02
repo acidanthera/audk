@@ -886,8 +886,15 @@ ToolImageEmitPe (
 
   memset (&Context, 0, sizeof (Context));
 
-  Context.Image         = Image;
+  // FIXME: Non-XIP is not well-supported right now.
   Context.FileAlignment = Image->SegmentInfo.SegmentAlignment;
+  Result = ImageConvertToXip ((image_tool_image_info_t *)Image);
+  if (!Result) {
+    raise ();
+    return NULL;
+  }
+
+  Context.Image = Image;
 
   Result = EmitPeGetHeaderSizes (Image, &Context.HdrInfo);
   if (!Result) {
