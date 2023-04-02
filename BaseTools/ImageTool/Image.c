@@ -243,7 +243,6 @@ ImageConvertToXip (
   uint64_t                  Index;
   image_tool_segment_t      *Segment;
   void                      *Data;
-  void                      *Memory;
 
   assert (Image != NULL);
 
@@ -254,19 +253,19 @@ ImageConvertToXip (
 
     assert (Segment->DataSize <= Segment->ImageSize);
 
-    Data = calloc (Segment->ImageSize, 1);
+    Data = realloc (Segment->Data, Segment->ImageSize);
     if (Data == NULL) {
       return false;
     }
 
-    memmove (Data, Segment->Data, Segment->DataSize);
-
-    Memory = Segment->Data;
+    memset (
+      (char *)Data + Segment->DataSize,
+      0,
+      Segment->ImageSize - Segment->DataSize
+      );
 
     Segment->Data     = Data;
     Segment->DataSize = Segment->ImageSize;
-
-    free (Memory);
   }
 
   Image->HeaderInfo.IsXip = true;
