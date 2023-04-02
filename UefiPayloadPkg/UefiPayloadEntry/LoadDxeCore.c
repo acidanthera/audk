@@ -24,7 +24,7 @@ LoadUefiImage (
   IN  VOID                  *UefiImage,
   IN  UINT32                UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
-  OUT UINT64                *DestinationSize,
+  OUT UINT32                *DestinationSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
@@ -235,7 +235,7 @@ LoadDxeCore (
   VOID                        *UefiImage;
   UINT32                      UefiImageSize;
   EFI_PHYSICAL_ADDRESS        ImageAddress;
-  UINT64                      DestinationSize;
+  UINT32                      DestinationSize;
 
   PayloadFv = (EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)PcdGet32 (PcdPayloadFdMemBase);
 
@@ -300,10 +300,10 @@ UniversalLoadDxeCore (
 {
   EFI_STATUS            Status;
   EFI_FFS_FILE_HEADER   *FileHeader;
-  VOID                        *UefiImage;
-  UINT32                      UefiImageSize;
+  VOID                  *UefiImage;
+  UINT32                UefiImageSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
-  UINT64                ImageSize;
+  UINT32                DestinationSize;
 
   //
   // Find DXE core file from DXE FV
@@ -321,12 +321,12 @@ UniversalLoadDxeCore (
   //
   // Get DXE core info
   //
-  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &DestinationSize, DxeCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  BuildModuleHob (&FileHeader->Name, ImageAddress, EFI_SIZE_TO_PAGES ((UINT32)ImageSize) * EFI_PAGE_SIZE, *DxeCoreEntryPoint);
+  BuildModuleHob (&FileHeader->Name, ImageAddress, DestinationSize, *DxeCoreEntryPoint);
 
   return EFI_SUCCESS;
 }
