@@ -24,7 +24,7 @@ PeXip (
 {
   void                    *Pe;
   uint32_t                PeSize;
-  bool                    Result;
+  RETURN_STATUS           Status;
   image_tool_image_info_t Image;
 
   assert (OldName    != NULL);
@@ -37,12 +37,12 @@ PeXip (
     return RETURN_ABORTED;
   }
 
-  Result = ToolContextConstructPe (&Image, Pe, PeSize, ModuleType);
+  Status = ToolContextConstructPe (&Image, Pe, PeSize, ModuleType);
 
   free (Pe);
   Pe = NULL;
 
-  if (!Result) {
+  if (RETURN_ERROR (Status)) {
     return RETURN_ABORTED;
   }
 

@@ -214,23 +214,23 @@ ReadElfFile (
     fprintf (stderr, "ImageTool: mEhdr->e_ident[4] = 0x%x expected 0x%x\n", mEhdr->e_ident[4], Ident[4]);
     fprintf (stderr, "ImageTool: mEhdr->e_ident[5] = 0x%x expected 0x%x\n", mEhdr->e_ident[5], Ident[5]);
     fprintf (stderr, "ImageTool: FileSize = 0x%x  sizeof(*mEhdr) = 0x%lx\n", FileSize, sizeof (*mEhdr));
-    return RETURN_VOLUME_CORRUPTED;
+    return RETURN_UNSUPPORTED;
   }
 
   if ((mEhdr->e_type != ET_EXEC) && (mEhdr->e_type != ET_DYN)) {
     fprintf (stderr, "ImageTool: ELF e_type not ET_EXEC or ET_DYN\n");
-    return RETURN_UNSUPPORTED;
+    return RETURN_INCOMPATIBLE_VERSION;
   }
 
 #if defined(EFI_TARGET64)
   if ((mEhdr->e_machine != EM_X86_64) && (mEhdr->e_machine != EM_AARCH64)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
-    return RETURN_UNSUPPORTED;
+    return RETURN_INCOMPATIBLE_VERSION;
   }
 #elif defined(EFI_TARGET32)
   if ((mEhdr->e_machine != EM_386) && (mEhdr->e_machine != EM_ARM)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
-    return RETURN_UNSUPPORTED;
+    return RETURN_INCOMPATIBLE_VERSION;
   }
 #endif
 
@@ -809,7 +809,7 @@ ScanElf (
     default:
       fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", mEhdr->e_machine);
       free (mEhdr);
-      return RETURN_UNSUPPORTED;
+      return RETURN_INCOMPATIBLE_VERSION;
   }
 
   mImageInfo.DebugInfo.SymbolsPath = malloc (mImageInfo.DebugInfo.SymbolsPathLen + 1);

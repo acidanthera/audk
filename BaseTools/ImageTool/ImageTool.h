@@ -148,7 +148,7 @@ ImageConvertToXip (
   image_tool_image_info_t *Image
   );
 
-bool
+RETURN_STATUS
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
   IN  const void              *File,

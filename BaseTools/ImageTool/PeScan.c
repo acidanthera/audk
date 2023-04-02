@@ -393,7 +393,7 @@ ScanPeGetHiiInfo (
   return true;
 }
 
-bool
+RETURN_STATUS
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
   IN  const void              *File,
@@ -415,13 +415,12 @@ ToolContextConstructPe (
 
   if (FileSize > MAX_UINT32) {
     fprintf (stderr, "ImageTool: FileSize is too huge\n");
-    return false;
+    return RETURN_UNSUPPORTED;
   }
 
   Status = PeCoffInitializeContext (&Context, File, (UINT32)FileSize);
   if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not initialise Context\n");
-    return false;
+    return Status;
   }
 
   ImageSize        = PeCoffGetSizeOfImage (&Context);
@@ -435,14 +434,14 @@ ToolContextConstructPe (
                   );
   if (Destination == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate Destination buffer\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   Status = PeCoffLoadImage (&Context, Destination, DestinationSize);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not Load Image\n");
     FreeAlignedPages (Destination, DestinationPages);
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   memset (Image, 0, sizeof (*Image));
@@ -452,7 +451,7 @@ ToolContextConstructPe (
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
@@ -460,7 +459,7 @@ ToolContextConstructPe (
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Context);
@@ -468,16 +467,18 @@ ToolContextConstructPe (
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   Result = ScanPeGetRelocInfo (&Image->RelocInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
     ToolImageDestruct (Image);
+    FreeAlignedPages (Destination, DestinationPages);
+    return RETURN_VOLUME_CORRUPTED;
   }
 
   FreeAlignedPages (Destination, DestinationPages);
 
-  return Result;
+  return RETURN_SUCCESS;
 }
