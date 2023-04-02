@@ -45,7 +45,7 @@ LoadUefiImage (
 
   ImageSize       = UefiImageGetImageSize (&ImageContext);
   BufferPages     = EFI_SIZE_TO_PAGES (ImageSize);
-  BufferSize      = EFI_PAGES_TO_SIZE (BufferSize);
+  BufferSize      = EFI_PAGES_TO_SIZE (BufferPages);
   BufferAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
   //
