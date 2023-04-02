@@ -16,53 +16,6 @@ image_tool_image_info_t mImageInfo;
 
 static
 RETURN_STATUS
-PeXip (
-  IN const char *OldName,
-  IN const char *NewName,
-  IN const char *ModuleType
-  )
-{
-  void                    *Pe;
-  uint32_t                PeSize;
-  RETURN_STATUS           Status;
-  image_tool_image_info_t Image;
-
-  assert (OldName    != NULL);
-  assert (NewName    != NULL);
-  assert (ModuleType != NULL);
-
-  Pe = UserReadFile (OldName, &PeSize);
-  if (Pe == NULL) {
-    fprintf (stderr, "ImageTool: Could not open %s: %s\n", OldName, strerror (errno));
-    return RETURN_ABORTED;
-  }
-
-  Status = ToolContextConstructPe (&Image, Pe, PeSize, ModuleType);
-
-  free (Pe);
-  Pe = NULL;
-
-  if (RETURN_ERROR (Status)) {
-    return RETURN_ABORTED;
-  }
-
-  Pe = ToolImageEmitPe (&Image, &PeSize);
-  if (Pe == NULL) {
-    ToolImageDestruct (&Image);
-    return RETURN_ABORTED;
-  }
-
-  ToolImageDestruct (&Image);
-
-  UserWriteFile (NewName, Pe, PeSize);
-
-  free (Pe);
-
-  return RETURN_SUCCESS;
-}
-
-static
-RETURN_STATUS
 HiiBin (
   IN const char *HiiName,
   IN const char *Guid,
@@ -341,37 +294,115 @@ GetAcpi (
 }
 
 static
-RETURN_STATUS
-ElfToPe (
-  IN const char *ElfName,
-  IN const char *PeName,
-  IN const char *ModuleType
+bool
+ImageSetModuleType (
+  OUT image_tool_image_info_t  *Image,
+  IN  const char               *TypeName
   )
 {
-  RETURN_STATUS Status;
-  void          *Pe;
-  uint32_t      PeSize;
+  uint16_t  ModuleType;
 
-  assert (ElfName    != NULL);
-  assert (PeName     != NULL);
-  assert (ModuleType != NULL);
+  assert (Image != NULL);
 
-  Status = ScanElf (ElfName, ModuleType);
+  if ((strcmp (TypeName, "BASE") == 0)
+    || (strcmp (TypeName, "SEC") == 0)
+    || (strcmp (TypeName, "SECURITY_CORE") == 0)
+    || (strcmp (TypeName, "PEI_CORE") == 0)
+    || (strcmp (TypeName, "PEIM") == 0)
+    || (strcmp (TypeName, "COMBINED_PEIM_DRIVER") == 0)
+    || (strcmp (TypeName, "PIC_PEIM") == 0)
+    || (strcmp (TypeName, "RELOCATABLE_PEIM") == 0)
+    || (strcmp (TypeName, "DXE_CORE") == 0)
+    || (strcmp (TypeName, "BS_DRIVER") == 0)
+    || (strcmp (TypeName, "DXE_DRIVER") == 0)
+    || (strcmp (TypeName, "DXE_SMM_DRIVER") == 0)
+    || (strcmp (TypeName, "UEFI_DRIVER") == 0)
+    || (strcmp (TypeName, "SMM_CORE") == 0)
+    || (strcmp (TypeName, "MM_STANDALONE") == 0)
+    || (strcmp (TypeName, "MM_CORE_STANDALONE") == 0)) {
+      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
+  } else if ((strcmp (TypeName, "UEFI_APPLICATION") == 0)
+    || (strcmp (TypeName, "APPLICATION") == 0)) {
+      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+  } else if ((strcmp (TypeName, "DXE_RUNTIME_DRIVER") == 0)
+    || (strcmp (TypeName, "RT_DRIVER") == 0)) {
+      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
+  } else if ((strcmp (TypeName, "DXE_SAL_DRIVER") == 0)
+    || (strcmp (TypeName, "SAL_RT_DRIVER") == 0)) {
+      ModuleType = EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
+  } else {
+    fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", TypeName);
+    return false;
+  }
+
+  Image->HeaderInfo.Subsystem = ModuleType;
+
+  return true;
+}
+
+static
+RETURN_STATUS
+GenExecutable (
+  IN const char  *OutputFileName,
+  IN const char  *InputFileName,
+  IN const char  *FormatName,
+  IN const char  *TypeName
+  )
+{
+  UINT32         InputFileSize;
+  VOID           *InputFile;
+  RETURN_STATUS  Status;
+  bool           Result;
+  void           *OutputFile;
+  uint32_t       OutputFileSize;
+
+  InputFile = UserReadFile (InputFileName, &InputFileSize);
+  if (InputFile == NULL) {
+    fprintf (stderr, "ImageTool: Could not open %s: %s\n", InputFileName, strerror (errno));
+    return RETURN_ABORTED;
+  }
+
+  Status = ToolContextConstructPe (&mImageInfo, InputFile, InputFileSize);
+  if (Status == RETURN_UNSUPPORTED) {
+    Status = ScanElf (InputFile, InputFileSize, InputFileName);
+  }
+
+  free (InputFile);
+
   if (RETURN_ERROR (Status)) {
+    fprintf (stderr, "ImageTool: Could not parse input file %s - %llx\n", InputFileName, (unsigned long long)Status);
     return Status;
   }
 
-  Pe = ToolImageEmitPe (&mImageInfo, &PeSize);
-  if (Pe == NULL) {
+  if (TypeName != NULL) {
+    Result = ImageSetModuleType (&mImageInfo, TypeName);
+    if (!Result) {
+      ToolImageDestruct (&mImageInfo);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  Result = CheckToolImage (&mImageInfo);
+  if (!Result) {
     ToolImageDestruct (&mImageInfo);
-    return RETURN_ABORTED;
+    return RETURN_UNSUPPORTED;
+  }
+
+  if (strcmp (FormatName, "PE") == 0) {
+    OutputFile = ToolImageEmitPe (&mImageInfo, &OutputFileSize);
+  } else {
+    assert (false);
   }
 
   ToolImageDestruct (&mImageInfo);
 
-  UserWriteFile (PeName, Pe, PeSize);
+  if (OutputFile == NULL) {
+    return RETURN_ABORTED;
+  }
 
-  free (Pe);
+  UserWriteFile (OutputFileName, OutputFile, OutputFileSize);
+
+  free (OutputFile);
 
   return RETURN_SUCCESS;
 }
@@ -387,28 +418,15 @@ int main (int argc, const char *argv[])
     return -1;
   }
 
-  if (strcmp (argv[1], "ElfToPe") == 0) {
+  if (strcmp (argv[1], "ElfToPe") == 0 || strcmp (argv[1], "PeXip") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool ElfToPe InputFile OutputFile ModuleType\n");
+      fprintf (stderr, "    Usage: ImageTool %s InputFile OutputFile ModuleType\n", argv[1]);
       raise ();
       return -1;
     }
 
-    Status = ElfToPe (argv[2], argv [3], argv[4]);
-    if (RETURN_ERROR (Status)) {
-      raise ();
-      return -1;
-    }
-  } else if (strcmp (argv[1], "PeXip") == 0) {
-    if (argc < 5) {
-      fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool PeXip InputFile OutputFile ModuleType\n");
-      raise ();
-      return -1;
-    }
-
-    Status = PeXip (argv[2], argv[3], argv[4]);
+    Status = GenExecutable (argv[3], argv[2], "PE", argv[4]);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;

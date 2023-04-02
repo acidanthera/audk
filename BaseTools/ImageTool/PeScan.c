@@ -14,8 +14,7 @@ static
 bool
 ScanPeGetHeaderInfo (
   OUT image_tool_header_info_t     *HeaderInfo,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context,
-  IN  const char                   *ModuleType OPTIONAL
+  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
 {
   assert (HeaderInfo != NULL);
@@ -26,42 +25,7 @@ ScanPeGetHeaderInfo (
   // FIXME:
   HeaderInfo->Machine = PeCoffGetMachine (Context);
   HeaderInfo->IsXip   = true;
-
-  if (ModuleType == NULL) {
-    HeaderInfo->Subsystem = PeCoffGetSubsystem (Context);
-    return true;
-  }
-
-  if ((strcmp (ModuleType, "BASE") == 0)
-    || (strcmp (ModuleType, "SEC") == 0)
-    || (strcmp (ModuleType, "SECURITY_CORE") == 0)
-    || (strcmp (ModuleType, "PEI_CORE") == 0)
-    || (strcmp (ModuleType, "PEIM") == 0)
-    || (strcmp (ModuleType, "COMBINED_PEIM_DRIVER") == 0)
-    || (strcmp (ModuleType, "PIC_PEIM") == 0)
-    || (strcmp (ModuleType, "RELOCATABLE_PEIM") == 0)
-    || (strcmp (ModuleType, "DXE_CORE") == 0)
-    || (strcmp (ModuleType, "BS_DRIVER") == 0)
-    || (strcmp (ModuleType, "DXE_DRIVER") == 0)
-    || (strcmp (ModuleType, "DXE_SMM_DRIVER") == 0)
-    || (strcmp (ModuleType, "UEFI_DRIVER") == 0)
-    || (strcmp (ModuleType, "SMM_CORE") == 0)
-    || (strcmp (ModuleType, "MM_STANDALONE") == 0)
-    || (strcmp (ModuleType, "MM_CORE_STANDALONE") == 0)) {
-      HeaderInfo->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
-  } else if ((strcmp (ModuleType, "UEFI_APPLICATION") == 0)
-    || (strcmp (ModuleType, "APPLICATION") == 0)) {
-      HeaderInfo->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
-  } else if ((strcmp (ModuleType, "DXE_RUNTIME_DRIVER") == 0)
-    || (strcmp (ModuleType, "RT_DRIVER") == 0)) {
-      HeaderInfo->Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
-  } else if ((strcmp (ModuleType, "DXE_SAL_DRIVER") == 0)
-    || (strcmp (ModuleType, "SAL_RT_DRIVER") == 0)) {
-      HeaderInfo->Subsystem = EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
-  } else {
-    fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", ModuleType);
-    return false;
-  }
+  HeaderInfo->Subsystem = PeCoffGetSubsystem (Context);
 
   return true;
 }
@@ -397,8 +361,7 @@ RETURN_STATUS
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
   IN  const void              *File,
-  IN  size_t                  FileSize,
-  IN  const char              *ModuleType OPTIONAL
+  IN  size_t                  FileSize
   )
 {
   PE_COFF_LOADER_IMAGE_CONTEXT Context;
@@ -446,7 +409,7 @@ ToolContextConstructPe (
 
   memset (Image, 0, sizeof (*Image));
 
-  Result  = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context, ModuleType);
+  Result = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
     ToolImageDestruct (Image);

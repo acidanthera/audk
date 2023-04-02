@@ -180,8 +180,9 @@ SetHiiResourceHeader (
 
 static
 RETURN_STATUS
-ReadElfFile (
-  IN const char *Name
+ParseElfFile (
+  IN const void *File,
+  IN uint32_t   FileSize
   )
 {
   static const unsigned char Ident[] = {
@@ -190,23 +191,18 @@ ReadElfFile (
   const Elf_Shdr *Shdr;
   UINTN          Offset;
   UINT32         Index;
-  UINT32         FileSize;
   char           *Last;
 
-  assert (Name != NULL);
+  assert (File != NULL || FileSize == 0);
 
-  mEhdr = (Elf_Ehdr *)UserReadFile (Name, &FileSize);
-  if (mEhdr == NULL) {
-    fprintf (stderr, "ImageTool: Could not open %s: %s\n", Name, strerror (errno));
-    return RETURN_VOLUME_CORRUPTED;
-  }
+  mEhdr = (Elf_Ehdr *)File;
 
   //
   // Check header
   //
   if ((FileSize < sizeof (*mEhdr))
     || (memcmp (Ident, mEhdr->e_ident, sizeof (Ident)) != 0)) {
-    fprintf (stderr, "ImageTool: Invalid ELF header in file %s\n", Name);
+    fprintf (stderr, "ImageTool: Invalid ELF header\n");
     fprintf (stderr, "ImageTool: mEhdr->e_ident[0] = 0x%x expected 0x%x\n", mEhdr->e_ident[0], Ident[0]);
     fprintf (stderr, "ImageTool: mEhdr->e_ident[1] = 0x%x expected 0x%x\n", mEhdr->e_ident[1], Ident[1]);
     fprintf (stderr, "ImageTool: mEhdr->e_ident[2] = 0x%x expected 0x%x\n", mEhdr->e_ident[2], Ident[2]);
@@ -241,7 +237,7 @@ ReadElfFile (
     Offset = (UINTN)mEhdr->e_shoff + Index * mEhdr->e_shentsize;
 
     if (FileSize < (Offset + sizeof (*Shdr))) {
-      fprintf (stderr, "ImageTool: ELF section header is outside file %s\n", Name);
+      fprintf (stderr, "ImageTool: ELF section header is outside file\n");
       return RETURN_VOLUME_CORRUPTED;
     }
 
@@ -249,7 +245,7 @@ ReadElfFile (
 
     if ((Shdr->sh_type != SHT_NOBITS)
       && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
-      fprintf (stderr, "ImageTool: ELF section %d points outside file %s\n", Index, Name);
+      fprintf (stderr, "ImageTool: ELF section %d points outside file\n", Index);
       return RETURN_VOLUME_CORRUPTED;
     }
 
@@ -764,20 +760,17 @@ CreateIntermediate (
 
 RETURN_STATUS
 ScanElf (
-  IN const char *ElfName,
-  IN const char *ModuleType
+  IN const void *File,
+  IN uint32_t   FileSize,
+  IN const char *SymbolsPath
   )
 {
   RETURN_STATUS Status;
 
-  assert (ElfName    != NULL);
-  assert (ModuleType != NULL);
+  assert (File != NULL || FileSize == 0);
 
-  Status = ReadElfFile (ElfName);
+  Status = ParseElfFile (File, FileSize);
   if (RETURN_ERROR (Status)) {
-    if (mEhdr != NULL) {
-      free (mEhdr);
-    }
     return Status;
   }
 
@@ -788,7 +781,7 @@ ScanElf (
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
-  mImageInfo.DebugInfo.SymbolsPathLen     = strlen (ElfName);
+  mImageInfo.DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
 
   switch (mEhdr->e_machine) {
 #if defined(EFI_TARGET64)
@@ -808,58 +801,26 @@ ScanElf (
 #endif
     default:
       fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", mEhdr->e_machine);
-      free (mEhdr);
       return RETURN_INCOMPATIBLE_VERSION;
   }
 
   mImageInfo.DebugInfo.SymbolsPath = malloc (mImageInfo.DebugInfo.SymbolsPathLen + 1);
   if (mImageInfo.DebugInfo.SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Debug Data\n");
-    free (mEhdr);
     return RETURN_OUT_OF_RESOURCES;
   };
 
-  memmove (mImageInfo.DebugInfo.SymbolsPath, ElfName, mImageInfo.DebugInfo.SymbolsPathLen + 1);
+  memmove (mImageInfo.DebugInfo.SymbolsPath, SymbolsPath, mImageInfo.DebugInfo.SymbolsPathLen + 1);
 
-  if ((strcmp (ModuleType, "BASE") == 0)
-    || (strcmp (ModuleType, "SEC") == 0)
-    || (strcmp (ModuleType, "SECURITY_CORE") == 0)
-    || (strcmp (ModuleType, "PEI_CORE") == 0)
-    || (strcmp (ModuleType, "PEIM") == 0)
-    || (strcmp (ModuleType, "COMBINED_PEIM_DRIVER") == 0)
-    || (strcmp (ModuleType, "PIC_PEIM") == 0)
-    || (strcmp (ModuleType, "RELOCATABLE_PEIM") == 0)
-    || (strcmp (ModuleType, "DXE_CORE") == 0)
-    || (strcmp (ModuleType, "BS_DRIVER") == 0)
-    || (strcmp (ModuleType, "DXE_DRIVER") == 0)
-    || (strcmp (ModuleType, "DXE_SMM_DRIVER") == 0)
-    || (strcmp (ModuleType, "UEFI_DRIVER") == 0)
-    || (strcmp (ModuleType, "SMM_CORE") == 0)
-    || (strcmp (ModuleType, "MM_STANDALONE") == 0)
-    || (strcmp (ModuleType, "MM_CORE_STANDALONE") == 0)) {
-      mImageInfo.HeaderInfo.Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
-  } else if ((strcmp (ModuleType, "UEFI_APPLICATION") == 0)
-    || (strcmp (ModuleType, "APPLICATION") == 0)) {
-      mImageInfo.HeaderInfo.Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
-  } else if ((strcmp (ModuleType, "DXE_RUNTIME_DRIVER") == 0)
-    || (strcmp (ModuleType, "RT_DRIVER") == 0)) {
-      mImageInfo.HeaderInfo.Subsystem = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
-  } else if ((strcmp (ModuleType, "DXE_SAL_DRIVER") == 0)
-    || (strcmp (ModuleType, "SAL_RT_DRIVER") == 0)) {
-      mImageInfo.HeaderInfo.Subsystem = EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
-  } else {
-    fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", ModuleType);
-    free (mImageInfo.DebugInfo.SymbolsPath);
-    free (mEhdr);
-    return RETURN_UNSUPPORTED;
-  }
+  //
+  // There is no corresponding ELF property.
+  //
+  mImageInfo.HeaderInfo.Subsystem = 0;
 
   Status = CreateIntermediate ();
   if (RETURN_ERROR (Status)) {
     ToolImageDestruct (&mImageInfo);
   }
-
-  free (mEhdr);
 
   return Status;
 }

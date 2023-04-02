@@ -7,6 +7,8 @@
 #ifndef IMAGE_TOOL_H
 #define IMAGE_TOOL_H
 
+#include <Base.h>
+
 #include <stdbool.h>
 #include <errno.h>
 #include <assert.h>
@@ -152,8 +154,7 @@ RETURN_STATUS
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
   IN  const void              *File,
-  IN  size_t                  FileSize,
-  IN  const char              *ModuleType OPTIONAL
+  IN  size_t                  FileSize
   );
 
 bool
@@ -169,8 +170,9 @@ ToolImageEmitPe (
 
 RETURN_STATUS
 ScanElf (
-  IN const char *ElfName,
-  IN const char *ModuleType
+  IN const void *File,
+  IN uint32_t   FileSize,
+  IN const char *SymbolsPath
   );
 
 RETURN_STATUS
