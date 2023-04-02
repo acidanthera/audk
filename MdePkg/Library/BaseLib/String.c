@@ -452,9 +452,14 @@ StrDecimalToUint64 (
   IN      CONST CHAR16  *String
   )
 {
-  UINT64  Result;
+  UINT64         Result;
+  RETURN_STATUS  Status;
 
-  StrDecimalToUint64S (String, (CHAR16 **)NULL, &Result);
+  Status = StrDecimalToUint64S (String, (CHAR16 **)NULL, &Result);
+  if (RETURN_ERROR (Status)) {
+    return 0;
+  }
+
   return Result;
 }
 
@@ -499,9 +504,14 @@ StrHexToUintn (
   IN      CONST CHAR16  *String
   )
 {
-  UINTN  Result;
+  UINTN          Result;
+  RETURN_STATUS  Status;
 
-  StrHexToUintnS (String, (CHAR16 **)NULL, &Result);
+  Status = StrHexToUintnS (String, (CHAR16 **)NULL, &Result);
+  if (RETURN_ERROR (Status)) {
+    return 0;
+  }
+
   return Result;
 }
 
@@ -546,9 +556,14 @@ StrHexToUint64 (
   IN      CONST CHAR16  *String
   )
 {
-  UINT64  Result;
+  UINT64         Result;
+  RETURN_STATUS  Status;
 
-  StrHexToUint64S (String, (CHAR16 **)NULL, &Result);
+  Status = StrHexToUint64S (String, (CHAR16 **)NULL, &Result);
+  if (RETURN_ERROR (Status)) {
+    return 0;
+  }
+
   return Result;
 }
 
