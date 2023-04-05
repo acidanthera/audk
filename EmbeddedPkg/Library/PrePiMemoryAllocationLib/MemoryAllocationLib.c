@@ -110,7 +110,8 @@ PhaseFreePages (
 VOID *
 EFIAPI
 PhaseAllocatePool (
-  IN UINTN  AllocationSize
+  IN EFI_MEMORY_TYPE  MemoryType,
+  IN UINTN            AllocationSize
   )
 {
   EFI_HOB_MEMORY_POOL  *Hob;
