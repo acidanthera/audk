@@ -98,7 +98,7 @@
   # We need to avoid jump tables in SEC and BASE modules, so that the PE/COFF
   # self-relocation code itself is guaranteed to be position independent.
   #
-  GCC:*_*_*_CC_XIPFLAGS = -fno-jump-tables
+  GCC:*_*_*_CC_SECPEIFLAGS = -fno-jump-tables
 
 ################################################################################
 #
@@ -352,14 +352,20 @@
   ArmPkg/Drivers/ArmPciCpuIo2Dxe/ArmPciCpuIo2Dxe.inf {
     <LibraryClasses>
       NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+    # FIXME: Find out which PciExpressLib is needed.
+    # NULL|OvmfPkg/Library/BaseCachingPciExpressLib/BaseCachingPciExpressLib.inf
   }
   MdeModulePkg/Bus/Pci/PciHostBridgeDxe/PciHostBridgeDxe.inf {
     <LibraryClasses>
       NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+    # FIXME: Find out which PciExpressLib is needed.
+    # NULL|OvmfPkg/Library/BaseCachingPciExpressLib/BaseCachingPciExpressLib.inf
   }
   MdeModulePkg/Bus/Pci/PciBusDxe/PciBusDxe.inf {
     <LibraryClasses>
       NULL|OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
+    # FIXME: Find out which PciExpressLib is needed.
+    # NULL|OvmfPkg/Library/BaseCachingPciExpressLib/BaseCachingPciExpressLib.inf
   }
   OvmfPkg/VirtioPciDeviceDxe/VirtioPciDeviceDxe.inf
   OvmfPkg/Virtio10Dxe/Virtio10.inf
