@@ -178,7 +178,7 @@
         "vcruntimed",
         "ucrtd",
         "msvcrtd",
-        "XIPFLAGS",
+        "SECPEIFLAGS",
         "bootflow",
         "bootup",
         "cacheability",
