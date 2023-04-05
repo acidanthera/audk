@@ -40,3 +40,4 @@
 
 [BuildOptions.common]
   MSFT:*_*_*_DLINK_FLAGS  = /DLL /SUBSYSTEM:CONSOLE /VERSION:1.0
+  MSFT:*_*_*_GENFW_FLAGS = --keepoptionalheader
