@@ -45,8 +45,8 @@ IsDrxEnabled (
 **/
 VOID
 UefiImageLoaderExtraActionCommon (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN     UINTN                         Signature
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN UINTN                                  Signature
   )
 {
   BOOLEAN                   InterruptState;
@@ -217,7 +217,7 @@ UefiImageLoaderExtraActionCommon (
 VOID
 EFIAPI
 UefiImageLoaderRelocateImageExtraAction (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   UefiImageLoaderExtraActionCommon (ImageContext, IMAGE_LOAD_SIGNATURE);
