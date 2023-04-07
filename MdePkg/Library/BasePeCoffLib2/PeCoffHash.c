@@ -95,7 +95,6 @@ InternalHashSections (
   //
   // 13. Repeat steps 11 and 12 for all of the sections in the sorted table.
   //
-  ASSERT (Context->TeStrippedOffset == 0);
   for (SectionIndex = 0; SectionIndex < Context->NumberOfSections; ++SectionIndex) {
     //
     // Verify the Image section does not overlap with the previous one if the
@@ -196,17 +195,6 @@ PeCoffHashImageAuthenticode (
   // Additionally, retrieve important offsets for later steps.
   //
   switch (Context->ImageType) {
-    case PeCoffLoaderTypeTe:
-      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-        ASSERT (FALSE);
-        return FALSE;
-      }
-      //
-      // Authenticode does not define a hashing algorithm for TE Images.
-      //
-      DEBUG_RAISE ();
-      return FALSE;
-
     case PeCoffLoaderTypePe32:
       Pe32 = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
