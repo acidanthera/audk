@@ -34,7 +34,6 @@ PeCoffGetPdbPath (
   BOOLEAN                               Overflow;
 
   CONST EFI_IMAGE_DATA_DIRECTORY        *DebugDir;
-  CONST EFI_TE_IMAGE_HEADER             *TeHdr;
   CONST EFI_IMAGE_NT_HEADERS32          *Pe32Hdr;
   CONST EFI_IMAGE_NT_HEADERS64          *Pe32PlusHdr;
 
@@ -63,19 +62,6 @@ PeCoffGetPdbPath (
   // Retrieve the Debug Directory of the Image.
   //
   switch (Context->ImageType) {
-    case PeCoffLoaderTypeTe:
-      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-        ASSERT (FALSE);
-        return RETURN_UNSUPPORTED;
-      }
-
-      TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
-                (CONST CHAR8 *) Context->FileBuffer
-                );
-
-      DebugDir = &TeHdr->DataDirectory[1];
-      break;
-
     case PeCoffLoaderTypePe32:
       Pe32Hdr = (CONST EFI_IMAGE_NT_HEADERS32 *) (CONST VOID *) (
                   (CONST CHAR8 *) Context->FileBuffer + Context->ExeHdrOffset
@@ -170,20 +156,6 @@ PeCoffGetPdbPath (
   }
 
   DebugEntryFileOffset = CodeViewEntry->FileOffset;
-
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    Overflow = BaseOverflowSubU32 (
-                 DebugEntryFileOffset,
-                 Context->TeStrippedOffset,
-                 &DebugEntryFileOffset
-                 );
-    if (Overflow) {
-      DEBUG_RAISE ();
-      return RETURN_VOLUME_CORRUPTED;
-    }
-  } else {
-    ASSERT (Context->TeStrippedOffset == 0);
-  }
   //
   // Verify the CodeView entry is in bounds of the raw file, and the
   // CodeView entry raw file offset is sufficiently aligned.

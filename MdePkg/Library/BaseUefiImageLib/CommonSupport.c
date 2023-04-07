@@ -69,7 +69,6 @@ UefiImageRelocateImageInplaceForExecution (
   //
   // Flush the instruction cache so the image data is written before
   // execution.
-  // FIXME: TE XIP
   //
   InvalidateInstructionCacheRange ((VOID *) ImageAddress, ImageSize);
 
