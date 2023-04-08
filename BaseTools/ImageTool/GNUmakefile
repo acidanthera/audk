@@ -6,8 +6,8 @@
 
 PROJECT = ImageTool
 OBJS    = $(PROJECT).o
-OBJS    += Image.o PeEmit.o PeScan.o UeEmit.o ElfScan.o BinEmit.o
-OBJS    += BaseAlignment.o BaseBitOverflow.o UeImageLib.o UefiImageExtraActionLib.o
+OBJS    += Image.o PeEmit.o PeScan.o ElfScan.o BinEmit.o
+OBJS    += BaseAlignment.o BaseBitOverflow.o UefiImageExtraActionLib.o
 OBJS    += PeCoffInit.o PeCoffInfo.o PeCoffLoad.o PeCoffRelocate.o PeCoffHii.o PeCoffDebug.o
 
 DEBUG    = 1
@@ -23,8 +23,7 @@ CFLAGS += -include Pcds.h -Werror
 
 VPATH  += ../../MdePkg/Library/BaseOverflowLib:$\
           ../../MdePkg/Library/BasePeCoffLib2:$\
-					../../MdePkg/Library/BaseUefiImageExtraActionLibNull:$\
-				  ../../MdePkg/Library/BaseUeImageLib
+					../../MdePkg/Library/BaseUefiImageExtraActionLibNull
 
 Tools: Tool32 Tool64
 

@@ -13,70 +13,6 @@
 
 image_tool_image_info_t mImageInfo;
 
-static
-RETURN_STATUS
-PeToUe (
-  IN const char *PeName,
-  IN const char *UeName
-  )
-{
-  void                    *Pe;
-  uint32_t                PeSize;
-  void                    *Ue;
-  uint32_t                UeSize;
-  bool                    Result;
-  image_tool_image_info_t Image;
-
-  assert (PeName != NULL);
-  assert (UeName != NULL);
-
-  Pe = UserReadFile (PeName, &PeSize);
-  if (Pe == NULL) {
-    return RETURN_ABORTED;
-  }
-
-  Result = ToolContextConstructPe (&Image, Pe, PeSize, NULL);
-
-  free (Pe);
-  Pe = NULL;
-
-  if (!Result) {
-    return RETURN_ABORTED;
-  }
-
-  Result = CheckToolImage (&Image);
-  if (!Result) {
-    ToolImageDestruct (&Image);
-    return RETURN_ABORTED;
-  }
-
-  Result = ImageConvertToXip (&Image);
-  if (!Result) {
-    ToolImageDestruct (&Image);
-    return RETURN_ABORTED;
-  }
-
-  Ue = ToolImageEmitUe (&Image, &UeSize);
-
-  if (Ue == NULL) {
-    ToolImageDestruct (&Image);
-    return RETURN_ABORTED;
-  }
-
-  ToolImageDestruct (&Image);
-
-  /*UE_LOADER_IMAGE_CONTEXT UeContext;
-  RETURN_STATUS Status = UeInitializeContext(&UeContext, Ue, UeSize);
-  printf("UE status - %llu\n", Status);*/
-
-  UserWriteFile (UeName, Ue, UeSize);
-
-  free (Ue);
-  Ue = NULL;
-
-  return RETURN_SUCCESS;
-}
-
 
 static
 RETURN_STATUS
@@ -529,19 +465,6 @@ int main (int argc, const char *argv[])
     }
 
     Status = GetAcpi (argv[2], argv[3]);
-    if (RETURN_ERROR (Status)) {
-      raise ();
-      return -1;
-    }
-  } else if (strcmp (argv[1], "PeToUe") == 0) {
-    if (argc < 4) {
-      fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool PeToUe InputFile OutputFile\n");
-      raise ();
-      return -1;
-    }
-
-    Status = PeToUe (argv[2], argv[3]);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;

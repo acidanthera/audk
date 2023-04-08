@@ -12,9 +12,7 @@
 #include <assert.h>
 
 #include <IndustryStandard/PeImage2.h>
-#include <IndustryStandard/UeImage.h>
 #include <Library/PeCoffLib2.h>
-#include <Library/UeImageLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
@@ -148,12 +146,6 @@ ToolImageDestruct (
 bool
 ImageConvertToXip (
   image_tool_image_info_t *Image
-  );
-
-void *
-ToolImageEmitUe (
-  const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
   );
 
 bool

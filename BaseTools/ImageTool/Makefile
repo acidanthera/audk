@@ -17,11 +17,10 @@ OUT_DIR  = .\Windows_$(INFIX)
 
 OV = $(UDK_PATH)\MdePkg\Library\BaseOverflowLib
 PE = $(UDK_PATH)\MdePkg\Library\BasePeCoffLib2
-UE = $(UDK_PATH)\MdePkg\Library\BaseUeImageLib
 UA = $(UDK_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull
 
-OBJECTS = ImageTool.obj Image.obj PeEmit.obj PeScan.obj UeEmit.obj ElfScan.obj BinEmit.obj
-OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UE)}UeImageLib.obj {$(UA)}UefiImageExtraActionLib.obj
+OBJECTS = ImageTool.obj Image.obj PeEmit.obj PeScan.obj ElfScan.obj BinEmit.obj
+OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj
 OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj
 
 BASE = $(UDK_PATH)\MdePkg\Library\BaseLib
@@ -71,10 +70,6 @@ cleanall:
 	@move $@ $(OUT_DIR)\
 
 {$(PE)}.c.obj :
-  $(CC) -c $(CFLAGS) $(INC) /FI Pcds.h $< -Fo$@
-	@move $@ $(OUT_DIR)\
-
-{$(UE)}.c.obj :
   $(CC) -c $(CFLAGS) $(INC) /FI Pcds.h $< -Fo$@
 	@move $@ $(OUT_DIR)\
 
