@@ -634,7 +634,11 @@ CreateIntermediate (
             ++NumRelocs;
           }
         } else if (mEhdr->e_machine == EM_ARM) {
-
+          if ((ELF_R_TYPE(Rel->r_info) == R_ARM_THM_MOVW_ABS_NC)
+            || (ELF_R_TYPE(Rel->r_info) == R_ARM_RABS32)
+            || (ELF_R_TYPE(Rel->r_info) == R_ARM_ABS32)) {
+            ++NumRelocs;
+          }
         }
 #endif
       }
