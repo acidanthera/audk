@@ -69,18 +69,16 @@
 .L2_\@:
   .endm
 
-  // Align this routine to a log2 upper bound of its size, so that it is
-  // guaranteed not to cross a page or block boundary.
-  .balign 0x200
-
 //VOID
 //ArmReplaceLiveTranslationEntry (
 //  IN  UINT64  *Entry,
 //  IN  UINT64  Value,
 //  IN  UINT64  Address
 //  )
-ASM_FUNC(ArmReplaceLiveTranslationEntry)
-
+//
+// Align this routine to a log2 upper bound of its size, so that it is
+// guaranteed not to cross a page or block boundary.
+ASM_FUNC_ALIGN(ArmReplaceLiveTranslationEntry, 0x200)
   // disable interrupts
   mrs   x4, daif
   msr   daifset, #0xf
