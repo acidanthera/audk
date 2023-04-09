@@ -598,21 +598,23 @@ SetNewRecord (
   IN UINTN                      DescriptorSize
   )
 {
-  UEFI_IMAGE_RECORD_SEGMENT                 *ImageRecordSegment;
-  UINTN                                     SectionAddress;
-  UINT32                                    Index;
-  UINT32                                    NewRecordCount;
+  EFI_MEMORY_DESCRIPTOR                 TempRecord;
+  UEFI_IMAGE_RECORD_SEGMENT             *ImageRecordSegment;
+  UINTN                                 SectionAddress;
+  UINT32                                Index;
+  UINT32                                NewRecordCount;
 
+  CopyMem (&TempRecord, OldRecord, sizeof (EFI_MEMORY_DESCRIPTOR));
   //
   // Always create a new entry for non-PE image record
   //
   NewRecordCount = 0;
-  if (ImageRecord->StartAddress > OldRecord->PhysicalStart) {
-    NewRecord->Type = OldRecord->Type;
-    NewRecord->PhysicalStart = OldRecord->PhysicalStart;
+  if (ImageRecord->StartAddress > TempRecord.PhysicalStart) {
+    NewRecord->Type          = TempRecord.Type;
+    NewRecord->PhysicalStart = TempRecord.PhysicalStart;
     NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - OldRecord->PhysicalStart);
-    NewRecord->Attribute     = OldRecord->Attribute;
+    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - TempRecord.PhysicalStart);
+    NewRecord->Attribute     = TempRecord.Attribute;
     NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
     ++NewRecordCount;
   }
@@ -621,14 +623,14 @@ SetNewRecord (
   for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
     ImageRecordSegment = &ImageRecord->Segments[Index];
 
-    NewRecord->Type          = OldRecord->Type;
+    NewRecord->Type          = TempRecord.Type;
     NewRecord->PhysicalStart = SectionAddress;
     NewRecord->VirtualStart  = 0;
     NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSegment->Size);
-    NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
+    NewRecord->Attribute     = (TempRecord.Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
+    NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
 
     SectionAddress += ImageRecordSegment->Size;
-    NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
   }
 
   return NewRecordCount + ImageRecord->NumSegments;
@@ -653,7 +655,10 @@ GetMaxSplitRecordCount (
   UINTN                    SplitRecordCount;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
-
+  //
+  // Per region, there may be one prefix, but the return value is the amount of
+  // new records in addition to the original one.
+  //
   SplitRecordCount = 0;
   PhysicalStart    = OldRecord->PhysicalStart;
   PhysicalEnd      = OldRecord->PhysicalStart + EfiPagesToSize (OldRecord->NumberOfPages);
@@ -671,13 +676,6 @@ GetMaxSplitRecordCount (
     SplitRecordCount += ImageRecord->NumSegments + 1;
     PhysicalStart = ImageRecord->EndAddress;
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
-
-  //
-  // There may be additional prefix data.
-  //
-  if (SplitRecordCount != 0) {
-    ++SplitRecordCount;
-  }
 
   return SplitRecordCount;
 }
@@ -707,8 +705,8 @@ SplitRecord (
   )
 {
   EFI_MEMORY_DESCRIPTOR    TempRecord;
-  UEFI_IMAGE_RECORD       *ImageRecord;
-  UEFI_IMAGE_RECORD       *NewImageRecord;
+  UEFI_IMAGE_RECORD        *ImageRecord;
+  UEFI_IMAGE_RECORD        *NewImageRecord;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
   UINTN                    NewRecordCount;
@@ -735,16 +733,16 @@ SplitRecord (
       //
       // No more image covered by this range, stop
       //
-      if ((TotalNewRecordCount != 0) && (PhysicalEnd > PhysicalStart)) {
+      if ((PhysicalEnd > PhysicalStart) && (ImageRecord != NULL)) {
         //
         // Always create a new entry for non-PE image record
         //
-        NewRecord->Type = TempRecord.Type;
+        NewRecord->Type          = TempRecord.Type;
         NewRecord->PhysicalStart = TempRecord.PhysicalStart;
         NewRecord->VirtualStart  = 0;
         NewRecord->NumberOfPages = TempRecord.NumberOfPages;
         NewRecord->Attribute     = TempRecord.Attribute;
-        ++TotalNewRecordCount;
+        TotalNewRecordCount++;
       }
 
       break;
@@ -762,13 +760,17 @@ SplitRecord (
     //
     // Update PhysicalStart, in order to exclude the image buffer already splitted.
     //
-    PhysicalStart = ImageRecord->EndAddress;
-
+    PhysicalStart            = ImageRecord->EndAddress;
     TempRecord.PhysicalStart = PhysicalStart;
     TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
 
-  return TotalNewRecordCount;
+  //
+  // The logic in function SplitTable() ensures that TotalNewRecordCount will not be zero if the
+  // code reaches here.
+  //
+  ASSERT (TotalNewRecordCount != 0);
+  return TotalNewRecordCount - 1;
 }
 
 /**
@@ -835,7 +837,7 @@ SplitTable (
   //
   // Per image, they may be one trailer. There may be prefixed data.
   //
-  AdditionalRecordCount = (mImagePropertiesPrivateData.SectionCountMax + 1) * mImagePropertiesPrivateData.ImageRecordCount + 1;
+  AdditionalRecordCount = (mImagePropertiesPrivateData.SectionCountMax + 1) * mImagePropertiesPrivateData.ImageRecordCount;
 
   TotalSplitRecordCount = 0;
   //
@@ -845,8 +847,8 @@ SplitTable (
   //
   // Let new record point to end of full MemoryMap buffer.
   //
-  IndexNew = IndexOld + AdditionalRecordCount;
-  for ( ; IndexOld >= 0; --IndexOld) {
+  IndexNew = ((*MemoryMapSize) / DescriptorSize) - 1 + AdditionalRecordCount;
+  for ( ; IndexOld >= 0; IndexOld--) {
     MaxSplitRecordCount = GetMaxSplitRecordCount ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)MemoryMap + IndexOld * DescriptorSize));
     //
     // Split this MemoryMap record
@@ -860,14 +862,14 @@ SplitTable (
                              );
     //
     // Adjust IndexNew according to real split.
+    // RealSplitRecordCount is the number of new records, so we must add one to
+    // copy the total number of records.
     //
-    if (MaxSplitRecordCount != RealSplitRecordCount) {
-      CopyMem (
-        ((UINT8 *)MemoryMap + (IndexNew + MaxSplitRecordCount - RealSplitRecordCount) * DescriptorSize),
-        ((UINT8 *)MemoryMap + IndexNew * DescriptorSize),
-        RealSplitRecordCount * DescriptorSize
-        );
-    }
+    CopyMem (
+      ((UINT8 *)MemoryMap + (IndexNew + MaxSplitRecordCount - RealSplitRecordCount) * DescriptorSize),
+      ((UINT8 *)MemoryMap + IndexNew * DescriptorSize),
+      (RealSplitRecordCount + 1) * DescriptorSize
+      );
     IndexNew               = IndexNew + MaxSplitRecordCount - RealSplitRecordCount;
     TotalSplitRecordCount += RealSplitRecordCount;
     IndexNew--;
@@ -962,9 +964,10 @@ CoreGetMemoryMapWithSeparatedImageSection (
   CoreAcquiremMemoryAttributesTableLock ();
 
   //
-  // Per image, they may be one trailer. There may be prefixed data.
+  // Per image, there may be one additional trailer. There may be prefixed data
+  // (counted as the original entry).
   //
-  AdditionalRecordCount = (mImagePropertiesPrivateData.SectionCountMax + 1) * mImagePropertiesPrivateData.ImageRecordCount + 1;
+  AdditionalRecordCount = (mImagePropertiesPrivateData.SectionCountMax + 1) * mImagePropertiesPrivateData.ImageRecordCount;
 
   OldMemoryMapSize = *MemoryMapSize;
   Status           = CoreGetMemoryMap (MemoryMapSize, MemoryMap, MapKey, DescriptorSize, DescriptorVersion);
