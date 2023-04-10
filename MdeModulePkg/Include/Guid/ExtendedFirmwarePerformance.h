@@ -64,6 +64,10 @@ typedef struct {
   ///
   UINT16                                         ProgressID;
   ///
+  /// Reserved for future usage. Must be 0.
+  ///
+  UINT16                                         Reserved;
+  ///
   /// APIC ID for the processor in the system used as a timestamp clock source.
   /// If only one timestamp clock source is used, this field is Reserved and populated as 0.
   ///
@@ -90,6 +94,10 @@ typedef struct {
   /// keeping other nibbles same as start point.
   ///
   UINT16                                         ProgressID;
+  ///
+  /// Reserved for future usage. Must be 0.
+  ///
+  UINT16                                         Reserved;
   ///
   /// APIC ID for the processor in the system used as a timestamp clock source.
   /// If only one timestamp clock source is used, this field is Reserved and populated as 0.
@@ -122,6 +130,10 @@ typedef struct {
   /// keeping other nibbles same as start point.
   ///
   UINT16                                         ProgressID;
+  ///
+  /// Reserved for future usage. Must be 0.
+  ///
+  UINT16                                         Reserved;
   ///
   /// APIC ID for the processor in the system used as a timestamp clock source.
   /// If only one timestamp clock source is used, this field is Reserved and populated as 0.
@@ -159,6 +171,10 @@ typedef struct {
   ///
   UINT16                                         ProgressID;
   ///
+  /// Reserved for future usage. Must be 0.
+  ///
+  UINT16                                         Reserved;
+  ///
   /// APIC ID for the processor in the system used as a timestamp clock source.
   /// If only one timestamp clock source is used, this field is Reserved and populated as 0.
   ///
@@ -189,6 +205,10 @@ typedef struct {
   /// keeping other nibbles same as start point.
   ///
   UINT16                                         ProgressID;
+  ///
+  /// Reserved for future usage. Must be 0.
+  ///
+  UINT16                                         Reserved;
   ///
   /// APIC ID for the processor in the system used as a timestamp clock source.
   /// If only one timestamp clock source is used, this field is Reserved and populated as 0.
