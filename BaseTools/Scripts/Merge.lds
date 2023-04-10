@@ -60,5 +60,6 @@ SECTIONS {
     *(.comment)
     *(COMMON)
     *(.dynamic)
+    *(.ARM.exidx .ARM.exidx.*)
   }
 }
