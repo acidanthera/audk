@@ -699,9 +699,7 @@ CreateIntermediate (
       Segments[SIndex].Type         = ToolImageSectionTypeCode;
       ++SIndex;
       continue;
-    }
-
-    if (IsDataShdr (Shdr)) {
+    } else if (IsDataShdr (Shdr)) {
       Name = GetString (Shdr->sh_name, 0);
       if (Name == NULL) {
         return RETURN_VOLUME_CORRUPTED;
@@ -735,9 +733,7 @@ CreateIntermediate (
       Segments[SIndex].Type         = ToolImageSectionTypeInitialisedData;
       ++SIndex;
       continue;
-    }
-
-    if (IsHiiRsrcShdr (Shdr)) {
+    } else if (IsHiiRsrcShdr (Shdr)) {
       mImageInfo.HiiInfo.DataSize = (uint32_t)ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
 
       mImageInfo.HiiInfo.Data = calloc (1, mImageInfo.HiiInfo.DataSize);
@@ -750,6 +746,9 @@ CreateIntermediate (
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
         SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Shdr->sh_addr);
       }
+    } else if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
+      fprintf (stderr, "ImageTool: Unknown SHF_ALLOC Section %d\n", SIndex);
+      return RETURN_UNSUPPORTED;
     }
   }
 
