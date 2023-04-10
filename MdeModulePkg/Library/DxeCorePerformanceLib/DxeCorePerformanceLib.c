@@ -1072,6 +1072,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.GuidEvent->Header.Length   = sizeof (FPDT_GUID_EVENT_RECORD);
         FpdtRecordPtr.GuidEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.GuidEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.GuidEvent->Reserved        = 0;
         FpdtRecordPtr.GuidEvent->Timestamp       = TimeStamp;
         CopyMem (&FpdtRecordPtr.GuidEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.GuidEvent->Guid));
         if ((CallerIdentifier == NULL) && (PerfId == MODULE_END_ID) && (mCachedLength != 0)) {
@@ -1111,6 +1112,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.GuidQwordEvent->Header.Length   = sizeof (FPDT_GUID_QWORD_EVENT_RECORD);
         FpdtRecordPtr.GuidQwordEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.GuidQwordEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.GuidQwordEvent->Reserved        = 0;
         FpdtRecordPtr.GuidQwordEvent->Timestamp       = TimeStamp;
         FpdtRecordPtr.GuidQwordEvent->Qword           = mLoadImageCount;
         CopyMem (&FpdtRecordPtr.GuidQwordEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.GuidQwordEvent->Guid));
@@ -1140,6 +1142,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.GuidQwordEvent->Header.Length   = sizeof (FPDT_GUID_QWORD_EVENT_RECORD);
         FpdtRecordPtr.GuidQwordEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.GuidQwordEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.GuidQwordEvent->Reserved        = 0;
         FpdtRecordPtr.GuidQwordEvent->Timestamp       = TimeStamp;
         FpdtRecordPtr.GuidQwordEvent->Qword           = Address;
         CopyMem (&FpdtRecordPtr.GuidQwordEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.GuidQwordEvent->Guid));
@@ -1155,6 +1158,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.GuidQwordStringEvent->Header.Length   = sizeof (FPDT_GUID_QWORD_STRING_EVENT_RECORD);
         FpdtRecordPtr.GuidQwordStringEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.GuidQwordStringEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.GuidQwordStringEvent->Reserved        = 0;
         FpdtRecordPtr.GuidQwordStringEvent->Timestamp       = TimeStamp;
         FpdtRecordPtr.GuidQwordStringEvent->Qword           = Address;
         CopyMem (&FpdtRecordPtr.GuidQwordStringEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.GuidQwordStringEvent->Guid));
@@ -1183,6 +1187,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.DualGuidStringEvent->Header.Length   = sizeof (FPDT_DUAL_GUID_STRING_EVENT_RECORD);
         FpdtRecordPtr.DualGuidStringEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.DualGuidStringEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.DualGuidStringEvent->Reserved        = 0;
         FpdtRecordPtr.DualGuidStringEvent->Timestamp       = TimeStamp;
         CopyMem (&FpdtRecordPtr.DualGuidStringEvent->Guid1, CallerIdentifier, sizeof (FpdtRecordPtr.DualGuidStringEvent->Guid1));
         CopyMem (&FpdtRecordPtr.DualGuidStringEvent->Guid2, Guid, sizeof (FpdtRecordPtr.DualGuidStringEvent->Guid2));
@@ -1214,6 +1219,7 @@ InsertFpdtRecord (
         FpdtRecordPtr.DynamicStringEvent->Header.Length   = sizeof (FPDT_DYNAMIC_STRING_EVENT_RECORD);
         FpdtRecordPtr.DynamicStringEvent->Header.Revision = FPDT_RECORD_REVISION_1;
         FpdtRecordPtr.DynamicStringEvent->ProgressID      = PerfId;
+        FpdtRecordPtr.DynamicStringEvent->Reserved        = 0;
         FpdtRecordPtr.DynamicStringEvent->Timestamp       = TimeStamp;
         CopyMem (&FpdtRecordPtr.DynamicStringEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.DynamicStringEvent->Guid));
         CopyStringIntoPerfRecordAndUpdateLength (FpdtRecordPtr.DynamicStringEvent->String, StringPtr, &FpdtRecordPtr.DynamicStringEvent->Header.Length);
@@ -1239,6 +1245,7 @@ InsertFpdtRecord (
           FpdtRecordPtr.DynamicStringEvent->Header.Length   = sizeof (FPDT_DYNAMIC_STRING_EVENT_RECORD);
           FpdtRecordPtr.DynamicStringEvent->Header.Revision = FPDT_RECORD_REVISION_1;
           FpdtRecordPtr.DynamicStringEvent->ProgressID      = PerfId;
+          FpdtRecordPtr.DynamicStringEvent->Reserved        = 0;
           FpdtRecordPtr.DynamicStringEvent->Timestamp       = TimeStamp;
           CopyMem (&FpdtRecordPtr.DynamicStringEvent->Guid, &ModuleGuid, sizeof (FpdtRecordPtr.DynamicStringEvent->Guid));
           CopyStringIntoPerfRecordAndUpdateLength (FpdtRecordPtr.DynamicStringEvent->String, StringPtr, &FpdtRecordPtr.DynamicStringEvent->Header.Length);
@@ -1262,6 +1269,7 @@ InsertFpdtRecord (
     FpdtRecordPtr.DynamicStringEvent->Header.Length   = sizeof (FPDT_DYNAMIC_STRING_EVENT_RECORD);
     FpdtRecordPtr.DynamicStringEvent->Header.Revision = FPDT_RECORD_REVISION_1;
     FpdtRecordPtr.DynamicStringEvent->ProgressID      = PerfId;
+    FpdtRecordPtr.DynamicStringEvent->Reserved        = 0;
     FpdtRecordPtr.DynamicStringEvent->Timestamp       = TimeStamp;
     if (Guid != NULL) {
       //
