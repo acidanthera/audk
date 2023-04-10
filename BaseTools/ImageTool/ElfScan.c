@@ -486,6 +486,7 @@ SetRelocs (
         }
       } else if (mEhdr->e_machine == EM_ARM) {
         switch (ELF32_R_TYPE(Rel->r_info)) {
+          case R_ARM_NONE:
           case R_ARM_RBASE:
             // No relocation - no action required
             // break skipped
