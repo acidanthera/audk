@@ -644,6 +644,28 @@ PhaseFreePool (
   InternalAlignedFree (Buffer);
 }
 
+VOID *
+InternalAllocateAlignedPages (
+  IN EFI_MEMORY_TYPE  MemoryType,
+  IN UINTN            Pages,
+  IN UINTN            Alignment
+  )
+{
+  UINTN  BufferSize;
+
+  BufferSize = EFI_PAGES_TO_SIZE (Pages);
+  return InternalAlignedAlloc (MAX (Alignment, EFI_PAGE_SIZE), BufferSize);
+}
+
+VOID
+InternalFreeAlignedPages (
+  IN VOID   *Buffer,
+  IN UINTN  Pages
+  )
+{
+  InternalAlignedFree (Buffer);
+}
+
 VOID
 EFIAPI
 CpuBreakpoint (
