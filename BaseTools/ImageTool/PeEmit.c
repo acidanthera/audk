@@ -23,7 +23,6 @@ typedef struct {
   uint32_t                      ExtraSectionsSize;
   uint32_t                      UnsignedFileSize;
   uint32_t                      RelocTableSize;
-  uint32_t                      HiiTableSize;
   uint32_t                      DebugTableSize;
   uint32_t                      FileAlignment;
 } image_tool_pe_emit_context_t;
@@ -150,43 +149,23 @@ EmitPeGetRelocSectionSize (
 }
 
 static
-bool
-EmitPeGetHiiSectionSize (
-  const image_tool_pe_emit_context_t *Context,
-  uint32_t                           *HiiSize
-  )
-{
-  assert (Context != NULL);
-  assert (HiiSize != NULL);
-
-  return !BaseOverflowAlignUpU32 (
-    Context->Image->HiiInfo.DataSize,
-    Context->FileAlignment,
-    HiiSize
-    );
-}
-
-static
-bool
+void
 EmitPeGetDebugSectionSize (
   const image_tool_image_info_t *Image,
   uint32_t                      *DebugSize
   )
 {
+  uint32_t Size;
+
   assert (Image     != NULL);
   assert (DebugSize != NULL);
 
-  *DebugSize = 0;
-
+  Size = 0;
   if (Image->DebugInfo.SymbolsPath != NULL) {
-    return !BaseOverflowAlignUpU32 (
-      sizeof (DebugData) + Image->DebugInfo.SymbolsPathLen + 1,
-      Image->SegmentInfo.SegmentAlignment,
-      DebugSize
-    );
+    Size = sizeof (DebugData) + Image->DebugInfo.SymbolsPathLen + 1;
   }
 
-  return true;
+  *DebugSize = Size;
 }
 
 static
@@ -214,17 +193,7 @@ EmitPeGetExtraSectionsSize (
     return false;
   }
 
-  Result = EmitPeGetDebugSectionSize (Image, &Context->DebugTableSize);
-  if (!Result) {
-    raise ();
-    return false;
-  }
-
-  Result = EmitPeGetHiiSectionSize (Context, &Context->HiiTableSize);
-  if (!Result) {
-    raise ();
-    return false;
-  }
+  EmitPeGetDebugSectionSize (Image, &Context->DebugTableSize);
 
   Overflow = BaseOverflowAlignUpU32 (
     Context->RelocTableSize,
@@ -247,7 +216,7 @@ EmitPeGetExtraSectionsSize (
   }
 
   Overflow = BaseOverflowAlignUpU32 (
-    Context->HiiTableSize,
+    Context->Image->HiiInfo.DataSize,
     Context->FileAlignment,
     &AlignedHiiTableSize
     );
@@ -366,14 +335,16 @@ ToolImageEmitPeExtraSectionHeaders (
 {
   uint32_t                 SectionHeadersSize;
   EFI_IMAGE_SECTION_HEADER *Section;
+  uint32_t                 SectionOffset;
 
   assert (Context    != NULL);
   assert (Buffer     != NULL);
   assert (BufferSize != NULL);
 
   SectionHeadersSize = 0;
+  SectionOffset      = AlignedHeaderSize + Context->SectionsSize;
 
-  if (Context->HiiTableSize > 0) {
+  if (Context->Image->HiiInfo.DataSize > 0) {
     ++Context->PeHdr->CommonHeader.FileHeader.NumberOfSections;
 
     assert (sizeof (EFI_IMAGE_SECTION_HEADER) <= *BufferSize);
@@ -381,13 +352,15 @@ ToolImageEmitPeExtraSectionHeaders (
     Section = (void *) *Buffer;
 
     strncpy ((char *)Section->Name, ".rsrc", sizeof (Section->Name));
-    Section->SizeOfRawData    = Context->HiiTableSize;
-    Section->VirtualSize      = Context->HiiTableSize;
+    Section->SizeOfRawData    = ALIGN_VALUE (Context->Image->HiiInfo.DataSize, Context->FileAlignment);
+    Section->VirtualSize      = Section->SizeOfRawData;
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_READ;
-    Section->PointerToRawData = AlignedHeaderSize + Context->SectionsSize;
+    Section->PointerToRawData = SectionOffset;
     Section->VirtualAddress   = Section->PointerToRawData;
 
-    Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = Context->HiiTableSize;
+    SectionOffset += Section->SizeOfRawData;
+
+    Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].Size = Context->Image->HiiInfo.DataSize;
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_RESOURCE].VirtualAddress = Section->PointerToRawData;
 
     *BufferSize        -= sizeof (EFI_IMAGE_SECTION_HEADER);
@@ -404,11 +377,13 @@ ToolImageEmitPeExtraSectionHeaders (
 
     strncpy ((char *)Section->Name, ".reloc", sizeof (Section->Name));
     Section->SizeOfRawData    = ALIGN_VALUE (Context->RelocTableSize, Context->FileAlignment);
-    Section->VirtualSize      = ALIGN_VALUE (Context->RelocTableSize, Context->FileAlignment);
+    Section->VirtualSize      = Section->SizeOfRawData;
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA
       | EFI_IMAGE_SCN_MEM_DISCARDABLE | EFI_IMAGE_SCN_MEM_READ;
-    Section->PointerToRawData = AlignedHeaderSize + Context->SectionsSize + Context->HiiTableSize;
+    Section->PointerToRawData = SectionOffset;
     Section->VirtualAddress   = Section->PointerToRawData;
+
+    SectionOffset += Section->SizeOfRawData;
 
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].Size = Context->RelocTableSize;
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_BASERELOC].VirtualAddress = Section->PointerToRawData;
@@ -426,21 +401,24 @@ ToolImageEmitPeExtraSectionHeaders (
     Section = (void *) *Buffer;
 
     strncpy ((char *)Section->Name, ".debug", sizeof (Section->Name));
-    Section->SizeOfRawData    = Context->DebugTableSize;
-    Section->VirtualSize      = Context->DebugTableSize;
+    Section->SizeOfRawData    = ALIGN_VALUE (Context->DebugTableSize, Context->FileAlignment);
+    Section->VirtualSize      = Section->SizeOfRawData;
     Section->Characteristics  = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA | EFI_IMAGE_SCN_MEM_READ;
-    Section->PointerToRawData = Context->UnsignedFileSize - Context->DebugTableSize;
+    Section->PointerToRawData = SectionOffset;
     Section->VirtualAddress   = Section->PointerToRawData;
 
+    SectionOffset += Section->SizeOfRawData;
+
     Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG].Size = sizeof (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY);
-    Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = Section->PointerToRawData;
+    Context->PeHdr->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress = Section->VirtualAddress;
 
     *BufferSize        -= sizeof (EFI_IMAGE_SECTION_HEADER);
     *Buffer            += sizeof (EFI_IMAGE_SECTION_HEADER);
     SectionHeadersSize += sizeof (EFI_IMAGE_SECTION_HEADER);
   }
 
-  assert (Context->HdrInfo.ExtraSectionHeadersSize == SectionHeadersSize);
+  assert (SectionHeadersSize == Context->HdrInfo.ExtraSectionHeadersSize);
+  assert (SectionOffset == Context->UnsignedFileSize);
 
   return true;
 }
@@ -768,6 +746,8 @@ ToolImageEmitPeDebugTable (
   Data->Nb10.Signature = CODEVIEW_SIGNATURE_NB10;
   memmove (Data->Name, Image->DebugInfo.SymbolsPath, Image->DebugInfo.SymbolsPathLen + 1);
 
+  assert (sizeof (*Data) + Image->DebugInfo.SymbolsPathLen + 1 == Context->DebugTableSize);
+
   *BufferSize -= Context->DebugTableSize;
   *Buffer     += Context->DebugTableSize;
 
@@ -801,22 +781,21 @@ ToolImageEmitPeHiiTable (
 
   Image = Context->Image;
 
-  if (Context->HiiTableSize == 0) {
+  if (Image->HiiInfo.DataSize == 0) {
     return true;
   }
 
   Context->PeHdr->SizeOfImage += ALIGN_VALUE (Image->HiiInfo.DataSize, Image->SegmentInfo.SegmentAlignment);
 
-  assert (Image->HiiInfo.DataSize <= Context->HiiTableSize);
-  assert (Context->HiiTableSize <= *BufferSize);
+  assert (Image->HiiInfo.DataSize <= *BufferSize);
 
   memmove (*Buffer, Image->HiiInfo.Data, Image->HiiInfo.DataSize);
 
-  *BufferSize -= Context->HiiTableSize;
-  *Buffer     += Context->HiiTableSize;
+  *BufferSize -= Image->HiiInfo.DataSize;
+  *Buffer     += Image->HiiInfo.DataSize;
 
   HiiTablePadding = ALIGN_VALUE_ADDEND(
-    Context->HiiTableSize,
+    Image->HiiInfo.DataSize,
     Context->FileAlignment
     );
 
