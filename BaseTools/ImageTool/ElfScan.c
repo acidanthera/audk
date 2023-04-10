@@ -321,6 +321,7 @@ SetRelocs (
 {
   UINT32         Index;
   const Elf_Shdr *RelShdr;
+  const Elf_Shdr *SecShdr;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
   UINT32         RelNum;
@@ -338,6 +339,14 @@ SetRelocs (
     RelShdr = GetShdrByIndex (Index);
 
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
+      continue;
+    }
+    //
+    // Only translate relocations targetting sections that are translated.
+    //
+    SecShdr = GetShdrByIndex (RelShdr->sh_info);
+
+    if (!IsTextShdr (SecShdr) && !IsDataShdr (SecShdr)) {
       continue;
     }
 
