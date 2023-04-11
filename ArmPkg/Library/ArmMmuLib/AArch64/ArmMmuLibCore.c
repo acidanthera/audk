@@ -755,12 +755,22 @@ ArmMmuBaseLibConstructor (
   )
 {
   extern UINT32  ArmReplaceLiveTranslationEntrySize;
+  UINTN          ArmReplaceLiveTranslationEntryEnd;
   VOID           *Hob;
 
   Hob = GetFirstGuidHob (&gArmMmuReplaceLiveTranslationEntryFuncGuid);
   if (Hob != NULL) {
     mReplaceLiveEntryFunc = *(ARM_REPLACE_LIVE_TRANSLATION_ENTRY *)GET_GUID_HOB_DATA (Hob);
   } else {
+    ArmReplaceLiveTranslationEntryEnd = (UINTN)ArmReplaceLiveTranslationEntry + ArmReplaceLiveTranslationEntrySize;
+    //
+    // Align this routine to a log2 upper bound of its size, so that it is
+    // guaranteed not to cross a page or block boundary
+    // (see ArmMmuLibReplaceEntry.S).
+    //
+    ASSERT (IS_ALIGNED ((UINTN)ArmReplaceLiveTranslationEntry, 0x200));
+    ASSERT (((UINTN)ArmReplaceLiveTranslationEntry >> EFI_PAGE_SHIFT) == ((ArmReplaceLiveTranslationEntryEnd - 1) >> EFI_PAGE_SHIFT));
+
     //
     // The ArmReplaceLiveTranslationEntry () helper function may be invoked
     // with the MMU off so we have to ensure that it gets cleaned to the PoC
