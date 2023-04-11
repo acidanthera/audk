@@ -24,12 +24,23 @@ ArmMmuPeiLibConstructor (
 {
   extern UINT32                       ArmReplaceLiveTranslationEntrySize;
   ARM_REPLACE_LIVE_TRANSLATION_ENTRY  ArmReplaceLiveTranslationEntryFunc;
+  UINTN                               ArmReplaceLiveTranslationEntryEnd;
   VOID                                *Hob;
 
   EFI_FV_FILE_INFO  FileInfo;
   EFI_STATUS        Status;
 
   ASSERT (FileHandle != NULL);
+
+  ArmReplaceLiveTranslationEntryEnd = (UINTN)ArmReplaceLiveTranslationEntry + ArmReplaceLiveTranslationEntrySize;
+
+  //
+  // Align this routine to a log2 upper bound of its size, so that it is
+  // guaranteed not to cross a page or block boundary
+  // (see ArmMmuLibReplaceEntry.S).
+  //
+  ASSERT (IS_ALIGNED ((UINTN)ArmReplaceLiveTranslationEntry, 0x200));
+  ASSERT (((UINTN)ArmReplaceLiveTranslationEntry >> EFI_PAGE_SHIFT) == ((ArmReplaceLiveTranslationEntryEnd - 1) >> EFI_PAGE_SHIFT));
 
   Status = (*PeiServices)->FfsGetFileInfo (FileHandle, &FileInfo);
   ASSERT_EFI_ERROR (Status);
@@ -42,8 +53,7 @@ ArmMmuPeiLibConstructor (
   // when not executing in place.
   //
   if (((UINTN)FileInfo.Buffer <= (UINTN)ArmReplaceLiveTranslationEntry) &&
-      ((UINTN)FileInfo.Buffer + FileInfo.BufferSize >=
-       (UINTN)ArmReplaceLiveTranslationEntry + ArmReplaceLiveTranslationEntrySize))
+      ((UINTN)FileInfo.Buffer + FileInfo.BufferSize >= ArmReplaceLiveTranslationEntryEnd))
   {
     DEBUG ((DEBUG_INFO, "ArmMmuLib: skipping cache maintenance on XIP PEIM\n"));
 
