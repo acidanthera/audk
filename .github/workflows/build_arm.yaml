@@ -112,16 +112,113 @@ jobs:
           name: GCC5 Firmware ARM Artifacts
           path: GCC5_fw_arm_artifacts.zip
 
+  build-linux-clangdwarf:
+    name: Linux CLANGDWARF
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes '' | sudo ./llvm.sh 15
+          rm -f llvm.sh
+          echo "/usr/lib/llvm-15/bin" >> $GITHUB_PATH
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build ArmPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPkg
+          SELFPKG_DIR: ArmPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build ArmPlatformPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPlatformPkg
+          SELFPKG_DIR: ArmPlatformPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build ArmVirtQemu
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGDWARF
+
+      - name: Zip artifacts
+        run: zip CLANGDWARF_fw_arm_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: CLANGDWARF Firmware ARM Artifacts
+          path: CLANGDWARF_fw_arm_artifacts.zip
+
   test-firmwares:
     name: Test
     runs-on: ubuntu-22.04
-    needs: [build-linux-gcc5]
+    needs: [build-linux-gcc5, build-linux-clangdwarf]
 
     strategy:
       fail-fast: false
       matrix:
         package: [
           {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
         ]
     steps:
       - name: Checkout ocbuild repository
