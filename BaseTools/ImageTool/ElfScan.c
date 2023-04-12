@@ -528,20 +528,6 @@ SetRelocs (
           case R_ARM_TLS_LDM32:
           case R_ARM_TLS_IE32:
             break;
-          case R_ARM_THM_MOVW_ABS_NC:
-
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_ARM_MOV32T;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
-            ++RelNum;
-
-            break;
-          case R_ARM_THM_MOVT_ABS:
-            //
-            // The immediate fields of a contiguous MOVW+MOVT pair in Thumb mode
-            // is treated as a single 64-bit instruction starting at the address
-            // provided by R_ARM_THM_MOVW_ABS_NC relocation.
-            //
-            break;
           case R_ARM_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
@@ -621,8 +607,7 @@ CreateIntermediate (
             ++NumRelocs;
           }
         } else if (mEhdr->e_machine == EM_ARM) {
-          if ((ELF_R_TYPE(Rel->r_info) == R_ARM_THM_MOVW_ABS_NC)
-            || (ELF_R_TYPE(Rel->r_info) == R_ARM_ABS32)) {
+          if (ELF_R_TYPE(Rel->r_info) == R_ARM_ABS32) {
             ++NumRelocs;
           }
         }
