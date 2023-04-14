@@ -19,7 +19,7 @@ include $(OC_USER)/User/Makefile
 
 .DEFAULT_GOAL := Tools
 
-CFLAGS += -include Pcds.h -Werror
+CFLAGS += -Werror
 
 VPATH  += ../../MdePkg/Library/BasePeCoffLib2:$\
 					../../MdePkg/Library/BaseUefiImageExtraActionLibNull

@@ -70,7 +70,7 @@ cleanall:
 	@move $@ $(OUT_DIR)\
 
 {$(PE)}.c.obj :
-  $(CC) -c $(CFLAGS) $(INC) /FI Pcds.h $< -Fo$@
+  $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 	@move $@ $(OUT_DIR)\
 
 {$(UA)}.c.obj :
