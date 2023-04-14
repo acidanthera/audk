@@ -321,7 +321,6 @@ SetRelocs (
 {
   UINT32         Index;
   const Elf_Shdr *RelShdr;
-  const Elf_Shdr *SecShdr;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
   UINT32         RelNum;
@@ -335,14 +334,6 @@ SetRelocs (
     RelShdr = GetShdrByIndex (Index);
 
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
-      continue;
-    }
-    //
-    // Only translate relocations targetting sections that are translated.
-    //
-    SecShdr = GetShdrByIndex (RelShdr->sh_info);
-
-    if (!IsTextShdr (SecShdr) && !IsDataShdr (SecShdr)) {
       continue;
     }
 
@@ -579,9 +570,6 @@ CreateIntermediate (
     }
 
     if ((Shdr->sh_type == SHT_REL) || (Shdr->sh_type == SHT_RELA)) {
-      if (Shdr->sh_info == 0) {
-        continue;
-      }
 
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
