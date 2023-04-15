@@ -240,23 +240,9 @@ ScanPeGetSegmentInfo (
       ImageSegment->ImageAddress = Section->VirtualAddress;
       ImageSegment->ImageSize    = Size;
 
-      if ((Section->Characteristics & EFI_IMAGE_SCN_MEM_READ) != 0) {
-        ImageSegment->Read = true;
-      }
-
-      if ((Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0) {
-        ImageSegment->Write = true;
-      }
-
-      if ((Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0) {
-        ImageSegment->Execute = true;
-      }
-
-      if (ImageSegment->Execute) {
-        ImageSegment->Type = ToolImageSectionTypeCode;
-      } else {
-        ImageSegment->Type = ToolImageSectionTypeInitialisedData;
-      }
+      ImageSegment->Read    = (Section->Characteristics & EFI_IMAGE_SCN_MEM_READ) != 0;
+      ImageSegment->Write   = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;
+      ImageSegment->Execute = (Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0;
 
       ++SegmentInfo->NumSegments;
       ++ImageSegment;
