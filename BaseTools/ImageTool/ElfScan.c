@@ -32,21 +32,6 @@ GetShdrByIndex (
   return (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
 }
 
-Elf_Sym *
-GetSymbol (
-  IN UINT32 TableIndex,
-  IN UINT32 SymbolIndex
-  )
-{
-  const Elf_Shdr *TableShdr;
-  UINT8          *Symtab;
-
-  TableShdr = GetShdrByIndex (TableIndex);
-  Symtab    = (UINT8 *)mEhdr + TableShdr->sh_offset;
-
-  return (Elf_Sym *)(Symtab + SymbolIndex * TableShdr->sh_entsize);
-}
-
 static
 char *
 GetString (
@@ -292,25 +277,6 @@ ParseElfFile (
   }
 
   return RETURN_SUCCESS;
-}
-
-UINT32
-GetValue (
-  IN UINT64 Offset
-  )
-{
-  UINT32 Index;
-
-  for (Index = 0; Index < mImageInfo.SegmentInfo.NumSegments; ++Index) {
-    if ((Offset >= mImageInfo.SegmentInfo.Segments[Index].ImageAddress)
-      && (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress < mImageInfo.SegmentInfo.Segments[Index].ImageSize)) {
-      return ReadUnaligned32 (
-        (UINT32 *)(mImageInfo.SegmentInfo.Segments[Index].Data + (Offset - mImageInfo.SegmentInfo.Segments[Index].ImageAddress))
-        );
-    }
-  }
-
-  return 0;
 }
 
 static
