@@ -548,39 +548,6 @@
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff
         ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff
 
-[Masm16-Code-File]
-    <InputFile>
-        ?.asm16, ?.Asm16, ?.ASM16, ?.s16, ?.S16
-
-    <ExtraDependency>
-        $(MAKE_FILE)
-
-    <OutputFile>
-        $(OUTPUT_DIR)(+)${s_base}.com
-
-    <Command.MSFT, Command.INTEL>
-        Trim --asm-file -o ${d_path}(+)${s_base}.i -i $(INC_LIST) ${src}
-        "$(PP)" $(DEPS_FLAGS) $(PP_FLAGS) $(INC) ${src} > ${d_path}(+)${s_base}.ii
-        Trim --source-code --convert-hex --trim-long -o ${d_path}(+)${s_base}.iii ${d_path}(+)${s_base}.ii
-        cd $(OUTPUT_DIR)(+)${s_dir}
-        "$(ASM16)" /nologo /c /omf $(ASM16_FLAGS) $(INC) /Fo$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj ${d_path}(+)${s_base}.iii
-        "$(ASMLINK)" $(ASMLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj,${dst},,,,
-
-    <Command.GCC>
-      Trim --asm-file -o {d_path}(+)${s_base}.i -i $(INC_LIST) ${src}
-      "$(PP)" $(DEPS_FLAGS) $(PP_FLAGS) $(INC) ${src} > ${d_path}(+)${s_base}.ii
-      Trim --source-code -o ${d_path}(+)${s_base}.iii ${d_path}(+)${s_base}.ii
-      "$(ASM)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASM_FLAGS) $(INC) ${d_path}(+)${s_base}.iii
-      "$(DLINK)" -o ${dst} $(DLINK_FLAGS) --start-group $(DLINK_SPATH) $(LIBS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj --end-group
-
-    <Command.XCODE>
-      Trim --asm-file -o ${d_path}(+)${s_base}.i -i $(INC_LIST) ${src}
-      "$(PP)" $(DEPS_FLAGS) $(PP_FLAGS) $(INC) ${src} > ${d_path}(+)${s_base}.ii
-      Trim --source-code -o ${d_path}(+)${s_base}.iii ${d_path}(+)${s_base}.ii
-      "$(ASM)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASM_FLAGS) $(INC) ${d_path}(+)${s_base}.iii
-      "$(SLINK)" $(SLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.slib $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-      otool -t $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.slib | hex2bin.py ${dst}
-
 
 [Nasm-to-Binary-Code-File]
     <InputFile>
@@ -597,7 +564,7 @@
         "$(PP)" $(DEPS_FLAGS) $(PP_FLAGS) $(INC) ${src} > ${d_path}(+)${s_base}.ii
         Trim --source-code --convert-hex -o ${d_path}(+)${s_base}.iii ${d_path}(+)${s_base}.ii
         "$(NASM)" -I${s_path}(+) -l ${d_path}(+)${s_base}.lst $(NASMB_FLAGS) $(NASM_INC) -o $dst ${d_path}(+)${s_base}.iii
-        # copy the output file with .com postfix that be same to the output file of .asm16
+        # copy the output file with .com postfix that be same to the output file of .nasmb
         $(CP) ${dst} $(OUTPUT_DIR)(+)${s_base}.com
 
 [Microcode-File.USER_DEFINED, Microcode-File.Microcode]
