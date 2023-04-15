@@ -631,7 +631,6 @@ CreateIntermediate (
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = false;
       Segments[SIndex].Execute      = true;
-      Segments[SIndex].Type         = ToolImageSectionTypeCode;
       ++SIndex;
       continue;
     } else if (IsDataShdr (Shdr)) {
@@ -665,7 +664,6 @@ CreateIntermediate (
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = true;
       Segments[SIndex].Execute      = false;
-      Segments[SIndex].Type         = ToolImageSectionTypeInitialisedData;
       ++SIndex;
       continue;
     } else if (IsHiiRsrcShdr (Shdr)) {

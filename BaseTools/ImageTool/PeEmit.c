@@ -275,20 +275,7 @@ ToolImageEmitPeSectionHeaders (
   assert (SectionHeadersSize <= *BufferSize);
 
   for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-    switch (Image->SegmentInfo.Segments[Index].Type) {
-      case ToolImageSectionTypeCode:
-        Sections[Index].Characteristics = EFI_IMAGE_SCN_CNT_CODE;
-        break;
-      case ToolImageSectionTypeInitialisedData:
-        Sections[Index].Characteristics = EFI_IMAGE_SCN_CNT_INITIALIZED_DATA;
-        break;
-      case ToolImageSectionTypeUninitialisedData:
-        Sections[Index].Characteristics = EFI_IMAGE_SCN_CNT_UNINITIALIZED_DATA;
-        break;
-      default:
-        assert (false);
-        break;
-    }
+    assert (Sections[Index].Characteristics == 0);
 
     if (Image->SegmentInfo.Segments[Index].Read) {
       Sections[Index].Characteristics |= EFI_IMAGE_SCN_MEM_READ;
@@ -299,7 +286,9 @@ ToolImageEmitPeSectionHeaders (
     }
 
     if (Image->SegmentInfo.Segments[Index].Execute) {
-      Sections[Index].Characteristics |= EFI_IMAGE_SCN_MEM_EXECUTE;
+      Sections[Index].Characteristics |= EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_CNT_CODE;
+    } else {
+      Sections[Index].Characteristics |= EFI_IMAGE_SCN_CNT_INITIALIZED_DATA;
     }
 
     Sections[Index].PointerToRawData = SectionOffset;
@@ -547,15 +536,18 @@ ToolImageEmitPeSections (
 
     Context->PeHdr->SizeOfImage += Segment->ImageSize;
 
-    if (FirstCode && (Segment->Type == ToolImageSectionTypeCode)) {
-      Context->PeHdr->BaseOfCode = (UINT32)Segment->ImageAddress;
-      FirstCode = false;
+    if (Segment->Execute) {
+      if (FirstCode) {
+        Context->PeHdr->BaseOfCode = (UINT32)Segment->ImageAddress;
+        FirstCode = false;
+      }
     }
-
 #if defined(EFI_TARGET32)
-    if (FirstData && (Segment->Type == ToolImageSectionTypeInitialisedData)) {
-      Context->PeHdr->BaseOfData = (UINT32)Segment->ImageAddress;
-      FirstData = false;
+    else {
+      if (FirstData) {
+        Context->PeHdr->BaseOfData = (UINT32)Segment->ImageAddress;
+        FirstData = false;
+      }
     }
 #endif
 
@@ -578,23 +570,14 @@ ToolImageEmitPeSections (
     *Buffer      += SectionPadding;
     SectionsSize += SectionPadding;
 
-    switch (Segment->Type) {
-      case ToolImageSectionTypeCode:
-        Context->PeHdr->BaseOfCode = MIN(Context->PeHdr->BaseOfCode, (UINT32)Segment->ImageAddress);
-        Context->PeHdr->SizeOfCode += Segment->ImageSize;
-        break;
-      case ToolImageSectionTypeInitialisedData:
+    if (Segment->Execute) {
+      Context->PeHdr->BaseOfCode = MIN(Context->PeHdr->BaseOfCode, (UINT32)Segment->ImageAddress);
+      Context->PeHdr->SizeOfCode += Segment->ImageSize;
+    } else {
 #if defined(EFI_TARGET32)
-        Context->PeHdr->BaseOfData = MIN(Context->PeHdr->BaseOfData, (UINT32)Segment->ImageAddress);
+      Context->PeHdr->BaseOfData = MIN(Context->PeHdr->BaseOfData, (UINT32)Segment->ImageAddress);
 #endif
-        Context->PeHdr->SizeOfInitializedData += Segment->ImageSize;
-        break;
-      case ToolImageSectionTypeUninitialisedData:
-        Context->PeHdr->SizeOfUninitializedData += Segment->ImageSize;
-        break;
-      default:
-        assert (false);
-        break;
+      Context->PeHdr->SizeOfInitializedData += Segment->ImageSize;
     }
   }
 

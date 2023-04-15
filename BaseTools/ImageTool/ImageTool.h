@@ -82,12 +82,6 @@ typedef struct {
   bool     IsXip;
 } image_tool_header_info_t;
 
-typedef enum {
-  ToolImageSectionTypeCode,
-  ToolImageSectionTypeInitialisedData,
-  ToolImageSectionTypeUninitialisedData
-} image_tool_type_t;
-
 typedef struct {
   char     *Name;
   uint8_t  *Data;
@@ -97,7 +91,6 @@ typedef struct {
   bool     Read;
   bool     Write;
   bool     Execute;
-  image_tool_type_t Type;
 } image_tool_segment_t;
 
 typedef struct {
