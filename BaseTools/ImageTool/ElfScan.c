@@ -5,9 +5,10 @@
 
 #include "ImageTool.h"
 
-static Elf_Ehdr  *mEhdr       = NULL;
-static Elf_Size  mPeAlignment = 0x0;
-static Elf_Addr  mBaseAddress = 0x0;
+static Elf_Ehdr  *mEhdr        = NULL;
+static Elf_Size  mPeAlignment  = 0x0;
+static Elf_Addr  mBaseAddress  = 0x0;
+static bool      mHasPieRelocs = FALSE;
 
 #if defined (_MSC_EXTENSIONS)
 #define EFI_IMAGE_MACHINE_IA32            0x014C
@@ -228,6 +229,10 @@ ParseElfFile (
         fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
         return RETURN_VOLUME_CORRUPTED;
       }
+
+      if (Shdr->sh_info == 0) {
+        mHasPieRelocs = TRUE;
+      }
     }
 
     if (Shdr->sh_addr < mBaseAddress) {
@@ -269,6 +274,38 @@ ParseElfFile (
 }
 
 static
+bool
+ProcessRelocSection (
+  const Elf_Shdr  *Shdr
+  )
+{
+  const Elf_Shdr  *SecShdr;
+  //
+  // PIE relocations will target dummy section 0.
+  //
+  if (Shdr->sh_info != 0) {
+    //
+    // If PIE relocations exist, prefer them.
+    //
+    if (mHasPieRelocs) {
+      return FALSE;
+    }
+    //
+    // Only translate relocations targetting sections that are translated.
+    //
+    SecShdr = GetShdrByIndex (Shdr->sh_info);
+
+    if (!IsShdrLoadable (SecShdr)) {
+      return FALSE;
+    }
+  } else {
+    assert (mHasPieRelocs);
+  }
+
+  return TRUE;
+}
+
+static
 RETURN_STATUS
 SetRelocs (
   VOID
@@ -276,14 +313,9 @@ SetRelocs (
 {
   UINT32         Index;
   const Elf_Shdr *RelShdr;
-  const Elf_Shdr *SecShdr;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
   UINT32         RelNum;
-#if defined(EFI_TARGET64)
-  UINT32         Index2;
-  BOOLEAN        New;
-#endif
   RelNum = 0;
 
   for (Index = 0; Index < mEhdr->e_shnum; Index++) {
@@ -293,18 +325,8 @@ SetRelocs (
       continue;
     }
 
-    //
-    // PIE relocations will target dummy section 0.
-    //
-    if (RelShdr->sh_info != 0) {
-      //
-      // Only translate relocations targetting sections that are translated.
-      //
-      SecShdr = GetShdrByIndex (RelShdr->sh_info);
-
-      if (!IsShdrLoadable (SecShdr)) {
-        continue;
-      }
+    if (!ProcessRelocSection (RelShdr)) {
+      continue;
     }
 
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
@@ -321,28 +343,9 @@ SetRelocs (
             break;
           case R_X86_64_RELATIVE:
           case R_X86_64_64:
-            //
-            // If this is a ET_DYN (PIE) executable, we will encounter a dynamic SHT_RELA
-            // section that applies to the entire binary, and which will have its section
-            // index set to #0 (which is a NULL section with the SHF_ALLOC bit cleared).
-            //
-            // This RELA section will contain redundant R_xxx_RELATIVE relocations, one
-            // for every R_xxx_xx64 relocation appearing in the per-section RELA sections.
-            // (i.e., .rela.text and .rela.data) and .got entries' addresses (G + GOT).
-            //
-            New = TRUE;
-
-            for (Index2 = 0; Index2 < RelNum; ++Index2) {
-              if (((uint32_t)Rel->r_offset) == mBaseAddress + mImageInfo.RelocInfo.Relocs[Index2].Target) {
-                New = FALSE;
-              }
-            }
-
-            if (New) {
-              mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
-              ++RelNum;
-            }
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            ++RelNum;
 
             break;
           case R_X86_64_32:
@@ -404,19 +407,9 @@ SetRelocs (
             break;
           case R_AARCH64_ABS64:
           case R_AARCH64_RELATIVE:
-            New = TRUE;
-
-            for (Index2 = 0; Index2 < RelNum; ++Index2) {
-              if (((uint32_t)Rel->r_offset) == mBaseAddress + mImageInfo.RelocInfo.Relocs[Index2].Target) {
-                New = FALSE;
-              }
-            }
-
-            if (New) {
-              mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
-              ++RelNum;
-            }
+            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            ++RelNum;
 
             break;
           case R_AARCH64_ABS32:
@@ -540,11 +533,16 @@ CreateIntermediate (
         return RETURN_VOLUME_CORRUPTED;
       }
 
+      if (!ProcessRelocSection (Shdr)) {
+        continue;
+      }
+
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
 #if defined(EFI_TARGET64)
         if (mEhdr->e_machine == EM_X86_64) {
-          if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
+          if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_RELATIVE)
+            || (ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCREL)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_GOTPCRELX)
