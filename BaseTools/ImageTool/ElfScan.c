@@ -61,19 +61,6 @@ GetString (
 
 static
 BOOLEAN
-IsTextShdr (
-  IN const Elf_Shdr *Shdr
-  )
-{
-  assert (Shdr != NULL);
-
-  return ((((Shdr->sh_flags & (SHF_EXECINSTR | SHF_ALLOC)) == (SHF_EXECINSTR | SHF_ALLOC)) ||
-          ((Shdr->sh_flags & (SHF_WRITE | SHF_ALLOC)) == SHF_ALLOC))
-           && (Shdr->sh_type == SHT_PROGBITS));
-}
-
-static
-BOOLEAN
 IsHiiRsrcShdr (
   IN const Elf_Shdr *Shdr
   )
@@ -87,18 +74,13 @@ IsHiiRsrcShdr (
 
 static
 BOOLEAN
-IsDataShdr (
+IsShdrLoadable (
   IN const Elf_Shdr *Shdr
   )
 {
   assert (Shdr != NULL);
 
-  if (IsHiiRsrcShdr (Shdr)) {
-    return FALSE;
-  }
-
-  return (((Shdr->sh_flags & (SHF_EXECINSTR | SHF_WRITE | SHF_ALLOC)) == (SHF_ALLOC | SHF_WRITE))
-           && ((Shdr->sh_type == SHT_PROGBITS) || (Shdr->sh_type == SHT_NOBITS)));
+  return (Shdr->sh_flags & SHF_ALLOC) != 0 && !IsHiiRsrcShdr (Shdr);
 }
 
 static
@@ -241,21 +223,22 @@ ParseElfFile (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    if (((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL))
-      && (Shdr->sh_info >= mEhdr->e_shnum)) {
-      fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
-      return RETURN_VOLUME_CORRUPTED;
+    if ((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL)) {
+      if (Shdr->sh_info >= mEhdr->e_shnum) {
+        fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
+        return RETURN_VOLUME_CORRUPTED;
+      }
     }
 
     if (Shdr->sh_addr < mBaseAddress) {
       mBaseAddress = Shdr->sh_addr;
     }
 
-    if (Shdr->sh_addralign <= mPeAlignment) {
+    if (!IsShdrLoadable (Shdr)) {
       continue;
     }
 
-    if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr)) || (IsHiiRsrcShdr (Shdr))) {
+    if (mPeAlignment < Shdr->sh_addralign) {
       mPeAlignment = Shdr->sh_addralign;
     }
   }
@@ -293,6 +276,7 @@ SetRelocs (
 {
   UINT32         Index;
   const Elf_Shdr *RelShdr;
+  const Elf_Shdr *SecShdr;
   UINTN          RelIdx;
   const Elf_Rela *Rel;
   UINT32         RelNum;
@@ -307,6 +291,20 @@ SetRelocs (
 
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
+    }
+
+    //
+    // PIE relocations will target dummy section 0.
+    //
+    if (RelShdr->sh_info != 0) {
+      //
+      // Only translate relocations targetting sections that are translated.
+      //
+      SecShdr = GetShdrByIndex (RelShdr->sh_info);
+
+      if (!IsShdrLoadable (SecShdr)) {
+        continue;
+      }
     }
 
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
@@ -536,12 +534,11 @@ CreateIntermediate (
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
-    if ((IsTextShdr (Shdr)) || (IsDataShdr (Shdr))) {
-      ++mImageInfo.SegmentInfo.NumSegments;
-      continue;
-    }
-
     if ((Shdr->sh_type == SHT_REL) || (Shdr->sh_type == SHT_RELA)) {
+      if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
+        fprintf (stderr, "ImageTool: Loadable reloc sections are unsupported\n");
+        return RETURN_VOLUME_CORRUPTED;
+      }
 
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
@@ -574,10 +571,16 @@ CreateIntermediate (
 #endif
       }
     }
+
+    if (!IsShdrLoadable (Shdr)) {
+      continue;
+    }
+
+    ++mImageInfo.SegmentInfo.NumSegments;
   }
 
   if (mImageInfo.SegmentInfo.NumSegments == 0) {
-    fprintf (stderr, "ImageTool: No .text or .data sections\n");
+    fprintf (stderr, "ImageTool: No loadable sections\n");
     return RETURN_VOLUME_CORRUPTED;
   }
 
@@ -602,38 +605,30 @@ CreateIntermediate (
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Shdr = GetShdrByIndex (Index);
 
-    if (IsTextShdr (Shdr)) {
-      Name = GetString (Shdr->sh_name, 0);
-      if (Name == NULL) {
-        return RETURN_VOLUME_CORRUPTED;
-      }
-
-      Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
-      if (Segments[SIndex].Name == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", SIndex);
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      memcpy (Segments[SIndex].Name, Name, strlen (Name));
-
-      Segments[SIndex].DataSize = (uint32_t)ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
-
-      Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
-      if (Segments[SIndex].Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", SIndex);
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
-
-      Segments[SIndex].ImageAddress = Shdr->sh_addr - mBaseAddress;
-      Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
-      Segments[SIndex].Read         = true;
-      Segments[SIndex].Write        = false;
-      Segments[SIndex].Execute      = true;
-      ++SIndex;
+    if ((Shdr->sh_flags & SHF_ALLOC) == 0) {
       continue;
-    } else if (IsDataShdr (Shdr)) {
+    }
+
+    if (Shdr->sh_type != SHT_PROGBITS && Shdr->sh_type != SHT_NOBITS) {
+      fprintf (stderr, "ImageTool: Segment #%d type %x unsupported\n", Index, Shdr->sh_type);
+      return RETURN_VOLUME_CORRUPTED;
+    }
+
+    if (IsHiiRsrcShdr (Shdr)) {
+      mImageInfo.HiiInfo.DataSize = (uint32_t)Shdr->sh_size;
+
+      mImageInfo.HiiInfo.Data = calloc (1, mImageInfo.HiiInfo.DataSize);
+      if (mImageInfo.HiiInfo.Data == NULL) {
+        fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
+        return RETURN_OUT_OF_RESOURCES;
+      };
+
+      if (Shdr->sh_type == SHT_PROGBITS) {
+        memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, mImageInfo.HiiInfo.DataSize);
+      }
+
+      SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - mBaseAddress));
+    } else {
       Name = GetString (Shdr->sh_name, 0);
       if (Name == NULL) {
         return RETURN_VOLUME_CORRUPTED;
@@ -641,7 +636,7 @@ CreateIntermediate (
 
       Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
       if (Segments[SIndex].Name == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", SIndex);
+        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", Index);
         return RETURN_OUT_OF_RESOURCES;
       };
 
@@ -651,7 +646,7 @@ CreateIntermediate (
 
       Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
       if (Segments[SIndex].Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", SIndex);
+        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
         return RETURN_OUT_OF_RESOURCES;
       };
 
@@ -662,26 +657,9 @@ CreateIntermediate (
       Segments[SIndex].ImageAddress = Shdr->sh_addr - mBaseAddress;
       Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
-      Segments[SIndex].Write        = true;
-      Segments[SIndex].Execute      = false;
+      Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
+      Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
       ++SIndex;
-      continue;
-    } else if (IsHiiRsrcShdr (Shdr)) {
-      mImageInfo.HiiInfo.DataSize = (uint32_t)ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
-
-      mImageInfo.HiiInfo.Data = calloc (1, mImageInfo.HiiInfo.DataSize);
-      if (mImageInfo.HiiInfo.Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
-        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - mBaseAddress));
-      }
-    } else if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
-      fprintf (stderr, "ImageTool: Unknown SHF_ALLOC Section %d\n", SIndex);
-      return RETURN_UNSUPPORTED;
     }
   }
 
