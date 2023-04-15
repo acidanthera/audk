@@ -754,7 +754,7 @@ DEFINE GCC_DEPS_FLAGS              = -MMD -MF $@.deps
 DEFINE GCC5_ALL_CC_FLAGS             = DEF(GCC_ALL_CC_FLAGS) -ffunction-sections -fdata-sections -DSTRING_ARRAY_NAME=$(BASE_NAME)Strings
 DEFINE GCC5_IA32_CC_FLAGS            = DEF(GCC5_ALL_CC_FLAGS) -m32 -march=i586 -malign-double -fno-stack-protector -D EFI32 -fno-asynchronous-unwind-tables -Wno-address -fno-pic -fno-pie
 DEFINE GCC5_X64_CC_FLAGS             = DEF(GCC5_ALL_CC_FLAGS) -m64 -fno-stack-protector "-DEFIAPI=__attribute__((ms_abi))" -maccumulate-outgoing-args -mno-red-zone -Wno-address -mcmodel=small -fpie -fno-asynchronous-unwind-tables -Wno-address
-DEFINE GCC5_IA32_X64_DLINK_COMMON    = -nostdlib -Wl,-n,-q,--gc-sections DEF(GCC_ALIGN)
+DEFINE GCC5_IA32_X64_DLINK_COMMON    = -nostdlib -Wl,-n,--gc-sections DEF(GCC_ALIGN)
 DEFINE GCC5_IA32_X64_ASLDLINK_FLAGS  = DEF(GCC5_IA32_X64_DLINK_COMMON) DEF(GCC_DLINK2_FLAGS_COMMON) -Wl,--entry,ReferenceAcpiTable -u ReferenceAcpiTable
 DEFINE GCC5_IA32_X64_DLINK_FLAGS     = DEF(GCC5_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map,--whole-archive
 DEFINE GCC5_IA32_DLINK2_FLAGS        = DEF(GCC_DLINK2_FLAGS_COMMON) -Wno-error
@@ -835,20 +835,20 @@ DEFINE GCC_PP_FLAGS                        = -E -x assembler-with-cpp -include A
 *_GCC5_IA32_RC_PATH              = DEF(GCC5_IA32_PREFIX)objcopy
 
 *_GCC5_IA32_ASLCC_FLAGS          = DEF(GCC5_ASLCC_FLAGS) -m32
-*_GCC5_IA32_ASLDLINK_FLAGS       = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_i386 -no-pie
+*_GCC5_IA32_ASLDLINK_FLAGS       = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-q,-m,elf_i386 -no-pie
 *_GCC5_IA32_ASM_FLAGS            = DEF(GCC5_ASM_FLAGS) -m32 -march=i386
 *_GCC5_IA32_DLINK2_FLAGS         = DEF(GCC5_IA32_DLINK2_FLAGS) -no-pie
 *_GCC5_IA32_RC_FLAGS             = DEF(GCC_IA32_RC_FLAGS)
 *_GCC5_IA32_NASM_FLAGS           = -f elf32 -DRODATA_SECTION_NAME=.rodata
 
   DEBUG_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os
-  DEBUG_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-m,elf_i386,--oformat=elf32-i386
+  DEBUG_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
 RELEASE_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-m,elf_i386,--oformat=elf32-i386
+RELEASE_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
   NOOPT_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -O0
-  NOOPT_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-m,elf_i386,--oformat=elf32-i386 -O0
+  NOOPT_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i386,--oformat=elf32-i386 -O0
 
 ##################
 # GCC5 X64 definitions
@@ -1138,7 +1138,7 @@ DEFINE CLANGDWARF_ARM_TARGET        = -target arm-linux-gnueabi
 DEFINE CLANGDWARF_AARCH64_TARGET    = -target aarch64-linux-gnu
 
 # LLVM/CLANG doesn't support -n link option. So, it can't share the same IA32_X64_DLINK_COMMON flag.
-DEFINE CLANGDWARF_IA32_X64_DLINK_COMMON   = -nostdlib -Wl,-q,--gc-sections DEF(GCC_ALIGN) -Wl,-z,notext,--defsym=ALIGNED_PE_HEADER_SIZE=0x400 DEF(DLINK_SCRIPT)
+DEFINE CLANGDWARF_IA32_X64_DLINK_COMMON   = -nostdlib -Wl,--gc-sections DEF(GCC_ALIGN) -Wl,-z,notext,--defsym=ALIGNED_PE_HEADER_SIZE=0x400 DEF(DLINK_SCRIPT)
 DEFINE CLANGDWARF_IA32_X64_ASLDLINK_FLAGS = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,ReferenceAcpiTable -u ReferenceAcpiTable
 DEFINE CLANGDWARF_IA32_X64_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map,--whole-archive
 DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
@@ -1159,7 +1159,7 @@ DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
 *_CLANGDWARF_IA32_RC_PATH              = DEF(CLANGDWARF_IA32_PREFIX)llvm-objcopy
 
 *_CLANGDWARF_IA32_ASLCC_FLAGS          = DEF(GCC_ASLCC_FLAGS) -m32 -fno-lto DEF(CLANGDWARF_IA32_TARGET)
-*_CLANGDWARF_IA32_ASLDLINK_FLAGS       = DEF(CLANGDWARF_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_i386 -fuse-ld=lld -no-pie
+*_CLANGDWARF_IA32_ASLDLINK_FLAGS       = DEF(CLANGDWARF_IA32_X64_ASLDLINK_FLAGS) -Wl,-q,-m,elf_i386 -fuse-ld=lld -no-pie
 *_CLANGDWARF_IA32_ASM_FLAGS            = DEF(GCC5_ASM_FLAGS) -m32 -march=i386 DEF(CLANGDWARF_IA32_TARGET)
 *_CLANGDWARF_IA32_RC_FLAGS             = DEF(GCC_IA32_RC_FLAGS)
 *_CLANGDWARF_IA32_NASM_FLAGS           = -f elf32 -DRODATA_SECTION_NAME=.rodata
@@ -1168,15 +1168,15 @@ DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
 *_CLANGDWARF_IA32_VFRPP_FLAGS          = DEF(GCC_VFRPP_FLAGS) DEF(CLANGDWARF_IA32_TARGET)
 
 DEBUG_CLANGDWARF_IA32_CC_FLAGS         = DEF(CLANGDWARF_ALL_CC_FLAGS) -m32 -malign-double -Oz -flto -march=i586 DEF(CLANGDWARF_IA32_TARGET) -g -fno-pic -fno-pie
-DEBUG_CLANGDWARF_IA32_DLINK_FLAGS      = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -flto -Wl,-O3 -Wl,-melf_i386 -Wl,--oformat,elf32-i386
+DEBUG_CLANGDWARF_IA32_DLINK_FLAGS      = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -flto -Wl,-q,-O3 -Wl,-melf_i386 -Wl,--oformat,elf32-i386
 DEBUG_CLANGDWARF_IA32_DLINK2_FLAGS     = DEF(CLANGDWARF_IA32_DLINK2_FLAGS) -O3 -fuse-ld=lld
 
 RELEASE_CLANGDWARF_IA32_CC_FLAGS       = DEF(CLANGDWARF_ALL_CC_FLAGS) -m32 -malign-double -Oz -flto -march=i586 DEF(CLANGDWARF_IA32_TARGET) -fno-pic -fno-pie
-RELEASE_CLANGDWARF_IA32_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -flto -Wl,-O3 -Wl,-melf_i386 -Wl,--oformat,elf32-i386
+RELEASE_CLANGDWARF_IA32_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -flto -Wl,-q,-O3 -Wl,-melf_i386 -Wl,--oformat,elf32-i386
 RELEASE_CLANGDWARF_IA32_DLINK2_FLAGS   = DEF(CLANGDWARF_IA32_DLINK2_FLAGS) -O3 -fuse-ld=lld
 
 NOOPT_CLANGDWARF_IA32_CC_FLAGS         = DEF(CLANGDWARF_ALL_CC_FLAGS) -m32 -malign-double -O0 -march=i586 DEF(CLANGDWARF_IA32_TARGET) -g -fno-pic -fno-pie
-NOOPT_CLANGDWARF_IA32_DLINK_FLAGS      = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -Wl,-O0 -Wl,-melf_i386 -Wl,--oformat,elf32-i386
+NOOPT_CLANGDWARF_IA32_DLINK_FLAGS      = DEF(CLANGDWARF_IA32_X64_DLINK_FLAGS) -Wl,-O0 -Wl,-q,-melf_i386 -Wl,--oformat,elf32-i386
 NOOPT_CLANGDWARF_IA32_DLINK2_FLAGS     = DEF(CLANGDWARF_IA32_DLINK2_FLAGS) -O0 -fuse-ld=lld
 
 ###########################
