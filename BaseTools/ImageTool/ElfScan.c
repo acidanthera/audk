@@ -7,6 +7,7 @@
 
 static Elf_Ehdr  *mEhdr       = NULL;
 static Elf_Size  mPeAlignment = 0x0;
+static Elf_Addr  mBaseAddress = 0x0;
 
 #if defined (_MSC_EXTENSIONS)
 #define EFI_IMAGE_MACHINE_IA32            0x014C
@@ -218,6 +219,7 @@ ParseElfFile (
   //
   // Check section headers
   //
+  mBaseAddress = ~(Elf_Addr)0;
   for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
     Offset = (UINTN)mEhdr->e_shoff + Index * mEhdr->e_shentsize;
 
@@ -243,6 +245,10 @@ ParseElfFile (
       && (Shdr->sh_info >= mEhdr->e_shnum)) {
       fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
       return RETURN_VOLUME_CORRUPTED;
+    }
+
+    if (Shdr->sh_addr < mBaseAddress) {
+      mBaseAddress = Shdr->sh_addr;
     }
 
     if (Shdr->sh_addralign <= mPeAlignment) {
@@ -329,14 +335,14 @@ SetRelocs (
             New = TRUE;
 
             for (Index2 = 0; Index2 < RelNum; ++Index2) {
-              if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+              if (((uint32_t)Rel->r_offset) == mBaseAddress + mImageInfo.RelocInfo.Relocs[Index2].Target) {
                 New = FALSE;
               }
             }
 
             if (New) {
               mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
               ++RelNum;
             }
 
@@ -344,7 +350,7 @@ SetRelocs (
           case R_X86_64_32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
             ++RelNum;
 
             break;
@@ -403,14 +409,14 @@ SetRelocs (
             New = TRUE;
 
             for (Index2 = 0; Index2 < RelNum; ++Index2) {
-              if (((uint32_t)Rel->r_offset) == mImageInfo.RelocInfo.Relocs[Index2].Target) {
+              if (((uint32_t)Rel->r_offset) == mBaseAddress + mImageInfo.RelocInfo.Relocs[Index2].Target) {
                 New = FALSE;
               }
             }
 
             if (New) {
               mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+              mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
               ++RelNum;
             }
 
@@ -418,7 +424,7 @@ SetRelocs (
           case R_AARCH64_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)Rel->r_offset;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
             ++RelNum;
 
             break;
@@ -435,7 +441,7 @@ SetRelocs (
           case R_386_32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - mBaseAddress);
             ++RelNum;
 
             break;
@@ -488,7 +494,7 @@ SetRelocs (
           case R_ARM_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = Rel->r_offset;
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - mBaseAddress);
             ++RelNum;
 
             break;
@@ -620,7 +626,7 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
 
-      Segments[SIndex].ImageAddress = Shdr->sh_addr;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr - mBaseAddress;
       Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = false;
@@ -654,7 +660,7 @@ CreateIntermediate (
         memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
       }
 
-      Segments[SIndex].ImageAddress = Shdr->sh_addr;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr - mBaseAddress;
       Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = true;
@@ -673,7 +679,7 @@ CreateIntermediate (
 
       if (Shdr->sh_type == SHT_PROGBITS) {
         memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
-        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)Shdr->sh_addr);
+        SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - mBaseAddress));
       }
     } else if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
       fprintf (stderr, "ImageTool: Unknown SHF_ALLOC Section %d\n", SIndex);
@@ -704,8 +710,8 @@ ScanElf (
 
   memset (&mImageInfo, 0, sizeof (mImageInfo));
 
-  mImageInfo.HeaderInfo.BaseAddress       = 0;
-  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)mEhdr->e_entry;
+  mImageInfo.HeaderInfo.BaseAddress       = mBaseAddress;
+  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)(mEhdr->e_entry - mBaseAddress);
   mImageInfo.HeaderInfo.IsXip             = true;
   mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
