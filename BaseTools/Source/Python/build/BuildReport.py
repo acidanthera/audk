@@ -507,8 +507,6 @@ class BuildFlagsReport(object):
                 BuildOptions["ASLCC"] = 1
                 BuildOptions["ASLDLINK"] = 1
                 BuildOptions["CC"] = 1
-            elif Ext in [".asm16"]:
-                BuildOptions["ASMLINK"] = 1
             BuildOptions["SLINK"] = 1
             BuildOptions["DLINK"] = 1
 
