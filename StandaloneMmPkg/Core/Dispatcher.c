@@ -292,7 +292,7 @@ MmLoadImage (
     return Status;
   }
 
-  ImageSize      = UefiImageGetImageSize (&ImageContext, &ImageSize);
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
   DstBufferPages = EFI_SIZE_TO_PAGES (ImageSize);
   DstBufferSize  = EFI_PAGES_TO_SIZE (DstBufferPages);
   ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
@@ -305,7 +305,7 @@ MmLoadImage (
   //
   // Load the image to our new buffer
   //
-  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *) (UINTN) DstBuffer, DstBufferSize, NULL, 0);
+  Status = UefiImageLoadImageForExecution (&ImageContext, DstBuffer, DstBufferSize, NULL, 0);
   if (EFI_ERROR (Status)) {
     FreeAlignedPages (DstBuffer, DstBufferPages);
     return Status;
@@ -369,7 +369,7 @@ MmLoadImage (
   DEBUG ((
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)ImageBase,
+    DstBuffer,
     FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (&ImageContext))
     ));
 
