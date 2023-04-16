@@ -20,47 +20,7 @@
 #include <Library/BaseOverflowLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <UserFile.h>
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/ElfCommon.h"
 
-#undef ELF_R_TYPE
-#undef ELF_R_SYM
-
-#ifdef EFI_TARGET32
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf32.h"
-
-#define EFI_IMAGE_NT_HEADERS             EFI_IMAGE_NT_HEADERS32
-#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC
-#define EFI_IMAGE_FILE_MACHINE           EFI_IMAGE_FILE_32BIT_MACHINE
-#define ELFCLASS                         ELFCLASS32
-#define Elf_Ehdr                         Elf32_Ehdr
-#define Elf_Shdr                         Elf32_Shdr
-#define Elf_Sym                          Elf32_Sym
-#define Elf_Rel                          Elf32_Rel
-#define Elf_Rela                         Elf32_Rela
-#define Elf_Size                         Elf32_Size
-#define Elf_Addr                         Elf32_Addr
-#define ELF_R_TYPE                       ELF32_R_TYPE
-#define ELF_R_SYM                        ELF32_R_SYM
-
-#elif defined(EFI_TARGET64)
-#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf64.h"
-
-#define EFI_IMAGE_NT_HEADERS             EFI_IMAGE_NT_HEADERS64
-#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC
-#define EFI_IMAGE_FILE_MACHINE           0
-#define ELFCLASS                         ELFCLASS64
-#define Elf_Ehdr                         Elf64_Ehdr
-#define Elf_Shdr                         Elf64_Shdr
-#define Elf_Sym                          Elf64_Sym
-#define Elf_Rel                          Elf64_Rel
-#define Elf_Rela                         Elf64_Rela
-#define Elf_Size                         Elf64_Size
-#define Elf_Addr                         Elf64_Addr
-#define ELF_R_TYPE                       ELF64_R_TYPE
-#define ELF_R_SYM                        ELF64_R_SYM
-#endif
-
-#define ELF_HII_SECTION_NAME ".hii"
 #define MAX_PE_ALIGNMENT     0x10000
 
 #define raise() assert(false)

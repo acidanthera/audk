@@ -13,13 +13,13 @@ APP = ImageTool
 OC_USER  = ..\..\OpenCorePkg
 UDK_PATH = $(EDK2_PATH)
 UDK_ARCH = $(HOST_ARCH)
-OUT_DIR  = .\Windows_$(INFIX)
+OUT_DIR  = .\Windows
 
 OV = $(UDK_PATH)\MdePkg\Library\BaseOverflowLib
 PE = $(UDK_PATH)\MdePkg\Library\BasePeCoffLib2
 UA = $(UDK_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull
 
-OBJECTS = ImageTool.obj Image.obj PeEmit.obj PeScan.obj ElfScan.obj BinEmit.obj
+OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj PeScan.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj
 OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj
 OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj
 
@@ -41,12 +41,10 @@ INC = $(INC) -I $(UDK_PATH)\MdePkg\Library\BaseLib -I $(UDK_PATH)\MdeModulePkg\I
 INC = $(INC) /FI $(OC_USER)\User\Include\UserPcd.h /FI $(UDK_PATH)\MdePkg\Include\Base.h /FI $(OC_USER)\User\Include\UserGlobalVar.h
 
 all:
-	-if not exist $(OUT_DIR)64 mkdir $(OUT_DIR)64
-	$(MAKE) $(APP)64 CFLAGS="$(CFLAGS) /D EFI_TARGET64" INFIX=64
-	-if not exist $(OUT_DIR)32 mkdir $(OUT_DIR)32
-	$(MAKE) $(APP)32 CFLAGS="$(CFLAGS) /D EFI_TARGET32" INFIX=32
+	-if not exist $(OUT_DIR) mkdir $(OUT_DIR)
+	$(MAKE) $(APP)
 
-$(APP)$(INFIX) : $(OBJECTS)
+$(APP) : $(OBJECTS)
 	-@if not exist $(BIN_PATH) mkdir $(BIN_PATH)
 	@cd $(OUT_DIR)
 	$(LD) /nologo /debug /OPT:REF /OPT:ICF=10 /incremental:no /nodefaultlib:libc.lib /out:..\$@ $(LIBS) $**
@@ -56,10 +54,10 @@ $(APP)$(INFIX) : $(OBJECTS)
 .PHONY:cleanall
 
 clean:
-	del /f /q $(OUT_DIR)32 $(OUT_DIR)64 $(APP)32 $(APP)64 *.pdb > nul
+	del /f /q $(OUT_DIR) $(APP) *.pdb > nul
 
 cleanall:
-	del /f /q $(OUT_DIR)32 $(OUT_DIR)64 *.pdb $(BIN_PATH)\$(APP)64.exe $(BIN_PATH)\$(APP)32.exe > nul
+	del /f /q $(OUT_DIR) *.pdb $(BIN_PATH)\$(APP).exe > nul
 
 .c.obj :
 	$(CC) -c $(CFLAGS) $(INC) $< -Fo$@

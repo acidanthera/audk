@@ -63,7 +63,8 @@ Rebase (
   uint32_t                     PeSize;
   UINT64                       NewBaseAddress;
   PE_COFF_LOADER_IMAGE_CONTEXT Context;
-  EFI_IMAGE_NT_HEADERS         *PeHdr;
+  EFI_IMAGE_NT_HEADERS32       *PeHdr32;
+  EFI_IMAGE_NT_HEADERS64       *PeHdr64;
 
   assert (BaseAddress != NULL);
   assert (OldName     != NULL);
@@ -74,12 +75,6 @@ Rebase (
     fprintf (stderr, "ImageTool: Could not convert ASCII string to UINT64\n");
     return Status;
   }
-#ifdef EFI_TARGET32
-  if (NewBaseAddress > MAX_UINT32) {
-    fprintf (stderr, "ImageTool: New Base Address exceeds MAX value\n");
-    return RETURN_INVALID_PARAMETER;
-  }
-#endif
 
   Pe = UserReadFile (OldName, &PeSize);
   if (Pe == NULL) {
@@ -103,12 +98,15 @@ Rebase (
     return Status;
   }
 
-  PeHdr = (EFI_IMAGE_NT_HEADERS *)(void *)((char *)Context.ImageBuffer + Context.ExeHdrOffset);
-#ifdef EFI_TARGET32
-  PeHdr->ImageBase = (UINT32)NewBaseAddress;
-#else
-  PeHdr->ImageBase = NewBaseAddress;
-#endif
+  if (Context.ImageType == PeCoffLoaderTypePe32) {
+    PeHdr32 = (EFI_IMAGE_NT_HEADERS32 *)(void *)((char *)Context.ImageBuffer + Context.ExeHdrOffset);
+    PeHdr32->ImageBase = (UINT32)NewBaseAddress;
+  } else if (Context.ImageType == PeCoffLoaderTypePe32Plus) {
+    PeHdr64 = (EFI_IMAGE_NT_HEADERS64 *)(void *)((char *)Context.ImageBuffer + Context.ExeHdrOffset);
+    PeHdr64->ImageBase = NewBaseAddress;
+  } else {
+    assert (false);
+  }
 
   UserWriteFile (NewName, Pe, PeSize);
 
