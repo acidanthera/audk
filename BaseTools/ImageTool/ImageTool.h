@@ -46,7 +46,7 @@ typedef struct {
   char     *Name;
   uint8_t  *Data;
   uint32_t DataSize;
-  uint64_t ImageAddress;
+  uint32_t ImageAddress;
   uint32_t ImageSize;
   bool     Read;
   bool     Write;
@@ -106,6 +106,12 @@ ImageShrinkSegmentData (
 bool
 ImageConvertToXip (
   image_tool_image_info_t *Image
+  );
+
+bool
+ToolImageRelocate (
+  image_tool_image_info_t *Image,
+  uint64_t                BaseAddress
   );
 
 RETURN_STATUS

@@ -41,7 +41,7 @@ CheckToolImageSegment (
   }
 
   Overflow = BaseOverflowAddU32 (
-    (uint32_t)Segment->ImageAddress,
+    Segment->ImageAddress,
     Segment->ImageSize,
     PreviousEndAddress
     );
@@ -81,7 +81,7 @@ CheckToolImageSegmentInfo (
     return false;
   }
 
-  *ImageSize = (uint32_t)SegmentInfo->Segments[0].ImageAddress;
+  *ImageSize = SegmentInfo->Segments[0].ImageAddress;
   for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
     Result = CheckToolImageSegment (
       SegmentInfo,
@@ -100,17 +100,21 @@ CheckToolImageSegmentInfo (
 static
 const image_tool_segment_t *
 ImageGetSegmentByAddress (
-  const image_tool_segment_info_t *SegmentInfo,
-  uint64_t                        Address
+  uint32_t                        *Address,
+  uint32_t                        *RemainingSize,
+  const image_tool_segment_info_t *SegmentInfo
   )
 {
-  uint64_t Index;
+  uint32_t Index;
 
+  assert (Address != NULL);
   assert (SegmentInfo != NULL);
 
   for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
-    if ((SegmentInfo->Segments[Index].ImageAddress <= Address)
-     && (Address < SegmentInfo->Segments[Index].ImageAddress + SegmentInfo->Segments[Index].ImageSize)) {
+    if ((SegmentInfo->Segments[Index].ImageAddress <= *Address)
+     && (*Address < SegmentInfo->Segments[Index].ImageAddress + SegmentInfo->Segments[Index].ImageSize)) {
+      *Address      -= SegmentInfo->Segments[Index].ImageAddress;
+      *RemainingSize = SegmentInfo->Segments[Index].ImageSize - *Address;
       return &SegmentInfo->Segments[Index];
     }
   }
@@ -122,18 +126,79 @@ static
 bool
 CheckToolImageReloc (
   const image_tool_image_info_t *Image,
+  uint32_t                      ImageSize,
   const image_tool_reloc_t      *Reloc
   )
 {
+  uint32_t                   RelocOffset;
+  uint32_t                   RemainingSize;
   const image_tool_segment_t *Segment;
+  uint16_t                   MovHigh;
+  uint16_t                   MovLow;
 
   assert (Image != NULL);
   assert (Reloc != NULL);
 
-  Segment = ImageGetSegmentByAddress (&Image->SegmentInfo, Reloc->Target);
+  RelocOffset = Reloc->Target;
+  Segment     = ImageGetSegmentByAddress (
+                  &RelocOffset,
+                  &RemainingSize,
+                  &Image->SegmentInfo
+                  );
   if (Segment == NULL) {
     raise ();
     return false;
+  }
+
+  switch (Reloc->Type) {
+    case EFI_IMAGE_REL_BASED_HIGHLOW:
+    {
+      if (RemainingSize < sizeof (UINT32)) {
+        raise ();
+        return false;
+      }
+
+      break;
+    }
+
+    case EFI_IMAGE_REL_BASED_DIR64:
+    {
+      if (RemainingSize < sizeof (UINT64)) {
+        raise ();
+        return false;
+      }
+
+      break;
+    }
+    
+    case EFI_IMAGE_REL_BASED_ARM_MOV32T:
+    {
+      if (RemainingSize < sizeof (UINT32)) {
+        raise ();
+        return false;
+      }
+
+      if (!IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16))) {
+        raise ();
+        return false;
+      }
+
+      MovHigh = *(const uint16_t *)&Segment->Data[RelocOffset];
+      MovLow  = *(const uint16_t *)&Segment->Data[RelocOffset + 2];
+      if (((MovHigh & 0xFBF0U) != 0xF200U && (MovHigh & 0xFBF0U) != 0xF2C0U) ||
+        (MovLow & 0x8000U) != 0) {
+        raise ();
+        return false;
+      }
+
+      break;
+    }
+    
+    default:
+    {
+      raise ();
+      return false;
+    }
   }
 
   /*if (Segment->Write) {
@@ -146,7 +211,8 @@ CheckToolImageReloc (
 static
 bool
 CheckToolImageRelocInfo (
-  const image_tool_image_info_t *Image
+  const image_tool_image_info_t *Image,
+  uint32_t                      ImageSize
   )
 {
   const image_tool_reloc_info_t *RelocInfo;
@@ -168,7 +234,7 @@ CheckToolImageRelocInfo (
   }
 
   for (Index = 0; Index < RelocInfo->NumRelocs; ++Index) {
-    Result = CheckToolImageReloc (Image, &RelocInfo->Relocs[Index]);
+    Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[Index]);
     if (!Result) {
       raise ();
       return false;
@@ -213,7 +279,7 @@ CheckToolImage (
     return false;
   }
 
-  Result = CheckToolImageRelocInfo (Image);
+  Result = CheckToolImageRelocInfo (Image, ImageSize);
   if (!Result) {
     raise ();
     return false;
@@ -306,4 +372,82 @@ ToolImageDestruct (
   }
 
   memset (Image, 0, sizeof (*Image));
+}
+
+bool
+ToolImageRelocate (
+  image_tool_image_info_t *Image,
+  uint64_t                BaseAddress
+  )
+{
+  uint64_t                   Adjust;
+  const image_tool_reloc_t   *Reloc;
+  uint32_t                   RelocOffset;
+  uint32_t                   RemainingSize;
+  const image_tool_segment_t *Segment;
+  uint32_t                   Index;
+  uint32_t                   RelocTarget32;
+  uint64_t                   RelocTarget64;
+
+  Adjust = BaseAddress - Image->HeaderInfo.BaseAddress;
+
+  if (Adjust == 0) {
+    return TRUE;
+  }
+
+  for (Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
+    Reloc = &Image->RelocInfo.Relocs[Index];
+
+    RelocOffset = Reloc->Target;
+    Segment = ImageGetSegmentByAddress (
+                &RelocOffset,
+                &RemainingSize,
+                &Image->SegmentInfo
+                );
+    if (Segment == NULL) {
+      raise ();
+      return false;
+    }
+
+    switch (Reloc->Type) {
+      case EFI_IMAGE_REL_BASED_HIGHLOW:
+      {
+        assert (RemainingSize >= sizeof (UINT32));
+
+        RelocTarget32  = ReadUnaligned32 ((CONST VOID *)&Segment->Data[RelocOffset]);
+        RelocTarget32 += (uint32_t)Adjust;
+        WriteUnaligned32 ((VOID *)&Segment->Data[RelocOffset], RelocTarget32);
+        break;
+      }
+
+      case EFI_IMAGE_REL_BASED_DIR64:
+      {
+        assert (RemainingSize >= sizeof (UINT64));
+
+        RelocTarget64  = ReadUnaligned64 ((CONST VOID *)&Segment->Data[RelocOffset]);
+        RelocTarget64 += Adjust;
+        WriteUnaligned64 ((VOID *)&Segment->Data[RelocOffset], RelocTarget64);
+        break;
+      }
+      
+      case EFI_IMAGE_REL_BASED_ARM_MOV32T:
+      {
+        assert (RemainingSize >= sizeof (UINT32));
+        assert (IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16)));
+
+        PeCoffThumbMovwMovtImmediateFixup (&Segment->Data[RelocOffset], Adjust);
+        break;
+      }
+      
+      default:
+      {
+        raise ();
+        return false;
+      }
+    }
+  }
+
+  Image->HeaderInfo.BaseAddress = BaseAddress;
+
+  return true;
 }

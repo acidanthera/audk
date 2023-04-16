@@ -52,71 +52,6 @@ HiiBin (
 
 static
 RETURN_STATUS
-Rebase (
-  IN const char *BaseAddress,
-  IN const char *OldName,
-  IN const char *NewName
-  )
-{
-  RETURN_STATUS                Status;
-  void                         *Pe;
-  uint32_t                     PeSize;
-  UINT64                       NewBaseAddress;
-  PE_COFF_LOADER_IMAGE_CONTEXT Context;
-  EFI_IMAGE_NT_HEADERS32       *PeHdr32;
-  EFI_IMAGE_NT_HEADERS64       *PeHdr64;
-
-  assert (BaseAddress != NULL);
-  assert (OldName     != NULL);
-  assert (NewName     != NULL);
-
-  Status = AsciiStrHexToUint64S (BaseAddress, NULL, &NewBaseAddress);
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not convert ASCII string to UINT64\n");
-    return Status;
-  }
-
-  Pe = UserReadFile (OldName, &PeSize);
-  if (Pe == NULL) {
-    fprintf (stderr, "ImageTool: Could not open %s: %s\n", OldName, strerror (errno));
-    return RETURN_ABORTED;
-  }
-
-  Status = PeCoffInitializeContext (&Context, Pe, (UINT32)PeSize);
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not initialise Context\n");
-    free (Pe);
-    return Status;
-  }
-
-  Context.ImageBuffer = (void *)Context.FileBuffer;
-
-  Status = PeCoffRelocateImage (&Context, NewBaseAddress, NULL, 0);
-  if (EFI_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not relocate image\n");
-    free (Pe);
-    return Status;
-  }
-
-  if (Context.ImageType == PeCoffLoaderTypePe32) {
-    PeHdr32 = (EFI_IMAGE_NT_HEADERS32 *)(void *)((char *)Context.ImageBuffer + Context.ExeHdrOffset);
-    PeHdr32->ImageBase = (UINT32)NewBaseAddress;
-  } else if (Context.ImageType == PeCoffLoaderTypePe32Plus) {
-    PeHdr64 = (EFI_IMAGE_NT_HEADERS64 *)(void *)((char *)Context.ImageBuffer + Context.ExeHdrOffset);
-    PeHdr64->ImageBase = NewBaseAddress;
-  } else {
-    assert (false);
-  }
-
-  UserWriteFile (NewName, Pe, PeSize);
-
-  free (Pe);
-
-  return RETURN_SUCCESS;
-}
-
-static
-RETURN_STATUS
 CheckAcpiTable (
   IN const void *AcpiTable,
   IN UINT32     Length
@@ -342,7 +277,8 @@ GenExecutable (
   IN const char  *OutputFileName,
   IN const char  *InputFileName,
   IN const char  *FormatName,
-  IN const char  *TypeName
+  IN const char  *TypeName,
+  IN const char  *BaseAddress
   )
 {
   UINT32                   InputFileSize;
@@ -350,6 +286,7 @@ GenExecutable (
   RETURN_STATUS            Status;
   bool                     Result;
   image_tool_image_info_t  ImageInfo;
+  UINT64                   NewBaseAddress;
   void                     *OutputFile;
   uint32_t                 OutputFileSize;
 
@@ -383,6 +320,22 @@ GenExecutable (
   if (!Result) {
     ToolImageDestruct (&ImageInfo);
     return RETURN_UNSUPPORTED;
+  }
+
+  if (BaseAddress != NULL) {
+    Status = AsciiStrHexToUint64S (BaseAddress, NULL, &NewBaseAddress);
+    if (RETURN_ERROR (Status)) {
+      fprintf (stderr, "ImageTool: Could not convert ASCII string to UINT64\n");
+      ToolImageDestruct (&ImageInfo);
+      return Status;
+    }
+
+    Result = ToolImageRelocate (&ImageInfo, NewBaseAddress);
+    if (!Result) {
+      fprintf (stderr, "ImageTool: Failed to relocate input file %s\n", InputFileName);
+      ToolImageDestruct (&ImageInfo);
+      return RETURN_UNSUPPORTED;
+    }
   }
 
   if (strcmp (FormatName, "PE") == 0) {
@@ -423,7 +376,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[3], argv[2], "PE", argv[4]);
+    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], NULL);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
@@ -466,7 +419,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = Rebase (argv[2], argv[3], argv[4]);
+    Status = GenExecutable (argv[4], argv[3], "PE", NULL, argv[2]);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;

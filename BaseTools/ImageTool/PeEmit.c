@@ -563,14 +563,14 @@ ToolImageEmitPeSections (
 
     if (Segment->Execute) {
       if (FirstCode) {
-        Context->PeHdr->BaseOfCode = (UINT32)Segment->ImageAddress;
+        Context->PeHdr->BaseOfCode = Segment->ImageAddress;
         FirstCode = false;
       }
     }
 #if PE_ARCH == 32
     else {
       if (FirstData) {
-        Context->PeHdr->BaseOfData = (UINT32)Segment->ImageAddress;
+        Context->PeHdr->BaseOfData = Segment->ImageAddress;
         FirstData = false;
       }
     }
@@ -596,11 +596,11 @@ ToolImageEmitPeSections (
     SectionsSize += SectionPadding;
 
     if (Segment->Execute) {
-      Context->PeHdr->BaseOfCode = MIN(Context->PeHdr->BaseOfCode, (UINT32)Segment->ImageAddress);
+      Context->PeHdr->BaseOfCode = MIN(Context->PeHdr->BaseOfCode, Segment->ImageAddress);
       Context->PeHdr->SizeOfCode += Segment->ImageSize;
     } else {
 #if PE_ARCH == 32
-      Context->PeHdr->BaseOfData = MIN(Context->PeHdr->BaseOfData, (UINT32)Segment->ImageAddress);
+      Context->PeHdr->BaseOfData = MIN(Context->PeHdr->BaseOfData, Segment->ImageAddress);
 #endif
       Context->PeHdr->SizeOfInitializedData += Segment->ImageSize;
     }
