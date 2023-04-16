@@ -564,4 +564,28 @@ PeCoffLoaderGetImageAddress (
   IN CONST PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
+/**
+  Retrieve the immediate data encoded in an ARM MOVW/MOVT instruciton pair.
+
+  @param[in] Instructions  Pointer to an ARM MOVW/MOVT insturction pair.
+
+  @returns  The Immediate address encoded in the instructions.
+**/
+UINT32
+PeCoffThumbMovwMovtImmediateAddress (
+  IN CONST VOID  *Instructions
+  );
+
+/**
+  Relocate an ARM MOVW/MOVT immediate instruction instruction pair.
+
+  @param[in,out] Instructions  Pointer to ARM MOVW/MOVT instruction pair.
+  @param[in]     Adjust        The delta to add to the addresses.
+**/
+VOID
+PeCoffThumbMovwMovtImmediateFixup (
+  IN OUT VOID    *Instructions,
+  IN     UINT64  Adjust
+  );
+
 #endif // PE_COFF_LIB2_H_
