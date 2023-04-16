@@ -5,6 +5,48 @@
 
 #include "ImageTool.h"
 
+#include "ElfScanCommon.h"
+
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/ElfCommon.h"
+
+#if ELF_ARCH == 32
+
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf32.h"
+
+#define ELFCLASS    ELFCLASS32
+#define Elf_Ehdr    Elf32_Ehdr
+#define Elf_Shdr    Elf32_Shdr
+#define Elf_Sym     Elf32_Sym
+#define Elf_Rel     Elf32_Rel
+#define Elf_Rela    Elf32_Rela
+#define Elf_Size    Elf32_Size
+#define Elf_Addr    Elf32_Addr
+#define ELF_R_TYPE  ELF32_R_TYPE
+#define ELF_R_SYM   ELF32_R_SYM
+
+#elif ELF_ARCH == 64
+
+#include "../../UefiPayloadPkg/PayloadLoaderPeim/ElfLib/Elf64.h"
+
+#define ELFCLASS    ELFCLASS64
+#define Elf_Ehdr    Elf64_Ehdr
+#define Elf_Shdr    Elf64_Shdr
+#define Elf_Sym     Elf64_Sym
+#define Elf_Rel     Elf64_Rel
+#define Elf_Rela    Elf64_Rela
+#define Elf_Size    Elf64_Size
+#define Elf_Addr    Elf64_Addr
+#define ELF_R_TYPE  ELF64_R_TYPE
+#define ELF_R_SYM   ELF64_R_SYM
+
+#endif
+
+#define ELF_SUFFIX__(Name, Arch)  Name##Arch
+#define ELF_SUFFIX_(Name, Arch)   ELF_SUFFIX__ (Name, Arch)
+#define ELF_SUFFIX(Name)          ELF_SUFFIX_ (Name, ELF_ARCH)
+
+#define ELF_HII_SECTION_NAME  ".hii"
+
 typedef struct {
   const Elf_Ehdr  *Ehdr;
   uint32_t        Alignment;
@@ -19,6 +61,8 @@ typedef struct {
 #define EFI_IMAGE_MACHINE_AARCH64         0xAA64
 #endif
 
+
+#define GetShrbyIndex  ELF_SUFFIX(GetShrbyIndex)
 static
 Elf_Shdr *
 GetShdrByIndex (
@@ -35,6 +79,7 @@ GetShdrByIndex (
   return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
 }
 
+#define GetString  ELF_SUFFIX(GetString)
 static
 const char *
 GetString (
@@ -59,6 +104,7 @@ GetString (
   return (const char *)Ehdr + Shdr->sh_offset + Offset;
 }
 
+#define GetSIsHiiRsrcShdrtring  ELF_SUFFIX(IsHiiRsrcShdr)
 static
 BOOLEAN
 IsHiiRsrcShdr (
@@ -73,6 +119,7 @@ IsHiiRsrcShdr (
   return strcmp ((const char *)Ehdr + Namedr->sh_offset + Shdr->sh_name, ELF_HII_SECTION_NAME) == 0;
 }
 
+#define IsShdrLoadable  ELF_SUFFIX(IsShdrLoadable)
 static
 BOOLEAN
 IsShdrLoadable (
@@ -85,6 +132,7 @@ IsShdrLoadable (
   return (Shdr->sh_flags & SHF_ALLOC) != 0 && !IsHiiRsrcShdr (Ehdr, Shdr);
 }
 
+#define SetHiiResourceHeader  ELF_SUFFIX(SetHiiResourceHeader)
 static
 VOID
 SetHiiResourceHeader (
@@ -148,6 +196,7 @@ SetHiiResourceHeader (
   return;
 }
 
+#define ParseElfFile  ELF_SUFFIX(ParseElfFile)
 static
 RETURN_STATUS
 ParseElfFile (
@@ -186,18 +235,6 @@ ParseElfFile (
     fprintf (stderr, "ImageTool: ELF e_type not ET_EXEC or ET_DYN\n");
     return RETURN_INCOMPATIBLE_VERSION;
   }
-
-#if defined(EFI_TARGET64)
-  if ((Ehdr->e_machine != EM_X86_64) && (Ehdr->e_machine != EM_AARCH64)) {
-    fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
-    return RETURN_INCOMPATIBLE_VERSION;
-  }
-#elif defined(EFI_TARGET32)
-  if ((Ehdr->e_machine != EM_386) && (Ehdr->e_machine != EM_ARM)) {
-    fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
-    return RETURN_INCOMPATIBLE_VERSION;
-  }
-#endif
 
   //
   // Check section headers
@@ -291,6 +328,7 @@ ParseElfFile (
   return RETURN_SUCCESS;
 }
 
+#define ProcessRelocSection  ELF_SUFFIX(ProcessRelocSection)
 static
 bool
 ProcessRelocSection (
@@ -329,6 +367,7 @@ ProcessRelocSection (
   return TRUE;
 }
 
+#define SetRelocs  ELF_SUFFIX(SetRelocs)
 static
 RETURN_STATUS
 SetRelocs (
@@ -367,7 +406,7 @@ SetRelocs (
       // so we don't need to recalculate relocations computed by the linker at all r_offset's.
       // We only need to transform ELF relocations' format into PE one.
       //
-#if defined(EFI_TARGET64)
+#if ELF_ARCH == 64
       if (Ehdr->e_machine == EM_X86_64) {
         switch (ELF_R_TYPE(Rel->r_info)) {
           case R_X86_64_NONE:
@@ -455,7 +494,7 @@ SetRelocs (
             return RETURN_INCOMPATIBLE_VERSION;
         }
       }
-#elif defined(EFI_TARGET32)
+#elif ELF_ARCH == 32
       if (Ehdr->e_machine == EM_386) {
         switch (ELF_R_TYPE(Rel->r_info)) {
           case R_386_NONE:
@@ -534,6 +573,7 @@ SetRelocs (
   return RETURN_SUCCESS;
 }
 
+#define CreateIntermediate  ELF_SUFFIX(CreateIntermediate)
 static
 RETURN_STATUS
 CreateIntermediate (
@@ -576,7 +616,7 @@ CreateIntermediate (
 
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
         Rel = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset + RIndex);
-#if defined(EFI_TARGET64)
+#if ELF_ARCH == 64
         if (Ehdr->e_machine == EM_X86_64) {
           if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_RELATIVE)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
@@ -593,7 +633,7 @@ CreateIntermediate (
             ++NumRelocs;
           }
         }
-#elif defined(EFI_TARGET32)
+#elif ELF_ARCH == 32
         if (Ehdr->e_machine == EM_386) {
           if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
             ++NumRelocs;
@@ -703,6 +743,7 @@ CreateIntermediate (
   return SetRelocs (ImageInfo, Context);
 }
 
+#define ScanElf  ELF_SUFFIX(ScanElf)
 RETURN_STATUS
 ScanElf (
   OUT image_tool_image_info_t  *ImageInfo,
@@ -737,14 +778,14 @@ ScanElf (
   ImageInfo->DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
 
   switch (Ehdr->e_machine) {
-#if defined(EFI_TARGET64)
+#if ELF_ARCH == 64
     case EM_X86_64:
       ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
       break;
     case EM_AARCH64:
       ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_AARCH64;
       break;
-#elif defined(EFI_TARGET32)
+#elif ELF_ARCH == 32
     case EM_386:
       ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_IA32;
       break;

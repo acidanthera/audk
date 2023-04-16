@@ -353,7 +353,7 @@
         $(OUTPUT_DIR)(+)$(MODULE_NAME).map
 
     <Command.MSFT, Command.INTEL, Command.CLANGPDB>
-        ImageTool $(ARCH) PeXip ${src} ${dst} $(MODULE_TYPE)
+        ImageTool PeXip ${src} ${dst} $(MODULE_TYPE)
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
@@ -368,7 +368,7 @@
         #
         -$(OBJCOPY) $(OBJCOPY_ADDDEBUGFLAG) ${src}
         -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
-        ImageTool $(ARCH) ElfToPe ${src} ${dst} $(MODULE_TYPE)
+        ImageTool ElfToPe ${src} ${dst} $(MODULE_TYPE)
 
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
@@ -379,7 +379,7 @@
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS)  ${src}  $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
         # create symbol file for GDB debug
         -$(DSYMUTIL) ${src}
-        ImageTool $(ARCH) PeXip $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff ${dst} $(MODULE_TYPE)
+        ImageTool PeXip $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff ${dst} $(MODULE_TYPE)
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
@@ -447,12 +447,12 @@
     <Command.MSFT, Command.INTEL>
         "$(ASLCC)" $(DEPS_FLAGS) /Fo$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
 
     <Command.GCC>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
 
 [Acpi-Table-Code-File]
     <InputFile>
@@ -467,23 +467,23 @@
     <Command.MSFT, Command.INTEL>
         "$(ASLCC)" $(DEPS_FLAGS) /Fo$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
 
     <Command.GCC>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS)
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
 
     <Command.CLANGPDB>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll ${dst}
 
     <Command.XCODE>
         "$(ASLCC)" $(DEPS_FLAGS) -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj  $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff
-        ImageTool $(ARCH) GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff ${dst}
+        ImageTool GetAcpi $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff ${dst}
 
 
 [Nasm-to-Binary-Code-File]
@@ -615,16 +615,16 @@
         $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
     <Command.CLANGPDB>
-        ImageTool $(ARCH) HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
+        ImageTool HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
         "$(RC)" /Fo${dst} -- $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
     <Command.MSFT, Command.INTEL>
-        ImageTool $(ARCH) HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
+        ImageTool HiiBinPe $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
         "$(RC)" /Fo${dst} $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
     <Command.GCC, Command.CLANGGCC>
-        ImageTool $(ARCH) HiiBinElf $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
+        ImageTool HiiBinElf $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
         "$(RC)" $(RC_FLAGS) $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc ${dst}
 
     <Command.XCODE>
-        ImageTool $(ARCH) HiiBinElf $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
+        ImageTool HiiBinElf $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(MODULE_GUID) $(HII_BINARY_PACKAGES)
