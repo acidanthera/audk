@@ -55,7 +55,6 @@
 /// Image type enumeration for Image format identification from the context.
 ///
 typedef enum {
-  PeCoffLoaderTypeTe,
   PeCoffLoaderTypePe32,
   PeCoffLoaderTypePe32Plus,
   PeCoffLoaderTypeMax
