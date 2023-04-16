@@ -717,7 +717,7 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Name, Name, strlen (Name));
 
-      Segments[SIndex].ImageAddress = Shdr->sh_addr - BaseAddress;
+      Segments[SIndex].ImageAddress = (uint32_t)(Shdr->sh_addr - BaseAddress);
       Segments[SIndex].DataSize     = (uint32_t)Shdr->sh_size;
       Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
       Segments[SIndex].Read         = true;
