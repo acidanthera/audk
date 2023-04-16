@@ -137,16 +137,8 @@ ThumbMovtImmediatePatch (
     (PatchedInstruction & ~(UINT16) 0x70FFU) | Patch;
 }
 
-/**
-  Retrieve the immediate data encoded in an ARM MOVW/MOVT instruciton pair.
-
-  @param[in] Instructions  Pointer to an ARM MOVW/MOVT insturction pair.
-
-  @returns  The Immediate address encoded in the instructions.
-**/
-STATIC
 UINT32
-ThumbMovwMovtImmediateAddress (
+PeCoffThumbMovwMovtImmediateAddress (
   IN CONST VOID  *Instructions
   )
 {
@@ -192,9 +184,8 @@ ThumbMovwMovtImmediatePatch (
   @param[in,out] Instructions  Pointer to ARM MOVW/MOVT instruction pair.
   @param[in]     Adjust        The delta to add to the addresses.
 **/
-STATIC
 VOID
-ThumbMovwMovtImmediateFixup (
+PeCoffThumbMovwMovtImmediateFixup (
   IN OUT VOID    *Instructions,
   IN     UINT64  Adjust
   )
@@ -203,7 +194,7 @@ ThumbMovwMovtImmediateFixup (
   //
   // Relocate the instruction pair.
   //
-  Fixup32 = ThumbMovwMovtImmediateAddress (Instructions) + (UINT32) Adjust;
+  Fixup32 = PeCoffThumbMovwMovtImmediateAddress (Instructions) + (UINT32) Adjust;
   ThumbMovwMovtImmediatePatch (Instructions, Fixup32);
 }
 
@@ -396,7 +387,7 @@ InternalApplyRelocation (
       //
       // Relocate the target instruction.
       //
-      ThumbMovwMovtImmediateFixup (Fixup, Adjust);
+      PeCoffThumbMovwMovtImmediateFixup (Fixup, Adjust);
       //
       // Record the relocated value for Image runtime relocation.
       //
@@ -715,7 +706,7 @@ InternalApplyRelocationRuntime (
         return RETURN_VOLUME_CORRUPTED;
       }
 
-      ThumbMovwMovtImmediateFixup (Fixup, Adjust);
+      PeCoffThumbMovwMovtImmediateFixup (Fixup, Adjust);
 
       break;
 
