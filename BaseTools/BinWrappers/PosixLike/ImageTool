@@ -9,31 +9,13 @@ cmd=${full_cmd##*/}
 
 if [ -n "$WORKSPACE" ] && [ -e "$EDK_TOOLS_PATH/ImageTool" ]
 then
-  if [ $1 == 'IA32' ] || [ $1 == 'ARM' ]
+  if [ ! -e "$EDK_TOOLS_PATH/ImageTool/ImageTool" ]
   then
-    if [ ! -e "$EDK_TOOLS_PATH/ImageTool/ImageTool32" ]
-    then
-      echo "BaseTools C Tool binary was not found (ImageTool32)"
-      echo "You may need to run:"
-      echo "  make -C $EDK_TOOLS_PATH/ImageTool"
-    else
-      shift
-      exec "$EDK_TOOLS_PATH/ImageTool/ImageTool32" "$@"
-    fi
-  elif [ $1 == 'X64' ] || [ $1 == 'AARCH64' ]
-  then
-    if [ ! -e "$EDK_TOOLS_PATH/ImageTool/ImageTool64" ]
-    then
-      echo "BaseTools C Tool binary was not found (ImageTool64)"
-      echo "You may need to run:"
-      echo "  make -C $EDK_TOOLS_PATH/ImageTool"
-    else
-      shift
-      exec "$EDK_TOOLS_PATH/ImageTool/ImageTool64" "$@"
-    fi
+    echo "BaseTools C Tool binary was not found (ImageTool)"
+    echo "You may need to run:"
+    echo "  make -C $EDK_TOOLS_PATH/ImageTool"
   else
-    echo "ImageTool for $1 is not supported"
-    exit 127
+    exec "$EDK_TOOLS_PATH/ImageTool/ImageTool" "$@"
   fi
 else
   echo "Unable to find the real '$cmd' to run"

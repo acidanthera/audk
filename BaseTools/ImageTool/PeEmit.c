@@ -6,6 +6,22 @@
 
 #include "ImageTool.h"
 
+#if PE_ARCH == 32
+
+#define EFI_IMAGE_NT_HEADERS             EFI_IMAGE_NT_HEADERS32
+#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC
+
+#elif PE_ARCH == 64
+
+#define EFI_IMAGE_NT_HEADERS             EFI_IMAGE_NT_HEADERS64
+#define EFI_IMAGE_NT_OPTIONAL_HDR_MAGIC  EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC
+
+#endif
+
+#define PE_SUFFIX__(Name, Arch)  Name##Arch
+#define PE_SUFFIX_(Name, Arch)   PE_SUFFIX__ (Name, Arch)
+#define PE_SUFFIX(Name)          PE_SUFFIX_ (Name, PE_ARCH)
+
 typedef struct {
   uint8_t  NumExtraSections;
   uint32_t SizeOfHeaders;
@@ -27,6 +43,7 @@ typedef struct {
   uint32_t                      FileAlignment;
 } image_tool_pe_emit_context_t;
 
+#define EmitPeGetHeaderSizes  PE_SUFFIX (EmitPeGetHeaderSizes)
 static
 bool
 EmitPeGetHeaderSizes (
@@ -60,6 +77,7 @@ EmitPeGetHeaderSizes (
   return true;
 }
 
+#define EmitPeGetSectionsSize  PE_SUFFIX (EmitPeGetSectionsSize)
 static
 bool
 EmitPeGetSectionsSize (
@@ -99,6 +117,7 @@ EmitPeGetSectionsSize (
   return true;
 }
 
+#define EmitPeGetRelocSectionSize  PE_SUFFIX (EmitPeGetRelocSectionSize)
 static
 bool
 EmitPeGetRelocSectionSize (
@@ -148,6 +167,7 @@ EmitPeGetRelocSectionSize (
   return true;
 }
 
+#define EmitPeGetDebugSectionSize  PE_SUFFIX (EmitPeGetDebugSectionSize)
 static
 void
 EmitPeGetDebugSectionSize (
@@ -168,6 +188,7 @@ EmitPeGetDebugSectionSize (
   *DebugSize = Size;
 }
 
+#define EmitPeGetExtraSectionsSize  PE_SUFFIX (EmitPeGetExtraSectionsSize)
 static
 bool
 EmitPeGetExtraSectionsSize (
@@ -248,6 +269,7 @@ EmitPeGetExtraSectionsSize (
   return true;
 }
 
+#define ToolImageEmitPeSectionHeaders  PE_SUFFIX (ToolImageEmitPeSectionHeaders)
 static
 bool
 ToolImageEmitPeSectionHeaders (
@@ -313,6 +335,7 @@ ToolImageEmitPeSectionHeaders (
   return true;
 }
 
+#define ToolImageEmitPeExtraSectionHeaders  PE_SUFFIX (ToolImageEmitPeExtraSectionHeaders)
 static
 bool
 ToolImageEmitPeExtraSectionHeaders (
@@ -412,6 +435,7 @@ ToolImageEmitPeExtraSectionHeaders (
   return true;
 }
 
+#define ToolImageEmitPeHeaders  PE_SUFFIX (ToolImageEmitPeHeaders)
 static
 bool
 ToolImageEmitPeHeaders (
@@ -498,6 +522,7 @@ ToolImageEmitPeHeaders (
   return true;
 }
 
+#define ToolImageEmitPeSections  PE_SUFFIX (ToolImageEmitPeSections)
 static
 bool
 ToolImageEmitPeSections (
@@ -513,7 +538,7 @@ ToolImageEmitPeSections (
   uint32_t                      SectionPadding;
   bool                          FirstCode;
 
-#if defined(EFI_TARGET32)
+#if PE_ARCH == 32
   bool                          FirstData;
 #endif
 
@@ -527,7 +552,7 @@ ToolImageEmitPeSections (
   SectionsSize = 0;
   FirstCode    = true;
 
-#if defined(EFI_TARGET32)
+#if PE_ARCH == 32
   FirstData    = true;
 #endif
 
@@ -542,7 +567,7 @@ ToolImageEmitPeSections (
         FirstCode = false;
       }
     }
-#if defined(EFI_TARGET32)
+#if PE_ARCH == 32
     else {
       if (FirstData) {
         Context->PeHdr->BaseOfData = (UINT32)Segment->ImageAddress;
@@ -574,7 +599,7 @@ ToolImageEmitPeSections (
       Context->PeHdr->BaseOfCode = MIN(Context->PeHdr->BaseOfCode, (UINT32)Segment->ImageAddress);
       Context->PeHdr->SizeOfCode += Segment->ImageSize;
     } else {
-#if defined(EFI_TARGET32)
+#if PE_ARCH == 32
       Context->PeHdr->BaseOfData = MIN(Context->PeHdr->BaseOfData, (UINT32)Segment->ImageAddress);
 #endif
       Context->PeHdr->SizeOfInitializedData += Segment->ImageSize;
@@ -586,6 +611,7 @@ ToolImageEmitPeSections (
   return true;
 }
 
+#define ToolImageEmitPeRelocTable  PE_SUFFIX (ToolImageEmitPeRelocTable)
 static
 bool
 ToolImageEmitPeRelocTable (
@@ -692,6 +718,7 @@ STATIC_ASSERT(
   "Flexible array aliases padding."
   );
 
+#define ToolImageEmitPeDebugTable  PE_SUFFIX (ToolImageEmitPeDebugTable)
 static
 bool
 ToolImageEmitPeDebugTable (
@@ -747,6 +774,7 @@ ToolImageEmitPeDebugTable (
   return true;
 }
 
+#define ToolImageEmitPeHiiTable  PE_SUFFIX (ToolImageEmitPeHiiTable)
 static
 bool
 ToolImageEmitPeHiiTable (
@@ -790,6 +818,7 @@ ToolImageEmitPeHiiTable (
   return true;
 }
 
+#define ToolImageEmitPeExtraSections  PE_SUFFIX (ToolImageEmitPeExtraSections)
 static
 bool
 ToolImageEmitPeExtraSections (
@@ -827,6 +856,7 @@ ToolImageEmitPeExtraSections (
   return true;
 }
 
+#define ToolImageEmitPe  PE_SUFFIX (ToolImageEmitPe)
 void *
 ToolImageEmitPe (
   const image_tool_image_info_t *Image,
