@@ -5,10 +5,12 @@
 
 #include "ImageTool.h"
 
-static Elf_Ehdr  *mEhdr        = NULL;
-static Elf_Size  mPeAlignment  = 0x0;
-static Elf_Addr  mBaseAddress  = 0x0;
-static bool      mHasPieRelocs = FALSE;
+typedef struct {
+  const Elf_Ehdr  *Ehdr;
+  uint32_t        Alignment;
+  Elf_Addr        BaseAddress;
+  bool            HasPieRelocs;
+} tool_elf_scan_context;
 
 #if defined (_MSC_EXTENSIONS)
 #define EFI_IMAGE_MACHINE_IA32            0x014C
@@ -22,32 +24,33 @@ extern image_tool_image_info_t mImageInfo;
 static
 Elf_Shdr *
 GetShdrByIndex (
-  IN UINT32 Index
+  IN const Elf_Ehdr  *Ehdr,
+  IN UINT32          Index
   )
 {
   UINTN Offset;
 
-  assert (Index < mEhdr->e_shnum);
+  assert (Index < Ehdr->e_shnum);
 
-  Offset = (UINTN)mEhdr->e_shoff + Index * mEhdr->e_shentsize;
+  Offset = (UINTN)Ehdr->e_shoff + Index * Ehdr->e_shentsize;
 
-  return (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
+  return (Elf_Shdr *)((UINT8 *)Ehdr + Offset);
 }
 
 static
-char *
+const char *
 GetString (
-  IN UINT32 Offset,
-  IN UINT32 Index
+  IN const Elf_Ehdr  *Ehdr,
+  IN UINT32          Offset,
+  IN UINT32          Index
   )
 {
   const Elf_Shdr *Shdr;
-  char           *String;
 
   if (Index == 0) {
-    Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
+    Shdr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
   } else {
-    Shdr = GetShdrByIndex (Index);
+    Shdr = GetShdrByIndex (Ehdr, Index);
   }
 
   if (Offset >= Shdr->sh_size) {
@@ -55,33 +58,33 @@ GetString (
     return NULL;
   }
 
-  String = (char *)((UINT8 *)mEhdr + Shdr->sh_offset + Offset);
-
-  return String;
+  return (const char *)Ehdr + Shdr->sh_offset + Offset;
 }
 
 static
 BOOLEAN
 IsHiiRsrcShdr (
-  IN const Elf_Shdr *Shdr
+  IN const Elf_Ehdr  *Ehdr,
+  IN const Elf_Shdr  *Shdr
   )
 {
   assert (Shdr != NULL);
 
-  Elf_Shdr *Namedr = GetShdrByIndex (mEhdr->e_shstrndx);
+  Elf_Shdr *Namedr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
 
-  return (BOOLEAN) (strcmp ((CHAR8*)mEhdr + Namedr->sh_offset + Shdr->sh_name, ELF_HII_SECTION_NAME) == 0);
+  return strcmp ((const char *)Ehdr + Namedr->sh_offset + Shdr->sh_name, ELF_HII_SECTION_NAME) == 0;
 }
 
 static
 BOOLEAN
 IsShdrLoadable (
-  IN const Elf_Shdr *Shdr
+  IN const Elf_Ehdr  *Ehdr,
+  IN const Elf_Shdr  *Shdr
   )
 {
   assert (Shdr != NULL);
 
-  return (Shdr->sh_flags & SHF_ALLOC) != 0 && !IsHiiRsrcShdr (Shdr);
+  return (Shdr->sh_flags & SHF_ALLOC) != 0 && !IsHiiRsrcShdr (Ehdr, Shdr);
 }
 
 static
@@ -150,50 +153,57 @@ SetHiiResourceHeader (
 static
 RETURN_STATUS
 ParseElfFile (
-  IN const void *File,
-  IN uint32_t   FileSize
+  OUT tool_elf_scan_context  *Context,
+  IN  const void             *File,
+  IN  uint32_t               FileSize
   )
 {
   static const unsigned char Ident[] = {
     ELFMAG0, ELFMAG1, ELFMAG2, ELFMAG3, ELFCLASS, ELFDATA2LSB
   };
-  const Elf_Shdr *Shdr;
-  UINTN          Offset;
-  UINT32         Index;
-  char           *Last;
+  const Elf_Ehdr  *Ehdr;
+  bool            AlignmentSet;
+  Elf_Size        Alignment;
+  bool            BaseAddressSet;
+  Elf_Addr        BaseAddress;
+  bool            HasPieRelocs;
+  const Elf_Shdr  *Shdr;
+  UINTN           Offset;
+  UINT32          Index;
+  char            *Last;
 
   assert (File != NULL || FileSize == 0);
 
-  mEhdr = (Elf_Ehdr *)File;
+  Ehdr = (const Elf_Ehdr *)File;
 
   //
   // Check header
   //
-  if ((FileSize < sizeof (*mEhdr))
-    || (memcmp (Ident, mEhdr->e_ident, sizeof (Ident)) != 0)) {
+  if ((FileSize < sizeof (*Ehdr))
+    || (memcmp (Ident, Ehdr->e_ident, sizeof (Ident)) != 0)) {
     fprintf (stderr, "ImageTool: Invalid ELF header\n");
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[0] = 0x%x expected 0x%x\n", mEhdr->e_ident[0], Ident[0]);
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[1] = 0x%x expected 0x%x\n", mEhdr->e_ident[1], Ident[1]);
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[2] = 0x%x expected 0x%x\n", mEhdr->e_ident[2], Ident[2]);
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[3] = 0x%x expected 0x%x\n", mEhdr->e_ident[3], Ident[3]);
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[4] = 0x%x expected 0x%x\n", mEhdr->e_ident[4], Ident[4]);
-    fprintf (stderr, "ImageTool: mEhdr->e_ident[5] = 0x%x expected 0x%x\n", mEhdr->e_ident[5], Ident[5]);
-    fprintf (stderr, "ImageTool: FileSize = 0x%x  sizeof(*mEhdr) = 0x%lx\n", FileSize, sizeof (*mEhdr));
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[0] = 0x%x expected 0x%x\n", Ehdr->e_ident[0], Ident[0]);
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[1] = 0x%x expected 0x%x\n", Ehdr->e_ident[1], Ident[1]);
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[2] = 0x%x expected 0x%x\n", Ehdr->e_ident[2], Ident[2]);
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[3] = 0x%x expected 0x%x\n", Ehdr->e_ident[3], Ident[3]);
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[4] = 0x%x expected 0x%x\n", Ehdr->e_ident[4], Ident[4]);
+    fprintf (stderr, "ImageTool: Ehdr->e_ident[5] = 0x%x expected 0x%x\n", Ehdr->e_ident[5], Ident[5]);
+    fprintf (stderr, "ImageTool: FileSize = 0x%x  sizeof(*Ehdr) = 0x%lx\n", FileSize, sizeof (*Ehdr));
     return RETURN_UNSUPPORTED;
   }
 
-  if ((mEhdr->e_type != ET_EXEC) && (mEhdr->e_type != ET_DYN)) {
+  if ((Ehdr->e_type != ET_EXEC) && (Ehdr->e_type != ET_DYN)) {
     fprintf (stderr, "ImageTool: ELF e_type not ET_EXEC or ET_DYN\n");
     return RETURN_INCOMPATIBLE_VERSION;
   }
 
 #if defined(EFI_TARGET64)
-  if ((mEhdr->e_machine != EM_X86_64) && (mEhdr->e_machine != EM_AARCH64)) {
+  if ((Ehdr->e_machine != EM_X86_64) && (Ehdr->e_machine != EM_AARCH64)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
     return RETURN_INCOMPATIBLE_VERSION;
   }
 #elif defined(EFI_TARGET32)
-  if ((mEhdr->e_machine != EM_386) && (mEhdr->e_machine != EM_ARM)) {
+  if ((Ehdr->e_machine != EM_386) && (Ehdr->e_machine != EM_ARM)) {
     fprintf (stderr, "ImageTool: Unsupported ELF e_machine\n");
     return RETURN_INCOMPATIBLE_VERSION;
   }
@@ -202,16 +212,20 @@ ParseElfFile (
   //
   // Check section headers
   //
-  mBaseAddress = ~(Elf_Addr)0;
-  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
-    Offset = (UINTN)mEhdr->e_shoff + Index * mEhdr->e_shentsize;
+  BaseAddressSet = false;
+  BaseAddress    = 0;
+  Alignment      = 0;
+  AlignmentSet   = false;
+  HasPieRelocs   = false;
+  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
+    Offset = (UINTN)Ehdr->e_shoff + Index * Ehdr->e_shentsize;
 
     if (FileSize < (Offset + sizeof (*Shdr))) {
       fprintf (stderr, "ImageTool: ELF section header is outside file\n");
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    Shdr = (Elf_Shdr *)((UINT8 *)mEhdr + Offset);
+    Shdr = (const Elf_Shdr *)((const char *)Ehdr + Offset);
 
     if ((Shdr->sh_type != SHT_NOBITS)
       && ((FileSize < Shdr->sh_offset) || ((FileSize - Shdr->sh_offset) < Shdr->sh_size))) {
@@ -219,56 +233,70 @@ ParseElfFile (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    if (Shdr->sh_link >= mEhdr->e_shnum) {
+    if (Shdr->sh_link >= Ehdr->e_shnum) {
       fprintf (stderr, "ImageTool: ELF %d-th section's sh_link is out of range\n", Index);
       return RETURN_VOLUME_CORRUPTED;
     }
 
     if ((Shdr->sh_type == SHT_RELA) || (Shdr->sh_type == SHT_REL)) {
-      if (Shdr->sh_info >= mEhdr->e_shnum) {
+      if (Shdr->sh_info >= Ehdr->e_shnum) {
         fprintf (stderr, "ImageTool: ELF %d-th section's sh_info is out of range\n", Index);
         return RETURN_VOLUME_CORRUPTED;
       }
 
       if (Shdr->sh_info == 0) {
-        mHasPieRelocs = TRUE;
+        HasPieRelocs = TRUE;
       }
     }
 
-    if (Shdr->sh_addr < mBaseAddress) {
-      mBaseAddress = Shdr->sh_addr;
+    if (!BaseAddressSet || Shdr->sh_addr < BaseAddress) {
+      BaseAddressSet = TRUE;
+      BaseAddress    = Shdr->sh_addr;
     }
 
-    if (!IsShdrLoadable (Shdr)) {
+    if (!IsShdrLoadable (Ehdr, Shdr)) {
       continue;
     }
 
-    if (mPeAlignment < Shdr->sh_addralign) {
-      mPeAlignment = Shdr->sh_addralign;
+    if (!AlignmentSet || Alignment < Shdr->sh_addralign) {
+      AlignmentSet = TRUE;
+      Alignment    = Shdr->sh_addralign;
     }
   }
 
-  if (mEhdr->e_shstrndx >= mEhdr->e_shnum) {
+  if (Ehdr->e_shstrndx >= Ehdr->e_shnum) {
     fprintf (stderr, "ImageTool: Invalid section name string table\n");
     return RETURN_VOLUME_CORRUPTED;
   }
-  Shdr = GetShdrByIndex (mEhdr->e_shstrndx);
+  Shdr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
 
   if (Shdr->sh_type != SHT_STRTAB) {
     fprintf (stderr, "ImageTool: ELF string table section has wrong type\n");
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Last = (char *)((UINT8 *)mEhdr + Shdr->sh_offset + Shdr->sh_size - 1);
+  Last = (char *)((UINT8 *)Ehdr + Shdr->sh_offset + Shdr->sh_size - 1);
   if (*Last != '\0') {
     fprintf (stderr, "ImageTool: ELF string table section is not NUL-terminated\n");
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  if ((!IS_POW2(mPeAlignment)) || (mPeAlignment > MAX_PE_ALIGNMENT)) {
+  if (!AlignmentSet || (!IS_POW2(Alignment)) || (Alignment > MAX_PE_ALIGNMENT)) {
     fprintf (stderr, "ImageTool: Invalid section alignment\n");
     return RETURN_VOLUME_CORRUPTED;
   }
+
+  if (!BaseAddressSet || !IS_ALIGNED (BaseAddress, Alignment)) {
+    fprintf (stderr, "ImageTool: Invalid base address %llx\n", (unsigned long long)BaseAddress);
+    return RETURN_VOLUME_CORRUPTED;
+  }
+
+  memset (Context, 0, sizeof (*Context));
+
+  Context->Ehdr         = Ehdr;
+  Context->Alignment    = (uint32_t)Alignment;
+  Context->BaseAddress  = BaseAddress;
+  Context->HasPieRelocs = HasPieRelocs;
 
   return RETURN_SUCCESS;
 }
@@ -276,10 +304,16 @@ ParseElfFile (
 static
 bool
 ProcessRelocSection (
-  const Elf_Shdr  *Shdr
+  const tool_elf_scan_context  *Context,
+  const Elf_Shdr               *Shdr
   )
 {
+  const Elf_Ehdr  *Ehdr;
+  bool            HasPieRelocs;
   const Elf_Shdr  *SecShdr;
+
+  Ehdr         = Context->Ehdr;
+  HasPieRelocs = Context->HasPieRelocs;
   //
   // PIE relocations will target dummy section 0.
   //
@@ -287,19 +321,19 @@ ProcessRelocSection (
     //
     // If PIE relocations exist, prefer them.
     //
-    if (mHasPieRelocs) {
+    if (HasPieRelocs) {
       return FALSE;
     }
     //
     // Only translate relocations targetting sections that are translated.
     //
-    SecShdr = GetShdrByIndex (Shdr->sh_info);
+    SecShdr = GetShdrByIndex (Ehdr, Shdr->sh_info);
 
-    if (!IsShdrLoadable (SecShdr)) {
+    if (!IsShdrLoadable (Ehdr, SecShdr)) {
       return FALSE;
     }
   } else {
-    assert (mHasPieRelocs);
+    assert (HasPieRelocs);
   }
 
   return TRUE;
@@ -308,50 +342,56 @@ ProcessRelocSection (
 static
 RETURN_STATUS
 SetRelocs (
-  VOID
+  IN const tool_elf_scan_context  *Context
   )
 {
-  UINT32         Index;
-  const Elf_Shdr *RelShdr;
-  UINTN          RelIdx;
-  const Elf_Rela *Rel;
-  UINT32         RelNum;
+  const Elf_Ehdr  *Ehdr;
+  Elf_Addr        BaseAddress;
+  UINT32          Index;
+  const Elf_Shdr  *RelShdr;
+  UINTN           RelIdx;
+  const Elf_Rela  *Rel;
+  UINT32          RelNum;
+
+  Ehdr        = Context->Ehdr;
+  BaseAddress = Context->BaseAddress;
+
   RelNum = 0;
 
-  for (Index = 0; Index < mEhdr->e_shnum; Index++) {
-    RelShdr = GetShdrByIndex (Index);
+  for (Index = 0; Index < Ehdr->e_shnum; Index++) {
+    RelShdr = GetShdrByIndex (Ehdr, Index);
 
     if ((RelShdr->sh_type != SHT_REL) && (RelShdr->sh_type != SHT_RELA)) {
       continue;
     }
 
-    if (!ProcessRelocSection (RelShdr)) {
+    if (!ProcessRelocSection (Context, RelShdr)) {
       continue;
     }
 
     for (RelIdx = 0; RelIdx < RelShdr->sh_size; RelIdx += (UINTN)RelShdr->sh_entsize) {
-      Rel = (Elf_Rela *)((UINT8 *)mEhdr + RelShdr->sh_offset + RelIdx);
+      Rel = (const Elf_Rela *)((const char *)Ehdr + RelShdr->sh_offset + RelIdx);
       //
       // Assume ELF virtual addresses match corresponding PE virtual adresses one to one,
       // so we don't need to recalculate relocations computed by the linker at all r_offset's.
       // We only need to transform ELF relocations' format into PE one.
       //
 #if defined(EFI_TARGET64)
-      if (mEhdr->e_machine == EM_X86_64) {
+      if (Ehdr->e_machine == EM_X86_64) {
         switch (ELF_R_TYPE(Rel->r_info)) {
           case R_X86_64_NONE:
             break;
           case R_X86_64_RELATIVE:
           case R_X86_64_64:
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           case R_X86_64_32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -381,7 +421,7 @@ SetRelocs (
             fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
-      } else if (mEhdr->e_machine == EM_AARCH64) {
+      } else if (Ehdr->e_machine == EM_AARCH64) {
         switch (ELF_R_TYPE(Rel->r_info)) {
           case R_AARCH64_NONE0:
           case R_AARCH64_NONE:
@@ -408,14 +448,14 @@ SetRelocs (
           case R_AARCH64_ABS64:
           case R_AARCH64_RELATIVE:
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           case R_AARCH64_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -425,14 +465,14 @@ SetRelocs (
         }
       }
 #elif defined(EFI_TARGET32)
-      if (mEhdr->e_machine == EM_386) {
+      if (Ehdr->e_machine == EM_386) {
         switch (ELF_R_TYPE(Rel->r_info)) {
           case R_386_NONE:
             break;
           case R_386_32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -443,7 +483,7 @@ SetRelocs (
             fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
-      } else if (mEhdr->e_machine == EM_ARM) {
+      } else if (Ehdr->e_machine == EM_ARM) {
         switch (ELF32_R_TYPE(Rel->r_info)) {
           case R_ARM_NONE:
           case R_ARM_PC24:
@@ -485,7 +525,7 @@ SetRelocs (
           case R_ARM_ABS32:
 
             mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - mBaseAddress);
+            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -506,9 +546,11 @@ SetRelocs (
 static
 RETURN_STATUS
 CreateIntermediate (
-  VOID
+  IN const tool_elf_scan_context  *Context
   )
 {
+  const Elf_Ehdr       *Ehdr;
+  Elf_Addr             BaseAddress;
   const Elf_Shdr       *Shdr;
   UINT32               Index;
   image_tool_segment_t *Segments;
@@ -516,16 +558,19 @@ CreateIntermediate (
   UINT32               SIndex;
   const Elf_Rel        *Rel;
   UINTN                RIndex;
-  char                 *Name;
+  const char           *Name;
   UINT32               NumRelocs;
+
+  Ehdr        = Context->Ehdr;
+  BaseAddress = Context->BaseAddress;
 
   Segments  = NULL;
   SIndex    = 0;
   Relocs    = NULL;
   NumRelocs = 0;
 
-  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex (Index);
+  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Ehdr, Index);
 
     if ((Shdr->sh_type == SHT_REL) || (Shdr->sh_type == SHT_RELA)) {
       if ((Shdr->sh_flags & SHF_ALLOC) != 0) {
@@ -533,14 +578,14 @@ CreateIntermediate (
         return RETURN_VOLUME_CORRUPTED;
       }
 
-      if (!ProcessRelocSection (Shdr)) {
+      if (!ProcessRelocSection (Context, Shdr)) {
         continue;
       }
 
       for (RIndex = 0; RIndex < Shdr->sh_size; RIndex += (UINTN)Shdr->sh_entsize) {
-        Rel = (Elf_Rel *)((UINT8 *)mEhdr + Shdr->sh_offset + RIndex);
+        Rel = (Elf_Rel *)((UINT8 *)Ehdr + Shdr->sh_offset + RIndex);
 #if defined(EFI_TARGET64)
-        if (mEhdr->e_machine == EM_X86_64) {
+        if (Ehdr->e_machine == EM_X86_64) {
           if ((ELF_R_TYPE(Rel->r_info) == R_X86_64_RELATIVE)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_64)
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_32)
@@ -549,7 +594,7 @@ CreateIntermediate (
             || (ELF_R_TYPE(Rel->r_info) == R_X86_64_REX_GOTPCRELX)) {
             ++NumRelocs;
           }
-        } else if (mEhdr->e_machine == EM_AARCH64) {
+        } else if (Ehdr->e_machine == EM_AARCH64) {
           if ((ELF_R_TYPE(Rel->r_info) == R_AARCH64_ABS64)
             || (ELF_R_TYPE(Rel->r_info) == R_AARCH64_RELATIVE)
             || (ELF_R_TYPE(Rel->r_info) == R_AARCH64_ABS32)) {
@@ -557,11 +602,11 @@ CreateIntermediate (
           }
         }
 #elif defined(EFI_TARGET32)
-        if (mEhdr->e_machine == EM_386) {
+        if (Ehdr->e_machine == EM_386) {
           if (ELF_R_TYPE(Rel->r_info) == R_386_32) {
             ++NumRelocs;
           }
-        } else if (mEhdr->e_machine == EM_ARM) {
+        } else if (Ehdr->e_machine == EM_ARM) {
           if (ELF_R_TYPE(Rel->r_info) == R_ARM_ABS32) {
             ++NumRelocs;
           }
@@ -570,7 +615,7 @@ CreateIntermediate (
       }
     }
 
-    if (!IsShdrLoadable (Shdr)) {
+    if (!IsShdrLoadable (Ehdr, Shdr)) {
       continue;
     }
 
@@ -600,8 +645,8 @@ CreateIntermediate (
     mImageInfo.RelocInfo.Relocs = Relocs;
   }
 
-  for (Index = 0; Index < mEhdr->e_shnum; ++Index) {
-    Shdr = GetShdrByIndex (Index);
+  for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
+    Shdr = GetShdrByIndex (Ehdr, Index);
 
     if ((Shdr->sh_flags & SHF_ALLOC) == 0) {
       continue;
@@ -612,7 +657,7 @@ CreateIntermediate (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    if (IsHiiRsrcShdr (Shdr)) {
+    if (IsHiiRsrcShdr (Ehdr, Shdr)) {
       mImageInfo.HiiInfo.DataSize = (uint32_t)Shdr->sh_size;
 
       mImageInfo.HiiInfo.Data = calloc (1, mImageInfo.HiiInfo.DataSize);
@@ -622,12 +667,12 @@ CreateIntermediate (
       };
 
       if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (mImageInfo.HiiInfo.Data, (UINT8 *)mEhdr + Shdr->sh_offset, mImageInfo.HiiInfo.DataSize);
+        memcpy (mImageInfo.HiiInfo.Data, (const char *)Ehdr + Shdr->sh_offset, mImageInfo.HiiInfo.DataSize);
       }
 
-      SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - mBaseAddress));
+      SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - BaseAddress));
     } else {
-      Name = GetString (Shdr->sh_name, 0);
+      Name = GetString (Ehdr, Shdr->sh_name, 0);
       if (Name == NULL) {
         return RETURN_VOLUME_CORRUPTED;
       }
@@ -640,7 +685,7 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Name, Name, strlen (Name));
 
-      Segments[SIndex].DataSize = (uint32_t)ALIGN_VALUE (Shdr->sh_size, mPeAlignment);
+      Segments[SIndex].DataSize = (uint32_t)Shdr->sh_size;
 
       Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
       if (Segments[SIndex].Data == NULL) {
@@ -649,11 +694,11 @@ CreateIntermediate (
       };
 
       if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (Segments[SIndex].Data, (UINT8 *)mEhdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
+        memcpy (Segments[SIndex].Data, (const char *)Ehdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
       }
 
-      Segments[SIndex].ImageAddress = Shdr->sh_addr - mBaseAddress;
-      Segments[SIndex].ImageSize    = Segments[SIndex].DataSize;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr - BaseAddress;
+      Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
       Segments[SIndex].Read         = true;
       Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
       Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
@@ -663,7 +708,7 @@ CreateIntermediate (
 
   assert (SIndex == mImageInfo.SegmentInfo.NumSegments);
 
-  return SetRelocs();
+  return SetRelocs(Context);
 }
 
 RETURN_STATUS
@@ -673,25 +718,31 @@ ScanElf (
   IN const char *SymbolsPath
   )
 {
-  RETURN_STATUS Status;
+  RETURN_STATUS          Status;
+  tool_elf_scan_context  Context;
+  const Elf_Ehdr         *Ehdr;
+  Elf_Addr               BaseAddress;
 
   assert (File != NULL || FileSize == 0);
 
-  Status = ParseElfFile (File, FileSize);
+  Status = ParseElfFile (&Context, File, FileSize);
   if (RETURN_ERROR (Status)) {
     return Status;
   }
 
+  Ehdr        = Context.Ehdr;
+  BaseAddress = Context.BaseAddress;
+
   memset (&mImageInfo, 0, sizeof (mImageInfo));
 
-  mImageInfo.HeaderInfo.BaseAddress       = mBaseAddress;
-  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)(mEhdr->e_entry - mBaseAddress);
+  mImageInfo.HeaderInfo.BaseAddress       = BaseAddress;
+  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)(Ehdr->e_entry - BaseAddress);
   mImageInfo.HeaderInfo.IsXip             = true;
-  mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)mPeAlignment;
+  mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
   mImageInfo.RelocInfo.RelocsStripped     = false;
   mImageInfo.DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
 
-  switch (mEhdr->e_machine) {
+  switch (Ehdr->e_machine) {
 #if defined(EFI_TARGET64)
     case EM_X86_64:
       mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
@@ -708,7 +759,7 @@ ScanElf (
       break;
 #endif
     default:
-      fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", mEhdr->e_machine);
+      fprintf (stderr, "ImageTool: Unknown ELF architecture %d\n", Ehdr->e_machine);
       return RETURN_INCOMPATIBLE_VERSION;
   }
 
@@ -725,7 +776,7 @@ ScanElf (
   //
   mImageInfo.HeaderInfo.Subsystem = 0;
 
-  Status = CreateIntermediate ();
+  Status = CreateIntermediate (&Context);
   if (RETURN_ERROR (Status)) {
     ToolImageDestruct (&mImageInfo);
   }
