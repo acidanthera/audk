@@ -9,9 +9,9 @@
 static
 bool
 CheckToolImageSegment (
-  image_tool_segment_info_t *SegmentInfo,
-  image_tool_segment_t      *Segment,
-  uint32_t                  *PreviousEndAddress
+  const image_tool_segment_info_t *SegmentInfo,
+  image_tool_segment_t            *Segment,
+  uint32_t                        *PreviousEndAddress
   )
 {
   bool Overflow;
@@ -40,11 +40,6 @@ CheckToolImageSegment (
     Segment->DataSize = Segment->ImageSize;
   }
 
-  for (; Segment->DataSize > 0; --Segment->DataSize) {
-    if (Segment->Data[Segment->DataSize - 1] != 0) {
-      break;
-    }
-  }
   // FIXME: Expand prior segment
   if (Segment->ImageAddress != *PreviousEndAddress) {
     raise ();
@@ -67,11 +62,11 @@ CheckToolImageSegment (
 static
 bool
 CheckToolImageSegmentInfo (
-  image_tool_segment_info_t *SegmentInfo,
-  uint32_t                  *ImageSize
+  const image_tool_segment_info_t *SegmentInfo,
+  uint32_t                        *ImageSize
   )
 {
-  uint64_t Index;
+  uint32_t Index;
   bool     Result;
 
   assert (SegmentInfo != NULL);
@@ -271,6 +266,24 @@ ImageConvertToXip (
   Image->HeaderInfo.IsXip = true;
 
   return true;
+}
+
+void
+ImageShrinkSegmentData (
+  const image_tool_image_info_t *Image
+  )
+{
+  uint32_t              Index;
+  image_tool_segment_t  *Segment;
+
+  for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
+    Segment = &Image->SegmentInfo.Segments[Index];
+    for (; Segment->DataSize > 0; --Segment->DataSize) {
+      if (Segment->Data[Segment->DataSize - 1] != 0) {
+        break;
+      }
+    }
+  }
 }
 
 void
