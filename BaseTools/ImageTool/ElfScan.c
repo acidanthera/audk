@@ -179,14 +179,6 @@ ParseElfFile (
   //
   if ((FileSize < sizeof (*Ehdr))
     || (memcmp (Ident, Ehdr->e_ident, sizeof (Ident)) != 0)) {
-    fprintf (stderr, "ImageTool: Invalid ELF header\n");
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[0] = 0x%x expected 0x%x\n", Ehdr->e_ident[0], Ident[0]);
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[1] = 0x%x expected 0x%x\n", Ehdr->e_ident[1], Ident[1]);
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[2] = 0x%x expected 0x%x\n", Ehdr->e_ident[2], Ident[2]);
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[3] = 0x%x expected 0x%x\n", Ehdr->e_ident[3], Ident[3]);
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[4] = 0x%x expected 0x%x\n", Ehdr->e_ident[4], Ident[4]);
-    fprintf (stderr, "ImageTool: Ehdr->e_ident[5] = 0x%x expected 0x%x\n", Ehdr->e_ident[5], Ident[5]);
-    fprintf (stderr, "ImageTool: FileSize = 0x%x  sizeof(*Ehdr) = 0x%lx\n", FileSize, sizeof (*Ehdr));
     return RETURN_UNSUPPORTED;
   }
 
@@ -418,7 +410,7 @@ SetRelocs (
             break;
           default:
             fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
-            return RETURN_UNSUPPORTED;
+            return RETURN_INCOMPATIBLE_VERSION;
         }
       } else if (Ehdr->e_machine == EM_AARCH64) {
         switch (ELF_R_TYPE(Rel->r_info)) {
@@ -460,7 +452,7 @@ SetRelocs (
             break;
           default:
             fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
-            return RETURN_UNSUPPORTED;
+            return RETURN_INCOMPATIBLE_VERSION;
         }
       }
 #elif defined(EFI_TARGET32)
@@ -480,7 +472,7 @@ SetRelocs (
             break;
           default:
             fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
-            return RETURN_UNSUPPORTED;
+            return RETURN_INCOMPATIBLE_VERSION;
         }
       } else if (Ehdr->e_machine == EM_ARM) {
         switch (ELF32_R_TYPE(Rel->r_info)) {
@@ -530,7 +522,7 @@ SetRelocs (
             break;
           default:
             fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
-            return RETURN_UNSUPPORTED;
+            return RETURN_INCOMPATIBLE_VERSION;
         }
       }
 #endif
