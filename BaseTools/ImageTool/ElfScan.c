@@ -19,8 +19,6 @@ typedef struct {
 #define EFI_IMAGE_MACHINE_AARCH64         0xAA64
 #endif
 
-extern image_tool_image_info_t mImageInfo;
-
 static
 Elf_Shdr *
 GetShdrByIndex (
@@ -342,7 +340,8 @@ ProcessRelocSection (
 static
 RETURN_STATUS
 SetRelocs (
-  IN const tool_elf_scan_context  *Context
+  OUT image_tool_image_info_t      *ImageInfo,
+  IN  const tool_elf_scan_context  *Context
   )
 {
   const Elf_Ehdr  *Ehdr;
@@ -383,15 +382,15 @@ SetRelocs (
             break;
           case R_X86_64_RELATIVE:
           case R_X86_64_64:
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           case R_X86_64_32:
 
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -418,7 +417,7 @@ SetRelocs (
             //
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       } else if (Ehdr->e_machine == EM_AARCH64) {
@@ -447,20 +446,20 @@ SetRelocs (
             break;
           case R_AARCH64_ABS64:
           case R_AARCH64_RELATIVE:
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_DIR64;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           case R_AARCH64_ABS32:
 
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (uint32_t)(Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       }
@@ -471,8 +470,8 @@ SetRelocs (
             break;
           case R_386_32:
 
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
@@ -480,7 +479,7 @@ SetRelocs (
           case R_386_PC32:
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_386 relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       } else if (Ehdr->e_machine == EM_ARM) {
@@ -524,13 +523,13 @@ SetRelocs (
             break;
           case R_ARM_ABS32:
 
-            mImageInfo.RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
-            mImageInfo.RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
+            ImageInfo->RelocInfo.Relocs[RelNum].Type   = EFI_IMAGE_REL_BASED_HIGHLOW;
+            ImageInfo->RelocInfo.Relocs[RelNum].Target = (Rel->r_offset - BaseAddress);
             ++RelNum;
 
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), mImageInfo.DebugInfo.SymbolsPath);
+            fprintf (stderr, "ImageTool: Unsupported ELF EM_ARM relocation 0x%x in %s\n", ELF_R_TYPE(Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
             return RETURN_UNSUPPORTED;
         }
       }
@@ -538,7 +537,7 @@ SetRelocs (
     }
   }
 
-  mImageInfo.RelocInfo.NumRelocs = RelNum;
+  ImageInfo->RelocInfo.NumRelocs = RelNum;
 
   return RETURN_SUCCESS;
 }
@@ -546,7 +545,8 @@ SetRelocs (
 static
 RETURN_STATUS
 CreateIntermediate (
-  IN const tool_elf_scan_context  *Context
+  OUT image_tool_image_info_t      *ImageInfo,
+  IN  const tool_elf_scan_context  *Context
   )
 {
   const Elf_Ehdr       *Ehdr;
@@ -619,21 +619,21 @@ CreateIntermediate (
       continue;
     }
 
-    ++mImageInfo.SegmentInfo.NumSegments;
+    ++ImageInfo->SegmentInfo.NumSegments;
   }
 
-  if (mImageInfo.SegmentInfo.NumSegments == 0) {
+  if (ImageInfo->SegmentInfo.NumSegments == 0) {
     fprintf (stderr, "ImageTool: No loadable sections\n");
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Segments = calloc (1, sizeof (*Segments) * mImageInfo.SegmentInfo.NumSegments);
+  Segments = calloc (1, sizeof (*Segments) * ImageInfo->SegmentInfo.NumSegments);
   if (Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments\n");
     return RETURN_OUT_OF_RESOURCES;
   };
 
-  mImageInfo.SegmentInfo.Segments = Segments;
+  ImageInfo->SegmentInfo.Segments = Segments;
 
   if (NumRelocs != 0) {
     Relocs = calloc (1, sizeof (*Relocs) * NumRelocs);
@@ -642,7 +642,7 @@ CreateIntermediate (
       return RETURN_OUT_OF_RESOURCES;
     };
 
-    mImageInfo.RelocInfo.Relocs = Relocs;
+    ImageInfo->RelocInfo.Relocs = Relocs;
   }
 
   for (Index = 0; Index < Ehdr->e_shnum; ++Index) {
@@ -658,19 +658,19 @@ CreateIntermediate (
     }
 
     if (IsHiiRsrcShdr (Ehdr, Shdr)) {
-      mImageInfo.HiiInfo.DataSize = (uint32_t)Shdr->sh_size;
+      ImageInfo->HiiInfo.DataSize = (uint32_t)Shdr->sh_size;
 
-      mImageInfo.HiiInfo.Data = calloc (1, mImageInfo.HiiInfo.DataSize);
-      if (mImageInfo.HiiInfo.Data == NULL) {
+      ImageInfo->HiiInfo.Data = calloc (1, ImageInfo->HiiInfo.DataSize);
+      if (ImageInfo->HiiInfo.Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
         return RETURN_OUT_OF_RESOURCES;
       };
 
       if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (mImageInfo.HiiInfo.Data, (const char *)Ehdr + Shdr->sh_offset, mImageInfo.HiiInfo.DataSize);
+        memcpy (ImageInfo->HiiInfo.Data, (const char *)Ehdr + Shdr->sh_offset, ImageInfo->HiiInfo.DataSize);
       }
 
-      SetHiiResourceHeader (mImageInfo.HiiInfo.Data, (UINT32)(Shdr->sh_addr - BaseAddress));
+      SetHiiResourceHeader (ImageInfo->HiiInfo.Data, (UINT32)(Shdr->sh_addr - BaseAddress));
     } else {
       Name = GetString (Ehdr, Shdr->sh_name, 0);
       if (Name == NULL) {
@@ -706,16 +706,17 @@ CreateIntermediate (
     }
   }
 
-  assert (SIndex == mImageInfo.SegmentInfo.NumSegments);
+  assert (SIndex == ImageInfo->SegmentInfo.NumSegments);
 
-  return SetRelocs(Context);
+  return SetRelocs (ImageInfo, Context);
 }
 
 RETURN_STATUS
 ScanElf (
-  IN const void *File,
-  IN uint32_t   FileSize,
-  IN const char *SymbolsPath
+  OUT image_tool_image_info_t  *ImageInfo,
+  IN  const void               *File,
+  IN  uint32_t                 FileSize,
+  IN  const char               *SymbolsPath
   )
 {
   RETURN_STATUS          Status;
@@ -723,6 +724,7 @@ ScanElf (
   const Elf_Ehdr         *Ehdr;
   Elf_Addr               BaseAddress;
 
+  assert (ImageInfo != NULL);
   assert (File != NULL || FileSize == 0);
 
   Status = ParseElfFile (&Context, File, FileSize);
@@ -733,29 +735,29 @@ ScanElf (
   Ehdr        = Context.Ehdr;
   BaseAddress = Context.BaseAddress;
 
-  memset (&mImageInfo, 0, sizeof (mImageInfo));
+  memset (ImageInfo, 0, sizeof (*ImageInfo));
 
-  mImageInfo.HeaderInfo.BaseAddress       = BaseAddress;
-  mImageInfo.HeaderInfo.EntryPointAddress = (uint32_t)(Ehdr->e_entry - BaseAddress);
-  mImageInfo.HeaderInfo.IsXip             = true;
-  mImageInfo.SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
-  mImageInfo.RelocInfo.RelocsStripped     = false;
-  mImageInfo.DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
+  ImageInfo->HeaderInfo.BaseAddress       = BaseAddress;
+  ImageInfo->HeaderInfo.EntryPointAddress = (uint32_t)(Ehdr->e_entry - BaseAddress);
+  ImageInfo->HeaderInfo.IsXip             = true;
+  ImageInfo->SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
+  ImageInfo->RelocInfo.RelocsStripped     = false;
+  ImageInfo->DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
 
   switch (Ehdr->e_machine) {
 #if defined(EFI_TARGET64)
     case EM_X86_64:
-      mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
+      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
       break;
     case EM_AARCH64:
-      mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_AARCH64;
+      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_AARCH64;
       break;
 #elif defined(EFI_TARGET32)
     case EM_386:
-      mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_IA32;
+      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_IA32;
       break;
     case EM_ARM:
-      mImageInfo.HeaderInfo.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
+      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
       break;
 #endif
     default:
@@ -763,22 +765,22 @@ ScanElf (
       return RETURN_INCOMPATIBLE_VERSION;
   }
 
-  mImageInfo.DebugInfo.SymbolsPath = malloc (mImageInfo.DebugInfo.SymbolsPathLen + 1);
-  if (mImageInfo.DebugInfo.SymbolsPath == NULL) {
+  ImageInfo->DebugInfo.SymbolsPath = malloc (ImageInfo->DebugInfo.SymbolsPathLen + 1);
+  if (ImageInfo->DebugInfo.SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Debug Data\n");
     return RETURN_OUT_OF_RESOURCES;
   };
 
-  memmove (mImageInfo.DebugInfo.SymbolsPath, SymbolsPath, mImageInfo.DebugInfo.SymbolsPathLen + 1);
+  memmove (ImageInfo->DebugInfo.SymbolsPath, SymbolsPath, ImageInfo->DebugInfo.SymbolsPathLen + 1);
 
   //
   // There is no corresponding ELF property.
   //
-  mImageInfo.HeaderInfo.Subsystem = 0;
+  ImageInfo->HeaderInfo.Subsystem = 0;
 
-  Status = CreateIntermediate (&Context);
+  Status = CreateIntermediate (ImageInfo, &Context);
   if (RETURN_ERROR (Status)) {
-    ToolImageDestruct (&mImageInfo);
+    ToolImageDestruct (ImageInfo);
   }
 
   return Status;
