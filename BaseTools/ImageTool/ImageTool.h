@@ -98,6 +98,11 @@ ToolImageDestruct (
   image_tool_image_info_t *Image
   );
 
+void
+ImageShrinkSegmentData (
+  const image_tool_image_info_t *Image
+  );
+
 bool
 ImageConvertToXip (
   image_tool_image_info_t *Image
