@@ -11,8 +11,6 @@
 
 #define EFI_ACPI_1_0_FIRMWARE_ACPI_CONTROL_STRUCTURE_VERSION  0x0
 
-image_tool_image_info_t mImageInfo;
-
 
 static
 RETURN_STATUS
@@ -349,12 +347,13 @@ GenExecutable (
   IN const char  *TypeName
   )
 {
-  UINT32         InputFileSize;
-  VOID           *InputFile;
-  RETURN_STATUS  Status;
-  bool           Result;
-  void           *OutputFile;
-  uint32_t       OutputFileSize;
+  UINT32                   InputFileSize;
+  VOID                     *InputFile;
+  RETURN_STATUS            Status;
+  bool                     Result;
+  image_tool_image_info_t  ImageInfo;
+  void                     *OutputFile;
+  uint32_t                 OutputFileSize;
 
   InputFile = UserReadFile (InputFileName, &InputFileSize);
   if (InputFile == NULL) {
@@ -362,9 +361,9 @@ GenExecutable (
     return RETURN_ABORTED;
   }
 
-  Status = ToolContextConstructPe (&mImageInfo, InputFile, InputFileSize);
+  Status = ToolContextConstructPe (&ImageInfo, InputFile, InputFileSize);
   if (Status == RETURN_UNSUPPORTED) {
-    Status = ScanElf (InputFile, InputFileSize, InputFileName);
+    Status = ScanElf (&ImageInfo, InputFile, InputFileSize, InputFileName);
   }
 
   free (InputFile);
@@ -375,26 +374,26 @@ GenExecutable (
   }
 
   if (TypeName != NULL) {
-    Result = ImageSetModuleType (&mImageInfo, TypeName);
+    Result = ImageSetModuleType (&ImageInfo, TypeName);
     if (!Result) {
-      ToolImageDestruct (&mImageInfo);
+      ToolImageDestruct (&ImageInfo);
       return RETURN_UNSUPPORTED;
     }
   }
 
-  Result = CheckToolImage (&mImageInfo);
+  Result = CheckToolImage (&ImageInfo);
   if (!Result) {
-    ToolImageDestruct (&mImageInfo);
+    ToolImageDestruct (&ImageInfo);
     return RETURN_UNSUPPORTED;
   }
 
   if (strcmp (FormatName, "PE") == 0) {
-    OutputFile = ToolImageEmitPe (&mImageInfo, &OutputFileSize);
+    OutputFile = ToolImageEmitPe (&ImageInfo, &OutputFileSize);
   } else {
     assert (false);
   }
 
-  ToolImageDestruct (&mImageInfo);
+  ToolImageDestruct (&ImageInfo);
 
   if (OutputFile == NULL) {
     return RETURN_ABORTED;

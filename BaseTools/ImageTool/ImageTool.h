@@ -163,9 +163,10 @@ ToolImageEmitPe (
 
 RETURN_STATUS
 ScanElf (
-  IN const void *File,
-  IN uint32_t   FileSize,
-  IN const char *SymbolsPath
+  OUT image_tool_image_info_t  *ImageInfo,
+  IN  const void               *File,
+  IN  uint32_t                 FileSize,
+  IN  const char               *SymbolsPath
   );
 
 RETURN_STATUS
