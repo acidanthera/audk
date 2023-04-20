@@ -419,7 +419,6 @@ class EFI_SECTION_TYPE:
     DISPOSABLE = 0x03
     PE32 = 0x10
     PIC = 0x11
-    TE = 0x12
     DXE_DEPEX = 0x13
     VERSION = 0x14
     USER_INTERFACE = 0x15

@@ -205,7 +205,7 @@ GetExportDirectoryInPeCoffImage (
                                                            );
 
   //
-  // Check the PE/COFF Header Signature. Determine if the image is valid and/or a TE image.
+  // Check the PE/COFF Header Signature. Determine if the image is valid image.
   //
   if (OptionalHeaderPtrUnion.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
     DEBUG ((DEBUG_ERROR, "%a %a: The PE signature is not valid for the current image.\n", _DBGMSGID_, __func__));
@@ -330,7 +330,7 @@ GetImageVersionInPeCoffImage (
                                                            PeCoffLoaderImageContext->PeCoffHeaderOffset
                                                            );
   //
-  // Check the PE/COFF Header Signature. Determine if the image is valid and/or a TE image.
+  // Check the PE/COFF Header Signature. Determine if the image is valid image.
   //
   if (OptionalHeaderPtrUnion.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
     DEBUG ((DEBUG_ERROR, "%a %a: The PE signature is not valid for the current image.\n", _DBGMSGID_, __func__));
