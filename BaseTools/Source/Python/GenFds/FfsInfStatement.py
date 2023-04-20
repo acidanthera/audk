@@ -775,7 +775,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                 File = GenFdsGlobalVariable.MacroExtend(File, Dict, self.CurrentArch)
 
                 #Get PE Section alignment when align is set to AUTO
-                if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32 or SectionType == BINARY_FILE_TYPE_TE):
+                if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32):
                     ImageObj = PeImageClass (File)
                     if ImageObj.SectionAlignment < 0x400:
                         self.Alignment = str (ImageObj.SectionAlignment)
@@ -798,15 +798,6 @@ class FfsInfStatement(FfsInfStatementClassObject):
                         )
                     File = StrippedFile
 
-                if SectionType == BINARY_FILE_TYPE_TE:
-                    TeFile = os.path.join( self.OutputPath, self.ModuleGuid + 'Te.raw')
-                    GenFdsGlobalVariable.GenerateFirmwareImage(
-                            TeFile,
-                            [File],
-                            Type='te',
-                            IsMakefile=IsMakefile
-                        )
-                    File = TeFile
                 GenFdsGlobalVariable.GenerateSection(OutputFile, [File], Section.Section.SectionType[SectionType], IsMakefile=IsMakefile)
                 OutputFileList.append(OutputFile)
         else:
@@ -817,7 +808,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
             GenSecInputFile = GenFdsGlobalVariable.MacroExtend(GenSecInputFile, Dict, self.CurrentArch)
 
             #Get PE Section alignment when align is set to AUTO
-            if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32 or SectionType == BINARY_FILE_TYPE_TE):
+            if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32):
                 ImageObj = PeImageClass (GenSecInputFile)
                 if ImageObj.SectionAlignment < 0x400:
                     self.Alignment = str (ImageObj.SectionAlignment)
@@ -841,15 +832,6 @@ class FfsInfStatement(FfsInfStatementClassObject):
                     )
                 GenSecInputFile = StrippedFile
 
-            if SectionType == BINARY_FILE_TYPE_TE:
-                TeFile = os.path.join( self.OutputPath, self.ModuleGuid + 'Te.raw')
-                GenFdsGlobalVariable.GenerateFirmwareImage(
-                        TeFile,
-                        [GenSecInputFile],
-                        Type='te',
-                        IsMakefile=IsMakefile
-                    )
-                GenSecInputFile = TeFile
             GenFdsGlobalVariable.GenerateSection(OutputFile, [GenSecInputFile], Section.Section.SectionType[SectionType], IsMakefile=IsMakefile)
             OutputFileList.append(OutputFile)
 

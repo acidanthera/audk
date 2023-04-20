@@ -78,7 +78,7 @@ FvFsFindExecutableSection (
   UINT32            AuthenticationStatus;
   EFI_STATUS        Status;
 
-  for (SectionType = EFI_SECTION_PE32; SectionType <= EFI_SECTION_TE; SectionType++) {
+  for (SectionType = EFI_SECTION_PE32; SectionType <= EFI_SECTION_PIC; SectionType++) {
     Status = FvProtocol->ReadSection (
                            FvProtocol,
                            &FvFileInfo->NameGuid,

@@ -75,23 +75,9 @@ PeCoffGetSizeOfImageInplace (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   )
 {
-  UINT32 SizeOfImage;
-
   ASSERT (Context != NULL);
 
-  SizeOfImage = Context->SizeOfImage;
-  //
-  // SizeOfImage is defined with the full Image header size pre-stripping. As
-  // XIP TE Images always have a stripped Image header, subtract the difference.
-  //
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    ASSERT (Context->TeStrippedOffset < SizeOfImage);
-    SizeOfImage -= Context->TeStrippedOffset;
-  } else {
-    ASSERT (Context->TeStrippedOffset == 0);
-  }
-
-  return SizeOfImage;
+  return Context->SizeOfImage;
 }
 
 UINT64

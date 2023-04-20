@@ -7,7 +7,6 @@ An Image Section Table is considered well-formed if and only if:
 1. The Image Section Table is sorted by Image section RVA in ascending order.
 2. All Image sections are disjoint in the Image memory space.
 3. For PE/COFF Images, all Image sections are in bounds of the Image memory space defined by the Image headers.
-   * For TE Images, the Image memory space is implicitly defined by the Image Section Table.
 4. All Image sections are in bounds of the raw file.
 
 Additionally, based on PCD policy values, the following constraints may be added:

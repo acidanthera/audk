@@ -328,24 +328,6 @@ SmmLoadImage (
                  &Size,
                  &AuthenticationStatus
                  );
-
-  if (EFI_ERROR (Status)) {
-    //
-    // Try reading TE section secondly
-    //
-    Buffer = NULL;
-    Size   = 0;
-    Status = Fv->ReadSection (
-                   Fv,
-                   NameGuid,
-                   EFI_SECTION_TE,
-                   0,
-                   &Buffer,
-                   &Size,
-                   &AuthenticationStatus
-                   );
-  }
-
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);
