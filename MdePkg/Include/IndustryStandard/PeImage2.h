@@ -724,38 +724,12 @@ typedef struct {
 } EFI_IMAGE_RESOURCE_DATA_ENTRY;
 
 ///
-/// Header format for TE images, defined in the PI Specification, 1.0.
-///
-typedef struct {
-  UINT16                    Signature;            ///< The signature for TE format = "VZ".
-  UINT16                    Machine;              ///< From the original file header.
-  UINT8                     NumberOfSections;     ///< From the original file header.
-  UINT8                     Subsystem;            ///< From original optional header.
-  UINT16                    StrippedSize;         ///< Number of bytes we removed from the header.
-  UINT32                    AddressOfEntryPoint;  ///< Offset to entry point -- from original optional header.
-  UINT32                    BaseOfCode;           ///< From original image -- required for ITP debug.
-  UINT64                    ImageBase;            ///< From original file header.
-  EFI_IMAGE_DATA_DIRECTORY  DataDirectory[2];     ///< Only base relocation and debug directory.
-} EFI_TE_IMAGE_HEADER;
-
-
-#define EFI_TE_IMAGE_HEADER_SIGNATURE  SIGNATURE_16('V', 'Z')
-
-//
-// Data directory indexes in our TE image header
-//
-#define EFI_TE_IMAGE_DIRECTORY_ENTRY_BASERELOC  0
-#define EFI_TE_IMAGE_DIRECTORY_ENTRY_DEBUG      1
-
-
-///
-/// Union of PE32, PE32+, and TE headers.
+/// Union of PE32 and PE32+ headers.
 ///
 typedef union {
   EFI_IMAGE_NT_HEADERS_COMMON_HDR PeCommon;
   EFI_IMAGE_NT_HEADERS32          Pe32;
   EFI_IMAGE_NT_HEADERS64          Pe32Plus;
-  EFI_TE_IMAGE_HEADER             Te;
 } EFI_IMAGE_OPTIONAL_HEADER_UNION;
 
 #endif // PE_COFF_IMAGE2_H_

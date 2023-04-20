@@ -285,7 +285,7 @@ Arguments:
 
   MaxAlignment   - The max alignment required by all the input file datas.
 
-  PeSectionNum   - Calculate the number of Pe/Te Section in this FFS file.
+  PeSectionNum   - Calculate the number of Pe Section in this FFS file.
 
 Returns:
 
@@ -302,8 +302,6 @@ Returns:
   FILE                                *InFile;
   EFI_FREEFORM_SUBTYPE_GUID_SECTION   *SectHeader;
   EFI_COMMON_SECTION_HEADER2          TempSectHeader;
-  EFI_TE_IMAGE_HEADER                 TeHeader;
-  UINT32                              TeOffset;
   EFI_GUID_DEFINED_SECTION            GuidSectHeader;
   EFI_GUID_DEFINED_SECTION2           GuidSectHeader2;
   UINT32                              HeaderSize;
@@ -311,7 +309,6 @@ Returns:
 
   Size                    = 0;
   Offset                  = 0;
-  TeOffset                = 0;
   MaxEncounteredAlignment = 1;
 
   //
@@ -342,22 +339,15 @@ Returns:
               "the input section name is %s and the size is %u bytes", InputFileName[Index], (unsigned) FileSize);
 
     //
-    // Check this section is Te/Pe section, and Calculate the numbers of Te/Pe section.
+    // Check this section is Pe section, and Calculate the numbers of Pe section.
     //
-    TeOffset = 0;
     if (FileSize >= MAX_FFS_SIZE) {
       HeaderSize = sizeof (EFI_COMMON_SECTION_HEADER2);
     } else {
       HeaderSize = sizeof (EFI_COMMON_SECTION_HEADER);
     }
     fread (&TempSectHeader, 1, HeaderSize, InFile);
-    if (TempSectHeader.Type == EFI_SECTION_TE) {
-      (*PESectionNum) ++;
-      fread (&TeHeader, 1, sizeof (TeHeader), InFile);
-      if (TeHeader.Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-        TeOffset = TeHeader.StrippedSize - sizeof (TeHeader);
-      }
-    } else if (TempSectHeader.Type == EFI_SECTION_PE32) {
+    if (TempSectHeader.Type == EFI_SECTION_PE32) {
       (*PESectionNum) ++;
     } else if (TempSectHeader.Type == EFI_SECTION_GUID_DEFINED) {
       fseek (InFile, 0, SEEK_SET);
@@ -376,7 +366,7 @@ Returns:
     } else if (TempSectHeader.Type == EFI_SECTION_COMPRESSION ||
                TempSectHeader.Type == EFI_SECTION_FIRMWARE_VOLUME_IMAGE) {
       //
-      // for the encapsulated section, assume it contains Pe/Te section
+      // for the encapsulated section, assume it contains Pe section
       //
       (*PESectionNum) ++;
     }
@@ -384,22 +374,13 @@ Returns:
     fseek (InFile, 0, SEEK_SET);
 
     //
-    // Revert TeOffset to the converse value relative to Alignment
-    // This is to assure the original PeImage Header at Alignment.
-    //
-    if ((TeOffset != 0) && (InputFileAlign [Index] != 0)) {
-      TeOffset = InputFileAlign [Index] - (TeOffset % InputFileAlign [Index]);
-      TeOffset = TeOffset % InputFileAlign [Index];
-    }
-
-    //
     // make sure section data meet its alignment requirement by adding one pad section.
     // But the different sections have the different section header. Necessary or not?
     // Based on section type to adjust offset? Todo
     //
-    if ((InputFileAlign [Index] != 0) && (((Size + HeaderSize + TeOffset) % InputFileAlign [Index]) != 0)) {
-      Offset = (Size + sizeof (EFI_COMMON_SECTION_HEADER) + HeaderSize + TeOffset + InputFileAlign [Index] - 1) & ~(InputFileAlign [Index] - 1);
-      Offset = Offset - Size - HeaderSize - TeOffset;
+    if ((InputFileAlign [Index] != 0) && (((Size + HeaderSize) % InputFileAlign [Index]) != 0)) {
+      Offset = (Size + sizeof (EFI_COMMON_SECTION_HEADER) + HeaderSize + InputFileAlign [Index] - 1) & ~(InputFileAlign [Index] - 1);
+      Offset = Offset - Size - HeaderSize;
 
       if (FileBuffer != NULL && ((Size + Offset) < *BufferLength)) {
         //
@@ -959,7 +940,7 @@ Returns:
   if ((FfsFiletype == EFI_FV_FILETYPE_SECURITY_CORE ||
       FfsFiletype == EFI_FV_FILETYPE_PEI_CORE ||
       FfsFiletype == EFI_FV_FILETYPE_DXE_CORE) && (PeSectionNum != 1)) {
-    Error (NULL, 0, 2000, "Invalid parameter", "Fv File type %s must have one and only one Pe or Te section, but %u Pe/Te section are input", mFfsFileType [FfsFiletype], PeSectionNum);
+    Error (NULL, 0, 2000, "Invalid parameter", "Fv File type %s must have one and only one Pe section, but %u Pe section are input", mFfsFileType [FfsFiletype], PeSectionNum);
     goto Finish;
   }
 
@@ -967,7 +948,7 @@ Returns:
       FfsFiletype == EFI_FV_FILETYPE_DRIVER ||
       FfsFiletype == EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER ||
       FfsFiletype == EFI_FV_FILETYPE_APPLICATION) && (PeSectionNum < 1)) {
-    Error (NULL, 0, 2000, "Invalid parameter", "Fv File type %s must have at least one Pe or Te section, but no Pe/Te section is input", mFfsFileType [FfsFiletype]);
+    Error (NULL, 0, 2000, "Invalid parameter", "Fv File type %s must have at least one Pe section, but no Pe section is input", mFfsFileType [FfsFiletype]);
     goto Finish;
   }
 
