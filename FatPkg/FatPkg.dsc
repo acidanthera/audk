@@ -78,3 +78,6 @@
 [Components]
   FatPkg/FatPei/FatPei.inf
   FatPkg/EnhancedFatDxe/Fat.inf
+
+[PcdsFeatureFlag]
+  gEfiFatPkgTokenSpaceGuid.PcdFatReadOnlyMode|FALSE
