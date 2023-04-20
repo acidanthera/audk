@@ -496,7 +496,6 @@ class EfiSectionHeader(BinaryItem):
                         0x02: 'EFI_SECTION_GUID_DEFINED',
                         0x10: 'EFI_SECTION_PE32',
                         0x11: 'EFI_SECTION_PIC',
-                        0x12: 'EFI_SECTION_TE',
                         0x13: 'EFI_SECTION_DXE_DEPEX',
                         0x14: 'EFI_SECTION_VERSION',
                         0x15: 'EFI_SECTION_USER_INTERFACE',
