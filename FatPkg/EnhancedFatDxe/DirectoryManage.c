@@ -73,6 +73,10 @@ FatStoreDirEnt (
   UINT8              EntryCount;
   UINT8              LfnOrdinal;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   EntryPos   = DirEnt->EntryPos;
   EntryCount = DirEnt->EntryCount;
   //
@@ -709,6 +713,10 @@ FatExpandODir (
   IN FAT_OFILE  *OFile
   )
 {
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   return FatExpandOFile (OFile, OFile->FileSize + OFile->Volume->ClusterSize);
 }
 
@@ -954,6 +962,10 @@ FatSetVolumeEntry (
   FAT_DIRENT  LabelDirEnt;
   FAT_OFILE   *Root;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   Root   = Volume->Root;
   Status = FatSeekVolumeId (Volume->Root, &LabelDirEnt);
   if (EFI_ERROR (Status)) {
@@ -1001,6 +1013,10 @@ FatCreateDotDirEnts (
   EFI_STATUS  Status;
   FAT_DIRENT  *DirEnt;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   Status = FatExpandODir (OFile);
   if (EFI_ERROR (Status)) {
     return Status;
@@ -1047,6 +1063,10 @@ FatCreateDirEnt (
   FAT_DIRENT  *DirEnt;
   FAT_ODIR    *ODir;
   EFI_STATUS  Status;
+
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
 
   ASSERT (OFile != NULL);
   ODir = OFile->ODir;
@@ -1104,6 +1124,10 @@ FatRemoveDirEnt (
   )
 {
   FAT_ODIR  *ODir;
+
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
 
   ODir = OFile->ODir;
   if (ODir->CurrentCursor == &DirEnt->Link) {
