@@ -211,6 +211,10 @@ FatIFileAccess (
   UINT64      EndPosition;
   FAT_TASK    *Task;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode) && IoMode == WriteData) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   IFile  = IFILE_FROM_FHAND (FHand);
   OFile  = IFile->OFile;
   Volume = OFile->Volume;
@@ -414,6 +418,9 @@ FatWrite (
   IN     VOID               *Buffer
   )
 {
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
   return FatIFileAccess (FHand, WriteData, BufferSize, Buffer, NULL);
 }
 
@@ -437,6 +444,9 @@ FatWriteEx (
   IN OUT EFI_FILE_IO_TOKEN  *Token
   )
 {
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
   return FatIFileAccess (FHand, WriteData, &Token->BufferSize, Token->Buffer, Token);
 }
 
@@ -470,6 +480,10 @@ FatAccessOFile (
   UINTN       Len;
   EFI_STATUS  Status;
   UINTN       BufferSize;
+
+  if (FeaturePcdGet (PcdFatReadOnlyMode) && IoMode == WriteData) {
+    return EFI_WRITE_PROTECTED;
+  }
 
   BufferSize = *DataBufferSize;
   Volume     = OFile->Volume;
@@ -542,6 +556,10 @@ FatExpandOFile (
   EFI_STATUS  Status;
   UINTN       WritePos;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   WritePos = OFile->FileSize;
   Status   = FatGrowEof (OFile, ExpandedSize);
   if (!EFI_ERROR (Status)) {
@@ -574,6 +592,10 @@ FatWriteZeroPool (
   UINTN       AppendedSize;
   UINTN       BufferSize;
   UINTN       WriteSize;
+
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
 
   AppendedSize = OFile->FileSize - WritePos;
   BufferSize   = AppendedSize;
@@ -624,6 +646,10 @@ FatTruncateOFile (
   IN UINTN      TruncatedSize
   )
 {
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   OFile->FileSize = TruncatedSize;
   return FatShrinkEof (OFile);
 }
