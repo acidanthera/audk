@@ -2351,12 +2351,6 @@
   # @Prompt Image Loader Alignment Policy.
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy|0xFFFFFFFF|UINT32|0x4000101E
 
-  ## Indicates whether TE Images are allowed.<BR><BR>
-  #   TRUE  - TE Images are forbidden.<BR>
-  #   FALSE - TE Images are allowed.<BR>
-  # @Prompt Prohibit TE Images Loading.
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe|FALSE|BOOLEAN|0x4000101F
-
   ## Indicates whether PE32+ header offset is sufficiently aligned.<BR><BR>
   #   TRUE  - Execution Header offset may be not aligned.<BR>
   #   FALSE - Execution Header offset must be sufficiently aligned.<BR>

@@ -665,7 +665,7 @@ Returns:
     //
     // 0x12
     //
-    "EFI_SECTION_TE",
+    "Unsupported section type - formerly TE",
     //
     // 0x13
     //
@@ -1788,7 +1788,6 @@ Returns:
     switch (Type) {
     case EFI_SECTION_RAW:
     case EFI_SECTION_PIC:
-    case EFI_SECTION_TE:
       // default is no more information
       break;
 

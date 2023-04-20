@@ -1,5 +1,5 @@
 /** @file
-  UEFI Image Loader library implementation for PE/COFF and TE Images.
+  UEFI Image Loader library implementation for PE/COFF Images.
 
   Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
 

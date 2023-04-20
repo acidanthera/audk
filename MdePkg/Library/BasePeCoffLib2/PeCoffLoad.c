@@ -75,12 +75,7 @@ InternalLoadSections (
     //
     // Load the current Image section into the memory space.
     //
-    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-      EffectivePointerToRawData = Sections[SectionIndex].PointerToRawData - Context->TeStrippedOffset;
-    } else {
-      ASSERT (Context->TeStrippedOffset == 0);
-      EffectivePointerToRawData = Sections[SectionIndex].PointerToRawData;
-    }
+    EffectivePointerToRawData = Sections[SectionIndex].PointerToRawData;
 
     CopyMem (
       (CHAR8 *) Context->ImageBuffer + Sections[SectionIndex].VirtualAddress,
@@ -122,7 +117,7 @@ PeCoffLoadImage (
                (CONST CHAR8 *) Context->FileBuffer + Context->SectionsOffset
                );
   if (PcdGetBool (PcdImageLoaderLoadHeader) && Sections[0].VirtualAddress != 0) {
-    LoadedHeaderSize = Context->SizeOfHeaders - Context->TeStrippedOffset;
+    LoadedHeaderSize = Context->SizeOfHeaders;
     CopyMem (Context->ImageBuffer, Context->FileBuffer, LoadedHeaderSize);
   } else {
     LoadedHeaderSize = 0;
@@ -144,7 +139,6 @@ PeCoffLoadImageInplaceNoBase (
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT32                         AlignedSize;
   UINT16                         SectionIndex;
-  CHAR8                          *ImageBuffer;
 
   ASSERT (Context != NULL);
 
@@ -164,22 +158,7 @@ PeCoffLoadImageInplaceNoBase (
     }
   }
 
-  ImageBuffer = (CHAR8 *) Context->FileBuffer;
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    // FIXME: Abstract all accesses to ImageBuffer for safety?
-    //
-    // TE XIP Images are padded to be aligned such that their Image sections
-    // are correctly aligned. ImageBuffer is used exclusively to accesses RVAs,
-    // which for TE XIP Images are always off by Context->TeStrippedOffset.
-    // There is no other way but to treat the data in front of the TE Image
-    // Header as a part of the TE Image Header.
-    //
-    ImageBuffer -= Context->TeStrippedOffset;
-  } else {
-    ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
-  }
-
-  Context->ImageBuffer = ImageBuffer;
+  Context->ImageBuffer = (CHAR8 *) Context->FileBuffer;
 
   return RETURN_SUCCESS;
 }
@@ -194,12 +173,6 @@ PeCoffImageIsInplace (
   ASSERT (Context != NULL);
 
   ImageBase = PeCoffGetImageBase (Context);
-
-  if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    ImageBase += Context->TeStrippedOffset;
-  } else {
-    ASSERT (Context->TeStrippedOffset == 0);
-  }
   //
   // Verify the Image is located at its preferred load address.
   //
