@@ -715,12 +715,6 @@
                                                                                      "TRUE  - Installs UGA Draw Protocol on virtual handle created by ConsplitterDxe.<BR>\n"
                                                                                      "FALSE - Does not install UGA Draw Protocol on virtual handle created by ConsplitterDxe.<BR>"
 
-#string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdPeiCoreImageLoaderSearchTeSectionFirst_PROMPT  #language en-US "PeiCore search TE section first"
-
-#string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdPeiCoreImageLoaderSearchTeSectionFirst_HELP  #language en-US "Indicates PeiCore will first search TE section from the PEIM to load the image, or PE32 section, when PeiCore dispatches a PEI module. This PCD is used to tune PEI phase performance to reduce the search image time. It can be set according to the generated image section type.<BR><BR>\n"
-                                                                                                           "TRUE  - PeiCore will first search TE section from PEIM to load the image, if TE section is not found, then PeiCore will search PE section.<BR>\n"
-                                                                                                           "FALSE - PeiCore will first search PE section from PEIM to load the image.<BR>"
-
 #string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdTurnOffUsbLegacySupport_PROMPT  #language en-US "Turn off USB legacy support"
 
 #string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdTurnOffUsbLegacySupport_HELP  #language en-US "Disable legacy USB? If disabled, legacy USB device driver cannot make use of SMI interrupt to access USB device in the case of absence of a USB stack. TRUE  - disable<BR>\n"

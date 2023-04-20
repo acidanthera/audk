@@ -212,7 +212,6 @@ typedef UINT8 EFI_SECTION_TYPE;
 ///
 #define EFI_SECTION_PE32                   0x10
 #define EFI_SECTION_PIC                    0x11
-#define EFI_SECTION_TE                     0x12
 #define EFI_SECTION_DXE_DEPEX              0x13
 #define EFI_SECTION_VERSION                0x14
 #define EFI_SECTION_USER_INTERFACE         0x15

@@ -25,8 +25,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections
   are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If Buffer is NULL, then ASSERT().
@@ -73,8 +71,6 @@ GetSectionFromAnyFvByFileType  (
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections
   are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If NameGuid is NULL, then ASSERT().
@@ -126,10 +122,6 @@ GetSectionFromAnyFv  (
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections are retrieved from
   an FFS file based on SectionType and SectionInstance.
 
-  If the currently executing module was not loaded from a firmware volume, then EFI_NOT_FOUND is returned.
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
-
   This function must be called with a TPL <= TPL_NOTIFY.
   If NameGuid is NULL, then ASSERT().
   If Buffer is NULL, then ASSERT().
@@ -179,9 +171,6 @@ GetSectionFromFv (
   to use FreePool() to free the allocated buffer. See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for
   details on how sections are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If the currently executing module was not loaded from an FFS file, then EFI_NOT_FOUND is returned.
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If Buffer is NULL, then ASSERT().
@@ -263,8 +252,6 @@ GetFileBufferByFilePath (
   The order that the firmware volumes is searched is not deterministic. For each FFS file found a search
   is made for FFS sections of type SectionType.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If NameGuid is NULL, then ASSERT().

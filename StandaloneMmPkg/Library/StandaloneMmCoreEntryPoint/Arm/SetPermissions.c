@@ -64,15 +64,12 @@ LocateStandaloneMmCoreUefiImage (
 
   Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, UefiImage, UefiImageSize);
   if (EFI_ERROR (Status)) {
-    Status = FfsFindSectionData (EFI_SECTION_TE, FileHeader, UefiImage, UefiImageSize);
-    if (EFI_ERROR (Status)) {
-      DEBUG ((
-        DEBUG_ERROR,
-        "Unable to locate Standalone MM Section data - %r\n",
-        Status
-        ));
-      return Status;
-    }
+    DEBUG ((
+      DEBUG_ERROR,
+      "Unable to locate Standalone MM Section data - %r\n",
+      Status
+      ));
+    return Status;
   }
 
   DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", *UefiImage));
