@@ -44,7 +44,7 @@ FatDelete (
   //
   // If the file is read-only, then don't delete it
   //
-  if (IFile->ReadOnly) {
+  if (IFile->ReadOnly || FeaturePcdGet (PcdFatReadOnlyMode)) {
     Status = EFI_WRITE_PROTECTED;
     goto Done;
   }
