@@ -37,6 +37,10 @@ InternalCharacteristicsToAttributes (
 {
   UINT32  Attributes;
 
+  if (PcdGetBool (PcdImageLoaderRemoveXForWX) && ((Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE))) {
+    Characteristics &= ~EFI_IMAGE_SCN_MEM_EXECUTE;
+  }
+
   Attributes = 0;
   if ((Characteristics & EFI_IMAGE_SCN_MEM_READ) == 0) {
     Attributes |= EFI_MEMORY_RP;

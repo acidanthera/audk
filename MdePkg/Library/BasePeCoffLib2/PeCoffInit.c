@@ -126,7 +126,7 @@ InternalVerifySections (
     // Verify the Image section adheres to the W^X principle, if the policy
     // demands it.
     //
-    if (PcdGetBool (PcdImageLoaderWXorX)) {
+    if (PcdGetBool (PcdImageLoaderWXorX) && !PcdGetBool (PcdImageLoaderRemoveXForWX)) {
       if ((Sections[SectionIndex].Characteristics & (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) == (EFI_IMAGE_SCN_MEM_EXECUTE | EFI_IMAGE_SCN_MEM_WRITE)) {
         DEBUG_RAISE ();
         return RETURN_VOLUME_CORRUPTED;
