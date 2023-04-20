@@ -224,8 +224,12 @@ FatOpenEx (
   //
   switch (OpenMode) {
     case EFI_FILE_MODE_READ:
+      break;
     case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE:
     case EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE | EFI_FILE_MODE_CREATE:
+      if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+        return EFI_WRITE_PROTECTED;
+      }
       break;
 
     default:
