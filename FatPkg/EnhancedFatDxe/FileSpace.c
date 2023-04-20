@@ -362,6 +362,10 @@ FatShrinkEof (
   UINTN       Cluster;
   UINTN       LastCluster;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   Volume = OFile->Volume;
   ASSERT_VOLUME_LOCKED (Volume);
 
@@ -439,6 +443,10 @@ FatGrowEof (
   UINTN       LastCluster;
   UINTN       NewCluster;
   UINTN       ClusterCount;
+
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
 
   //
   // For FAT file system, the max file is 4GB.
