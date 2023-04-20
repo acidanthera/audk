@@ -62,7 +62,7 @@ class EfiSection (EfiSectionClassObject):
             StringData = FfsInf.__ExtendMacro__(self.StringData)
             ModuleNameStr = FfsInf.__ExtendMacro__('$(MODULE_NAME)')
             NoStrip = True
-            if FfsInf.ModuleType in (SUP_MODULE_SEC, SUP_MODULE_PEI_CORE, SUP_MODULE_PEIM, SUP_MODULE_MM_CORE_STANDALONE) and SectionType in (BINARY_FILE_TYPE_TE, BINARY_FILE_TYPE_PE32):
+            if FfsInf.ModuleType in (SUP_MODULE_SEC, SUP_MODULE_PEI_CORE, SUP_MODULE_PEIM, SUP_MODULE_MM_CORE_STANDALONE) and SectionType in (BINARY_FILE_TYPE_PE32):
                 if FfsInf.KeepReloc is not None:
                     NoStrip = FfsInf.KeepReloc
                 elif FfsInf.KeepRelocFromRule is not None:
@@ -259,7 +259,7 @@ class EfiSection (EfiSectionClassObject):
                     File = GenFdsGlobalVariable.MacroExtend(File, Dict)
 
                     #Get PE Section alignment when align is set to AUTO
-                    if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32 or SectionType == BINARY_FILE_TYPE_TE):
+                    if self.Alignment == 'Auto' and (SectionType == BINARY_FILE_TYPE_PE32):
                         Align = "0"
                     if File[(len(File)-4):] == '.efi' and FfsInf.InfModule.BaseName == os.path.basename(File)[:-4]:
                         MapFile = File.replace('.efi', '.map')
@@ -294,18 +294,6 @@ class EfiSection (EfiSectionClassObject):
                                 IsMakefile = IsMakefile
                             )
                         File = StrippedFile
-
-                    """For TE Section call GenFw to generate TE image"""
-
-                    if SectionType == BINARY_FILE_TYPE_TE:
-                        TeFile = os.path.join( OutputPath, ModuleName + 'Te.raw')
-                        GenFdsGlobalVariable.GenerateFirmwareImage(
-                                TeFile,
-                                [File],
-                                Type='te',
-                                IsMakefile = IsMakefile
-                            )
-                        File = TeFile
 
                     """Call GenSection"""
                     GenFdsGlobalVariable.GenerateSection(OutputFile,
