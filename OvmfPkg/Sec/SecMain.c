@@ -503,16 +503,8 @@ FindPeiCoreImageBaseInFv (
              &Section
              );
   if (EFI_ERROR (Status)) {
-    Status = FindFfsFileAndSection (
-               Fv,
-               EFI_FV_FILETYPE_PEI_CORE,
-               EFI_SECTION_TE,
-               &Section
-               );
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Unable to find PEI Core image\n"));
-      return Status;
-    }
+    DEBUG ((DEBUG_ERROR, "Unable to find PEI Core image\n"));
+    return Status;
   }
 
   *PeiCoreImageBase = (EFI_PHYSICAL_ADDRESS)(UINTN)(Section + 1);
@@ -682,7 +674,7 @@ FindImageBase (
       //
       // Look for executable sections
       //
-      if ((Section->Type == EFI_SECTION_PE32) || (Section->Type == EFI_SECTION_TE)) {
+      if (Section->Type == EFI_SECTION_PE32) {
         if (File->Type == EFI_FV_FILETYPE_SECURITY_CORE) {
           *SecCoreImageBase = (PHYSICAL_ADDRESS)(UINTN)(Section + 1);
           *SecCoreImageSize = Size - sizeof (*Section);

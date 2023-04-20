@@ -76,10 +76,6 @@ InternalImageHandleToFvHandle (
   The details of this search order is defined in description of EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection ()
   found in PI Specification.
 
-  If SectionType is EFI_SECTION_TE, EFI_SECTION_TE is used as section type to start the search. If EFI_SECTION_TE section
-  is not found, EFI_SECTION_PE32 will be used to try the search again. If no EFI_SECTION_PE32 section is found, EFI_NOT_FOUND
-  is returned.
-
   The data and size is returned by Buffer and Size. The caller is responsible to free the Buffer allocated
   by this function. This function can be only called at TPL_NOTIFY and below.
 
@@ -157,23 +153,6 @@ InternalGetSectionFromFv (
                   &AuthenticationStatus
                   );
 
-  if (EFI_ERROR (Status) && (SectionType == EFI_SECTION_TE)) {
-    //
-    // Try reading PE32 section, if the required section is TE type
-    //
-    *Buffer = NULL;
-    *Size   = 0;
-    Status  = Fv->ReadSection (
-                    Fv,
-                    NameGuid,
-                    EFI_SECTION_PE32,
-                    SectionInstance,
-                    Buffer,
-                    Size,
-                    &AuthenticationStatus
-                    );
-  }
-
   return Status;
 }
 
@@ -191,8 +170,6 @@ InternalGetSectionFromFv (
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections
   are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If Buffer is NULL, then ASSERT().
@@ -338,8 +315,6 @@ Done:
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections
   are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If NameGuid is NULL, then ASSERT().
@@ -461,10 +436,6 @@ Done:
   See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for details on how sections are retrieved from
   an FFS file based on SectionType and SectionInstance.
 
-  If the currently executing module was not loaded from a firmware volume, then EFI_NOT_FOUND is returned.
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
-
   This function must be called with a TPL <= TPL_NOTIFY.
   If NameGuid is NULL, then ASSERT().
   If Buffer is NULL, then ASSERT().
@@ -524,9 +495,6 @@ GetSectionFromFv (
   to use FreePool() to free the allocated buffer. See EFI_FIRMWARE_VOLUME2_PROTOCOL.ReadSection() for
   details on how sections are retrieved from an FFS file based on SectionType and SectionInstance.
 
-  If the currently executing module was not loaded from an FFS file, then EFI_NOT_FOUND is returned.
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If Buffer is NULL, then ASSERT().
@@ -951,8 +919,6 @@ Finish:
   The order that the firmware volumes is searched is not deterministic. For each FFS file found a search
   is made for FFS sections of type SectionType.
 
-  If SectionType is EFI_SECTION_TE, and the search with an FFS file fails,
-  the search will be retried with a section type of EFI_SECTION_PE32.
   This function must be called with a TPL <= TPL_NOTIFY.
 
   If NameGuid is NULL, then ASSERT().

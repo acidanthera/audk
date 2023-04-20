@@ -2591,7 +2591,7 @@ class FdfParser:
     #
     @staticmethod
     def _SectionCouldHaveRelocFlag (SectionType):
-        if SectionType in {BINARY_FILE_TYPE_TE, BINARY_FILE_TYPE_PE32}:
+        if SectionType in {BINARY_FILE_TYPE_PE32}:
             return True
         else:
             return False
@@ -2798,7 +2798,7 @@ class FdfParser:
 
         if self._IsKeyword("VERSION"):
             if AlignValue == 'Auto':
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             if not self._IsToken(TAB_EQUAL_SPLIT):
                 raise Warning.ExpectedEquals(self.FileName, self.CurrentLineNumber)
             if not self._GetNextToken():
@@ -2814,7 +2814,7 @@ class FdfParser:
 
         elif self._IsKeyword(BINARY_FILE_TYPE_UI):
             if AlignValue == 'Auto':
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             if not self._IsToken(TAB_EQUAL_SPLIT):
                 raise Warning.ExpectedEquals(self.FileName, self.CurrentLineNumber)
             if not self._GetNextToken():
@@ -2829,7 +2829,7 @@ class FdfParser:
 
         elif self._IsKeyword("FV_IMAGE"):
             if AlignValue == 'Auto':
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             if not self._IsToken(TAB_EQUAL_SPLIT):
                 raise Warning.ExpectedEquals(self.FileName, self.CurrentLineNumber)
             if not self._GetNextToken():
@@ -2870,7 +2870,7 @@ class FdfParser:
 
         elif self._IsKeyword("PEI_DEPEX_EXP") or self._IsKeyword("DXE_DEPEX_EXP") or self._IsKeyword("SMM_DEPEX_EXP"):
             if AlignValue == 'Auto':
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             DepexSectionObj = DepexSection()
             DepexSectionObj.Alignment = AlignValue
             DepexSectionObj.DepexType = self._Token
@@ -2887,7 +2887,7 @@ class FdfParser:
 
         elif self._IsKeyword("SUBTYPE_GUID"):
             if AlignValue == 'Auto':
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             SubTypeGuidValue = None
             if not self._GetNextGuid():
                 raise Warning.Expected("GUID", self.FileName, self.CurrentLineNumber)
@@ -2915,11 +2915,11 @@ class FdfParser:
                 self.SetFileBufferPos(OldPos)
                 return False
 
-            if self._Token not in {"COMPAT16", BINARY_FILE_TYPE_PE32, BINARY_FILE_TYPE_PIC, BINARY_FILE_TYPE_TE, "FV_IMAGE", "RAW", BINARY_FILE_TYPE_DXE_DEPEX,\
+            if self._Token not in {"COMPAT16", BINARY_FILE_TYPE_PE32, BINARY_FILE_TYPE_PIC, "FV_IMAGE", "RAW", BINARY_FILE_TYPE_DXE_DEPEX,\
                                BINARY_FILE_TYPE_UI, "VERSION", BINARY_FILE_TYPE_PEI_DEPEX, "SUBTYPE_GUID", BINARY_FILE_TYPE_SMM_DEPEX}:
                 raise Warning("Unknown section type '%s'" % self._Token, self.FileName, self.CurrentLineNumber)
-            if AlignValue == 'Auto'and (not self._Token == BINARY_FILE_TYPE_PE32) and (not self._Token == BINARY_FILE_TYPE_TE):
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+            if AlignValue == 'Auto'and (not self._Token == BINARY_FILE_TYPE_PE32):
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
 
             # DataSection
             DataSectionObj = DataSection()
@@ -3715,7 +3715,7 @@ class FdfParser:
 
             if SectionName not in {
                     "COMPAT16", BINARY_FILE_TYPE_PE32,
-                    BINARY_FILE_TYPE_PIC, BINARY_FILE_TYPE_TE, "FV_IMAGE",
+                    BINARY_FILE_TYPE_PIC, "FV_IMAGE",
                     "RAW",BINARY_FILE_TYPE_DXE_DEPEX, BINARY_FILE_TYPE_UI,
                     BINARY_FILE_TYPE_PEI_DEPEX, "VERSION", "SUBTYPE_GUID",
                     BINARY_FILE_TYPE_SMM_DEPEX}:
@@ -3732,8 +3732,8 @@ class FdfParser:
             if self._GetAlignment():
                 if self._Token not in ALIGNMENTS:
                     raise Warning("Incorrect alignment '%s'" % self._Token, self.FileName, self.CurrentLineNumber)
-                if self._Token == 'Auto' and (not SectionName == BINARY_FILE_TYPE_PE32) and (not SectionName == BINARY_FILE_TYPE_TE):
-                    raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+                if self._Token == 'Auto' and (not SectionName == BINARY_FILE_TYPE_PE32):
+                    raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
                 SectAlignment = self._Token
 
             Ext = None
@@ -3785,7 +3785,7 @@ class FdfParser:
 
         if SectionName not in {
                     "COMPAT16", BINARY_FILE_TYPE_PE32,
-                    BINARY_FILE_TYPE_PIC, BINARY_FILE_TYPE_TE, "FV_IMAGE",
+                    BINARY_FILE_TYPE_PIC, "FV_IMAGE",
                     "RAW",BINARY_FILE_TYPE_DXE_DEPEX, BINARY_FILE_TYPE_UI,
                     BINARY_FILE_TYPE_PEI_DEPEX, "VERSION", "SUBTYPE_GUID",
                     BINARY_FILE_TYPE_SMM_DEPEX, BINARY_FILE_TYPE_GUID}:
@@ -3832,7 +3832,7 @@ class FdfParser:
                 elif self._GetNextToken():
                     if self._Token not in {
                             T_CHAR_BRACE_R, "COMPAT16", BINARY_FILE_TYPE_PE32,
-                            BINARY_FILE_TYPE_PIC, BINARY_FILE_TYPE_TE,
+                            BINARY_FILE_TYPE_PIC,
                             "FV_IMAGE", "RAW", BINARY_FILE_TYPE_DXE_DEPEX,
                             BINARY_FILE_TYPE_UI, "VERSION",
                             BINARY_FILE_TYPE_PEI_DEPEX, BINARY_FILE_TYPE_GUID,
@@ -3896,8 +3896,8 @@ class FdfParser:
         if self._GetAlignment():
             if self._Token not in ALIGNMENTS:
                 raise Warning("Incorrect alignment '%s'" % self._Token, self.FileName, self.CurrentLineNumber)
-            if self._Token == 'Auto' and (not SectionName == BINARY_FILE_TYPE_PE32) and (not SectionName == BINARY_FILE_TYPE_TE):
-                raise Warning("Auto alignment can only be used in PE32 or TE section ", self.FileName, self.CurrentLineNumber)
+            if self._Token == 'Auto' and (not SectionName == BINARY_FILE_TYPE_PE32):
+                raise Warning("Auto alignment can only be used in PE32 section ", self.FileName, self.CurrentLineNumber)
             EfiSectionObj.Alignment = self._Token
 
         if self._IsKeyword('RELOCS_STRIPPED') or self._IsKeyword('RELOCS_RETAINED'):
@@ -3917,7 +3917,7 @@ class FdfParser:
         elif self._GetNextToken():
             if self._Token not in {
                     T_CHAR_BRACE_R, "COMPAT16", BINARY_FILE_TYPE_PE32,
-                    BINARY_FILE_TYPE_PIC, BINARY_FILE_TYPE_TE,
+                    BINARY_FILE_TYPE_PIC,
                     "FV_IMAGE", "RAW", BINARY_FILE_TYPE_DXE_DEPEX,
                     BINARY_FILE_TYPE_UI, "VERSION",
                     BINARY_FILE_TYPE_PEI_DEPEX, BINARY_FILE_TYPE_GUID,
@@ -4008,9 +4008,6 @@ class FdfParser:
                 raise Warning(WarningString % FileType, self.FileName, self.CurrentLineNumber)
         elif SectionType == BINARY_FILE_TYPE_PIC:
             if FileType not in {BINARY_FILE_TYPE_PIC, "SEC_PIC"}:
-                raise Warning(WarningString % FileType, self.FileName, self.CurrentLineNumber)
-        elif SectionType == BINARY_FILE_TYPE_TE:
-            if FileType not in {BINARY_FILE_TYPE_TE, "SEC_TE"}:
                 raise Warning(WarningString % FileType, self.FileName, self.CurrentLineNumber)
         elif SectionType == "RAW":
             if FileType not in {BINARY_FILE_TYPE_BIN, "SEC_BIN", "RAW", "ASL", "ACPI"}:

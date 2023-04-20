@@ -60,7 +60,7 @@ STATIC CHAR8  *mSectionTypeName[] = {
   NULL,                                 // 0x0F - reserved
   "EFI_SECTION_PE32",                   // 0x10
   "EFI_SECTION_PIC",                    // 0x11
-  "EFI_SECTION_TE",                     // 0x12
+  NULL,                                 // 0x12 - formerly TE
   "EFI_SECTION_DXE_DEPEX",              // 0x13
   "EFI_SECTION_VERSION",                // 0x14
   "EFI_SECTION_USER_INTERFACE",         // 0x15
@@ -168,7 +168,7 @@ Returns:
   fprintf (stdout, "  -s [SectionType], --sectiontype [SectionType]\n\
                         SectionType defined in PI spec is one type of\n\
                         EFI_SECTION_COMPRESSION, EFI_SECTION_GUID_DEFINED,\n\
-                        EFI_SECTION_PE32, EFI_SECTION_PIC, EFI_SECTION_TE,\n\
+                        EFI_SECTION_PE32, EFI_SECTION_PIC,\n\
                         EFI_SECTION_DXE_DEPEX, EFI_SECTION_COMPATIBILITY16,\n\
                         EFI_SECTION_USER_INTERFACE, EFI_SECTION_VERSION,\n\
                         EFI_SECTION_FIRMWARE_VOLUME_IMAGE, EFI_SECTION_RAW,\n\
@@ -455,8 +455,6 @@ Returns:
   FILE                        *InFile;
   EFI_COMMON_SECTION_HEADER   *SectHeader;
   EFI_COMMON_SECTION_HEADER2  TempSectHeader;
-  EFI_TE_IMAGE_HEADER         TeHeader;
-  UINT32                      TeOffset;
   EFI_GUID_DEFINED_SECTION    GuidSectHeader;
   EFI_GUID_DEFINED_SECTION2   GuidSectHeader2;
   UINT32                      HeaderSize;
@@ -471,9 +469,8 @@ Returns:
     return EFI_INVALID_PARAMETER;
   }
 
-  Size     = 0;
-  Offset   = 0;
-  TeOffset = 0;
+  Size   = 0;
+  Offset = 0;
   //
   // Go through our array of file names and copy their contents
   // to the output buffer.
@@ -508,9 +505,8 @@ Returns:
     //
     if (InputFileAlign != NULL) {
       //
-      // Check this section is Te/Pe section, and Calculate the numbers of Te/Pe section.
+      // Check this section is Pe section, and Calculate the numbers of Pe section.
       //
-      TeOffset = 0;
       //
       // The section might be EFI_COMMON_SECTION_HEADER2
       // But only Type needs to be checked
@@ -522,12 +518,7 @@ Returns:
       }
 
       fread (&TempSectHeader, 1, HeaderSize, InFile);
-      if (TempSectHeader.Type == EFI_SECTION_TE) {
-        fread (&TeHeader, 1, sizeof (TeHeader), InFile);
-        if (TeHeader.Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-          TeOffset = TeHeader.StrippedSize - sizeof (TeHeader);
-        }
-      } else if (TempSectHeader.Type == EFI_SECTION_GUID_DEFINED) {
+      if (TempSectHeader.Type == EFI_SECTION_GUID_DEFINED) {
         fseek (InFile, 0, SEEK_SET);
         if (FileSize >= MAX_SECTION_SIZE) {
           fread (&GuidSectHeader2, 1, sizeof (GuidSectHeader2), InFile);
@@ -545,20 +536,11 @@ Returns:
       fseek (InFile, 0, SEEK_SET);
 
       //
-      // Revert TeOffset to the converse value relative to Alignment
-      // This is to assure the original PeImage Header at Alignment.
-      //
-      if (TeOffset != 0) {
-        TeOffset = InputFileAlign[Index] - (TeOffset % InputFileAlign[Index]);
-        TeOffset = TeOffset % InputFileAlign[Index];
-      }
-
-      //
       // make sure section data meet its alignment requirement by adding one raw pad section.
       //
-      if ((InputFileAlign[Index] != 0) && (((Size + HeaderSize + TeOffset) % InputFileAlign[Index]) != 0)) {
-        Offset = (Size + sizeof (EFI_COMMON_SECTION_HEADER) + HeaderSize + TeOffset + InputFileAlign[Index] - 1) & ~(InputFileAlign[Index] - 1);
-        Offset = Offset - Size - HeaderSize - TeOffset;
+      if ((InputFileAlign[Index] != 0) && (((Size + HeaderSize) % InputFileAlign[Index]) != 0)) {
+        Offset = (Size + sizeof (EFI_COMMON_SECTION_HEADER) + HeaderSize + InputFileAlign[Index] - 1) & ~(InputFileAlign[Index] - 1);
+        Offset = Offset - Size - HeaderSize;
 
         if ((FileBuffer != NULL) && ((Size + Offset) < *BufferLength)) {
           //
@@ -1794,8 +1776,6 @@ Returns:
     SectType = EFI_SECTION_PE32;
   } else if (stricmp (SectionName, mSectionTypeName[EFI_SECTION_PIC]) == 0) {
     SectType = EFI_SECTION_PIC;
-  } else if (stricmp (SectionName, mSectionTypeName[EFI_SECTION_TE]) == 0) {
-    SectType = EFI_SECTION_TE;
   } else if (stricmp (SectionName, mSectionTypeName[EFI_SECTION_DXE_DEPEX]) == 0) {
     SectType = EFI_SECTION_DXE_DEPEX;
   } else if (stricmp (SectionName, mSectionTypeName[EFI_SECTION_SMM_DEPEX]) == 0) {

@@ -55,7 +55,6 @@
 /// Image type enumeration for Image format identification from the context.
 ///
 typedef enum {
-  PeCoffLoaderTypeTe,
   PeCoffLoaderTypePe32,
   PeCoffLoaderTypePe32Plus,
   PeCoffLoaderTypeMax
@@ -128,11 +127,6 @@ typedef struct {
   ///
   UINT16        Machine;
   ///
-  /// The size, in Bytes, stripped from the beginning of the Image raw file
-  /// during TE file generation. Always 0 for PE Images.
-  ///
-  UINT16        TeStrippedOffset;
-  ///
   /// The RVA of the Relocation Directory.
   ///
   UINT32        RelocDirRva;
@@ -182,7 +176,7 @@ BOOLEAN
   FileBuffer must remain valid for the entire lifetime of Context.
 
   @param[out] Context     The context describing the Image.
-  @param[in]  FileBuffer  The file data to parse as TE or PE Image.
+  @param[in]  FileBuffer  The file data to parse as PE Image.
   @param[in]  FileSize    The size, in Bytes, of FileBuffer.
 
   @retval RETURN_SUCCESS  The Image context has been initialised successfully.

@@ -168,21 +168,6 @@ class EFI_IMAGE_DATA_DIRECTORY(LittleEndianStructure):
     ]
 
 
-class EFI_TE_IMAGE_HEADER(LittleEndianStructure):
-    _fields_ = [
-        ('Signature',            ARRAY(c_char, 2)),
-        ('Machine',              c_uint16),
-        ('NumberOfSections',     c_uint8),
-        ('Subsystem',            c_uint8),
-        ('StrippedSize',         c_uint16),
-        ('AddressOfEntryPoint',  c_uint32),
-        ('BaseOfCode',           c_uint32),
-        ('ImageBase',            c_uint64),
-        ('DataDirectoryBaseReloc',  EFI_IMAGE_DATA_DIRECTORY),
-        ('DataDirectoryDebug',      EFI_IMAGE_DATA_DIRECTORY)
-    ]
-
-
 class EFI_IMAGE_DOS_HEADER(LittleEndianStructure):
     _fields_ = [
         ('e_magic',              c_uint16),
@@ -1868,9 +1853,9 @@ class EfiConfigurationTable:
         return ImageLoad
 
 
-class PeTeImage:
+class PeImage:
     '''
-    A class to abstract PE/COFF or TE image processing via passing in a
+    A class to abstract PE/COFF image processing via passing in a
     Python file like object. If you pass in an address the PE/COFF is parsed,
     if you pass in NULL for an address then you get a class instance you can
     use to search memory for a PE/COFF hader given a pc value.
@@ -1903,7 +1888,6 @@ class PeTeImage:
 
         # book keeping, but public
         self.PeHdr = None
-        self.TeHdr = None
         self.Machine = None
         self.Subsystem = None
         self.CodeViewSig = None
@@ -1919,7 +1903,6 @@ class PeTeImage:
         self.DataAddress = 0
         self.CodeViewPdb = None
         self.CodeViewUuid = None
-        self.TeAdjust = 0
 
         self.dir_name = {
             0: 'Export Table',
@@ -1945,9 +1928,9 @@ class PeTeImage:
                 self.parse()
 
     def __str__(self):
-        if self.PeHdr is None and self.TeHdr is None:
+        if self.PeHdr is None:
             # no PE/COFF header found
-            return "<class: PeTeImage>"
+            return "<class: PeImage>"
 
         if self.CodeViewPdb:
             pdb = f'{self.Machine}`{self.CodeViewPdb}'
@@ -1959,8 +1942,7 @@ class PeTeImage:
         else:
             guid = ''
 
-        slide = f'slide = {self.TeAdjust:d} ' if self.TeAdjust != 0 else ' '
-        res = guid + f'{pdb} load = 0x{self.LoadAddress:08x} ' + slide
+        res = guid + f'{pdb} load = 0x{self.LoadAddress:08x} '
         return res
 
     def _seek(self, offset):
@@ -2020,60 +2002,46 @@ class PeTeImage:
         return False
 
     def maybe(self, offset=None):
-        """Probe to see if this offset is likely a PE/COFF or TE file """
+        """Probe to see if this offset is likely a PE/COFF file """
         self.LoadAddress = 0
         e_magic = self._read_offset(2, offset)
-        header_ok = e_magic == b'MZ' or e_magic == b'VZ'
+        header_ok = e_magic == b'MZ'
         if offset is not None and header_ok:
             self.LoadAddress = offset
         return header_ok
 
     def parse(self):
-        """Parse PE/COFF (TE) debug directory entry """
+        """Parse PE/COFF debug directory entry """
         DosHdr = self._read_ctype(EFI_IMAGE_DOS_HEADER, 0)
-        if DosHdr.e_magic == self._unsigned(b'VZ'):
-            # TE image
-            self.TeHdr = self._read_ctype(EFI_TE_IMAGE_HEADER, 0)
-
-            self.TeAdjust = sizeof(self.TeHdr) - self.TeHdr.StrippedSize
-            self.Machine = image_machine_dict.get(self.TeHdr.Machine, None)
-            self.Subsystem = self.TeHdr.Subsystem
-            self.AddressOfEntryPoint = self.TeHdr.AddressOfEntryPoint
-
-            debug_dir_size = self.TeHdr.DataDirectoryDebug.Size
-            debug_dir_offset = (self.TeAdjust +
-                                self.TeHdr.DataDirectoryDebug.VirtualAddress)
+        if DosHdr.e_magic == self._unsigned(b'MZ'):
+            self.e_lfanew = DosHdr.e_lfanew
         else:
-            if DosHdr.e_magic == self._unsigned(b'MZ'):
-                self.e_lfanew = DosHdr.e_lfanew
-            else:
-                self.e_lfanew = 0
+            self.e_lfanew = 0
 
+        self.PeHdr = self._read_ctype(
+            EFI_IMAGE_NT_HEADERS64, self.e_lfanew)
+        if self.PeHdr.Signature != self._unsigned(b'PE\0\0'):
+            return False
+
+        if self.PeHdr.OptionalHeader.Magic == \
+                EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
             self.PeHdr = self._read_ctype(
-                EFI_IMAGE_NT_HEADERS64, self.e_lfanew)
-            if self.PeHdr.Signature != self._unsigned(b'PE\0\0'):
-                return False
+                EFI_IMAGE_NT_HEADERS32, self.e_lfanew)
 
-            if self.PeHdr.OptionalHeader.Magic == \
-                    EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC:
-                self.PeHdr = self._read_ctype(
-                    EFI_IMAGE_NT_HEADERS32, self.e_lfanew)
+        if self.PeHdr.OptionalHeader.NumberOfRvaAndSizes <= \
+                DIRECTORY_DEBUG:
+            return False
 
-            if self.PeHdr.OptionalHeader.NumberOfRvaAndSizes <= \
-                    DIRECTORY_DEBUG:
-                return False
+        self.Machine = image_machine_dict.get(
+            self.PeHdr.FileHeader.Machine, None)
+        self.Subsystem = self.PeHdr.OptionalHeader.Subsystem
+        self.AddressOfEntryPoint = \
+            self.PeHdr.OptionalHeader.AddressOfEntryPoint
 
-            self.Machine = image_machine_dict.get(
-                self.PeHdr.FileHeader.Machine, None)
-            self.Subsystem = self.PeHdr.OptionalHeader.Subsystem
-            self.AddressOfEntryPoint = \
-                self.PeHdr.OptionalHeader.AddressOfEntryPoint
-            self.TeAdjust = 0
-
-            debug_dir_size = self.PeHdr.OptionalHeader.DataDirectory[
-                DIRECTORY_DEBUG].Size
-            debug_dir_offset = self.PeHdr.OptionalHeader.DataDirectory[
-                DIRECTORY_DEBUG].VirtualAddress
+        debug_dir_size = self.PeHdr.OptionalHeader.DataDirectory[
+            DIRECTORY_DEBUG].Size
+        debug_dir_offset = self.PeHdr.OptionalHeader.DataDirectory[
+            DIRECTORY_DEBUG].VirtualAddress
 
         if self.Machine is None or self.Subsystem not in [0, 10, 11, 12]:
             return False
@@ -2087,10 +2055,7 @@ class PeTeImage:
         '''Parse the PE/COFF (TE) section table'''
         if self.Sections is not None:
             return
-        elif self.TeHdr is not None:
-            self.NumberOfSections = self.TeHdr.NumberOfSections
-            offset = sizeof(EFI_TE_IMAGE_HEADER)
-        elif self.PeHdr is not None:
+        if self.PeHdr is not None:
             self.NumberOfSections = self.PeHdr.FileHeader.NumberOfSections
             offset = sizeof(c_uint32) + \
                 sizeof(EFI_IMAGE_FILE_HEADER)
@@ -2105,7 +2070,7 @@ class PeTeImage:
         for i in range(self.NumberOfSections):
             name = str(self.Sections[i].Name, 'ascii', 'ignore')
             addr = self.Sections[i].VirtualAddress
-            addr += self.LoadAddress + self.TeAdjust
+            addr += self.LoadAddress
             if name == '.text':
                 self.TextAddress = addr
             elif name == '.data':
@@ -2130,22 +2095,7 @@ class PeTeImage:
 
     def directory_to_str(self):
         result = ''
-        if self.TeHdr:
-            debug_size = self.TeHdr.DataDirectoryDebug.Size
-            if debug_size > 0:
-                debug_offset = (self.TeAdjust
-                                + self.TeHdr.DataDirectoryDebug.VirtualAddress)
-                result += f"Debug 0x{debug_offset:08X} 0x{debug_size}\n"
-
-            relocation_size = self.TeHdr.DataDirectoryBaseReloc.Size
-            if relocation_size > 0:
-                relocation_offset = (
-                    self.TeAdjust
-                    + self.TeHdr.DataDirectoryBaseReloc.VirtualAddress)
-                result += f'Relocation 0x{relocation_offset:08X} '
-                result += f' 0x{relocation_size}\n'
-
-        elif self.PeHdr:
+        if self.PeHdr:
             for i in range(self.PeHdr.OptionalHeader.NumberOfRvaAndSizes):
                 size = self.PeHdr.OptionalHeader.DataDirectory[i].Size
                 if size == 0:
@@ -2174,7 +2124,7 @@ class PeTeImage:
                 continue
 
             entry = self._read_offset(
-                DirectoryEntry.SizeOfData, DirectoryEntry.RVA + self.TeAdjust)
+                DirectoryEntry.SizeOfData, DirectoryEntry.RVA)
             self.CodeViewSig = entry[:4]
             if self.CodeViewSig == b'MTOC':
                 self.CodeViewUuid = uuid.UUID(bytes_le=entry[4:4+16])
@@ -2201,7 +2151,7 @@ def main():
     '''Process arguments as PE/COFF files'''
     for fname in sys.argv[1:]:
         with open(fname, 'rb') as f:
-            image = PeTeImage(f)
+            image = PeImage(f)
             print(image)
             res = f'EntryPoint = 0x{image.AddressOfEntryPoint:08x}  '
             res += f'TextAddress = 0x{image.TextAddress:08x} '
