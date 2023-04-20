@@ -51,7 +51,7 @@ FatAllocateVolume (
   Volume->DiskIo2                    = DiskIo2;
   Volume->BlockIo                    = BlockIo;
   Volume->MediaId                    = BlockIo->Media->MediaId;
-  Volume->ReadOnly                   = BlockIo->Media->ReadOnly;
+  Volume->ReadOnly                   = BlockIo->Media->ReadOnly || FeaturePcdGet (PcdFatReadOnlyMode);
   Volume->VolumeInterface.Revision   = EFI_SIMPLE_FILE_SYSTEM_PROTOCOL_REVISION;
   Volume->VolumeInterface.OpenVolume = FatOpenVolume;
   InitializeListHead (&Volume->CheckRef);
