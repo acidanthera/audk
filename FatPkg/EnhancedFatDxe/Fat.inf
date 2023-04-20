@@ -56,6 +56,7 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  FatPkg/FatPkg.dec
 
 [LibraryClasses]
   UefiRuntimeServicesTableLib
@@ -81,6 +82,7 @@
   gEfiUnicodeCollation2ProtocolGuid     ## TO_START
 
 [Pcd]
+  gEfiFatPkgTokenSpaceGuid.PcdFatReadOnlyMode                   ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultLang           ## SOMETIMES_CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdUefiVariableDefaultPlatformLang   ## SOMETIMES_CONSUMES
 [UserExtensions.TianoCore."ExtraFiles"]
