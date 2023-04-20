@@ -109,7 +109,6 @@ secCoreEntryPointWasFound:
     OneTimeCallRet Flat32SearchForSecEntryPoint
 
 %define EFI_SECTION_PE32                  0x10
-%define EFI_SECTION_TE                    0x12
 
 ;
 ; Input:
@@ -133,9 +132,6 @@ getEntryPointOfFfsFileLoopForSections:
 
     cmp     byte [eax + 3], EFI_SECTION_PE32
     je      getEntryPointOfFfsFileFoundPe32Section
-
-    cmp     byte [eax + 3], EFI_SECTION_TE
-    je      getEntryPointOfFfsFileFoundTeSection
 
     ;
     ; The section type was not PE32 or TE, so move to next section
@@ -168,22 +164,6 @@ getEntryPointOfFfsFileFoundPe32Section:
     ; *EntryPoint = (VOID *)((UINTN)Pe32Data +
     ;   (UINTN)(Hdr.Pe32->OptionalHeader.AddressOfEntryPoint & 0x0ffffffff));
     add     eax, [ebx + 0x4 + 0x14 + 0x10]
-    jmp     getEntryPointOfFfsFileReturn
-
-getEntryPointOfFfsFileFoundTeSection:
-    add     eax, 4       ; EAX = Start of TE image
-    mov     ebx, eax
-
-    ; if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE)
-    cmp     word [ebx], 'VZ'
-    jne     getEntryPointOfFfsFileErrorReturn
-    ; *EntryPoint = (VOID *)((UINTN)Pe32Data +
-    ;   (UINTN)(Hdr.Te->AddressOfEntryPoint & 0x0ffffffff) +
-    ;   sizeof(EFI_TE_IMAGE_HEADER) - Hdr.Te->StrippedSize);
-    add     eax, [ebx + 0x8]
-    add     eax, 0x28
-    movzx   ebx, word [ebx + 0x6]
-    sub     eax, ebx
     jmp     getEntryPointOfFfsFileReturn
 
 getEntryPointOfFfsFileErrorReturn:

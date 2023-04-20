@@ -112,14 +112,7 @@ ProcessFvSection:
 	)
 	else
 	(
-	  if &sectiontype==0x12 ; TE
-	  (
-		  do EfiProcessTeImage (&secstart+0x4)
- 	  )
- 	  else
-    (
-      print "unknown section type"
-    )
+    print "unknown section type"
  	)
   
   return
