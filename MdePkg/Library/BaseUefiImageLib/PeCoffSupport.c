@@ -1,5 +1,5 @@
 /** @file
-  UEFI Image Loader library implementation for PE/COFF and TE Images.
+  UEFI Image Loader library implementation for PE/COFF Images.
 
   Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
 
@@ -318,16 +318,14 @@ InternalDebugLocateImage (
   //
   // Search for the Image Header in 4 Byte steps. All dynamically loaded
   // Images start at a page boundary to allow for Image section protection,
-  // but XIP Images may not. As all Image Headers are at least 4 Byte aligned
-  // due to natural alignment, even XIP TE Image Headers should start at a
-  // 4 Byte boundary.
+  // but XIP Images may not.
   //
   // Do not attempt to access memory of the first page as it may be protected as
   // part of NULL dereference detection.
   //
   for (; EFI_PAGE_SIZE <= (UINTN) Buffer; Buffer -= 4) {
     //
-    // Try to parse the current memory as PE/COFF or TE Image. Pass MAX_UINT32
+    // Try to parse the current memory as PE/COFF Image. Pass MAX_UINT32
     // as the file size as there isn't any more information available. Only the
     // Image Header memory will be accessed as part of initialisation.
     //
@@ -348,11 +346,7 @@ InternalDebugLocateImage (
       // is a part of, if existent. Allow one level of recursion to find a lower
       // Image Base including the DOS Image Header.
       //
-      if ((PcdGetBool (PcdImageLoaderProhibitTe)
-        || Context->ImageType != PeCoffLoaderTypeTe)
-       && Context->ExeHdrOffset == 0) {
-        ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
-
+      if (Context->ExeHdrOffset == 0) {
         DosStatus = InternalDebugLocateImage (
                       &DosContext,
                       Buffer - 4,
@@ -368,7 +362,6 @@ InternalDebugLocateImage (
     //
     // We know that (UINTN) Buffer <= Address from the initialisation.
     //
-    // FIXME: Set to non-stripped base for XIP TE Images.
     if (Address < (UINTN) Buffer + PeCoffGetSizeOfImage (Context)) {
       Context->ImageBuffer = Buffer;
       //
@@ -381,7 +374,7 @@ InternalDebugLocateImage (
       return RETURN_SUCCESS;
     }
     //
-    // Continue for the unlikely case that a PE/COFF or TE Image embeds another
+    // Continue for the unlikely case that a PE/COFF Image embeds another
     // one within its data, the outer Image may still follow.
     //
   }
