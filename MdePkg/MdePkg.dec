@@ -2363,6 +2363,15 @@
   # @Prompt Allow Misaligned Offset.
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset|FALSE|BOOLEAN|0x40001020
 
+  ## Indicates whether Image sections that do not adhere to the W^X principle
+  #  by mistake will have their X permission removed at load time.<BR><BR>
+  #   TRUE  - Image sections with WX permissions will have X permission removed.<BR>
+  #   FALSE - Image sections with WX permissions will be treated by PcdImageLoaderWXorX.<BR>
+  # This feature is only useful for images created by old Apple mtoc utility. Do not enable
+  # it unless such images need to be supported.
+  # @Prompt Remove X permission from WX sections.
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|FALSE|BOOLEAN|0x40001021
+
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following
   #  BaseLib functions: StrLen(), StrSize(), StrCmp(), StrnCmp(), StrCpy(), StrnCpy()<BR><BR>

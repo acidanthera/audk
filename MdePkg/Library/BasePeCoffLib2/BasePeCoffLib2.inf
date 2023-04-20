@@ -46,3 +46,4 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
