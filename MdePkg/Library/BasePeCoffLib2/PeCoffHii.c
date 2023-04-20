@@ -50,17 +50,6 @@ PeCoffGetHiiDataRva (
   // Retrieve the Image's Resource Directory Table.
   //
   switch (Context->ImageType) {
-    case PeCoffLoaderTypeTe:
-      if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-        ASSERT (FALSE);
-        return RETURN_UNSUPPORTED;
-      }
-
-      //
-      // TE Images do not contain a Resource Directory Table.
-      //
-      return RETURN_NOT_FOUND;
-
     case PeCoffLoaderTypePe32:
       Pe32Hdr = (CONST EFI_IMAGE_NT_HEADERS32 *)(CONST VOID *)(
                                                                (CONST CHAR8 *)Context->FileBuffer + Context->ExeHdrOffset

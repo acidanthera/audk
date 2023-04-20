@@ -396,47 +396,22 @@ PeiGetPe32Data (
   OUT    UINT32               *Pe32DataSize
   )
 {
-  EFI_STATUS        Status;
-  EFI_SECTION_TYPE  SearchType1;
-  EFI_SECTION_TYPE  SearchType2;
-  UINT32            AuthenticationState;
+  EFI_STATUS  Status;
+  UINT32      AuthenticationState;
 
   *Pe32Data = NULL;
 
-  if (FeaturePcdGet (PcdPeiCoreImageLoaderSearchTeSectionFirst)) {
-    SearchType1 = EFI_SECTION_TE;
-    SearchType2 = EFI_SECTION_PE32;
-  } else {
-    SearchType1 = EFI_SECTION_PE32;
-    SearchType2 = EFI_SECTION_TE;
-  }
-
   //
-  // Try to find a first exe section (if PcdPeiCoreImageLoaderSearchTeSectionFirst
-  // is true, TE will be searched first).
+  // Try to find the exe section.
   //
   Status = PeiServicesFfsFindSectionData4 (
-             SearchType1,
+             EFI_SECTION_PE32,
              0,
              FileHandle,
              Pe32Data,
              Pe32DataSize,
              &AuthenticationState
              );
-  //
-  // If we didn't find a first exe section, try to find the second exe section.
-  //
-  if (EFI_ERROR (Status)) {
-    Status = PeiServicesFfsFindSectionData4 (
-               SearchType2,
-               0,
-               FileHandle,
-               Pe32Data,
-               Pe32DataSize,
-               &AuthenticationState
-               );
-  }
-
   return Status;
 }
 
@@ -475,53 +450,29 @@ PeiLoadImageLoadImage (
   UINT32                           Pe32DataSize;
   EFI_PHYSICAL_ADDRESS             ImageAddress;
   UINT16                           Machine;
-  EFI_SECTION_TYPE                 SearchType1;
-  EFI_SECTION_TYPE                 SearchType2;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
   CHAR8                            EfiFileName[512];
 
   *EntryPoint          = 0;
   *AuthenticationState = 0;
 
-  if (FeaturePcdGet (PcdPeiCoreImageLoaderSearchTeSectionFirst)) {
-    SearchType1 = EFI_SECTION_TE;
-    SearchType2 = EFI_SECTION_PE32;
-  } else {
-    SearchType1 = EFI_SECTION_PE32;
-    SearchType2 = EFI_SECTION_TE;
-  }
-
   //
-  // Try to find a first exe section (if PcdPeiCoreImageLoaderSearchTeSectionFirst
-  // is true, TE will be searched first).
+  // Try to find the exe section.
   //
   Status = PeiServicesFfsFindSectionData4 (
-             SearchType1,
+             EFI_SECTION_PE32,
              0,
              FileHandle,
              &Pe32Data,
              &Pe32DataSize,
              AuthenticationState
              );
-  //
-  // If we didn't find a first exe section, try to find the second exe section.
-  //
   if (EFI_ERROR (Status)) {
-    Status = PeiServicesFfsFindSectionData4 (
-               SearchType2,
-               0,
-               FileHandle,
-               &Pe32Data,
-               &Pe32DataSize,
-               AuthenticationState
-               );
-    if (EFI_ERROR (Status)) {
-      //
-      // PEI core only carry the loader function for TE and PE32 executables
-      // If this two section does not exist, just return.
-      //
-      return Status;
-    }
+    //
+    // PEI core only carry the loader function for PE32 executables
+    // If this two section does not exist, just return.
+    //
+    return Status;
   }
 
   DEBUG ((DEBUG_INFO, "Loading PEIM %g\n", FileHandle));
@@ -623,7 +574,7 @@ PeiLoadImageLoadImageWrapper (
 /**
   Check whether the input image has the relocation.
 
-  @param  Pe32Data   Pointer to the PE/COFF or TE image.
+  @param  Pe32Data   Pointer to the PE/COFF image.
 
   @retval TRUE       Relocation is stripped.
   @retval FALSE      Relocation is not stripped.
@@ -663,13 +614,7 @@ RelocationIsStrip (
   // Look at the file header to determine if relocations have been stripped, and
   // save this info in the image context for later use.
   //
-  if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-    if ((Hdr.Te->DataDirectory[0].Size == 0) && (Hdr.Te->DataDirectory[0].VirtualAddress == 0)) {
-      return TRUE;
-    } else {
-      return FALSE;
-    }
-  } else if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
+  if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
     if ((Hdr.Pe32->FileHeader.Characteristics & EFI_IMAGE_FILE_RELOCS_STRIPPED) != 0) {
       return TRUE;
     } else {
