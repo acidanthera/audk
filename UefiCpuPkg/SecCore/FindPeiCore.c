@@ -107,7 +107,7 @@ FindImageBase (
       //
       // Look for executable sections
       //
-      if ((Section->Type == EFI_SECTION_PE32) || (Section->Type == EFI_SECTION_TE)) {
+      if (Section->Type == EFI_SECTION_PE32) {
         if (File->Type == FileType) {
           if (IS_SECTION2 (Section)) {
             *CoreImageBase = (PHYSICAL_ADDRESS)(UINTN)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER2));
