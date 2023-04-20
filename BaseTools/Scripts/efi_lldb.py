@@ -17,7 +17,7 @@ import os
 from pathlib import Path
 from efi_debugging import EfiDevicePath, EfiConfigurationTable, EfiTpl
 from efi_debugging import EfiHob, GuidNames, EfiStatusClass, EfiBootMode
-from efi_debugging import PeTeImage, patch_ctypes
+from efi_debugging import PeImage, patch_ctypes
 
 try:
     # Just try for LLDB in case PYTHONPATH is already correctly setup
@@ -144,7 +144,7 @@ class EfiSymbols:
                                           str(pecoff.CodeViewUuid))
         if module.IsValid():
             SBError = cls.target.SetModuleLoadAddress(
-                module, pecoff.LoadAddress + pecoff.TeAdjust)
+                module, pecoff.LoadAddress)
             if SBError.success:
                 cls.loaded[pecoff.LoadAddress] = (pecoff, module)
                 return ''
@@ -154,7 +154,7 @@ class EfiSymbols:
     @ classmethod
     def address_to_symbols(cls, address, reprobe=False):
         '''
-        Given an address search backwards for a PE/COFF (or TE) header
+        Given an address search backwards for a PE/COFF header
         and load symbols. Return a status string.
         '''
         if not isinstance(address, int):
@@ -165,12 +165,12 @@ class EfiSymbols:
             # skip the probe of the remote
             return f'{pecoff} is already loaded'
 
-        pecoff = PeTeImage(cls._file, None)
+        pecoff = PeImage(cls._file, None)
         if pecoff.pcToPeCoff(address, cls.stride, cls.range):
             res = cls.add_symbols_for_pecoff(pecoff)
             return f'{res}{pecoff}'
         else:
-            return f'0x{address:08x} not in a PE/COFF (or TE) image'
+            return f'0x{address:08x} not in a PE/COFF image'
 
     @ classmethod
     def address_in_loaded_pecoff(cls, address):
@@ -596,7 +596,7 @@ class EfiSymbolicateCommand(object):
     def create_options(self):
         ''' standard lldb command help/options parser'''
         usage = "usage: %prog [options]"
-        description = '''Command that can load EFI PE/COFF and TE image
+        description = '''Command that can load EFI PE/COFF image
         symbols. If you are having trouble in PEI try adding --pei.
         '''
 
