@@ -14,7 +14,6 @@ import edk2_debugger
 class EfiFileSection(object):
     EFI_SECTION_PE32                  = 0x10
     EFI_SECTION_PIC                   = 0x11
-    EFI_SECTION_TE                    = 0x12
 
     EFI_IMAGE_DEBUG_TYPE_CODEVIEW     = 0x2
 
@@ -38,57 +37,11 @@ class EfiFileSection(object):
 
     def get_debug_filepath(self):
         type = self.get_type()
-        if type == EfiFileSection.EFI_SECTION_TE:
-            section = EfiSectionTE(self, ec, self.base + 0x4)
-        elif type == EfiFileSection.EFI_SECTION_PE32:
+        if type == EfiFileSection.EFI_SECTION_PE32:
             section = EfiSectionPE32(self, ec, self.base + 0x4)
         else:
             raise Exception("EfiFileSection", "No debug section")
         return section.get_debug_filepath()
-
-class EfiSectionTE:
-    SIZEOF_EFI_TE_IMAGE_HEADER        = 0x28
-    EFI_TE_IMAGE_SIGNATURE            = ('V','Z')
-
-    def __init__(self, ec, base_te):
-        self.ec = ec
-        self.base_te = int(base_te)
-        te_sig = struct.unpack("cc", self.ec.getMemoryService().read(self.base_te, 2, 32))
-        if te_sig != EfiSectionTE.EFI_TE_IMAGE_SIGNATURE:
-            raise Exception("EfiFileSectionTE","TE Signature incorrect")
-
-    def get_debug_filepath(self):
-        stripped_size = struct.unpack("<H", self.ec.getMemoryService().read(self.base_te + 0x6, 2, 32))[0]
-        stripped_size -= EfiSectionTE.SIZEOF_EFI_TE_IMAGE_HEADER
-
-        debug_dir_entry_rva = self.ec.getMemoryService().readMemory32(self.base_te + 0x20)
-        if debug_dir_entry_rva == 0:
-            raise Exception("EfiFileSectionTE","No debug directory for image")
-        debug_dir_entry_rva -= stripped_size
-
-        debug_type = self.ec.getMemoryService().readMemory32(self.base_te + debug_dir_entry_rva + 0xC)
-        if (debug_type != 0xdf) and (debug_type != EfiFileSection.EFI_IMAGE_DEBUG_TYPE_CODEVIEW):
-            raise Exception("EfiFileSectionTE","Debug type is not dwarf")
-
-        debug_rva = self.ec.getMemoryService().readMemory32(self.base_te + debug_dir_entry_rva + 0x14)
-        debug_rva -= stripped_size
-
-        dwarf_sig = struct.unpack("cccc", self.ec.getMemoryService().read(self.base_te + debug_rva, 4, 32))
-        if (dwarf_sig != 0x66727764) and (dwarf_sig != FirmwareFile.CONST_NB10_SIGNATURE):
-            raise Exception("EfiFileSectionTE","Dwarf debug signature not found")
-
-        if dwarf_sig == 0x66727764:
-            filename = self.base_te + debug_rva + 0xc
-        else:
-            filename = self.base_te + debug_rva + 0x10
-        filename = struct.unpack("400s", self.ec.getMemoryService().read(filename, 400, 32))[0]
-        return filename[0:string.find(filename,'\0')]
-
-    def get_debug_elfbase(self):
-        stripped_size = struct.unpack("<H", self.ec.getMemoryService().read(self.base_te + 0x6, 2, 32))[0]
-        stripped_size -= EfiSectionTE.SIZEOF_EFI_TE_IMAGE_HEADER
-
-        return self.base_te - stripped_size
 
 class EfiSectionPE32:
     def __init__(self, ec, base_pe32):
@@ -282,7 +235,7 @@ class FirmwareVolume:
             section = ffs.get_next_section()
             while section != None:
                 type = section.get_type()
-                if (type == EfiFileSection.EFI_SECTION_TE) or (type == EfiFileSection.EFI_SECTION_PE32):
+                if (type == EfiFileSection.EFI_SECTION_PE32):
                     self.DebugInfos.append((section.get_base(), section.get_size(), section.get_type()))
                 section = ffs.get_next_section(section)
             ffs = self.get_next_ffs(ffs)
@@ -293,9 +246,7 @@ class FirmwareVolume:
 
         for debug_info in self.DebugInfos:
             if (addr >= debug_info[0]) and (addr < debug_info[0] + debug_info[1]):
-                if debug_info[2] == EfiFileSection.EFI_SECTION_TE:
-                    section = EfiSectionTE(self.ec, debug_info[0] + 0x4)
-                elif debug_info[2] == EfiFileSection.EFI_SECTION_PE32:
+                if debug_info[2] == EfiFileSection.EFI_SECTION_PE32:
                     section = EfiSectionPE32(self.ec, debug_info[0] + 0x4)
                 else:
                     raise Exception('FirmwareVolume','Section Type not supported')
@@ -313,9 +264,7 @@ class FirmwareVolume:
             self.get_debug_info()
 
         for debug_info in self.DebugInfos:
-            if debug_info[2] == EfiFileSection.EFI_SECTION_TE:
-                section = EfiSectionTE(self.ec, debug_info[0] + 0x4)
-            elif debug_info[2] == EfiFileSection.EFI_SECTION_PE32:
+            if debug_info[2] == EfiFileSection.EFI_SECTION_PE32:
                 section = EfiSectionPE32(self.ec, debug_info[0] + 0x4)
             else:
                 continue

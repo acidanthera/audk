@@ -192,7 +192,7 @@ GetImageContext (
       return EFI_VOLUME_CORRUPTED;
     }
 
-    if ((Section->Type == EFI_SECTION_PE32) || (Section->Type == EFI_SECTION_TE)) {
+    if (Section->Type == EFI_SECTION_PE32) {
       EfiImage = (Section + 1);
       break;
     }

@@ -825,14 +825,6 @@
   # @Prompt Enable ConOut UGA support.
   gEfiMdeModulePkgTokenSpaceGuid.PcdConOutUgaSupport|TRUE|BOOLEAN|0x00010043
 
-  ## Indicates PeiCore will first search TE section from the PEIM to load the image, or PE32 section, when PeiCore dispatches a PEI module.
-  #  This PCD is used to tune PEI phase performance to reduce the search image time.
-  #  It can be set according to the generated image section type.<BR><BR>
-  #   TRUE  - PeiCore will first search TE section from PEIM to load the image, if TE section is not found, then PeiCore will search PE section.<BR>
-  #   FALSE - PeiCore will first search PE section from PEIM to load the image.<BR>
-  # @Prompt PeiCore search TE section first.
-  gEfiMdeModulePkgTokenSpaceGuid.PcdPeiCoreImageLoaderSearchTeSectionFirst|TRUE|BOOLEAN|0x00010044
-
   ## Indicates if to turn off the support of legacy usb. So legacy usb device driver can not make use of SMI
   #  interrupt to access usb device in the case of absence of usb stack.
   #  DUET platform requires the token to be TRUE.<BR><BR>
