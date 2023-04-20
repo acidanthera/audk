@@ -35,6 +35,10 @@ FatFlushEx (
   EFI_STATUS  Status;
   FAT_TASK    *Task;
 
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
+
   IFile  = IFILE_FROM_FHAND (FHand);
   OFile  = IFile->OFile;
   Volume = OFile->Volume;
@@ -112,6 +116,9 @@ FatFlush (
   IN EFI_FILE_PROTOCOL  *FHand
   )
 {
+  if (FeaturePcdGet (PcdFatReadOnlyMode)) {
+    return EFI_WRITE_PROTECTED;
+  }
   return FatFlushEx (FHand, NULL);
 }
 
