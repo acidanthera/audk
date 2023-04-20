@@ -58,12 +58,10 @@ InternalVerifySections (
   BOOLEAN                        Overflow;
   UINT32                         NextSectRva;
   UINT32                         SectRawEnd;
-  UINT32                         EffectiveSectRawEnd;
   UINT16                         SectionIndex;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
 
   ASSERT (Context != NULL);
-  ASSERT (Context->TeStrippedOffset <= Context->SizeOfHeaders);
   ASSERT (IS_POW2 (Context->SectionAlignment));
   ASSERT (StartAddress != NULL);
   //
@@ -83,19 +81,6 @@ InternalVerifySections (
   //
   if (Sections[0].VirtualAddress == 0) {
     // FIXME: Add PCD to disallow.
-    //
-    // TE Images cannot support loading the Image Headers as part of the first
-    // Image section due to its StrippedSize sematics.
-    //
-    if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-      if (Context->ImageType == PeCoffLoaderTypeTe) {
-        DEBUG_RAISE ();
-        return RETURN_VOLUME_CORRUPTED;
-      }
-    } else {
-      ASSERT (Context->ImageType != PeCoffLoaderTypeTe);
-    }
-
     NextSectRva = 0;
   } else {
     //
@@ -174,15 +159,6 @@ InternalVerifySections (
     // Verify the Image sections with data are in bounds of the file buffer.
     //
     if (Sections[SectionIndex].SizeOfRawData > 0) {
-      if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-        if (Context->TeStrippedOffset > Sections[SectionIndex].PointerToRawData) {
-          DEBUG_RAISE ();
-          return RETURN_VOLUME_CORRUPTED;
-        }
-      } else {
-        ASSERT (Context->TeStrippedOffset == 0);
-      }
-
       Overflow = BaseOverflowAddU32 (
                    Sections[SectionIndex].PointerToRawData,
                    Sections[SectionIndex].SizeOfRawData,
@@ -193,14 +169,7 @@ InternalVerifySections (
         return RETURN_VOLUME_CORRUPTED;
       }
 
-      if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-        EffectiveSectRawEnd = SectRawEnd - Context->TeStrippedOffset;
-      } else {
-        ASSERT (Context->TeStrippedOffset == 0);
-        EffectiveSectRawEnd = SectRawEnd;
-      }
-
-      if (EffectiveSectRawEnd > FileSize) {
+      if (SectRawEnd > FileSize) {
         DEBUG_RAISE ();
         return RETURN_VOLUME_CORRUPTED;
       }
@@ -351,131 +320,6 @@ InternalValidateRelocInfo (
   }
 
   return RETURN_SUCCESS;
-}
-
-/**
-  Verify the TE Image and initialise Context.
-
-  Used offsets and ranges must be aligned and in the bounds of the raw file.
-  Image section Headers and basic Relocation information must be well-formed.
-
-  @param[in,out] Context   The context describing the Image. Must have been
-                           initialised by PeCoffInitializeContext().
-  @param[in]     FileSize  The size, in Bytes, of Context->FileBuffer.
-
-  @retval RETURN_SUCCESS  The TE Image is well-formed.
-  @retval other           The TE Image is malformed.
-**/
-STATIC
-RETURN_STATUS
-InternalInitializeTe (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        FileSize
-  )
-{
-  RETURN_STATUS             Status;
-  BOOLEAN                   Overflow;
-  CONST EFI_TE_IMAGE_HEADER *TeHdr;
-  UINT32                    StartAddress;
-
-  ASSERT (Context != NULL);
-  ASSERT (Context->ExeHdrOffset == 0);
-  ASSERT (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize);
-
-  if (PcdGetBool (PcdImageLoaderProhibitTe)) {
-    ASSERT (FALSE);
-    return RETURN_UNSUPPORTED;
-  }
-
-  TeHdr = (CONST EFI_TE_IMAGE_HEADER *) (CONST VOID *) (
-            (CONST CHAR8 *) Context->FileBuffer
-            );
-
-  Context->ImageType = PeCoffLoaderTypeTe;
-  //
-  // Calculate the size, in Bytes, stripped from the Image Headers.
-  //
-  Overflow = BaseOverflowSubU16 (
-               TeHdr->StrippedSize,
-               sizeof (*TeHdr),
-               &Context->TeStrippedOffset
-               );
-  if (Overflow) {
-    DEBUG_RAISE ();
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  STATIC_ASSERT (
-    MAX_UINT8 * sizeof (EFI_IMAGE_SECTION_HEADER) <= MAX_UINT32 - MAX_UINT16,
-    "The following arithmetic may overflow."
-    );
-  //
-  // Calculate SizeOfHeaders in a way that is equivalent to what the size would
-  // be if this was the original (unstripped) PE32 binary. As the TE image
-  // creation doesn't fix fields up, values work the same way as for PE32.
-  // When referencing raw data however, the TE stripped size must be subracted.
-  //
-  Context->SizeOfHeaders = (UINT32) TeHdr->StrippedSize + (UINT32) TeHdr->NumberOfSections * sizeof (EFI_IMAGE_SECTION_HEADER);
-  //
-  // Verify that the Image Headers are in bounds of the file buffer.
-  //
-  if (Context->SizeOfHeaders - Context->TeStrippedOffset > FileSize) {
-    DEBUG_RAISE ();
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  STATIC_ASSERT (
-    IS_ALIGNED (sizeof (*TeHdr), ALIGNOF (EFI_IMAGE_SECTION_HEADER)),
-    "The Image section alignment requirements are violated."
-    );
-  //
-  // TE Image sections start right after the Image Headers.
-  //
-  Context->SectionsOffset = sizeof (EFI_TE_IMAGE_HEADER);
-  //
-  // TE Images do not store their section alignment. Assume the UEFI Page size
-  // by default, as it is the minimum to guarantee memory permission support.
-  //
-  Context->SectionAlignment = EFI_PAGE_SIZE;
-  Context->NumberOfSections = TeHdr->NumberOfSections;
-  //
-  // Validate the sections.
-  // TE images do not have a field to explicitly describe the image size.
-  // Set it to the top of the Image's memory space.
-  //
-  Status = InternalVerifySections (
-             Context,
-             FileSize,
-             &StartAddress
-             );
-  if (Status != RETURN_SUCCESS) {
-    DEBUG_RAISE ();
-    return Status;
-  }
-  //
-  // Verify the Image entry point is in bounds of the Image buffer.
-  //
-  if (TeHdr->AddressOfEntryPoint >= Context->SizeOfImage) {
-    DEBUG_RAISE ();
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  Context->Machine             = TeHdr->Machine;
-  Context->Subsystem           = TeHdr->Subsystem;
-  Context->ImageBase           = TeHdr->ImageBase;
-  Context->AddressOfEntryPoint = TeHdr->AddressOfEntryPoint;
-  Context->RelocDirRva         = TeHdr->DataDirectory[0].VirtualAddress;
-  Context->RelocDirSize        = TeHdr->DataDirectory[0].Size;
-  //
-  // TE Images do not explicitly store whether their Relocations have been
-  // stripped. Relocations have been stripped if and only if both the RVA and
-  // size of the Relocation Directory are zero.
-  //
-  Context->RelocsStripped = TeHdr->DataDirectory[0].VirtualAddress == 0 && TeHdr->DataDirectory[0].Size == 0;
-  //
-  // Verify basic sanity of the Relocation Directory.
-  //
-  return InternalValidateRelocInfo (Context, StartAddress);
 }
 
 /**
@@ -771,8 +615,6 @@ InternalInitializePe (
     ASSERT (Context->SecDirOffset == 0);
     ASSERT (Context->SecDirSize == 0);
   }
-
-  ASSERT (Context->TeStrippedOffset == 0);
   //
   // Verify the Image sections are Well-formed.
   //
@@ -847,24 +689,6 @@ PeCoffInitializeContext (
     if (!PcdGetBool (PcdImageLoaderAllowMisalignedOffset)
       && !IS_ALIGNED (Context->ExeHdrOffset, ALIGNOF (EFI_IMAGE_NT_HEADERS_COMMON_HDR))) {
       return RETURN_UNSUPPORTED;
-    }
-  } else if (!PcdGetBool (PcdImageLoaderProhibitTe)) {
-    //
-    // Assume the Image starts with the Executable Header, determine whether it
-    // is a TE Image.
-    //
-    if (sizeof (EFI_TE_IMAGE_HEADER) <= FileSize
-     && *(CONST UINT16 *) (CONST VOID *) FileBuffer == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-      //
-      // Verify the TE Image Header is well-formed.
-      //
-      Status = InternalInitializeTe (Context, FileSize);
-      if (Status != RETURN_SUCCESS) {
-        DEBUG_RAISE ();
-        return Status;
-      }
-
-      return RETURN_SUCCESS;
     }
   }
   //
