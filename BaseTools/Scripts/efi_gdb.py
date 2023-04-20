@@ -41,7 +41,7 @@ import shlex
 # so lets fix that for gdb...
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from efi_debugging import PeTeImage, patch_ctypes            # noqa: E402
+from efi_debugging import PeImage, patch_ctypes              # noqa: E402
 from efi_debugging import EfiHob, GuidNames, EfiStatusClass  # noqa: E402
 from efi_debugging import EfiBootMode, EfiDevicePath         # noqa: E402
 from efi_debugging import EfiConfigurationTable, EfiTpl      # noqa: E402
@@ -155,7 +155,7 @@ class EfiSymbols:
     @ classmethod
     def address_to_symbols(cls, address, reprobe=False):
         '''
-        Given an address search backwards for a PE/COFF (or TE) header
+        Given an address search backwards for a PE/COFF header
         and load symbols. Return a status string.
         '''
         if not isinstance(address, int):
@@ -166,12 +166,12 @@ class EfiSymbols:
             # skip the probe of the remote
             return f'{pecoff} is already loaded'
 
-        pecoff = PeTeImage(cls.file, None)
+        pecoff = PeImage(cls.file, None)
         if pecoff.pcToPeCoff(address, cls.stride, cls.range):
             res = cls.add_symbols_for_pecoff(pecoff)
             return f'{res}{pecoff}'
         else:
-            return f'0x{address:08x} not in a PE/COFF (or TE) image'
+            return f'0x{address:08x} not in a PE/COFF image'
 
     @ classmethod
     def address_in_loaded_pecoff(cls, address):
@@ -289,7 +289,7 @@ class EfiDevicePathCmd (gdb.Command):
     def create_options(self, arg, from_tty):
         usage = "usage: %prog [options] [arg]"
         description = (
-            "Command that can load EFI PE/COFF and TE image symbols. ")
+            "Command that can load EFI PE/COFF image symbols. ")
 
         self.parser = optparse.OptionParser(
             description=description,
@@ -461,7 +461,7 @@ class EfiHobCmd (gdb.Command):
     def create_options(self, arg, from_tty):
         usage = "usage: %prog [options] [arg]"
         description = (
-            "Command that can load EFI PE/COFF and TE image symbols. ")
+            "Command that can load EFI PE/COFF image symbols. ")
 
         self.parser = optparse.OptionParser(
             description=description,
@@ -595,9 +595,9 @@ class EfiSymbolsCmd (gdb.Command):
     def create_options(self, arg, from_tty):
         usage = "usage: %prog [options]"
         description = (
-            "Command that can load EFI PE/COFF and TE image symbols. "
+            "Command that can load EFI PE/COFF image symbols. "
             "If you are having trouble in PEI try adding --pei. "
-            "Given any address search backward for the PE/COFF (or TE header) "
+            "Given any address search backward for the PE/COFF "
             "and then parse the PE/COFF image to get debug info. "
             "The address can come from the current pc, pc values in the "
             "frame, or an address provided to the command"

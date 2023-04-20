@@ -145,20 +145,6 @@ class EFI_IMAGE_DATA_DIRECTORY(Structure):
         ('Size',                 c_uint32)
         ]
 
-class EFI_TE_IMAGE_HEADER(Structure):
-    _fields_ = [
-        ('Signature',            ARRAY(c_char, 2)),
-        ('Machine',              c_uint16),
-        ('NumberOfSections',     c_uint8),
-        ('Subsystem',            c_uint8),
-        ('StrippedSize',         c_uint16),
-        ('AddressOfEntryPoint',  c_uint32),
-        ('BaseOfCode',           c_uint32),
-        ('ImageBase',            c_uint64),
-        ('DataDirectoryBaseReloc',  EFI_IMAGE_DATA_DIRECTORY),
-        ('DataDirectoryDebug',      EFI_IMAGE_DATA_DIRECTORY)
-        ]
-
 class EFI_IMAGE_DOS_HEADER(Structure):
     _fields_ = [
         ('e_magic',              c_uint16),
@@ -326,7 +312,6 @@ class EFI_SECTION_TYPE:
     DISPOSABLE                 = 0x03
     PE32                       = 0x10
     PIC                        = 0x11
-    TE                         = 0x12
     DXE_DEPEX                  = 0x13
     VERSION                    = 0x14
     USER_INTERFACE             = 0x15
@@ -633,11 +618,8 @@ class FirmwareDevice:
 class PeTeImage:
     def __init__(self, offset, data):
         self.Offset    = offset
-        tehdr          = EFI_TE_IMAGE_HEADER.from_buffer (data, 0)
-        if   tehdr.Signature == b'VZ': # TE image
-            self.TeHdr   = tehdr
-        elif tehdr.Signature == b'MZ': # PE image
-            self.TeHdr   = None
+        doshdr         = EFI_IMAGE_DOS_HEADER.from_buffer (data, 0)
+        elif doshdr.e_magic == b'MZ': # PE image
             self.DosHdr  = EFI_IMAGE_DOS_HEADER.from_buffer (data, 0)
             self.PeHdr   = EFI_IMAGE_NT_HEADERS32.from_buffer (data, self.DosHdr.e_lfanew)
             if self.PeHdr.Signature != 0x4550:
@@ -658,20 +640,13 @@ class PeTeImage:
         self.Data      = data
         self.RelocList = []
 
-    def IsTeImage(self):
-        return  self.TeHdr is not None
-
     def ParseReloc(self):
-        if self.IsTeImage():
-            rsize   = self.TeHdr.DataDirectoryBaseReloc.Size
-            roffset = sizeof(self.TeHdr) - self.TeHdr.StrippedSize + self.TeHdr.DataDirectoryBaseReloc.VirtualAddress
-        else:
-            # Assuming PE32 image type (self.PeHdr.OptionalHeader.PeOptHdr.Magic == 0x10b)
-            rsize   = self.PeHdr.OptionalHeader.PeOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].Size
-            roffset = self.PeHdr.OptionalHeader.PeOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].VirtualAddress
-            if self.PeHdr.OptionalHeader.PePlusOptHdr.Magic == 0x20b: # PE32+ image
-                rsize   = self.PeHdr.OptionalHeader.PePlusOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].Size
-                roffset = self.PeHdr.OptionalHeader.PePlusOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].VirtualAddress
+        # Assuming PE32 image type (self.PeHdr.OptionalHeader.PeOptHdr.Magic == 0x10b)
+        rsize   = self.PeHdr.OptionalHeader.PeOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].Size
+        roffset = self.PeHdr.OptionalHeader.PeOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].VirtualAddress
+        if self.PeHdr.OptionalHeader.PePlusOptHdr.Magic == 0x20b: # PE32+ image
+            rsize   = self.PeHdr.OptionalHeader.PePlusOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].Size
+            roffset = self.PeHdr.OptionalHeader.PePlusOptHdr.DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY.BASERELOC].VirtualAddress
 
         alignment = 4
         offset = roffset
@@ -692,8 +667,6 @@ class PeTeImage:
                     raise Exception("ERROR: Unsupported relocation type %d!" % rtype)
                 # Calculate the offset of the relocation
                 aoff  = blkhdr.PageRVA + roff
-                if self.IsTeImage():
-                    aoff += sizeof(self.TeHdr) - self.TeHdr.StrippedSize
                 self.RelocList.append((rtype, aoff))
             offset += sizeof(rdata)
 
@@ -718,18 +691,14 @@ class PeTeImage:
             else:
                 raise Exception('ERROR: Unknown relocation type %d !' % rtype)
 
-        if self.IsTeImage():
-            offset  = self.Offset + EFI_TE_IMAGE_HEADER.ImageBase.offset
-            size    = EFI_TE_IMAGE_HEADER.ImageBase.size
+        offset  = self.Offset + self.DosHdr.e_lfanew
+        offset += EFI_IMAGE_NT_HEADERS32.OptionalHeader.offset
+        if self.PeHdr.OptionalHeader.PePlusOptHdr.Magic == 0x20b: # PE32+ image
+            offset += EFI_IMAGE_OPTIONAL_HEADER32_PLUS.ImageBase.offset
+            size    = EFI_IMAGE_OPTIONAL_HEADER32_PLUS.ImageBase.size
         else:
-            offset  = self.Offset + self.DosHdr.e_lfanew
-            offset += EFI_IMAGE_NT_HEADERS32.OptionalHeader.offset
-            if self.PeHdr.OptionalHeader.PePlusOptHdr.Magic == 0x20b: # PE32+ image
-                offset += EFI_IMAGE_OPTIONAL_HEADER32_PLUS.ImageBase.offset
-                size    = EFI_IMAGE_OPTIONAL_HEADER32_PLUS.ImageBase.size
-            else:
-                offset += EFI_IMAGE_OPTIONAL_HEADER32.ImageBase.offset
-                size    = EFI_IMAGE_OPTIONAL_HEADER32.ImageBase.size
+            offset += EFI_IMAGE_OPTIONAL_HEADER32.ImageBase.offset
+            size    = EFI_IMAGE_OPTIONAL_HEADER32.ImageBase.size
 
         value  = Bytes2Val(fdbin[offset:offset+size]) + delta
         fdbin[offset:offset+size] = Val2Bytes(value, size)
@@ -815,7 +784,7 @@ def SplitFspBin (fspfile, outdir, nametemplate):
 def GetImageFromFv (fd, parentfvoffset, fv, imglist):
     for ffs in fv.FfsList:
         for sec in ffs.SecList:
-            if sec.SecHdr.Type in [EFI_SECTION_TYPE.TE, EFI_SECTION_TYPE.PE32]:   # TE or PE32
+            if sec.SecHdr.Type in [EFI_SECTION_TYPE.PE32]:   # PE32
                 offset = fd.Offset + parentfvoffset + fv.Offset + ffs.Offset + sec.Offset + sizeof(sec.SecHdr)
                 imglist.append ((offset, len(sec.SecData) - sizeof(sec.SecHdr)))
 
