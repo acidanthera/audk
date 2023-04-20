@@ -663,7 +663,7 @@
     <InputFile>
         *.hpk
 
-    <OutputFile.MSFT, OutputFile.INTEL, OutputFile.GCC, OutputFile.CLANGPDB>
+    <OutputFile.MSFT, OutputFile.INTEL, OutputFile.GCC, OutputFile.CLANGPDB, OutputFile.CLANGGCC>
         $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.lib
 
     <OutputFile.XCODE>
@@ -673,8 +673,9 @@
         "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiipackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
         "$(RC)" /Fo${dst} $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
-    <Command.GCC>
+    <Command.GCC, Command.CLANGGCC>
         "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiibinpackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
         "$(RC)" $(RC_FLAGS) $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc ${dst}
+
     <Command.XCODE>
         "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiibinpackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
