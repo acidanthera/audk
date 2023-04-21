@@ -140,14 +140,22 @@ ScanElf (
   IN  const char               *SymbolsPath
   );
 
+extern CONST UINT8 mHiiResourceSectionHeaderSize;
+
+VOID
+InitializeHiiResouceSectionHeader (
+  OUT UINT8   *HiiSectionHeader,
+  IN  UINT32  HiiDataAddress,
+  IN  UINT32  HiiDataSize
+  );
+
 RETURN_STATUS
 ConstructHii (
   IN  const char *FileNames[],
   IN  UINT32     NumOfFiles,
   IN  GUID       *HiiGuid,
   OUT void       **Hii,
-  OUT UINT32     *HiiSize,
-  IN  BOOLEAN    IsElf
+  OUT UINT32     *HiiSize
   );
 
 #endif // IMAGE_TOOL_H

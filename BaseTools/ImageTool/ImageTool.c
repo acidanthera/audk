@@ -18,8 +18,7 @@ HiiBin (
   IN const char *HiiName,
   IN const char *Guid,
   IN const char *FileNames[],
-  IN UINT32     NumOfFiles,
-  IN BOOLEAN    IsElf
+  IN UINT32     NumOfFiles
   )
 {
   RETURN_STATUS Status;
@@ -37,7 +36,7 @@ HiiBin (
     return Status;
   }
 
-  Status = ConstructHii (FileNames, NumOfFiles, &HiiGuid, &Hii, &HiiSize, IsElf);
+  Status = ConstructHii (FileNames, NumOfFiles, &HiiGuid, &Hii, &HiiSize);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not construct HiiBin\n");
     return Status;
@@ -278,11 +277,14 @@ GenExecutable (
   IN const char  *InputFileName,
   IN const char  *FormatName,
   IN const char  *TypeName,
+  IN const char  *HiiFileName,
   IN const char  *BaseAddress
   )
 {
   UINT32                   InputFileSize;
   VOID                     *InputFile;
+  UINT32                   HiiFileSize;
+  VOID                     *HiiFile;
   RETURN_STATUS            Status;
   bool                     Result;
   image_tool_image_info_t  ImageInfo;
@@ -314,6 +316,19 @@ GenExecutable (
       ToolImageDestruct (&ImageInfo);
       return RETURN_UNSUPPORTED;
     }
+  }
+
+  if (HiiFileName != NULL) {
+    HiiFile = UserReadFile (HiiFileName, &HiiFileSize);
+    if (HiiFile == NULL) {
+      fprintf (stderr, "ImageTool: Could not open %s: %s\n", HiiFileName, strerror (errno));
+      return RETURN_ABORTED;
+    }
+
+    free (ImageInfo.HiiInfo.Data);
+
+    ImageInfo.HiiInfo.Data     = HiiFile;
+    ImageInfo.HiiInfo.DataSize = HiiFileSize;
   }
 
   Result = CheckToolImage (&ImageInfo);
@@ -371,42 +386,27 @@ int main (int argc, const char *argv[])
   if (strcmp (argv[1], "ElfToPe") == 0 || strcmp (argv[1], "PeXip") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool %s InputFile OutputFile ModuleType\n", argv[1]);
+      fprintf (stderr, "    Usage: ImageTool %s InputFile OutputFile ModuleType [HiiRc]\n", argv[1]);
       raise ();
       return -1;
     }
 
-    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], NULL);
+    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
     }
-  } else if (strcmp (argv[1], "HiiBinElf") == 0) {
+  } else if (strcmp (argv[1], "HiiBin") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool HiiBinElf OutputFile GUID InputFile1 InputFile2 ...\n");
+      fprintf (stderr, "    Usage: ImageTool HiiBin OutputFile GUID InputFile1 InputFile2 ...\n");
       raise ();
       return -1;
     }
 
     NumOfFiles = (UINT32)argc - 4U;
 
-    Status = HiiBin (argv[2], argv[3], &argv[4], NumOfFiles, TRUE);
-    if (RETURN_ERROR (Status)) {
-      raise ();
-      return -1;
-    }
-  } else if (strcmp (argv[1], "HiiBinPe") == 0) {
-    if (argc < 5) {
-      fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool HiiBinPe OutputFile GUID InputFile1 InputFile2 ...\n");
-      raise ();
-      return -1;
-    }
-
-    NumOfFiles = (UINT32)argc - 4U;
-
-    Status = HiiBin (argv[2], argv[3], &argv[4], NumOfFiles, FALSE);
+    Status = HiiBin (argv[2], argv[3], &argv[4], NumOfFiles);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
@@ -419,7 +419,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[4], argv[3], "PE", NULL, argv[2]);
+    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2]);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
