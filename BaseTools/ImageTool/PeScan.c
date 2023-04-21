@@ -173,7 +173,6 @@ static
 bool
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
-  OUT image_tool_hii_info_t        *HiiInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
   )
 {
@@ -184,7 +183,6 @@ ScanPeGetSegmentInfo (
   uint32_t                       Index;
 
   assert (SegmentInfo != NULL);
-  assert (HiiInfo     != NULL);
   assert (Context     != NULL);
 
   SegmentInfo->SegmentAlignment = PeCoffGetSectionAlignment (Context);
@@ -242,21 +240,6 @@ ScanPeGetSegmentInfo (
 
       ++SegmentInfo->NumSegments;
       ++ImageSegment;
-    } else if (memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) == 0) {
-      // FIXME: Store only the HII data and construct the RESRC dir in PeEmit.c
-      HiiInfo->DataSize = MIN (Section->SizeOfRawData, Section->VirtualSize);
-
-      HiiInfo->Data = malloc (HiiInfo->DataSize);
-      if (HiiInfo->Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
-        return false;
-      }
-
-      memmove (
-        HiiInfo->Data,
-        ImageBuffer + Section->VirtualAddress,
-        HiiInfo->DataSize
-        );
     }
   }
 
@@ -406,7 +389,7 @@ ToolContextConstructPe (
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Image->HiiInfo, &Context);
+  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
     ToolImageDestruct (Image);
@@ -417,6 +400,14 @@ ToolContextConstructPe (
   Result = ScanPeGetRelocInfo (&Image->RelocInfo, &Context);
   if (!Result) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
+    ToolImageDestruct (Image);
+    FreeAlignedPages (Destination, DestinationPages);
+    return RETURN_VOLUME_CORRUPTED;
+  }
+
+  Result = ScanPeGetHiiInfo (&Image->HiiInfo, &Context);
+  if (!Result) {
+    fprintf (stderr, "ImageTool: Could not retrieve HII info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
