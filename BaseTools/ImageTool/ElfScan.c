@@ -717,9 +717,14 @@ CreateIntermediate (
 
       memcpy (Segments[SIndex].Name, Name, strlen (Name));
 
-      Segments[SIndex].DataSize = (uint32_t)Shdr->sh_size;
+      Segments[SIndex].ImageAddress = Shdr->sh_addr - BaseAddress;
+      Segments[SIndex].DataSize     = (uint32_t)Shdr->sh_size;
+      Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
+      Segments[SIndex].Read         = true;
+      Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
+      Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
 
-      Segments[SIndex].Data = calloc (1, Segments[SIndex].DataSize);
+      Segments[SIndex].Data = calloc (1, Segments[SIndex].ImageSize);
       if (Segments[SIndex].Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
         return RETURN_OUT_OF_RESOURCES;
@@ -729,11 +734,6 @@ CreateIntermediate (
         memcpy (Segments[SIndex].Data, (const char *)Ehdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
       }
 
-      Segments[SIndex].ImageAddress = Shdr->sh_addr - BaseAddress;
-      Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
-      Segments[SIndex].Read         = true;
-      Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
-      Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
       ++SIndex;
     }
   }

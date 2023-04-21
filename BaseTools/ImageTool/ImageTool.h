@@ -117,7 +117,7 @@ ToolContextConstructPe (
 
 bool
 CheckToolImage (
-  image_tool_image_info_t *Image
+  const image_tool_image_info_t *Image
   );
 
 void *
