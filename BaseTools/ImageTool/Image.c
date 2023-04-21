@@ -10,7 +10,7 @@ static
 bool
 CheckToolImageSegment (
   const image_tool_segment_info_t *SegmentInfo,
-  image_tool_segment_t            *Segment,
+  const image_tool_segment_t      *Segment,
   uint32_t                        *PreviousEndAddress
   )
 {
@@ -19,12 +19,7 @@ CheckToolImageSegment (
   assert (Segment            != NULL);
   assert (PreviousEndAddress != NULL);
 
-  Overflow = BaseOverflowAlignUpU32 (
-    Segment->ImageSize,
-    SegmentInfo->SegmentAlignment,
-    &Segment->ImageSize
-    );
-  if (Overflow) {
+  if (!IS_ALIGNED (Segment->ImageSize, SegmentInfo->SegmentAlignment)) {
     raise ();
     return false;
   }
@@ -33,11 +28,10 @@ CheckToolImageSegment (
     raise ();
     return false;
   }
-  //
-  // Shrink segment.
-  //
+
   if (Segment->ImageSize < Segment->DataSize) {
-    Segment->DataSize = Segment->ImageSize;
+    raise ();
+    return false;
   }
 
   // FIXME: Expand prior segment
@@ -78,6 +72,11 @@ CheckToolImageSegmentInfo (
   }
 
   if (SegmentInfo->NumSegments == 0) {
+    raise ();
+    return false;
+  }
+
+  if (!IS_ALIGNED (SegmentInfo->Segments[0].ImageAddress, SegmentInfo->SegmentAlignment)) {
     raise ();
     return false;
   }
@@ -182,7 +181,7 @@ CheckToolImageRelocInfo (
 static
 bool
 CheckToolImageDebugInfo (
-  image_tool_debug_info_t *DebugInfo
+  const image_tool_debug_info_t *DebugInfo
   )
 {
   assert (DebugInfo != NULL);
@@ -200,7 +199,7 @@ CheckToolImageDebugInfo (
 
 bool
 CheckToolImage (
-  image_tool_image_info_t *Image
+  const image_tool_image_info_t *Image
   )
 {
   bool     Result;
@@ -237,7 +236,6 @@ ImageConvertToXip (
   image_tool_segment_info_t *SegmentInfo;
   uint64_t                  Index;
   image_tool_segment_t      *Segment;
-  void                      *Data;
 
   assert (Image != NULL);
 
@@ -247,19 +245,6 @@ ImageConvertToXip (
     Segment = &SegmentInfo->Segments[Index];
 
     assert (Segment->DataSize <= Segment->ImageSize);
-
-    Data = realloc (Segment->Data, Segment->ImageSize);
-    if (Data == NULL) {
-      return false;
-    }
-
-    memset (
-      (char *)Data + Segment->DataSize,
-      0,
-      Segment->ImageSize - Segment->DataSize
-      );
-
-    Segment->Data     = Data;
     Segment->DataSize = Segment->ImageSize;
   }
 
