@@ -182,7 +182,6 @@ ScanPeGetSegmentInfo (
   image_tool_segment_t           *ImageSegment;
   const char                     *ImageBuffer;
   uint32_t                       Index;
-  UINT32                         Size;
 
   assert (SegmentInfo != NULL);
   assert (HiiInfo     != NULL);
@@ -221,9 +220,14 @@ ScanPeGetSegmentInfo (
 
       memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
 
-      Size = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
+      ImageSegment->ImageAddress = Section->VirtualAddress;
+      ImageSegment->DataSize     = MIN (Section->SizeOfRawData, Section->VirtualSize);
+      ImageSegment->ImageSize    = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
+      ImageSegment->Read         = (Section->Characteristics & EFI_IMAGE_SCN_MEM_READ) != 0;
+      ImageSegment->Write        = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;
+      ImageSegment->Execute      = (Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0;
 
-      ImageSegment->Data = calloc (1, Size);
+      ImageSegment->Data = malloc (ImageSegment->ImageSize);
       if (ImageSegment->Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Data\n");
         free (ImageSegment->Name);
@@ -233,23 +237,16 @@ ScanPeGetSegmentInfo (
       memmove (
         ImageSegment->Data,
         ImageBuffer + Section->VirtualAddress,
-        Section->VirtualSize
+        ImageSegment->ImageSize
         );
-
-      ImageSegment->DataSize     = Size;
-      ImageSegment->ImageAddress = Section->VirtualAddress;
-      ImageSegment->ImageSize    = Size;
-
-      ImageSegment->Read    = (Section->Characteristics & EFI_IMAGE_SCN_MEM_READ) != 0;
-      ImageSegment->Write   = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;
-      ImageSegment->Execute = (Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0;
 
       ++SegmentInfo->NumSegments;
       ++ImageSegment;
     } else if (memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) == 0) {
-      Size = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
+      // FIXME: Store only the HII data and construct the RESRC dir in PeEmit.c
+      HiiInfo->DataSize = MIN (Section->SizeOfRawData, Section->VirtualSize);
 
-      HiiInfo->Data = calloc (1, Size);
+      HiiInfo->Data = malloc (HiiInfo->DataSize);
       if (HiiInfo->Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
         return false;
@@ -258,10 +255,8 @@ ScanPeGetSegmentInfo (
       memmove (
         HiiInfo->Data,
         ImageBuffer + Section->VirtualAddress,
-        Section->VirtualSize
+        HiiInfo->DataSize
         );
-
-      HiiInfo->DataSize = Size;
     }
   }
 
