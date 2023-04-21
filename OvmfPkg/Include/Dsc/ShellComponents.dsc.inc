@@ -4,7 +4,6 @@
 
 !if $(BUILD_SHELL) == TRUE
 
-!if $(TOOL_CHAIN_TAG) != "XCODE5"
 !if $(NETWORK_ENABLE) == TRUE
   ShellPkg/DynamicCommand/TftpDynamicCommand/TftpDynamicCommand.inf {
     <PcdsFixedAtBuild>
@@ -23,7 +22,6 @@
     <PcdsFixedAtBuild>
       gEfiShellPkgTokenSpaceGuid.PcdShellLibAutoInitialize|FALSE
   }
-!endif
 
   ShellPkg/Application/Shell/Shell.inf {
     <LibraryClasses>
