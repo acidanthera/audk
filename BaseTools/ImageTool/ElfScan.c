@@ -45,8 +45,6 @@
 #define ELF_SUFFIX_(Name, Arch)   ELF_SUFFIX__ (Name, Arch)
 #define ELF_SUFFIX(Name)          ELF_SUFFIX_ (Name, ELF_ARCH)
 
-#define ELF_HII_SECTION_NAME  ".hii"
-
 typedef struct {
   const Elf_Ehdr  *Ehdr;
   uint32_t        Alignment;
@@ -104,21 +102,6 @@ GetString (
   return (const char *)Ehdr + Shdr->sh_offset + Offset;
 }
 
-#define GetSIsHiiRsrcShdrtring  ELF_SUFFIX(IsHiiRsrcShdr)
-static
-BOOLEAN
-IsHiiRsrcShdr (
-  IN const Elf_Ehdr  *Ehdr,
-  IN const Elf_Shdr  *Shdr
-  )
-{
-  assert (Shdr != NULL);
-
-  Elf_Shdr *Namedr = GetShdrByIndex (Ehdr, Ehdr->e_shstrndx);
-
-  return strcmp ((const char *)Ehdr + Namedr->sh_offset + Shdr->sh_name, ELF_HII_SECTION_NAME) == 0;
-}
-
 #define IsShdrLoadable  ELF_SUFFIX(IsShdrLoadable)
 static
 BOOLEAN
@@ -129,71 +112,7 @@ IsShdrLoadable (
 {
   assert (Shdr != NULL);
 
-  return (Shdr->sh_flags & SHF_ALLOC) != 0 && !IsHiiRsrcShdr (Ehdr, Shdr);
-}
-
-#define SetHiiResourceHeader  ELF_SUFFIX(SetHiiResourceHeader)
-static
-VOID
-SetHiiResourceHeader (
-  IN OUT UINT8  *Hii,
-  IN     UINT32 Offset
-  )
-{
-  UINT32                              Index;
-  EFI_IMAGE_RESOURCE_DIRECTORY        *RDir;
-  EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *RDirEntry;
-  EFI_IMAGE_RESOURCE_DIRECTORY_STRING *RDirString;
-  EFI_IMAGE_RESOURCE_DATA_ENTRY       *RDataEntry;
-
-  assert (Hii != NULL);
-
-  //
-  // Fill Resource section entry
-  //
-  RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)Hii;
-  RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
-  for (Index = 0; Index < RDir->NumberOfNamedEntries; ++Index) {
-    if (RDirEntry->u1.s.NameIsString) {
-      RDirString = (EFI_IMAGE_RESOURCE_DIRECTORY_STRING *)(Hii + RDirEntry->u1.s.NameOffset);
-
-      if ((RDirString->Length == 3)
-        && (RDirString->String[0] == L'H')
-        && (RDirString->String[1] == L'I')
-        && (RDirString->String[2] == L'I')) {
-        //
-        // Resource Type "HII" found
-        //
-        if (RDirEntry->u2.s.DataIsDirectory) {
-          //
-          // Move to next level - resource Name
-          //
-          RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
-          RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
-
-          if (RDirEntry->u2.s.DataIsDirectory) {
-            //
-            // Move to next level - resource Language
-            //
-            RDir      = (EFI_IMAGE_RESOURCE_DIRECTORY *)(Hii + RDirEntry->u2.s.OffsetToDirectory);
-            RDirEntry = (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *)(RDir + 1);
-          }
-        }
-
-        //
-        // Now it ought to be resource Data. Update its OffsetToData value
-        //
-        if (!RDirEntry->u2.s.DataIsDirectory) {
-          RDataEntry = (EFI_IMAGE_RESOURCE_DATA_ENTRY *)(Hii + RDirEntry->u2.OffsetToData);
-          RDataEntry->OffsetToData = RDataEntry->OffsetToData + Offset;
-          break;
-        }
-      }
-    }
-    RDirEntry++;
-  }
-
-  return;
+  return (Shdr->sh_flags & SHF_ALLOC) != 0;
 }
 
 #define ParseElfFile  ELF_SUFFIX(ParseElfFile)
@@ -689,53 +608,37 @@ CreateIntermediate (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    if (IsHiiRsrcShdr (Ehdr, Shdr)) {
-      ImageInfo->HiiInfo.DataSize = (uint32_t)Shdr->sh_size;
-
-      ImageInfo->HiiInfo.Data = calloc (1, ImageInfo->HiiInfo.DataSize);
-      if (ImageInfo->HiiInfo.Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Hii Data\n");
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (ImageInfo->HiiInfo.Data, (const char *)Ehdr + Shdr->sh_offset, ImageInfo->HiiInfo.DataSize);
-      }
-
-      SetHiiResourceHeader (ImageInfo->HiiInfo.Data, (UINT32)(Shdr->sh_addr - BaseAddress));
-    } else {
-      Name = GetString (Ehdr, Shdr->sh_name, 0);
-      if (Name == NULL) {
-        return RETURN_VOLUME_CORRUPTED;
-      }
-
-      Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
-      if (Segments[SIndex].Name == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", Index);
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      memcpy (Segments[SIndex].Name, Name, strlen (Name));
-
-      Segments[SIndex].ImageAddress = (uint32_t)(Shdr->sh_addr - BaseAddress);
-      Segments[SIndex].DataSize     = (uint32_t)Shdr->sh_size;
-      Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
-      Segments[SIndex].Read         = true;
-      Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
-      Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
-
-      Segments[SIndex].Data = calloc (1, Segments[SIndex].ImageSize);
-      if (Segments[SIndex].Data == NULL) {
-        fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
-        return RETURN_OUT_OF_RESOURCES;
-      };
-
-      if (Shdr->sh_type == SHT_PROGBITS) {
-        memcpy (Segments[SIndex].Data, (const char *)Ehdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
-      }
-
-      ++SIndex;
+    Name = GetString (Ehdr, Shdr->sh_name, 0);
+    if (Name == NULL) {
+      return RETURN_VOLUME_CORRUPTED;
     }
+
+    Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
+    if (Segments[SIndex].Name == NULL) {
+      fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", Index);
+      return RETURN_OUT_OF_RESOURCES;
+    };
+
+    memcpy (Segments[SIndex].Name, Name, strlen (Name));
+
+    Segments[SIndex].ImageAddress = (uint32_t)(Shdr->sh_addr - BaseAddress);
+    Segments[SIndex].DataSize     = (uint32_t)Shdr->sh_size;
+    Segments[SIndex].ImageSize    = ALIGN_VALUE (Segments[SIndex].DataSize, Context->Alignment);
+    Segments[SIndex].Read         = true;
+    Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
+    Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
+
+    Segments[SIndex].Data = calloc (1, Segments[SIndex].ImageSize);
+    if (Segments[SIndex].Data == NULL) {
+      fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
+      return RETURN_OUT_OF_RESOURCES;
+    };
+
+    if (Shdr->sh_type == SHT_PROGBITS) {
+      memcpy (Segments[SIndex].Data, (const char *)Ehdr + Shdr->sh_offset, (size_t)Shdr->sh_size);
+    }
+
+    ++SIndex;
   }
 
   assert (SIndex == ImageInfo->SegmentInfo.NumSegments);

@@ -58,33 +58,24 @@ CreateStringEntry (
   *HiiSectionOffset += sizeof (*RDStr) + RDStr->Length * sizeof (RDStr->String[0]);
 }
 
-static
-UINT8 *
-CreateHiiResouceSectionHeader (
-  OUT UINT32  *HiiHeaderSize,
+GLOBAL_REMOVE_IF_UNREFERENCED CONST UINT8 mHiiResourceSectionHeaderSize =
+  3 * (sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY)
+       + sizeof (EFI_IMAGE_RESOURCE_DIRECTORY_STRING) + 3 * sizeof (CHAR16)) + sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY);
+
+VOID
+InitializeHiiResouceSectionHeader (
+  OUT UINT8   *HiiSectionHeader,
+  IN  UINT32  HiiDataAddress,
   IN  UINT32  HiiDataSize
   )
 {
-  UINT32                              HiiSectionHeaderSize;
   UINT32                              HiiSectionOffset;
-  UINT8                               *HiiSectionHeader;
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *TypeRDirEntry;
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *NameRDirEntry;
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *LangRDirEntry;
   EFI_IMAGE_RESOURCE_DATA_ENTRY       *ResourceDataEntry;
 
-  assert (HiiHeaderSize != NULL);
-  //
-  // Calculate the total size for the resource header (include Type, Name and Language)
-  // then allocate memory for whole Hii file.
-  //
-  HiiSectionHeaderSize = 3 * (sizeof (EFI_IMAGE_RESOURCE_DIRECTORY) + sizeof (EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY)
-                              + sizeof (EFI_IMAGE_RESOURCE_DIRECTORY_STRING) + 3 * sizeof (CHAR16)) + sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY);
-  HiiSectionHeader = calloc (1, HiiSectionHeaderSize + HiiDataSize);
-  if (HiiSectionHeader == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate memory for Hii\n");
-    return NULL;
-  }
+  assert (HiiSectionHeader != NULL);
 
   HiiSectionOffset = 0;
   //
@@ -105,12 +96,8 @@ CreateHiiResouceSectionHeader (
   LangRDirEntry->u2.OffsetToData  = HiiSectionOffset;
   ResourceDataEntry               = (EFI_IMAGE_RESOURCE_DATA_ENTRY *)(HiiSectionHeader + HiiSectionOffset);
   HiiSectionOffset               += sizeof (EFI_IMAGE_RESOURCE_DATA_ENTRY);
-  ResourceDataEntry->OffsetToData = HiiSectionOffset;
+  ResourceDataEntry->OffsetToData = HiiDataAddress + HiiSectionOffset;
   ResourceDataEntry->Size         = HiiDataSize;
-
-  *HiiHeaderSize = HiiSectionHeaderSize;
-
-  return HiiSectionHeader;
 }
 
 RETURN_STATUS
@@ -119,27 +106,19 @@ ConstructHii (
   IN  UINT32      NumOfFiles,
   IN  GUID        *HiiGuid,
   OUT void        **Hii,
-  OUT UINT32      *HiiSize,
-  IN  BOOLEAN     IsElf
+  OUT UINT32      *HiiSize
   )
 {
+  UINT8                        *HiiPackageData;
   UINT8                        *HiiPackageDataPointer;
   EFI_HII_PACKAGE_LIST_HEADER  HiiPackageListHeader;
   EFI_HII_PACKAGE_HEADER       *HiiPackageHeader;
   EFI_IFR_FORM_SET             *IfrFormSet;
   EFI_HII_PACKAGE_HEADER       EndPackage;
-  UINT32                       HiiSectionHeaderSize;
-  UINT8                        *HiiSectionHeader;
-  const char                   *HiiPackageRCFileHeader;
   UINT32                       Index;
-  UINT32                       Total;
-  UINT8                        *Buffer;
-  UINT8                        *BufferStart;
-  UINT32                       Step;
   void                         *File;
   UINT32                       FileSize;
   UINT8                        NumberOfFormPackages;
-  UINT32                       TempSize;
 
   assert (Hii       != NULL);
   assert (HiiGuid   != NULL);
@@ -191,111 +170,31 @@ ConstructHii (
 
   CopyGuid (&HiiPackageListHeader.PackageListGuid, HiiGuid);
 
-  if (IsElf) {
-    HiiSectionHeader = CreateHiiResouceSectionHeader (&HiiSectionHeaderSize, HiiPackageListHeader.PackageLength);
-    if (HiiSectionHeader == NULL) {
-      return RETURN_OUT_OF_RESOURCES;
-    }
-
-    HiiPackageDataPointer = HiiSectionHeader + HiiSectionHeaderSize;
-
-    memcpy (HiiPackageDataPointer, &HiiPackageListHeader, sizeof (HiiPackageListHeader));
-    HiiPackageDataPointer += sizeof (HiiPackageListHeader);
-
-    for (Index = 0; Index < NumOfFiles; ++Index) {
-      File = UserReadFile (FileNames[Index], &FileSize);
-      if (File == NULL) {
-        fprintf (stderr, "ImageTool: Could not open %s: %s\n", FileNames[Index], strerror (errno));
-        free (HiiSectionHeader);
-        return RETURN_ABORTED;
-      }
-
-      memcpy (HiiPackageDataPointer, File, FileSize);
-      HiiPackageDataPointer += FileSize;
-
-      free (File);
-    }
-
-    memcpy (HiiPackageDataPointer, &EndPackage, sizeof (EndPackage));
-
-    *Hii     = HiiSectionHeader;
-    *HiiSize = HiiSectionHeaderSize + HiiPackageListHeader.PackageLength;
-
-    return RETURN_SUCCESS;
-  }
-
-  HiiPackageRCFileHeader = "//\n//  DO NOT EDIT -- auto-generated file\n//\n\n1 HII\n{";
-  HiiSectionHeaderSize   = (UINT32)AsciiStrLen (HiiPackageRCFileHeader);
-
-  TempSize         = HiiSectionHeaderSize + 5 * HiiPackageListHeader.PackageLength;
-  HiiSectionHeader = calloc (1, TempSize);
-  if (HiiSectionHeader == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate memory for HiiRC\n");
+  HiiPackageData = calloc (1, HiiPackageListHeader.PackageLength);
+  if (HiiPackageData == NULL) {
     return RETURN_OUT_OF_RESOURCES;
   }
 
-  Buffer = calloc (1, HiiPackageListHeader.PackageLength);
-  if (Buffer == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate memory for Buffer\n");
-    free (HiiSectionHeader);
-    return RETURN_OUT_OF_RESOURCES;
-  }
+  memmove (HiiPackageData, &HiiPackageListHeader, sizeof (HiiPackageListHeader));
 
-  BufferStart = Buffer;
-  memcpy (Buffer, &HiiPackageListHeader, sizeof (HiiPackageListHeader));
-  Buffer += sizeof (HiiPackageListHeader);
-
+  HiiPackageDataPointer = HiiPackageData + sizeof (HiiPackageListHeader);
   for (Index = 0; Index < NumOfFiles; ++Index) {
     File = UserReadFile (FileNames[Index], &FileSize);
     if (File == NULL) {
       fprintf (stderr, "ImageTool: Could not open %s: %s\n", FileNames[Index], strerror (errno));
-      free (HiiSectionHeader);
-      free (BufferStart);
       return RETURN_ABORTED;
     }
 
-    memcpy (Buffer, File, FileSize);
-    Buffer += FileSize;
+    memmove (HiiPackageDataPointer, File, FileSize);
+    HiiPackageDataPointer += FileSize;
 
     free (File);
   }
 
-  memcpy (Buffer, &EndPackage, sizeof (EndPackage));
+  memmove (HiiPackageDataPointer, &EndPackage, sizeof (EndPackage));
 
-  memcpy (HiiSectionHeader, HiiPackageRCFileHeader, HiiSectionHeaderSize);
-  HiiPackageDataPointer = HiiSectionHeader + HiiSectionHeaderSize;
-
-  Total  = HiiSectionHeaderSize;
-  Buffer = BufferStart;
-  for (Index = 0; Index + 2 < HiiPackageListHeader.PackageLength; Index += 2) {
-    if (Index % 16 == 0) {
-      Step                   = snprintf ((char *)HiiPackageDataPointer, TempSize - Total, "\n ");
-      HiiPackageDataPointer += Step;
-      Total                 += Step;
-    }
-
-    Step                   = snprintf ((char *)HiiPackageDataPointer, TempSize - Total, " 0x%04X,", *(UINT16 *)Buffer);
-    HiiPackageDataPointer += Step;
-    Total                 += Step;
-    Buffer                += 2;
-  }
-
-  if (Index % 16 == 0) {
-    Step                   = snprintf ((char *)HiiPackageDataPointer, TempSize - Total, "\n ");
-    HiiPackageDataPointer += Step;
-    Total                 += Step;
-  }
-
-  if ((Index + 2) == HiiPackageListHeader.PackageLength) {
-    Total += snprintf ((char *)HiiPackageDataPointer, TempSize - Total, " 0x%04X\n}\n", *(UINT16 *)Buffer);
-  } else if ((Index + 1) == HiiPackageListHeader.PackageLength) {
-    Total += snprintf ((char *)HiiPackageDataPointer, TempSize - Total, " 0x%04X\n}\n", *(UINT8 *)Buffer);
-  }
-
-  *Hii     = HiiSectionHeader;
-  *HiiSize = Total;
-
-  free (BufferStart);
+  *Hii     = HiiPackageData;
+  *HiiSize = HiiPackageListHeader.PackageLength;
 
   return RETURN_SUCCESS;
 }
