@@ -272,6 +272,43 @@ ImageSetModuleType (
 
 static
 RETURN_STATUS
+ValidateOutputFile (
+  void                           *OutputFile,
+  uint32_t                       OutputFileSize,
+  const image_tool_image_info_t  *ImageInfo
+  )
+{
+  RETURN_STATUS            Status;
+  bool                     Result;
+  image_tool_image_info_t  OutputImageInfo;
+
+  Status = ToolContextConstructPe (&OutputImageInfo, OutputFile, OutputFileSize);
+  if (EFI_ERROR (Status)) {
+    assert (false);
+    return Status;
+  }
+
+  Result = CheckToolImage (&OutputImageInfo);
+  if (!Result) {
+    raise ();
+    ToolImageDestruct (&OutputImageInfo);
+    return RETURN_UNSUPPORTED;
+  }
+
+  Result = ToolImageCompare (&OutputImageInfo, ImageInfo);
+
+  ToolImageDestruct (&OutputImageInfo);
+
+  if (!Result) {
+    assert (false);
+    return RETURN_VOLUME_CORRUPTED;
+  }
+
+  return RETURN_SUCCESS;
+}
+
+static
+RETURN_STATUS
 GenExecutable (
   IN const char  *OutputFileName,
   IN const char  *InputFileName,
@@ -331,6 +368,8 @@ GenExecutable (
     ImageInfo.HiiInfo.DataSize = HiiFileSize;
   }
 
+  ToolImageSortRelocs (&ImageInfo);
+
   Result = CheckToolImage (&ImageInfo);
   if (!Result) {
     ToolImageDestruct (&ImageInfo);
@@ -359,10 +398,18 @@ GenExecutable (
     assert (false);
   }
 
+  if (OutputFile == NULL) {
+    ToolImageDestruct (&ImageInfo);
+    return RETURN_ABORTED;
+  }
+
+  Status = ValidateOutputFile (OutputFile, OutputFileSize, &ImageInfo);
+
   ToolImageDestruct (&ImageInfo);
 
-  if (OutputFile == NULL) {
-    return RETURN_ABORTED;
+  if (EFI_ERROR (Status)) {
+    assert (false);
+    return Status;
   }
 
   UserWriteFile (OutputFileName, OutputFile, OutputFileSize);

@@ -219,7 +219,6 @@ ScanPeGetSegmentInfo (
       memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
 
       ImageSegment->ImageAddress = Section->VirtualAddress;
-      ImageSegment->DataSize     = MIN (Section->SizeOfRawData, Section->VirtualSize);
       ImageSegment->ImageSize    = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
       ImageSegment->Read         = (Section->Characteristics & EFI_IMAGE_SCN_MEM_READ) != 0;
       ImageSegment->Write        = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;

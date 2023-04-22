@@ -29,11 +29,6 @@ CheckToolImageSegment (
     return false;
   }
 
-  if (Segment->ImageSize < Segment->DataSize) {
-    raise ();
-    return false;
-  }
-
   // FIXME: Expand prior segment
   if (Segment->ImageAddress != *PreviousEndAddress) {
     raise ();
@@ -223,6 +218,10 @@ CheckToolImageRelocInfo (
 
   RelocInfo = &Image->RelocInfo;
 
+  if (RelocInfo->NumRelocs == 0) {
+    return true;
+  }
+
   if (RelocInfo->RelocsStripped && (RelocInfo->NumRelocs > 0)) {
     raise ();
     return false;
@@ -233,7 +232,18 @@ CheckToolImageRelocInfo (
     return false;
   }
 
-  for (Index = 0; Index < RelocInfo->NumRelocs; ++Index) {
+  Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[0]);
+  if (!Result) {
+    raise ();
+    return false;
+  }
+
+  for (Index = 1; Index < RelocInfo->NumRelocs; ++Index) {
+    if (RelocInfo->Relocs[Index].Target < RelocInfo->Relocs[Index - 1].Target) {
+      assert (false);
+      return false;
+    }
+
     Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[Index]);
     if (!Result) {
       raise ();
@@ -294,33 +304,8 @@ CheckToolImage (
   return true;
 }
 
-bool
-ImageConvertToXip (
-  image_tool_image_info_t *Image
-  )
-{
-  image_tool_segment_info_t *SegmentInfo;
-  uint64_t                  Index;
-  image_tool_segment_t      *Segment;
-
-  assert (Image != NULL);
-
-  SegmentInfo = &Image->SegmentInfo;
-
-  for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
-    Segment = &SegmentInfo->Segments[Index];
-
-    assert (Segment->DataSize <= Segment->ImageSize);
-    Segment->DataSize = Segment->ImageSize;
-  }
-
-  Image->HeaderInfo.IsXip = true;
-
-  return true;
-}
-
 void
-ImageShrinkSegmentData (
+ImageInitUnpaddedSize (
   const image_tool_image_info_t *Image
   )
 {
@@ -329,8 +314,14 @@ ImageShrinkSegmentData (
 
   for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     Segment = &Image->SegmentInfo.Segments[Index];
-    for (; Segment->DataSize > 0; --Segment->DataSize) {
-      if (Segment->Data[Segment->DataSize - 1] != 0) {
+    Segment->UnpaddedSize = Segment->ImageSize;
+
+    if (Image->HeaderInfo.IsXip) {
+      continue;
+    }
+
+    for (; Segment->UnpaddedSize > 0; --Segment->UnpaddedSize) {
+      if (Segment->Data[Segment->UnpaddedSize - 1] != 0) {
         break;
       }
     }
@@ -348,28 +339,16 @@ ToolImageDestruct (
 
   if (Image->SegmentInfo.Segments != NULL) {
     for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-      if (Image->SegmentInfo.Segments[Index].Name != NULL) {
-        free (Image->SegmentInfo.Segments[Index].Name);
-      }
-      if (Image->SegmentInfo.Segments[Index].DataSize != 0) {
-        free (Image->SegmentInfo.Segments[Index].Data);
-      }
+      free (Image->SegmentInfo.Segments[Index].Name);
+      free (Image->SegmentInfo.Segments[Index].Data);
     }
 
     free (Image->SegmentInfo.Segments);
   }
 
-  if (Image->HiiInfo.Data != NULL) {
-    free (Image->HiiInfo.Data);
-  }
-
-  if (Image->RelocInfo.Relocs != NULL) {
-    free (Image->RelocInfo.Relocs);
-  }
-
-  if (Image->DebugInfo.SymbolsPath != NULL) {
-    free (Image->DebugInfo.SymbolsPath);
-  }
+  free (Image->HiiInfo.Data);
+  free (Image->RelocInfo.Relocs);
+  free (Image->DebugInfo.SymbolsPath);
 
   memset (Image, 0, sizeof (*Image));
 }
@@ -448,6 +427,215 @@ ToolImageRelocate (
   }
 
   Image->HeaderInfo.BaseAddress = BaseAddress;
+
+  return true;
+}
+
+static
+INTN
+EFIAPI
+ToolImageRelocCompare (
+  IN CONST VOID  *Buffer1,
+  IN CONST VOID  *Buffer2
+  )
+{
+  const image_tool_reloc_t  *Reloc1;
+  const image_tool_reloc_t  *Reloc2;
+
+  Reloc1 = (const image_tool_reloc_t *)Buffer1;
+  Reloc2 = (const image_tool_reloc_t *)Buffer2;
+
+  if (Reloc1->Target < Reloc2->Target) {
+    return -1;
+  }
+
+  if (Reloc1->Target > Reloc2->Target) {
+    return 1;
+  }
+
+  return 0;
+}
+
+void
+ToolImageSortRelocs (
+  image_tool_image_info_t  *Image
+  )
+{
+  image_tool_reloc_t  OneElement;
+
+  if (Image->RelocInfo.Relocs == NULL) {
+    return;
+  }
+
+  QuickSort (
+    Image->RelocInfo.Relocs,
+    Image->RelocInfo.NumRelocs,
+    sizeof (*Image->RelocInfo.Relocs),
+    ToolImageRelocCompare,
+    &OneElement
+    );
+}
+
+bool
+ToolImageCompare (
+  const image_tool_image_info_t  *Image1,
+  const image_tool_image_info_t  *Image2
+  )
+{
+  int         CmpResult;
+  uint32_t    SegIndex;
+  const char  *Name1;
+  const char  *Name2;
+  uint32_t    NameIndex;
+
+  //
+  // Compare HeaderInfo.
+  //
+
+  CmpResult = memcmp (
+                &Image1->HeaderInfo,
+                &Image2->HeaderInfo,
+                sizeof (Image1->HeaderInfo)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  //
+  // Compare SegmentInfo.
+  // UnpaddedSize is deliberately omitted, as it's implicit by the equality of
+  // ImageSize and Data.
+  //
+
+  CmpResult = memcmp (
+                &Image1->SegmentInfo,
+                &Image2->SegmentInfo,
+                OFFSET_OF (image_tool_segment_info_t, Segments)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  for (SegIndex = 0; SegIndex < Image1->SegmentInfo.NumSegments; ++SegIndex) {
+    CmpResult = memcmp (
+                  &Image1->SegmentInfo.Segments[SegIndex],
+                  &Image2->SegmentInfo.Segments[SegIndex],
+                  OFFSET_OF (image_tool_segment_t, Name)
+                  );
+    if (CmpResult != 0) {
+      raise ();
+      return false;
+    }
+
+    //
+    // Don't assume images generally support arbitrarily long names or names in
+    // general. Check prefix equiality as a best effort.
+    //
+    Name1 = Image1->SegmentInfo.Segments[SegIndex].Name;
+    Name2 = Image2->SegmentInfo.Segments[SegIndex].Name;
+    if (Name1 != NULL && Name2 != NULL) {
+      for (
+        NameIndex = 0;
+        Name1[NameIndex] != '\0' && Name2[NameIndex] != '\0';
+        ++NameIndex
+        ) {
+        if (Name1[NameIndex] != Name2[NameIndex]) {
+          raise ();
+          return false;
+        }
+      }
+    }
+
+    CmpResult = memcmp (
+                  Image1->SegmentInfo.Segments[SegIndex].Data,
+                  Image2->SegmentInfo.Segments[SegIndex].Data,
+                  Image1->SegmentInfo.Segments[SegIndex].ImageSize
+                  );
+    if (CmpResult != 0) {
+      raise ();
+      return false;
+    }
+  }
+
+  //
+  // Compare RelocInfo.
+  //
+
+  CmpResult = memcmp (
+                &Image1->RelocInfo,
+                &Image2->RelocInfo,
+                OFFSET_OF (image_tool_reloc_info_t, Relocs)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  CmpResult = memcmp (
+                Image1->RelocInfo.Relocs,
+                Image2->RelocInfo.Relocs,
+                Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  //
+  // Compare HiiInfo.
+  //
+
+  CmpResult = memcmp (
+                &Image1->HiiInfo,
+                &Image2->HiiInfo,
+                OFFSET_OF (image_tool_hii_info_t, Data)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  CmpResult = memcmp (
+                Image1->HiiInfo.Data,
+                Image2->HiiInfo.Data,
+                Image1->HiiInfo.DataSize
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  //
+  // Compare DebugInfo.
+  //
+
+  CmpResult = memcmp (
+                &Image1->DebugInfo,
+                &Image2->DebugInfo,
+                OFFSET_OF (image_tool_debug_info_t, SymbolsPath)
+                );
+  if (CmpResult != 0) {
+    raise ();
+    return false;
+  }
+
+  if ((Image1->DebugInfo.SymbolsPath != NULL) != (Image2->DebugInfo.SymbolsPath != NULL)) {
+    raise ();
+    return false; 
+  }
+
+  if (Image1->DebugInfo.SymbolsPath != NULL) {
+    CmpResult = strcmp (
+                  Image1->DebugInfo.SymbolsPath,
+                  Image2->DebugInfo.SymbolsPath
+                  );
+    if (CmpResult != 0) {
+      raise ();
+      return false;
+    }
+  }
 
   return true;
 }
