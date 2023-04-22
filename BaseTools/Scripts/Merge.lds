@@ -52,7 +52,6 @@ SECTIONS {
 
   /DISCARD/ : {
     *(.note.GNU-stack)
-    *(.gnu_debuglink)
     *(.interp)
     *(.dynsym)
     *(.dynstr)
