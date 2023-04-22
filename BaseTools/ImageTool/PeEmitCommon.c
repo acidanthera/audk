@@ -7,8 +7,8 @@
 
 void *
 ToolImageEmitPe (
-  const image_tool_image_info_t  *Image,
-  uint32_t                       *FileSize
+  image_tool_image_info_t  *Image,
+  uint32_t                 *FileSize
   )
 {
   switch (Image->HeaderInfo.Machine) {

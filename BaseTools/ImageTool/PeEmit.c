@@ -99,7 +99,7 @@ EmitPeGetSectionsSize (
 
   for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
     Overflow = BaseOverflowAlignUpU32 (
-      Image->SegmentInfo.Segments[Index].DataSize,
+      Image->SegmentInfo.Segments[Index].UnpaddedSize,
       Context->FileAlignment,
       &DataSize
       );
@@ -325,7 +325,7 @@ ToolImageEmitPeSectionHeaders (
 
     Sections[Index].PointerToRawData = SectionOffset;
     Sections[Index].VirtualAddress   = SectionOffset;
-    Sections[Index].SizeOfRawData    = ALIGN_VALUE (Image->SegmentInfo.Segments[Index].DataSize, Context->FileAlignment);
+    Sections[Index].SizeOfRawData    = ALIGN_VALUE (Image->SegmentInfo.Segments[Index].UnpaddedSize, Context->FileAlignment);
     Sections[Index].VirtualSize      = Image->SegmentInfo.Segments[Index].ImageSize;
 
     strncpy (
@@ -591,16 +591,16 @@ ToolImageEmitPeSections (
     }
 #endif
 
-    assert (Segment->DataSize <= *BufferSize);
+    assert (Segment->UnpaddedSize <= *BufferSize);
 
-    memmove (*Buffer, Segment->Data, Segment->DataSize);
+    memmove (*Buffer, Segment->Data, Segment->UnpaddedSize);
 
-    *BufferSize  -= Segment->DataSize;
-    *Buffer      += Segment->DataSize;
-    SectionsSize += Segment->DataSize;
+    *BufferSize  -= Segment->UnpaddedSize;
+    *Buffer      += Segment->UnpaddedSize;
+    SectionsSize += Segment->UnpaddedSize;
 
     SectionPadding = ALIGN_VALUE_ADDEND (
-      Segment->DataSize,
+      Segment->UnpaddedSize,
       Context->FileAlignment
       );
 
@@ -885,8 +885,8 @@ ToolImageEmitPeExtraSections (
 #define ToolImageEmitPe  PE_SUFFIX (ToolImageEmitPe)
 void *
 ToolImageEmitPe (
-  const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
+  image_tool_image_info_t *Image,
+  uint32_t                *FileSize
   )
 {
   image_tool_pe_emit_context_t Context;
@@ -906,11 +906,9 @@ ToolImageEmitPe (
 
   // FIXME: Non-XIP is not well-supported right now.
   Context.FileAlignment = Image->SegmentInfo.SegmentAlignment;
-  Result = ImageConvertToXip ((image_tool_image_info_t *)Image);
-  if (!Result) {
-    raise ();
-    return NULL;
-  }
+  Image->HeaderInfo.IsXip = true;
+
+  ImageInitUnpaddedSize (Image);
 
   Context.Image = Image;
 
