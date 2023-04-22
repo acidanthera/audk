@@ -39,40 +39,49 @@ typedef struct {
   uint32_t EntryPointAddress;
   uint16_t Machine;
   uint16_t Subsystem;
-  bool     IsXip;
+  uint8_t  IsXip;
+  uint8_t  Reserved[7];
 } image_tool_header_info_t;
 
 typedef struct {
-  char     *Name;
-  uint8_t  *Data;
-  uint32_t DataSize;
   uint32_t ImageAddress;
   uint32_t ImageSize;
-  bool     Read;
-  bool     Write;
-  bool     Execute;
+  uint8_t  Read;
+  uint8_t  Write;
+  uint8_t  Execute;
+  uint8_t  Reserved[1];
+
+  char     *Name;
+  uint8_t  *Data;
+
+  uint32_t UnpaddedSize;
 } image_tool_segment_t;
 
 typedef struct {
   uint32_t             SegmentAlignment;
   uint32_t             NumSegments;
+
   image_tool_segment_t *Segments;
 } image_tool_segment_info_t;
 
 typedef struct {
   uint8_t  Type;
+  uint8_t  Reserved[3];
   uint32_t Target;
 } image_tool_reloc_t;
 
 typedef struct {
   uint32_t           NumRelocs;
-  bool               RelocsStripped;
+  uint8_t            RelocsStripped;
+  uint8_t            Reserved[3];
+
   image_tool_reloc_t *Relocs;
 } image_tool_reloc_info_t;
 
 typedef struct {
-  char     *SymbolsPath;
   uint32_t SymbolsPathLen;
+
+  char     *SymbolsPath;
 } image_tool_debug_info_t;
 
 typedef struct {
@@ -81,8 +90,9 @@ typedef struct {
 } image_tool_pe_datadir_info_t;
 
 typedef struct {
-  void     *Data;
   uint32_t DataSize;
+
+  void     *Data;
 } image_tool_hii_info_t;
 
 typedef struct {
@@ -99,19 +109,25 @@ ToolImageDestruct (
   );
 
 void
-ImageShrinkSegmentData (
+ImageInitUnpaddedSize (
   const image_tool_image_info_t *Image
-  );
-
-bool
-ImageConvertToXip (
-  image_tool_image_info_t *Image
   );
 
 bool
 ToolImageRelocate (
   image_tool_image_info_t *Image,
   uint64_t                BaseAddress
+  );
+
+void
+ToolImageSortRelocs (
+  image_tool_image_info_t  *Image
+  );
+
+bool
+ToolImageCompare (
+  const image_tool_image_info_t  *Image1,
+  const image_tool_image_info_t  *Image2
   );
 
 RETURN_STATUS
@@ -128,8 +144,8 @@ CheckToolImage (
 
 void *
 ToolImageEmitPe (
-  const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
+  image_tool_image_info_t *Image,
+  uint32_t                *FileSize
   );
 
 RETURN_STATUS
