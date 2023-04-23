@@ -16,6 +16,7 @@
 
 [Sources]
   CommonSupport.c
+  ExecutionSupport.c
   PeCoffSupport.h
   PeCoffSupport.c
   UefiImageLibPeCoff.c
