@@ -9,6 +9,8 @@
 #include <IndustryStandard/Acpi30.h>
 #include <IndustryStandard/MemoryMappedConfigurationSpaceAccessTable.h>
 
+#include <Library/UefiImageLib.h>
+
 #include "ImageToolEmit.h"
 
 #define EFI_ACPI_1_0_FIRMWARE_ACPI_CONTROL_STRUCTURE_VERSION  0x0
@@ -289,7 +291,8 @@ GenExecutable (
   IN const char  *FormatName,
   IN const char  *TypeName,
   IN const char  *HiiFileName,
-  IN const char  *BaseAddress
+  IN const char  *BaseAddress,
+  IN bool        Strip
   )
 {
   UINT32         InputFileSize;
@@ -356,7 +359,8 @@ GenExecutable (
                  HiiFileSize,
                  BaseAddress != NULL,
                  NewBaseAddress,
-                 InputFileName
+                 InputFileName,
+                 Strip
                  );
 
   if (OutputFile == NULL) {
@@ -390,7 +394,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL);
+    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL, FALSE);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
@@ -418,7 +422,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2]);
+    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2], FALSE);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
