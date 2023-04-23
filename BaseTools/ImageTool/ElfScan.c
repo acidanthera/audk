@@ -652,7 +652,7 @@ ScanElf (
   OUT image_tool_image_info_t  *ImageInfo,
   IN  const void               *File,
   IN  uint32_t                 FileSize,
-  IN  const char               *SymbolsPath
+  IN  const char               *SymbolsPath OPTIONAL
   )
 {
   RETURN_STATUS          Status;
@@ -678,7 +678,12 @@ ScanElf (
   ImageInfo->HeaderInfo.IsXip             = true;
   ImageInfo->SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
   ImageInfo->RelocInfo.RelocsStripped     = false;
-  ImageInfo->DebugInfo.SymbolsPathLen     = strlen (SymbolsPath);
+
+  if (SymbolsPath != NULL) {
+    ImageInfo->DebugInfo.SymbolsPathLen = strlen (SymbolsPath);
+  } else {
+    assert (ImageInfo->DebugInfo.SymbolsPathLen == 0);
+  }
 
   switch (Ehdr->e_machine) {
 #if ELF_ARCH == 64
@@ -707,7 +712,11 @@ ScanElf (
     return RETURN_OUT_OF_RESOURCES;
   };
 
-  memmove (ImageInfo->DebugInfo.SymbolsPath, SymbolsPath, ImageInfo->DebugInfo.SymbolsPathLen + 1);
+  if (SymbolsPath != NULL) {
+    memmove (ImageInfo->DebugInfo.SymbolsPath, SymbolsPath, ImageInfo->DebugInfo.SymbolsPathLen + 1);
+  } else {
+    *ImageInfo->DebugInfo.SymbolsPath = '\0';
+  }
 
   //
   // There is no corresponding ELF property.
