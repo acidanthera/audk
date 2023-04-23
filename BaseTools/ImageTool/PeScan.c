@@ -10,27 +10,6 @@
 #define PE_COFF_SECT_NAME_RESRC  ".rsrc\0\0"
 #define PE_COFF_SECT_NAME_DEBUG  ".debug\0"
 
-static
-bool
-ScanPeGetHeaderInfo (
-  OUT image_tool_header_info_t     *HeaderInfo,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
-  )
-{
-  assert (HeaderInfo != NULL);
-  assert (Context    != NULL);
-
-  HeaderInfo->BaseAddress       = (uint64_t)PeCoffGetImageBase (Context);
-  HeaderInfo->EntryPointAddress = PeCoffGetAddressOfEntryPoint (Context);
-  // FIXME:
-  HeaderInfo->Machine = PeCoffGetMachine (Context);
-  HeaderInfo->IsXip   = true;
-  HeaderInfo->Subsystem = PeCoffGetSubsystem (Context);
-
-  return true;
-}
-
-static
 bool
 ScanPeGetRelocInfo (
   OUT image_tool_reloc_info_t       *RelocInfo,
@@ -53,8 +32,6 @@ ScanPeGetRelocInfo (
 
   assert (RelocInfo != NULL);
   assert (Context   != NULL);
-
-  RelocInfo->RelocsStripped = false;
 
   // FIXME: PE/COFF context access
   RelocBlockRva = Context->RelocDirRva;
@@ -169,7 +146,6 @@ ScanPeGetRelocInfo (
   return true;
 }
 
-static
 bool
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
@@ -184,8 +160,6 @@ ScanPeGetSegmentInfo (
 
   assert (SegmentInfo != NULL);
   assert (Context     != NULL);
-
-  SegmentInfo->SegmentAlignment = PeCoffGetSectionAlignment (Context);
 
   NumSections = PeCoffGetSectionTable (Context, &Section);
 
@@ -318,101 +292,4 @@ ScanPeGetHiiInfo (
   HiiInfo->DataSize = HiiSize;
 
   return true;
-}
-
-RETURN_STATUS
-ToolContextConstructPe (
-  OUT image_tool_image_info_t *Image,
-  IN  const void              *File,
-  IN  size_t                  FileSize
-  )
-{
-  PE_COFF_LOADER_IMAGE_CONTEXT Context;
-  RETURN_STATUS                Status;
-  UINT32                       ImageSize;
-  UINT32                       ImageAlignment;
-  UINT32                       DestinationSize;
-  UINT32                       DestinationPages;
-  void                         *Destination;
-  bool                         Result;
-
-  assert (Image != NULL);
-  assert (File != NULL || FileSize == 0);
-
-  if (FileSize > MAX_UINT32) {
-    fprintf (stderr, "ImageTool: FileSize is too huge\n");
-    return RETURN_UNSUPPORTED;
-  }
-
-  Status = PeCoffInitializeContext (&Context, File, (UINT32)FileSize);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
-
-  ImageSize        = PeCoffGetSizeOfImage (&Context);
-  DestinationPages = EFI_SIZE_TO_PAGES (ImageSize);
-  DestinationSize  = EFI_PAGES_TO_SIZE (DestinationPages);
-  ImageAlignment   = PeCoffGetSectionAlignment (&Context);
-
-  Destination = AllocateAlignedCodePages (
-                  DestinationPages,
-                  ImageAlignment
-                  );
-  if (Destination == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate Destination buffer\n");
-    return RETURN_OUT_OF_RESOURCES;
-  }
-
-  Status = PeCoffLoadImage (&Context, Destination, DestinationSize);
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not Load Image\n");
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  memset (Image, 0, sizeof (*Image));
-
-  Result = ScanPeGetHeaderInfo (&Image->HeaderInfo, &Context);
-  if (!Result) {
-    fprintf (stderr, "ImageTool: Could not retrieve header info\n");
-    ToolImageDestruct (Image);
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  Result = ScanPeGetDebugInfo (&Image->DebugInfo, &Context);
-  if (!Result) {
-    fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
-    ToolImageDestruct (Image);
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  Result = ScanPeGetSegmentInfo (&Image->SegmentInfo, &Context);
-  if (!Result) {
-    fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
-    ToolImageDestruct (Image);
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  Result = ScanPeGetRelocInfo (&Image->RelocInfo, &Context);
-  if (!Result) {
-    fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
-    ToolImageDestruct (Image);
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  Result = ScanPeGetHiiInfo (&Image->HiiInfo, &Context);
-  if (!Result) {
-    fprintf (stderr, "ImageTool: Could not retrieve HII info\n");
-    ToolImageDestruct (Image);
-    FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  FreeAlignedPages (Destination, DestinationPages);
-
-  return RETURN_SUCCESS;
 }

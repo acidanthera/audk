@@ -19,7 +19,7 @@ ToolContextConstruct (
   OUT image_tool_image_info_t *ImageInfo,
   OUT int8_t                  *Format,
   IN  const void              *File,
-  IN  size_t                  FileSize,
+  IN  uint32_t                FileSize,
   IN  const char              *SymbolsPath OPTIONAL
   )
 {
@@ -27,14 +27,13 @@ ToolContextConstruct (
 
   *Format = -1;
 
-  Status = ToolContextConstructPe (
+  Status = ToolContextConstructUefiImage (
              ImageInfo,
+             Format,
              File,
              FileSize
              );
-  if (!RETURN_ERROR (Status)) {
-    *Format = UefiImageFormatPe;
-  } else if (Status == RETURN_UNSUPPORTED) {
+  if (Status == RETURN_UNSUPPORTED) {
     Status = ScanElf (ImageInfo, File, FileSize, SymbolsPath);
   }
 
@@ -89,7 +88,7 @@ void *
 ToolImageEmit (
   OUT uint32_t    *OutputFileSize,
   IN  const void  *Buffer,
-  IN  uint64_t    BufferSize,
+  IN  uint32_t    BufferSize,
   IN  int8_t      Format,
   IN  int32_t     Type,
   IN  void        *HiiFile,
