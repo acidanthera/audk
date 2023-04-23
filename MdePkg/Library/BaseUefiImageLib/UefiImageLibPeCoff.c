@@ -46,6 +46,14 @@ UefiImageInitializeContextPostHash (
   return RETURN_SUCCESS;
 }
 
+UINT8
+UefiImageGetFormat (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return UefiImageFormatPe;
+}
+
 BOOLEAN
 UefiImageHashImageDefault (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
