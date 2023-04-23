@@ -639,3 +639,15 @@ ToolImageCompare (
 
   return true;
 }
+
+void
+ToolImageStripRelocs (
+  image_tool_image_info_t  *Image
+  )
+{
+  Image->RelocInfo.NumRelocs = 0;
+  free (Image->RelocInfo.Relocs);
+  Image->RelocInfo.Relocs = NULL;
+
+  Image->RelocInfo.RelocsStripped = TRUE;
+}

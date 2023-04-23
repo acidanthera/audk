@@ -8,9 +8,14 @@
 void *
 ToolImageEmitPe (
   image_tool_image_info_t  *Image,
-  uint32_t                 *FileSize
+  uint32_t                 *FileSize,
+  bool                     Strip
   )
 {
+  if (Strip) {
+    ToolImageStripRelocs (Image);
+  }
+
   switch (Image->HeaderInfo.Machine) {
     case IMAGE_FILE_MACHINE_I386:
     case IMAGE_FILE_MACHINE_ARMTHUMB_MIXED:

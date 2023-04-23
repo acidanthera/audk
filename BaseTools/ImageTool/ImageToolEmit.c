@@ -96,7 +96,8 @@ ToolImageEmit (
   IN  uint32_t    HiiFileSize,
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
-  IN  const char  *SymbolsPath OPTIONAL
+  IN  const char  *SymbolsPath OPTIONAL,
+  IN  bool        Strip
   )
 {
   RETURN_STATUS            Status;
@@ -161,7 +162,7 @@ ToolImageEmit (
 
   OutputFile = NULL;
   if (Format == UefiImageFormatPe) {
-    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize);
+    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Strip);
   } else {
     assert (false);
   }

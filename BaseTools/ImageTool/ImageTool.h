@@ -130,6 +130,11 @@ ToolImageCompare (
   const image_tool_image_info_t  *Image2
   );
 
+void
+ToolImageStripRelocs (
+  image_tool_image_info_t  *Image
+  );
+
 RETURN_STATUS
 ToolContextConstructPe (
   OUT image_tool_image_info_t *Image,
@@ -145,7 +150,8 @@ CheckToolImage (
 void *
 ToolImageEmitPe (
   image_tool_image_info_t *Image,
-  uint32_t                *FileSize
+  uint32_t                *FileSize,
+  bool                    Strip
   );
 
 RETURN_STATUS
