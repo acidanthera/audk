@@ -9,6 +9,8 @@
 #include <IndustryStandard/Acpi30.h>
 #include <IndustryStandard/MemoryMappedConfigurationSpaceAccessTable.h>
 
+#include "ImageToolEmit.h"
+
 #define EFI_ACPI_1_0_FIRMWARE_ACPI_CONTROL_STRUCTURE_VERSION  0x0
 
 
@@ -224,16 +226,11 @@ GetAcpi (
 }
 
 static
-bool
-ImageSetModuleType (
-  OUT image_tool_image_info_t  *Image,
-  IN  const char               *TypeName
+int32_t
+NameToType (
+  IN const char  *TypeName
   )
 {
-  uint16_t  ModuleType;
-
-  assert (Image != NULL);
-
   if ((strcmp (TypeName, "BASE") == 0)
     || (strcmp (TypeName, "SEC") == 0)
     || (strcmp (TypeName, "SECURITY_CORE") == 0)
@@ -250,61 +247,38 @@ ImageSetModuleType (
     || (strcmp (TypeName, "SMM_CORE") == 0)
     || (strcmp (TypeName, "MM_STANDALONE") == 0)
     || (strcmp (TypeName, "MM_CORE_STANDALONE") == 0)) {
-      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
-  } else if ((strcmp (TypeName, "UEFI_APPLICATION") == 0)
+      return EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER;
+  }
+  
+  if ((strcmp (TypeName, "UEFI_APPLICATION") == 0)
     || (strcmp (TypeName, "APPLICATION") == 0)) {
-      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
-  } else if ((strcmp (TypeName, "DXE_RUNTIME_DRIVER") == 0)
+    return EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION;
+  }
+  
+  if ((strcmp (TypeName, "DXE_RUNTIME_DRIVER") == 0)
     || (strcmp (TypeName, "RT_DRIVER") == 0)) {
-      ModuleType = EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
-  } else if ((strcmp (TypeName, "DXE_SAL_DRIVER") == 0)
+    return EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
+  }
+  
+  if ((strcmp (TypeName, "DXE_SAL_DRIVER") == 0)
     || (strcmp (TypeName, "SAL_RT_DRIVER") == 0)) {
-      ModuleType = EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
-  } else {
-    fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", TypeName);
-    return false;
+    return EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER;
   }
 
-  Image->HeaderInfo.Subsystem = ModuleType;
-
-  return true;
+  return -1;
 }
 
 static
-RETURN_STATUS
-ValidateOutputFile (
-  void                           *OutputFile,
-  uint32_t                       OutputFileSize,
-  const image_tool_image_info_t  *ImageInfo
+int8_t
+NameToFormat (
+  IN const char  *FormatName
   )
 {
-  RETURN_STATUS            Status;
-  bool                     Result;
-  image_tool_image_info_t  OutputImageInfo;
-
-  Status = ToolContextConstructPe (&OutputImageInfo, OutputFile, OutputFileSize);
-  if (EFI_ERROR (Status)) {
-    assert (false);
-    return Status;
+  if (strcmp (FormatName, "PE") == 0) {
+    return UefiImageFormatPe;
   }
 
-  Result = CheckToolImage (&OutputImageInfo);
-  if (!Result) {
-    raise ();
-    ToolImageDestruct (&OutputImageInfo);
-    return RETURN_UNSUPPORTED;
-  }
-
-  Result = ToolImageCompare (&OutputImageInfo, ImageInfo);
-
-  ToolImageDestruct (&OutputImageInfo);
-
-  if (!Result) {
-    assert (false);
-    return RETURN_VOLUME_CORRUPTED;
-  }
-
-  return RETURN_SUCCESS;
+  return -1;
 }
 
 static
@@ -318,16 +292,43 @@ GenExecutable (
   IN const char  *BaseAddress
   )
 {
-  UINT32                   InputFileSize;
-  VOID                     *InputFile;
-  UINT32                   HiiFileSize;
-  VOID                     *HiiFile;
-  RETURN_STATUS            Status;
-  bool                     Result;
-  image_tool_image_info_t  ImageInfo;
-  UINT64                   NewBaseAddress;
-  void                     *OutputFile;
-  uint32_t                 OutputFileSize;
+  UINT32         InputFileSize;
+  VOID           *InputFile;
+  int8_t         Format;
+  int32_t        Type;
+  UINT32         HiiFileSize;
+  VOID           *HiiFile;
+  RETURN_STATUS  Status;
+  UINT64         NewBaseAddress;
+  void           *OutputFile;
+  uint32_t       OutputFileSize;
+
+  Format = -1;
+  if (FormatName != NULL) {
+    Format = NameToFormat (FormatName);
+    if (Format == -1) {
+      fprintf (stderr, "ImageTool: Unknown output format %s\n", FormatName);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  Type = -1;
+  if (TypeName != NULL) {
+    Type = NameToType (TypeName);
+    if (Type == -1) {
+      fprintf (stderr, "ImageTool: Unknown EFI_FILETYPE = %s\n", TypeName);
+      return RETURN_UNSUPPORTED;
+    }
+  }
+
+  NewBaseAddress = 0;
+  if (BaseAddress != NULL) {
+    Status = AsciiStrHexToUint64S (BaseAddress, NULL, &NewBaseAddress);
+    if (RETURN_ERROR (Status)) {
+      fprintf (stderr, "ImageTool: Could not convert ASCII string to UINT64\n");
+      return Status;
+    }
+  }
 
   InputFile = UserReadFile (InputFileName, &InputFileSize);
   if (InputFile == NULL) {
@@ -335,81 +336,32 @@ GenExecutable (
     return RETURN_ABORTED;
   }
 
-  Status = ToolContextConstructPe (&ImageInfo, InputFile, InputFileSize);
-  if (Status == RETURN_UNSUPPORTED) {
-    Status = ScanElf (&ImageInfo, InputFile, InputFileSize, InputFileName);
-  }
-
-  free (InputFile);
-
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not parse input file %s - %llx\n", InputFileName, (unsigned long long)Status);
-    return Status;
-  }
-
-  if (TypeName != NULL) {
-    Result = ImageSetModuleType (&ImageInfo, TypeName);
-    if (!Result) {
-      ToolImageDestruct (&ImageInfo);
-      return RETURN_UNSUPPORTED;
-    }
-  }
-
+  HiiFile     = NULL;
+  HiiFileSize = 0;
   if (HiiFileName != NULL) {
     HiiFile = UserReadFile (HiiFileName, &HiiFileSize);
     if (HiiFile == NULL) {
       fprintf (stderr, "ImageTool: Could not open %s: %s\n", HiiFileName, strerror (errno));
       return RETURN_ABORTED;
     }
-
-    free (ImageInfo.HiiInfo.Data);
-
-    ImageInfo.HiiInfo.Data     = HiiFile;
-    ImageInfo.HiiInfo.DataSize = HiiFileSize;
   }
 
-  ToolImageSortRelocs (&ImageInfo);
-
-  Result = CheckToolImage (&ImageInfo);
-  if (!Result) {
-    ToolImageDestruct (&ImageInfo);
-    return RETURN_UNSUPPORTED;
-  }
-
-  if (BaseAddress != NULL) {
-    Status = AsciiStrHexToUint64S (BaseAddress, NULL, &NewBaseAddress);
-    if (RETURN_ERROR (Status)) {
-      fprintf (stderr, "ImageTool: Could not convert ASCII string to UINT64\n");
-      ToolImageDestruct (&ImageInfo);
-      return Status;
-    }
-
-    Result = ToolImageRelocate (&ImageInfo, NewBaseAddress);
-    if (!Result) {
-      fprintf (stderr, "ImageTool: Failed to relocate input file %s\n", InputFileName);
-      ToolImageDestruct (&ImageInfo);
-      return RETURN_UNSUPPORTED;
-    }
-  }
-
-  if (strcmp (FormatName, "PE") == 0) {
-    OutputFile = ToolImageEmitPe (&ImageInfo, &OutputFileSize);
-  } else {
-    assert (false);
-  }
+  OutputFile = ToolImageEmit (
+                 &OutputFileSize,
+                 InputFile,
+                 InputFileSize,
+                 Format,
+                 Type,
+                 HiiFile,
+                 HiiFileSize,
+                 BaseAddress != NULL,
+                 NewBaseAddress,
+                 InputFileName
+                 );
 
   if (OutputFile == NULL) {
-    ToolImageDestruct (&ImageInfo);
+    free (HiiFile);
     return RETURN_ABORTED;
-  }
-
-  Status = ValidateOutputFile (OutputFile, OutputFileSize, &ImageInfo);
-
-  ToolImageDestruct (&ImageInfo);
-
-  if (EFI_ERROR (Status)) {
-    assert (false);
-    return Status;
   }
 
   UserWriteFile (OutputFileName, OutputFile, OutputFileSize);

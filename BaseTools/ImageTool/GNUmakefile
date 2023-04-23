@@ -7,7 +7,7 @@
 PROJECT = ImageTool
 PRODUCT = $(PROJECT)$(INFIX)$(SUFFIX)
 OBJS    = $(PROJECT).o
-OBJS    += Image.o PeEmit32.o PeEmit64.o PeEmitCommon.o PeScan.o ElfScan32.o ElfScan64.o ElfScanCommon.o BinEmit.o
+OBJS    += Image.o PeEmit32.o PeEmit64.o PeEmitCommon.o PeScan.o ElfScan32.o ElfScan64.o ElfScanCommon.o BinEmit.o ImageToolEmit.o
 OBJS    += UefiImageExtraActionLib.o
 OBJS    += PeCoffInit.o PeCoffInfo.o PeCoffLoad.o PeCoffRelocate.o PeCoffHii.o PeCoffDebug.o
 
