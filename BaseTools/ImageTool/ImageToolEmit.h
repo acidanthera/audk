@@ -14,7 +14,7 @@ void *
 ToolImageEmit (
   OUT uint32_t    *OutputFileSize,
   IN  const void  *Buffer,
-  IN  uint64_t    BufferSize,
+  IN  uint32_t    BufferSize,
   IN  int8_t      Format,
   IN  int32_t     Type,
   IN  void        *HiiFile,

@@ -19,19 +19,21 @@ OV = $(UDK_PATH)\MdePkg\Library\BaseOverflowLib
 PE = $(UDK_PATH)\MdePkg\Library\BasePeCoffLib2
 UA = $(UDK_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull
 
-OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj PeScan.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj ImageToolEmit.obj
+OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj UefiImageScan.obj PeScan.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj ImageToolEmit.obj
 OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj
-OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj
+OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj PeCoffHash.obj
 
 BASE = $(UDK_PATH)\MdePkg\Library\BaseLib
 OUT  = $(UDK_PATH)\MdePkg\Library\UefiDebugLibConOut
 PRIN = $(UDK_PATH)\MdePkg\Library\BasePrintLib
 ERRO = $(UDK_PATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib
+UIMG = $(UDK_PATH)\MdePkg\Library\BaseUefiImageLib
 BMPN = $(UDK_PATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull
 CMEM = $(UDK_PATH)\MdeModulePkg\Library\CommonMemoryAllocationLib
 USER = $(OC_USER)\User\Library
-OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj QuickSort.obj
+OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj QuickSort.obj LinkedList.obj
 OBJECTS = $(OBJECTS) {$(OUT)}DebugLib.obj {$(PRIN)}PrintLib.obj PrintLibInternal.obj {$(ERRO)}BaseDebugPrintErrorLevelLib.obj
+OBJECTS = $(OBJECTS) {$(UIMG)}UefiImageLibPeCoff.obj PeCoffSupport.obj CommonSupport.obj
 OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserBootServices.obj
 OBJECTS = $(OBJECTS) {$(BMPN)}BaseMemoryProfileLibNull.obj {$(CMEM)}CommonMemoryAllocationLib.obj {$(CMEM)}CommonMemoryAllocationLibEx.obj
 
@@ -96,6 +98,10 @@ cleanall:
 	@move $@ $(OUT_DIR)\
 
 {$(ERRO)}.c.obj :
+  $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
+	@move $@ $(OUT_DIR)\
+
+{$(UIMG)}.c.obj :
   $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 	@move $@ $(OUT_DIR)\
 

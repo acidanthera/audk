@@ -136,8 +136,9 @@ ToolImageStripRelocs (
   );
 
 RETURN_STATUS
-ToolContextConstructPe (
+ToolContextConstructUefiImage (
   OUT image_tool_image_info_t *Image,
+  OUT INT8                    *Format,
   IN  const void              *File,
   IN  size_t                  FileSize
   );
