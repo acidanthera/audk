@@ -126,6 +126,18 @@ UefiImageInitializeContext (
   );
 
 /**
+  Retrieves the UefiImageLib Image format identifier.
+
+  @param[out] Context     The context describing the Image.
+
+  @returns  The UefiImageLib format identifier.
+**/
+UINT8
+UefiImageGetFormat (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
   Hashes the Image using the format's default hashing algorithm.
 
   @param[in,out] Context      The context describing the Image. Must have been
