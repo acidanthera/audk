@@ -21,7 +21,8 @@ ToolImageEmit (
   IN  uint32_t    HiiFileSize,
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
-  IN  const char  *SymbolsPath OPTIONAL
+  IN  const char  *SymbolsPath OPTIONAL,
+  IN  bool        Strip
   );
 
 #endif // IMAGE_TOOL_EMIT_H
