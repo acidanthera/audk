@@ -891,6 +891,15 @@ PeCoffRuntimeRelocateImage (
     RelocBlockOffset += RelocBlockSize;
   }
   //
+  // Align TopOfRelocDir because, if the policy does not demand Relocation Block
+  // sizes to be aligned, the code below will manually align them. Thus, the
+  // end offset of the last Relocation Block must be compared to a manually
+  // aligned Relocation Directoriy end offset.
+  //
+  if ((PcdGet32 (PcdImageLoaderAlignmentPolicy) & PCD_ALIGNMENT_POLICY_RELOCATION_BLOCK_SIZES) != 0) {
+    TopOfRelocDir = ALIGN_VALUE (TopOfRelocDir, ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK));
+  }
+  //
   // This condition is verified by PeCoffRelocateImage().
   //
   ASSERT (RelocBlockOffset == TopOfRelocDir);
