@@ -18,15 +18,33 @@ ScanUefiImageGetHeaderInfo (
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
+  RETURN_STATUS  Status;
+  UINT64         Address;
+
   assert (HeaderInfo != NULL);
   assert (Context    != NULL);
 
-  HeaderInfo->BaseAddress       = (uint64_t)UefiImageGetPreferredAddress (Context);
+  HeaderInfo->BaseAddress       = UefiImageGetPreferredAddress (Context);
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
   HeaderInfo->Subsystem         = UefiImageGetSubsystem (Context);
   // FIXME:
   HeaderInfo->IsXip             = true;
+
+  Status = UefiImageGetFixedAddress (Context, &Address);
+  if (!RETURN_ERROR (Status)) {
+    if (Address != HeaderInfo->BaseAddress) {
+      fprintf (
+        stderr,
+        "ImageTool: Images with a fixed address different from their base address are not supported.\n"
+        );
+      return false;
+    }
+
+    HeaderInfo->FixedAddress = true;
+  } else if (Status != RETURN_NOT_FOUND) {
+    return false;
+  }
 
   return true;
 }

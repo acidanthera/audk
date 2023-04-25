@@ -337,6 +337,23 @@ ToolImageEmitPeSectionHeaders (
     SectionOffset += Sections[Index].SizeOfRawData;
   }
 
+  if (Image->HeaderInfo.FixedAddress) {
+    for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
+      if ((Sections[Index].Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) == 0) {
+        WriteUnaligned64 (
+          (VOID *)&Sections[Index].PointerToRelocations,
+          Image->HeaderInfo.BaseAddress
+          );
+        break;
+      }
+    }
+
+    if (Index == Image->SegmentInfo.NumSegments) {
+      raise ();
+      return false;
+    }
+  }
+
   *BufferSize -= SectionHeadersSize;
   *Buffer     += SectionHeadersSize;
 

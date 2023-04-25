@@ -40,7 +40,8 @@ typedef struct {
   uint16_t Machine;
   uint16_t Subsystem;
   uint8_t  IsXip;
-  uint8_t  Reserved[7];
+  uint8_t  FixedAddress;
+  uint8_t  Reserved[6];
 } image_tool_header_info_t;
 
 typedef struct {

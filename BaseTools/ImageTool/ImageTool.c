@@ -292,7 +292,8 @@ GenExecutable (
   IN const char  *TypeName,
   IN const char  *HiiFileName,
   IN const char  *BaseAddress,
-  IN bool        Strip
+  IN bool        Strip,
+  IN bool        FixedAddress
   )
 {
   UINT32         InputFileSize;
@@ -360,7 +361,8 @@ GenExecutable (
                  BaseAddress != NULL,
                  NewBaseAddress,
                  InputFileName,
-                 Strip
+                 Strip,
+                 FixedAddress
                  );
 
   if (OutputFile == NULL) {
@@ -394,7 +396,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL, FALSE);
+    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL, FALSE, FALSE);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
@@ -422,7 +424,7 @@ int main (int argc, const char *argv[])
       return -1;
     }
 
-    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2], FALSE);
+    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2], FALSE, FALSE);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
