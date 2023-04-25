@@ -96,7 +96,8 @@ ToolImageEmit (
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
   IN  const char  *SymbolsPath OPTIONAL,
-  IN  bool        Strip
+  IN  bool        Strip,
+  IN  bool        FixedAddress
   )
 {
   RETURN_STATUS            Status;
@@ -157,6 +158,10 @@ ToolImageEmit (
       ToolImageDestruct (&ImageInfo);
       return NULL;
     }
+  }
+
+  if (FixedAddress) {
+    ImageInfo.HeaderInfo.FixedAddress = true;
   }
 
   OutputFile = NULL;
