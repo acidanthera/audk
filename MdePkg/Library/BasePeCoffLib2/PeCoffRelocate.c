@@ -438,6 +438,13 @@ PeCoffRelocateImage (
   ASSERT (RuntimeContext != NULL || RuntimeContextSize == 0);
   ASSERT (RuntimeContext == NULL || RuntimeContextSize >= sizeof (PE_COFF_LOADER_RUNTIME_CONTEXT) + Context->RelocDirSize * (sizeof (UINT64) / sizeof (UINT16)));
   //
+  // Initialise the Image runtime context header.
+  //
+  if (RuntimeContext != NULL) {
+    RuntimeContext->RelocDirRva  = Context->RelocDirRva;
+    RuntimeContext->RelocDirSize = Context->RelocDirSize;
+  }
+  //
   // Verify the Relocation Directory is not empty.
   //
   if (Context->RelocDirSize == 0) {
@@ -457,13 +464,6 @@ PeCoffRelocateImage (
   //
   if (RuntimeContext == NULL && Adjust == 0) {
     return RETURN_SUCCESS;
-  }
-  //
-  // Initialise the Image runtime context header.
-  //
-  if (RuntimeContext != NULL) {
-    RuntimeContext->RelocDirRva  = Context->RelocDirRva;
-    RuntimeContext->RelocDirSize = Context->RelocDirSize;
   }
 
   RelocBlockOffset    = Context->RelocDirRva;
