@@ -16,9 +16,14 @@
 #define EFI_ACPI_1_0_FIRMWARE_ACPI_CONTROL_STRUCTURE_VERSION  0x0
 
 
+#define DO_NOT_EDIT_HEADER                    \
+  "//\n"                                      \
+  "//  DO NOT EDIT -- auto-generated file\n"  \
+  "//\n"
+
 static
 RETURN_STATUS
-HiiBin (
+HiiSrc (
   IN const char *HiiName,
   IN const char *Guid,
   IN const char *FileNames[],
@@ -29,6 +34,8 @@ HiiBin (
   void          *Hii;
   UINT32        HiiSize;
   GUID          HiiGuid;
+  FILE          *FilePtr;
+  UINT32        Index;
 
   assert (FileNames != NULL);
   assert (HiiName   != NULL);
@@ -42,11 +49,69 @@ HiiBin (
 
   Status = ConstructHii (FileNames, NumOfFiles, &HiiGuid, &Hii, &HiiSize);
   if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not construct HiiBin\n");
+    fprintf (stderr, "ImageTool: Could not construct HiiSrc\n");
     return Status;
   }
 
-  UserWriteFile (HiiName, Hii, HiiSize);
+  FilePtr = fopen (HiiName, "w");
+  if (FilePtr == NULL) {
+    free (Hii);
+    return RETURN_NO_MEDIA;
+  }
+
+  fprintf (
+    FilePtr,
+    DO_NOT_EDIT_HEADER
+    "\n"
+    "#include \"AutoGen.h\"\n"
+    "\n"
+    "typedef struct {\n"
+    "  UINT32  Size;\n"
+    "  UINT8   Data[%u];\n"
+    "} MODULE_HII_PACKAGE_LIST_%u;\n"
+    "\n"
+    "STATIC_ASSERT (\n"
+    "  OFFSET_OF (MODULE_HII_PACKAGE_LIST_%u, Size) == OFFSET_OF (MODULE_HII_PACKAGE_LIST, Size) &&\n"
+    "  OFFSET_OF (MODULE_HII_PACKAGE_LIST_%u, Data) == OFFSET_OF (MODULE_HII_PACKAGE_LIST, Header) &&\n"
+    "  sizeof (MODULE_HII_PACKAGE_LIST) == sizeof (UINT32) + sizeof (EFI_HII_PACKAGE_LIST_HEADER),\n"
+    "  \"MODULE_HII_PACKAGE_LIST does not have the expected structure.\"\n"
+    "  );\n"
+    "\n"
+    "#if defined (__APPLE__)\n"
+    "__attribute__ ((section (\"__HII,__hii\")))\n"
+    "#elif defined (__GNUC__) || defined (__clang__)\n"
+    "__attribute__ ((section (\".hii\")))\n"
+    "#elif defined (_MSC_EXTENSIONS)\n"
+    "#pragma section (\".hii\", read)\n"
+    "__declspec (allocate(\".hii\"))\n"
+    "#endif\n"
+    "STATIC CONST MODULE_HII_PACKAGE_LIST_%u  mModuleHiiPackageList = {\n"
+    "  %u,\n"
+    "  {",
+    HiiSize,
+    HiiSize,
+    HiiSize,
+    HiiSize,
+    HiiSize,
+    HiiSize
+    );
+
+  for (Index = 0; Index < HiiSize; ++Index) {
+    if (Index % 12 == 0) {
+      fprintf (FilePtr, "\n   ");
+    }
+    fprintf (FilePtr, " 0x%02X,", ((const uint8_t *)Hii)[Index]);
+  }
+
+  fprintf (
+    FilePtr,
+    "\n"
+    "  }\n"
+    "};\n"
+    "\n"
+    "GLOBAL_REMOVE_IF_UNREFERENCED CONST MODULE_HII_PACKAGE_LIST  *gModuleHiiPackageList =\n"
+    "  (CONST MODULE_HII_PACKAGE_LIST *)&mModuleHiiPackageList;\n"
+    );
 
   free (Hii);
 
@@ -496,7 +561,7 @@ int main (int argc, const char *argv[])
       raise ();
       return -1;
     }
-  } else if (strcmp (argv[1], "HiiBin") == 0) {
+  } else if (strcmp (argv[1], "HiiSrc") == 0) {
     if (argc < 5 || strcmp (argv[3], "-o") != 0) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool HiiBin GUID -o OutputFile InputFile1 InputFile2 ...\n");
@@ -506,7 +571,7 @@ int main (int argc, const char *argv[])
 
     NumOfFiles = (UINT32)argc - 5U;
 
-    Status = HiiBin (argv[4], argv[2], &argv[5], NumOfFiles);
+    Status = HiiSrc (argv[4], argv[2], &argv[5], NumOfFiles);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
