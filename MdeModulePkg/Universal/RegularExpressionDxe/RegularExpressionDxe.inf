@@ -125,6 +125,10 @@
   # Oniguruma: implicit conversion from 'UINTN' (aka 'unsigned long long') to 'long'
   GCC:*_CLANGPDB_*_CC_FLAGS = -Wno-error=constant-conversion
 
+  # Onigurama: corrects build for llvm-15
+  CLANGPDB:*_*_*_CC_FLAGS = -Wno-deprecated-non-prototype
+  CLANGGCC:*_*_*_CC_FLAGS = -Wno-deprecated-non-prototype
+
   # Not add -Wno-error=maybe-uninitialized option for XCODE
   # XCODE doesn't know this option
-  XCODE:*_*_*_CC_FLAGS =
+  XCODE:*_*_*_CC_FLAGS = -Wno-deprecated-non-prototype
