@@ -379,65 +379,147 @@ GenExecutable (
 
 int main (int argc, const char *argv[])
 {
-  RETURN_STATUS Status;
-  UINT32        NumOfFiles;
+  RETURN_STATUS  Status;
+  UINT32         NumOfFiles;
+  const char     *OutputName;
+  const char     *InputName;
+  const char     *FormatName;
+  const char     *TypeName;
+  const char     *HiiFileName;
+  const char     *BaseAddress;
+  bool           Strip;
+  bool           FixedAddress;
+  int            ArgIndex;
 
   if (argc < 2) {
     fprintf (stderr, "ImageTool: No command is specified\n");
     raise ();
     return -1;
   }
-
-  if (strcmp (argv[1], "ElfToPe") == 0 || strcmp (argv[1], "PeXip") == 0) {
+  //
+  // The command structure must prefix all output files with "-o" and all
+  // following dash-less parameters must be input files due to scanning for
+  // these arguments by BaseTools/GenMake.
+  //
+  if (strcmp (argv[1], "GenImage") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool %s InputFile OutputFile ModuleType [HiiRc]\n", argv[1]);
+      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-h HiiRc] [-b BaseAddress] [-s] [-f] -o OutputFile InputFile\n");
       raise ();
       return -1;
     }
 
-    Status = GenExecutable (argv[3], argv[2], "PE", argv[4], argc >= 6 ? argv[5] : NULL, NULL, FALSE, FALSE);
+    OutputName   = NULL;
+    InputName    = NULL;
+    FormatName   = NULL;
+    TypeName     = NULL;
+    HiiFileName  = NULL;
+    BaseAddress  = NULL;
+    Strip        = false;
+    FixedAddress = false;
+    for (ArgIndex = 2; ArgIndex < argc; ++ArgIndex) {
+      if (strcmp (argv[ArgIndex], "-o") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -o\n");
+          return -1;
+        }
+
+        OutputName = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-c") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -c\n");
+          return -1;
+        }
+
+        FormatName = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-t") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -t\n");
+          return -1;
+        }
+
+        TypeName = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-h") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -h\n");
+          return -1;
+        }
+
+        HiiFileName = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-b") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -b\n");
+          return -1;
+        }
+
+        BaseAddress = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-s") == 0) {
+        Strip = true;
+      } else if (strcmp (argv[ArgIndex], "-f") == 0) {
+        FixedAddress = true;
+      } else if (argv[ArgIndex][0] == '-') {
+        fprintf (stderr, "Unknown parameter %s\n", argv[ArgIndex]);
+      } else if (InputName == NULL) {
+        InputName = argv[ArgIndex];
+      } else {
+        fprintf (stderr, "GenImage only supports one input file.\n");
+        return -1;
+      }
+    }
+
+    if (OutputName == NULL) {
+      fprintf (stderr, "Must provide an output file.\n");
+      return -1;
+    }
+
+    if (InputName == NULL) {
+      fprintf (stderr, "Must provide an input file.\n");
+      return -1;
+    }
+
+    Status = GenExecutable (
+      OutputName,
+      InputName,
+      FormatName,
+      TypeName,
+      HiiFileName,
+      BaseAddress,
+      Strip,
+      FixedAddress
+      );
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
     }
   } else if (strcmp (argv[1], "HiiBin") == 0) {
-    if (argc < 5) {
+    if (argc < 5 || strcmp (argv[3], "-o") != 0) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool HiiBin OutputFile GUID InputFile1 InputFile2 ...\n");
+      fprintf (stderr, "    Usage: ImageTool HiiBin GUID -o OutputFile InputFile1 InputFile2 ...\n");
       raise ();
       return -1;
     }
 
-    NumOfFiles = (UINT32)argc - 4U;
+    NumOfFiles = (UINT32)argc - 5U;
 
-    Status = HiiBin (argv[2], argv[3], &argv[4], NumOfFiles);
-    if (RETURN_ERROR (Status)) {
-      raise ();
-      return -1;
-    }
-  } else if (strcmp (argv[1], "Rebase") == 0) {
-    if (argc < 5) {
-      fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool Rebase Address InputFile OutputFile\n");
-      raise ();
-      return -1;
-    }
-
-    Status = GenExecutable (argv[4], argv[3], "PE", NULL, NULL, argv[2], FALSE, FALSE);
+    Status = HiiBin (argv[4], argv[2], &argv[5], NumOfFiles);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
     }
   } else if (strcmp (argv[1], "GetAcpi") == 0) {
-    if (argc < 4) {
+    if (argc != 5 || strcmp (argv[2], "-o") != 0) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool GetAcpi InputFile OutputFile\n");
+      fprintf (stderr, "    Usage: ImageTool GetAcpi -o OutputFile InputFile\n");
       raise ();
       return -1;
     }
 
-    Status = GetAcpi (argv[2], argv[3]);
+    Status = GetAcpi (argv[4], argv[3]);
     if (RETURN_ERROR (Status)) {
       raise ();
       return -1;
