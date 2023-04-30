@@ -355,7 +355,6 @@ GenExecutable (
   IN const char  *InputFileName,
   IN const char  *FormatName,
   IN const char  *TypeName,
-  IN const char  *HiiFileName,
   IN const char  *BaseAddress,
   IN bool        Strip,
   IN bool        FixedAddress
@@ -365,8 +364,6 @@ GenExecutable (
   VOID           *InputFile;
   int8_t         Format;
   int32_t        Type;
-  UINT32         HiiFileSize;
-  VOID           *HiiFile;
   RETURN_STATUS  Status;
   UINT64         NewBaseAddress;
   void           *OutputFile;
@@ -405,24 +402,12 @@ GenExecutable (
     return RETURN_ABORTED;
   }
 
-  HiiFile     = NULL;
-  HiiFileSize = 0;
-  if (HiiFileName != NULL) {
-    HiiFile = UserReadFile (HiiFileName, &HiiFileSize);
-    if (HiiFile == NULL) {
-      fprintf (stderr, "ImageTool: Could not open %s: %s\n", HiiFileName, strerror (errno));
-      return RETURN_ABORTED;
-    }
-  }
-
   OutputFile = ToolImageEmit (
                  &OutputFileSize,
                  InputFile,
                  InputFileSize,
                  Format,
                  Type,
-                 HiiFile,
-                 HiiFileSize,
                  BaseAddress != NULL,
                  NewBaseAddress,
                  InputFileName,
@@ -431,7 +416,6 @@ GenExecutable (
                  );
 
   if (OutputFile == NULL) {
-    free (HiiFile);
     return RETURN_ABORTED;
   }
 
@@ -450,7 +434,6 @@ int main (int argc, const char *argv[])
   const char     *InputName;
   const char     *FormatName;
   const char     *TypeName;
-  const char     *HiiFileName;
   const char     *BaseAddress;
   bool           Strip;
   bool           FixedAddress;
@@ -469,7 +452,7 @@ int main (int argc, const char *argv[])
   if (strcmp (argv[1], "GenImage") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-h HiiRc] [-b BaseAddress] [-s] [-f] -o OutputFile InputFile\n");
+      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-s] [-f] -o OutputFile InputFile\n");
       raise ();
       return -1;
     }
@@ -478,7 +461,6 @@ int main (int argc, const char *argv[])
     InputName    = NULL;
     FormatName   = NULL;
     TypeName     = NULL;
-    HiiFileName  = NULL;
     BaseAddress  = NULL;
     Strip        = false;
     FixedAddress = false;
@@ -507,14 +489,6 @@ int main (int argc, const char *argv[])
         }
 
         TypeName = argv[ArgIndex];
-      } else if (strcmp (argv[ArgIndex], "-h") == 0) {
-        ++ArgIndex;
-        if (ArgIndex == argc) {
-          fprintf (stderr, "Must specify an argument to -h\n");
-          return -1;
-        }
-
-        HiiFileName = argv[ArgIndex];
       } else if (strcmp (argv[ArgIndex], "-b") == 0) {
         ++ArgIndex;
         if (ArgIndex == argc) {
@@ -552,7 +526,6 @@ int main (int argc, const char *argv[])
       InputName,
       FormatName,
       TypeName,
-      HiiFileName,
       BaseAddress,
       Strip,
       FixedAddress
