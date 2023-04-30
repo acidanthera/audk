@@ -239,7 +239,7 @@ UefiImageDebugPrintImageRecord (
     DEBUG ((
       DEBUG_VERBOSE,
       "  RecordSegment\n"
-      "  Address    - 0x%16xll\n"
+      "  Address    - 0x%016llx\n"
       "  Size       - 0x%08x\n"
       "  Attributes - 0x%08x\n",
       (UINT64) SegmentAddress,
