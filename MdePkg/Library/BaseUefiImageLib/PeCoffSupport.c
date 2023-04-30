@@ -480,21 +480,24 @@ UefiImageDebugPrintSegmentsPeCoff (
     Name = Sections[SectionIndex].Name;
     DEBUG ((
       DEBUG_VERBOSE,
-      "  Section - '%c%c%c%c%c%c%c%c'\n",
+      "  Section - '%c%c%c%c%c%c%c%c'\n"
       "  VirtualSize          - 0x%08x\n"
       "  VirtualAddress       - 0x%08x\n"
       "  SizeOfRawData        - 0x%08x\n"
-      "  PointerToRawData     - 0x%08x\n"
+      "  PointerToRawData     - 0x%08x\n",
+      Name[0], Name[1], Name[2], Name[3], Name[4], Name[5], Name[6], Name[7],
+      Sections[SectionIndex].VirtualSize,
+      Sections[SectionIndex].VirtualAddress,
+      Sections[SectionIndex].SizeOfRawData,
+      Sections[SectionIndex].PointerToRawData
+      ));
+    DEBUG ((
+      DEBUG_VERBOSE,
       "  PointerToRelocations - 0x%08x\n"
       "  PointerToLinenumbers - 0x%08x\n"
       "  NumberOfRelocations  - 0x%08x\n"
       "  NumberOfLinenumbers  - 0x%08x\n"
       "  Characteristics      - 0x%08x\n",
-      Name[0], Name[1], Name[2], Name[3], Name[4], Name[5], Name[6], Name[7],
-      Sections[SectionIndex].VirtualSize,
-      Sections[SectionIndex].VirtualAddress,
-      Sections[SectionIndex].SizeOfRawData,
-      Sections[SectionIndex].PointerToRawData,
       Sections[SectionIndex].PointerToRelocations,
       Sections[SectionIndex].PointerToLinenumbers,
       Sections[SectionIndex].NumberOfRelocations,
