@@ -432,11 +432,10 @@ ToolImageRelocate (
 }
 
 static
-INTN
-EFIAPI
+int
 ToolImageRelocCompare (
-  IN CONST VOID  *Buffer1,
-  IN CONST VOID  *Buffer2
+  IN const void  *Buffer1,
+  IN const void  *Buffer2
   )
 {
   const image_tool_reloc_t  *Reloc1;
@@ -461,18 +460,15 @@ ToolImageSortRelocs (
   image_tool_image_info_t  *Image
   )
 {
-  image_tool_reloc_t  OneElement;
-
   if (Image->RelocInfo.Relocs == NULL) {
     return;
   }
 
-  QuickSort (
+  qsort (
     Image->RelocInfo.Relocs,
     Image->RelocInfo.NumRelocs,
     sizeof (*Image->RelocInfo.Relocs),
-    ToolImageRelocCompare,
-    &OneElement
+    ToolImageRelocCompare
     );
 }
 
