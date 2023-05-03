@@ -11,7 +11,7 @@ env:
   PROJECT_TYPE: UEFI
   FORCE_INSTALL: 1
   WERROR: 1
-  QEMU_VERSION_TAG: qemu-ci-7.2.0-r1
+  QEMU_VERSION_TAG: qemu-ci-8.0.0-r2
   WINPE_VERSION_TAG: images-winpe-1.0
 
 jobs:
