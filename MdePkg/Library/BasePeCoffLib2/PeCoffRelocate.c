@@ -796,6 +796,12 @@ PeCoffRuntimeRelocateImage (
   ASSERT (Image != NULL);
   ASSERT (BaseAddress != 0);
   ASSERT (RuntimeContext != NULL);
+  //
+  // If the relocation directory is empty, skip relocation.
+  //
+  if (RuntimeContext->RelocDirSize == 0) {
+    return RETURN_SUCCESS;
+  }
 
   //
   // The arithmetics in this function generally cannot overflow due to the
