@@ -66,6 +66,7 @@ jobs:
           ARCHS: IA32
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
@@ -176,6 +177,7 @@ jobs:
           ARCHS: IA32
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
@@ -270,6 +272,7 @@ jobs:
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
@@ -374,6 +377,7 @@ jobs:
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
@@ -478,6 +482,7 @@ jobs:
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
