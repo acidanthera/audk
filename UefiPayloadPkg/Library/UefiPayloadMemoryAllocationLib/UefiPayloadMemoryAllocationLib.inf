@@ -37,3 +37,4 @@
   BaseMemoryLib
   BaseLib
   HobLib
+  CommonMemoryAllocationLib

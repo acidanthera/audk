@@ -22,3 +22,4 @@
   BaseOverflowLib|MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
 
   MemoryProfileLib|MdeModulePkg/Library/BaseMemoryProfileLibNull/BaseMemoryProfileLibNull.inf
+  CommonMemoryAllocationLib|MdeModulePkg/Library/CommonMemoryAllocationLib/CommonMemoryAllocationLib.inf
