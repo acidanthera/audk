@@ -1,29 +1,24 @@
 /** @file
-  Support routines for memory allocation routines based on Standalone MM Core internal functions.
+  Provides primitives to allocate and free memory buffers of various memory types and alignments.
 
-  Copyright (c) 2015 - 2025, Intel Corporation. All rights reserved.<BR>
-  Copyright (c) 2016 - 2021, ARM Limited. All rights reserved.<BR>
+  The Phase Memory Allocation Library abstracts primitive memory allocation operations. This library
+  allows code to be written in a phase-independent manner because the allocation of memory in PEI, DXE,
+  and SMM (for example) is done via a different mechanism. Using a common library interface makes it
+  much easier to port algorithms from phase to phase.
 
-  SPDX-License-Identifier: BSD-2-Clause-Patent
+Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include <PiMm.h>
-
-#include <Library/PhaseMemoryAllocationLib.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/DebugLib.h>
-
-EFI_MM_SYSTEM_TABLE                                  *mMemoryAllocationMmst = NULL;
-GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType  = EfiRuntimeServicesData;
+#ifndef __PHASE_MEMORY_ALLOCATION_LIB_H__
+#define __PHASE_MEMORY_ALLOCATION_LIB_H__
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
 
   Allocates the number of 4KB pages of a certain memory type and returns a pointer
-  to the allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If
-  Pages is 0, then NULL is returned.   If there is not enough memory remaining to
-  satisfy the request, then NULL is returned.
+  to the allocated buffer.  The buffer returned is aligned on a 4KB boundary.
 
   @param  Type                  The type of allocation to perform.
   @param  MemoryType            The type of memory to allocate.
@@ -33,12 +28,6 @@ GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType  = Ef
                                 value of Type.
 
   @retval EFI_SUCCESS           The requested pages were allocated.
-  @retval EFI_INVALID_PARAMETER 1) Type is not AllocateAnyPages or
-                                AllocateMaxAddress or AllocateAddress.
-                                2) MemoryType is in the range
-                                EfiMaxMemoryType..0x6FFFFFFF.
-                                3) Memory is NULL.
-                                4) MemoryType is EfiPersistentMemory.
   @retval EFI_OUT_OF_RESOURCES  The pages could not be allocated.
   @retval EFI_NOT_FOUND         The requested pages could not be found.
 
@@ -50,14 +39,7 @@ PhaseAllocatePages (
   IN     EFI_MEMORY_TYPE       MemoryType,
   IN     UINTN                 Pages,
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
-  )
-{
-  if (Pages == 0) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  return mMemoryAllocationMmst->MmAllocatePages (Type, MemoryType, Pages, Memory);
-}
+  );
 
 /**
   Frees one or more 4KB pages that were previously allocated with one of the page allocation
@@ -85,11 +67,7 @@ EFIAPI
 PhaseFreePages (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 Pages
-  )
-{
-  ASSERT (Pages != 0);
-  return mMemoryAllocationMmst->MmFreePages (Memory, Pages);
-}
+  );
 
 /**
   Allocates a buffer of a certain pool type.
@@ -109,20 +87,7 @@ EFIAPI
 PhaseAllocatePool (
   IN EFI_MEMORY_TYPE  MemoryType,
   IN UINTN            AllocationSize
-  )
-{
-  EFI_STATUS  Status;
-  VOID        *Memory;
-
-  Memory = NULL;
-
-  Status = mMemoryAllocationMmst->MmAllocatePool (MemoryType, AllocationSize, &Memory);
-  if (EFI_ERROR (Status)) {
-    Memory = NULL;
-  }
-
-  return Memory;
-}
+  );
 
 /**
   Frees a buffer that was previously allocated with one of the pool allocation functions in the
@@ -135,17 +100,18 @@ PhaseAllocatePool (
   If Buffer was not allocated with a pool allocation function in the Memory Allocation Library,
   then ASSERT().
 
-  @param  Buffer                Pointer to the buffer to free.
+  @param  Buffer                The pointer to the buffer to free.
 
 **/
 VOID
 EFIAPI
 PhaseFreePool (
   IN VOID  *Buffer
-  )
-{
-  EFI_STATUS  Status;
+  );
 
-  Status = mMemoryAllocationMmst->MmFreePool (Buffer);
-  ASSERT_EFI_ERROR (Status);
-}
+///
+/// The memory type to allocate for calls to AllocatePages().
+///
+extern CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType;
+
+#endif
