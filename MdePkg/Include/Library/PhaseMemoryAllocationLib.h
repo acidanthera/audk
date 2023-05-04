@@ -1,41 +1,18 @@
 /** @file
+  Provides primitives to allocate and free memory buffers of various memory types and alignments.
 
+  The Phase Memory Allocation Library abstracts primitive memory allocation operations. This library
+  allows code to be written in a phase-independent manner because the allocation of memory in PEI, DXE,
+  and SMM (for example) is done via a different mechanism. Using a common library interface makes it
+  much easier to port algorithms from phase to phase.
 
-  Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
-  Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
-
-  SPDX-License-Identifier: BSD-2-Clause-Patent
-
-**/
-
-#include <PiPei.h>
-#include <Uefi/UefiSpec.h>
-
-#include <Library/BaseLib.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/PhaseMemoryAllocationLib.h>
-#include <Library/DebugLib.h>
-#include <Library/HobLib.h>
-#include <Guid/MemoryAllocationHob.h>
-
-GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiBootServicesData;
-
-/**
-  Add a new HOB to the HOB List.
-
-  @param HobType            Type of the new HOB.
-  @param HobLength          Length of the new HOB to allocate.
-
-  @return  NULL if there is no space to create a hob.
-  @return  The address point to the new created hob.
+Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
-VOID *
-EFIAPI
-CreateHob (
-  IN  UINT16  HobType,
-  IN  UINT16  HobLength
-  );
+
+#ifndef __PHASE_MEMORY_ALLOCATION_LIB_H__
+#define __PHASE_MEMORY_ALLOCATION_LIB_H__
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
@@ -51,12 +28,6 @@ CreateHob (
                                 value of Type.
 
   @retval EFI_SUCCESS           The requested pages were allocated.
-  @retval EFI_INVALID_PARAMETER 1) Type is not AllocateAnyPages or
-                                AllocateMaxAddress or AllocateAddress.
-                                2) MemoryType is in the range
-                                EfiMaxMemoryType..0x6FFFFFFF.
-                                3) Memory is NULL.
-                                4) MemoryType is EfiPersistentMemory.
   @retval EFI_OUT_OF_RESOURCES  The pages could not be allocated.
   @retval EFI_NOT_FOUND         The requested pages could not be found.
 
@@ -68,40 +39,7 @@ PhaseAllocatePages (
   IN     EFI_MEMORY_TYPE       MemoryType,
   IN     UINTN                 Pages,
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
-  )
-{
-  EFI_PEI_HOB_POINTERS        Hob;
-  EFI_PHYSICAL_ADDRESS        Offset;
-  EFI_HOB_HANDOFF_INFO_TABLE  *HobTable;
-
-  ASSERT (Type == AllocateAnyPages);
-
-  Hob.Raw  = GetHobList ();
-  HobTable = Hob.HandoffInformationTable;
-
-  if (Pages == 0) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  // Make sure allocation address is page alligned.
-  Offset = HobTable->EfiFreeMemoryTop & EFI_PAGE_MASK;
-  if (Offset != 0) {
-    HobTable->EfiFreeMemoryTop -= Offset;
-  }
-
-  //
-  // Check available memory for the allocation
-  //
-  if (HobTable->EfiFreeMemoryTop - ((Pages * EFI_PAGE_SIZE) + sizeof (EFI_HOB_MEMORY_ALLOCATION)) < HobTable->EfiFreeMemoryBottom) {
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  HobTable->EfiFreeMemoryTop -= Pages * EFI_PAGE_SIZE;
-  BuildMemoryAllocationHob (HobTable->EfiFreeMemoryTop, Pages * EFI_PAGE_SIZE, MemoryType);
-
-  *Memory = HobTable->EfiFreeMemoryTop;
-  return EFI_SUCCESS;
-}
+  );
 
 /**
   Frees one or more 4KB pages that were previously allocated with one of the page allocation
@@ -129,16 +67,12 @@ EFIAPI
 PhaseFreePages (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 Pages
-  )
-{
-  return EFI_SUCCESS;
-}
-
+  );
 
 /**
-  Allocates a buffer of type EfiBootServicesData.
+  Allocates a buffer of a certain pool type.
 
-  Allocates the number bytes specified by AllocationSize of type EfiBootServicesData and returns a
+  Allocates the number bytes specified by AllocationSize of a certain pool type and returns a
   pointer to the allocated buffer.  If AllocationSize is 0, then a valid buffer of 0 size is
   returned.  If there is not enough memory remaining to satisfy the request, then NULL is returned.
 
@@ -153,18 +87,7 @@ EFIAPI
 PhaseAllocatePool (
   IN EFI_MEMORY_TYPE  MemoryType,
   IN UINTN            AllocationSize
-  )
-{
-  EFI_HOB_MEMORY_POOL  *Hob;
-
-  if (AllocationSize > 0x4000) {
-    // Please use AllocatePages for big allocations
-    return NULL;
-  }
-
-  Hob = (EFI_HOB_MEMORY_POOL *)CreateHob (EFI_HOB_TYPE_MEMORY_POOL, (UINT16)(sizeof (EFI_HOB_MEMORY_POOL) + AllocationSize));
-  return (VOID *)(Hob + 1);
-}
+  );
 
 /**
   Frees a buffer that was previously allocated with one of the pool allocation functions in the
@@ -184,9 +107,11 @@ VOID
 EFIAPI
 PhaseFreePool (
   IN VOID  *Buffer
-  )
-{
-  //
-  // PEI phase does not support to free pool, so leave it as NOP.
-  //
-}
+  );
+
+///
+/// The memory type to allocate for calls to AllocatePages().
+///
+extern CONST EFI_MEMORY_TYPE gPhaseDefaultDataType;
+
+#endif
