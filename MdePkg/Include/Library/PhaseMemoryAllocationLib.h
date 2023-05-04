@@ -1,21 +1,18 @@
 /** @file
-  Support routines for memory allocation routines based
-  on DxeCore Memory Allocation services for DxeCore,
-  with memory profile support.
+  Provides primitives to allocate and free memory buffers of various memory types and alignments.
 
-  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
-  SPDX-License-Identifier: BSD-2-Clause-Patent
+  The Phase Memory Allocation Library abstracts primitive memory allocation operations. This library
+  allows code to be written in a phase-independent manner because the allocation of memory in PEI, DXE,
+  and SMM (for example) is done via a different mechanism. Using a common library interface makes it
+  much easier to port algorithms from phase to phase.
+
+Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include <PiDxe.h>
-
-#include <Library/PhaseMemoryAllocationLib.h>
-#include <Library/BaseMemoryLib.h>
-#include <Library/DebugLib.h>
-#include "DxeCoreMemoryAllocationServices.h"
-
-GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiBootServicesData;
+#ifndef __PHASE_MEMORY_ALLOCATION_LIB_H__
+#define __PHASE_MEMORY_ALLOCATION_LIB_H__
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
@@ -42,14 +39,7 @@ PhaseAllocatePages (
   IN     EFI_MEMORY_TYPE       MemoryType,
   IN     UINTN                 Pages,
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
-  )
-{
-  if (Pages == 0) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  return CoreAllocatePages (Type, MemoryType, Pages, Memory);
-}
+  );
 
 /**
   Frees one or more 4KB pages that were previously allocated with one of the page allocation
@@ -77,11 +67,7 @@ EFIAPI
 PhaseFreePages (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 Pages
-  )
-{
-  ASSERT (Pages != 0);
-  return CoreFreePages (Memory, Pages);
-}
+  );
 
 /**
   Allocates a buffer of a certain pool type.
@@ -101,20 +87,7 @@ EFIAPI
 PhaseAllocatePool (
   IN EFI_MEMORY_TYPE  MemoryType,
   IN UINTN            AllocationSize
-  )
-{
-  EFI_STATUS  Status;
-  VOID        *Memory;
-
-  Memory = NULL;
-
-  Status = CoreAllocatePool (MemoryType, AllocationSize, &Memory);
-  if (EFI_ERROR (Status)) {
-    Memory = NULL;
-  }
-
-  return Memory;
-}
+  );
 
 /**
   Frees a buffer that was previously allocated with one of the pool allocation functions in the
@@ -127,17 +100,18 @@ PhaseAllocatePool (
   If Buffer was not allocated with a pool allocation function in the Memory Allocation Library,
   then ASSERT().
 
-  @param  Buffer                Pointer to the buffer to free.
+  @param  Buffer                The pointer to the buffer to free.
 
 **/
 VOID
 EFIAPI
 PhaseFreePool (
   IN VOID  *Buffer
-  )
-{
-  EFI_STATUS  Status;
+  );
 
-  Status = CoreFreePool (Buffer);
-  ASSERT_EFI_ERROR (Status);
-}
+///
+/// The memory type to allocate for calls to AllocatePages().
+///
+extern CONST EFI_MEMORY_TYPE gPhaseDefaultDataType;
+
+#endif
