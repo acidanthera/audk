@@ -39,6 +39,7 @@
   BaseMemoryLib
   DebugLib
   HobLib
+  CommonMemoryAllocationLib
 
 [Guids]
   gEfiMmPeiMmramMemoryReserveGuid
