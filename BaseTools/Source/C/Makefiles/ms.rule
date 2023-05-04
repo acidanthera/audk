@@ -27,6 +27,15 @@
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
 
+{$(EDK2_PATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\}.c{$(EDK2_OBJPATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\}.c{$(EDK2_OBJPATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+
 .c.obj :
 	$(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 
