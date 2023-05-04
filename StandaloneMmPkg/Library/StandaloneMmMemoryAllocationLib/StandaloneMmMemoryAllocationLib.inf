@@ -29,3 +29,4 @@
   BaseMemoryLib
   DebugLib
   MmServicesTableLib
+  CommonMemoryAllocationLib
