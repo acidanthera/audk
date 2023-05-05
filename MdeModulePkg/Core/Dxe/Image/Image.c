@@ -1377,7 +1377,7 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (Image, &ImageContext);
+  ProtectUefiImage (&Image->Info, ImageIsFromFv, &ImageContext);
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
