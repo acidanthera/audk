@@ -2720,12 +2720,15 @@ RemoveImageRecord (
   Protect UEFI image.
 
   @param[in]  LoadedImage              The loaded image protocol
+  @param[in]  ImageType                Whether File comes from FV. Must be FALSE
+                                       or TRUE.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
 **/
 VOID
 ProtectUefiImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
+  IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
+  IN BOOLEAN                       ImageIsFromFv,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
