@@ -1113,6 +1113,18 @@ CoreLoadImageCommon (
     }
 
     if (SourceSize > 0) {
+      if (DeviceHandle != NULL) {
+        Status = CoreOpenProtocol (
+                   DeviceHandle,
+                   &gEfiFirmwareVolume2ProtocolGuid,
+                   NULL,
+                   NULL,
+                   NULL,
+                   EFI_OPEN_PROTOCOL_TEST_PROTOCOL
+                   );
+        ImageIsFromFv = !EFI_ERROR (Status);
+      }
+
       Status = EFI_SUCCESS;
     } else {
       Status = EFI_LOAD_ERROR;
