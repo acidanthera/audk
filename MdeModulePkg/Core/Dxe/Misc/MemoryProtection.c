@@ -49,12 +49,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "Uefi/UefiMultiPhase.h"
 
 //
-// Image type definitions
-//
-#define IMAGE_UNKNOWN  0x00000001
-#define IMAGE_FROM_FV  0x00000002
-
-//
 // Protection policy bit definition
 //
 #define DO_NOT_PROTECT                 0x00000000
@@ -75,66 +69,20 @@ STATIC LIST_ENTRY  mProtectedImageRecordList;
 EFI_MEMORY_ATTRIBUTE_PROTOCOL  *gMemoryAttributeProtocol;
 
 /**
-  Get the image type.
-
-  @param[in]    File       This is a pointer to the device path of the file that is
-                           being dispatched.
-
-  @return UINT32           Image Type
-**/
-UINT32
-GetImageType (
-  IN  CONST EFI_DEVICE_PATH_PROTOCOL  *File
-  )
-{
-  EFI_STATUS                Status;
-  EFI_HANDLE                DeviceHandle;
-  EFI_DEVICE_PATH_PROTOCOL  *TempDevicePath;
-
-  if (File == NULL) {
-    return IMAGE_UNKNOWN;
-  }
-
-  //
-  // First check to see if File is from a Firmware Volume
-  //
-  DeviceHandle   = NULL;
-  TempDevicePath = (EFI_DEVICE_PATH_PROTOCOL *)File;
-  Status         = gBS->LocateDevicePath (
-                          &gEfiFirmwareVolume2ProtocolGuid,
-                          &TempDevicePath,
-                          &DeviceHandle
-                          );
-  if (!EFI_ERROR (Status)) {
-    Status = gBS->OpenProtocol (
-                    DeviceHandle,
-                    &gEfiFirmwareVolume2ProtocolGuid,
-                    NULL,
-                    NULL,
-                    NULL,
-                    EFI_OPEN_PROTOCOL_TEST_PROTOCOL
-                    );
-    if (!EFI_ERROR (Status)) {
-      return IMAGE_FROM_FV;
-    }
-  }
-
-  return IMAGE_UNKNOWN;
-}
-
-/**
   Get UEFI image protection policy based upon image type.
 
-  @param[in]  ImageType    The UEFI image type
+  @param[in]  ImageIsFromFv  Whether File comes from FV. Must be FALSE or TRUE.
 
   @return UEFI image protection policy
 **/
 UINT32
 GetProtectionPolicyFromImageType (
-  IN UINT32  ImageType
+  IN BOOLEAN  ImageIsFromFv
   )
 {
-  if ((ImageType & mImageProtectionPolicy) == 0) {
+  ASSERT (ImageIsFromFv == FALSE || ImageIsFromFv == TRUE);
+
+  if (((ImageIsFromFv + 1) & mImageProtectionPolicy) == 0) {
     return DO_NOT_PROTECT;
   } else {
     return PROTECT_IF_ALIGNED_ELSE_ALLOW;
@@ -144,19 +92,16 @@ GetProtectionPolicyFromImageType (
 /**
   Get UEFI image protection policy based upon loaded image device path.
 
-  @param[in]  LoadedImage              The loaded image protocol
-  @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[in]  ImageIsFromFv  Whether File comes from FV. Must be FALSE or TRUE.
 
   @return UEFI image protection policy
 **/
 UINT32
 GetUefiImageProtectionPolicy (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  IN BOOLEAN  ImageIsFromFv
   )
 {
   BOOLEAN  InSmm;
-  UINT32   ImageType;
   UINT32   ProtectionPolicy;
 
   //
@@ -171,16 +116,7 @@ GetUefiImageProtectionPolicy (
     return FALSE;
   }
 
-  //
-  // Check DevicePath
-  //
-  if (LoadedImage == gDxeCoreLoadedImage) {
-    ImageType = IMAGE_FROM_FV;
-  } else {
-    ImageType = GetImageType (LoadedImageDevicePath);
-  }
-
-  ProtectionPolicy = GetProtectionPolicyFromImageType (ImageType);
+  ProtectionPolicy = GetProtectionPolicyFromImageType (ImageIsFromFv);
   return ProtectionPolicy;
 }
 
@@ -389,31 +325,29 @@ IsMemoryProtectionSectionAligned (
   Protect UEFI PE/COFF image.
 
   @param[in]  LoadedImage              The loaded image protocol
+  @param[in]  ImageIsFromFv            Whether File comes from FV. Must be FALSE
+                                       or TRUE.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
 **/
 VOID
 ProtectUefiImage (
-  IN LOADED_IMAGE_PRIVATE_DATA     *Image,
+  IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
+  IN BOOLEAN                       ImageIsFromFv,
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  RETURN_STATUS              PdbStatus;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath;
-  UINT32                     SectionAlignment;
-  UEFI_IMAGE_RECORD          *ImageRecord;
-  CONST CHAR8                *PdbPointer;
-  UINT32                     PdbSize;
-  BOOLEAN                    IsAligned;
-  UINT32                     ProtectionPolicy;
-
-  LoadedImage           = &Image->Info;
-  LoadedImageDevicePath = Image->LoadedImageDevicePath;
+  RETURN_STATUS      PdbStatus;
+  UINT32             SectionAlignment;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  CONST CHAR8        *PdbPointer;
+  UINT32             PdbSize;
+  BOOLEAN            IsAligned;
+  UINT32             ProtectionPolicy;
 
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
 
-  ProtectionPolicy = GetUefiImageProtectionPolicy (LoadedImage, LoadedImageDevicePath);
+  ProtectionPolicy = GetUefiImageProtectionPolicy (ImageIsFromFv);
   switch (ProtectionPolicy) {
     case DO_NOT_PROTECT:
       return;
