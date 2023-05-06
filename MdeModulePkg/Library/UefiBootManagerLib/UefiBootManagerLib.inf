@@ -62,7 +62,6 @@
   HiiLib
   SortLib
   VariablePolicyHelperLib
-  UefiImageLib
 
 [Guids]
   ## SOMETIMES_CONSUMES ## SystemTable (The identifier of memory type information type in system table)

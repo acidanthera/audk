@@ -68,7 +68,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CapsuleLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/HiiLib.h>
-#include <Library/UefiImageLib.h>
 
 #if !defined (EFI_REMOVABLE_MEDIA_FILE_NAME)
   #if defined (MDE_CPU_EBC)
