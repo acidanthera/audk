@@ -12,7 +12,6 @@
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/UefiImageLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 
 #include <Protocol/PeCoffImageEmulator.h>

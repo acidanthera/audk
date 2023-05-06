@@ -49,7 +49,6 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  UefiImageLib
   DebugLib
   CcExitLib
 

@@ -12,6 +12,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Uefi.h>
 
+#include <IndustryStandard/PeImage2.h>
+
 #include <Protocol/DebugSupport.h>
 #include <Protocol/Ebc.h>
 #include <Protocol/EbcVmTest.h>
@@ -21,7 +23,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/BaseLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
-#include <Library/UefiImageLib.h>
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/UefiBootServicesTableLib.h>

@@ -26,7 +26,6 @@
 [LibraryClasses]
   BaseMemoryLib
   DebugLib
-  UefiImageLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
 
