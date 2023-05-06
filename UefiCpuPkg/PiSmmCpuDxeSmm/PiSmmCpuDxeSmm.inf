@@ -96,7 +96,6 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  UefiImageLib
 
 [Protocols]
   gEfiSmmAccess2ProtocolGuid               ## CONSUMES

@@ -57,7 +57,6 @@
   PrintLib
   SynchronizationLib
   LocalApicLib
-  UefiImageLib
   MemoryAllocationLib
   DebugLib
   CcExitLib
