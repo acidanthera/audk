@@ -84,7 +84,7 @@ MeasureUefiImageAndExtend (
   }
 
   // FIXME: This is just an ugly wrapper, the types should match (UINTN <-> VOID *), fix the libs
-  UefiImageHashImageDefault (NULL, HashHandle, HashUpdate);
+  UefiImageHashImageDefault (&ImageContext, HashHandle, HashUpdate);
   if (EFI_ERROR (Status)) {
     return Status;
   }
