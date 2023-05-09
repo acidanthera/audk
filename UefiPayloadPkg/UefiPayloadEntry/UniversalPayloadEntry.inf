@@ -23,7 +23,6 @@
 [Sources]
   UniversalPayloadEntry.c
   LoadDxeCore.c
-  MemoryAllocation.c
   PrintHob.c
   AcpiTable.c
 
@@ -54,6 +53,7 @@
   CpuLib
   UefiImageLib
   UefiCpuLib
+  MemoryAllocationLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid
