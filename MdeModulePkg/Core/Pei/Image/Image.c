@@ -102,20 +102,14 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetUefiImageFixLoadingAssignedAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN     PEI_CORE_INSTANCE             *Private,
-  OUT    EFI_PHYSICAL_ADDRESS          *LoadAddress
+  OUT EFI_PHYSICAL_ADDRESS  *LoadAddress,
+  IN  UINT64                ValueInSectionHeader,
+  IN  UINT32                ImageDestSize,
+  IN  PEI_CORE_INSTANCE     *Private
   )
 {
    EFI_STATUS           Status;
-   UINT64               ValueInSectionHeader;
    EFI_PHYSICAL_ADDRESS FixLoadingAddress;
-   UINT32               SizeOfImage;
-
-  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
 
   if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
     //
@@ -133,8 +127,7 @@ GetUefiImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage = UefiImageGetImageSize (ImageContext);
-  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, SizeOfImage);
+  Status = CheckAndMarkFixLoadingMemoryUsageBitMap (Private, FixLoadingAddress, ImageDestSize);
   *LoadAddress = FixLoadingAddress;
 
   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status= %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
@@ -171,15 +164,18 @@ LoadAndRelocateUefiImage (
   EFI_STATUS                    Status;
   BOOLEAN                       Success;
   PEI_CORE_INSTANCE             *Private;
-  UINT32                                DynamicImageSize;
-  UINT32                                DynamicImageAlignment;
+  UINT32                                ImageSize;
+  UINT32                                ImageAlignment;
+  UINT64                                ValueInSectionHeader;
   BOOLEAN                       IsXipImage;
   EFI_STATUS                    ReturnStatus;
   BOOLEAN                       IsS3Boot;
   BOOLEAN                       IsPeiModule;
   BOOLEAN                       IsRegisterForShadow;
   EFI_FV_FILE_INFO              FileInfo;
-  EFI_PHYSICAL_ADDRESS                  LoadAddress;
+  UINT32                                DestinationPages;
+  UINT32                                DestinationSize;
+  EFI_PHYSICAL_ADDRESS                  Destination;
   UINT16                                Machine;
   BOOLEAN                               LoadDynamically;
 
@@ -250,7 +246,9 @@ LoadAndRelocateUefiImage (
   }
 
   LoadDynamically  = FALSE;
-  DynamicImageSize = 0;
+  ImageSize        = UefiImageGetImageSize (ImageContext);
+  DestinationPages = EFI_SIZE_TO_PAGES (ImageSize);
+  DestinationSize  = EFI_PAGES_TO_SIZE (DestinationPages);
 
   //
   // Allocate Memory for the image when memory is ready, and image is relocatable.
@@ -266,11 +264,13 @@ LoadAndRelocateUefiImage (
     Success = FALSE;
 
     if (PcdGet64(PcdLoadModuleAtFixAddressEnable) != 0 && (Private->HobList.HandoffInformationTable->BootMode != BOOT_ON_S3_RESUME)) {
-      Status = GetUefiImageFixLoadingAssignedAddress(ImageContext, Private, &LoadAddress);
-      if (!EFI_ERROR (Status)){
-        DynamicImageSize = UefiImageGetImageSize (ImageContext);
+      Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
+      if (!RETURN_ERROR (Status)) {
+        Status = GetUefiImageFixLoadingAssignedAddress(&Destination, ValueInSectionHeader, DestinationSize, Private);
+      }
 
-        Success = LoadAddress == UefiImageGetPreferredAddress (ImageContext);
+      if (!EFI_ERROR (Status)){
+        Success = Destination == UefiImageGetPreferredAddress (ImageContext);
 
         if (!Success) {
           DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
@@ -284,14 +284,13 @@ LoadAndRelocateUefiImage (
       //
       // Allocate more buffer to avoid buffer overflow.
       //
-      DynamicImageSize      = UefiImageGetImageSize (ImageContext);
-      DynamicImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
+      ImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
-      LoadAddress = (UINTN)AllocateAlignedCodePages (
-                             EFI_SIZE_TO_PAGES (DynamicImageSize),
-                             DynamicImageAlignment
+      Destination = (UINTN)AllocateAlignedCodePages (
+                             DestinationPages,
+                             ImageAlignment
                              );
-      Success = LoadAddress != 0;
+      Success = Destination != 0;
     }
 
     if (Success) {
@@ -301,8 +300,8 @@ LoadAndRelocateUefiImage (
       //
       Status = UefiImageLoadImageForExecution (
                 ImageContext,
-                (VOID *) (UINTN)LoadAddress,
-                DynamicImageSize,
+                (VOID *) (UINTN)Destination,
+                DestinationSize,
                 NULL,
                 0
                 );
