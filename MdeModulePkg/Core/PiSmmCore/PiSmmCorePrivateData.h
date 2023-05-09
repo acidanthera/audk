@@ -22,6 +22,7 @@
 /// the SMM Entry Point enabling the use of SMM Mode.  In this case, the SMM Core
 /// should be notified again to dispatch more SMM Drivers using SMM Mode.
 ///
+#include "Library/UefiImageLib.h"
 #define COMM_BUFFER_SMM_DISPATCH_ERROR    0x00
 #define COMM_BUFFER_SMM_DISPATCH_SUCCESS  0x01
 #define COMM_BUFFER_SMM_DISPATCH_RESTART  0x02
@@ -112,8 +113,7 @@ typedef struct {
   EFI_STATUS               ReturnStatus;
 
   EFI_PHYSICAL_ADDRESS     PiSmmCoreImageBase;
-  UINT64                   PiSmmCoreImageSize;
-  EFI_PHYSICAL_ADDRESS     PiSmmCoreEntryPoint;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT    PiSmmCoreImageContext;
 } SMM_CORE_PRIVATE_DATA;
 
 #endif

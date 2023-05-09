@@ -51,8 +51,8 @@
   SerialPortLib
   IoLib
   HobLib
-  PeCoffLib
   CpuLib
+  UefiImageLib
   UefiCpuLib
 
 [Guids]

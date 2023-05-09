@@ -12,12 +12,11 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/HobLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PrePiHobListPointerLib.h>
 
-#include <Protocol/PeCoffLoader.h>
 #include <Guid/ExtractSection.h>
 #include <Guid/MemoryTypeInformation.h>
 #include <Guid/MemoryAllocationHob.h>
@@ -780,27 +779,6 @@ BuildExtractSectionHob (
   Data.SectionGetInfo    = SectionGetInfo;
   Data.SectionExtraction = SectionExtraction;
   BuildGuidDataHob (Guid, &Data, sizeof (Data));
-}
-
-PE_COFF_LOADER_PROTOCOL  gPeCoffProtocol = {
-  PeCoffLoaderGetImageInfo,
-  PeCoffLoaderLoadImage,
-  PeCoffLoaderRelocateImage,
-  PeCoffLoaderImageReadFromMemory,
-  PeCoffLoaderRelocateImageForRuntime,
-  PeCoffLoaderUnloadImage
-};
-
-VOID
-EFIAPI
-BuildPeCoffLoaderHob (
-  VOID
-  )
-{
-  VOID  *Ptr;
-
-  Ptr = &gPeCoffProtocol;
-  BuildGuidDataHob (&gPeCoffLoaderProtocolGuid, &Ptr, sizeof (VOID *));
 }
 
 // May want to put this into a library so you only need the PCD settings if you are using the feature?

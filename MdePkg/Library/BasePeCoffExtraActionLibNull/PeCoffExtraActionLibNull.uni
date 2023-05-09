@@ -13,4 +13,3 @@
 #string STR_MODULE_ABSTRACT             #language en-US "Null PE/Coff Extra Action library instances with empty functions"
 
 #string STR_MODULE_DESCRIPTION          #language en-US "Null PE/Coff Extra Action library instances with empty functions."
-

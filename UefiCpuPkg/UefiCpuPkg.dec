@@ -355,7 +355,7 @@
   #   TRUE  - Access to non-SMRAM memory is restricted to reserved, runtime and ACPI NVS type after SmmReadyToLock.<BR>
   #   FALSE - Access to any type of non-SMRAM memory after SmmReadyToLock is allowed.<BR>
   # @Prompt Access to non-SMRAM memory is restricted to reserved, runtime and ACPI NVS type after SmmReadyToLock.
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmRestrictedMemoryAccess|TRUE|BOOLEAN|0x3213210F
+  gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmRestrictedMemoryAccess|FALSE|BOOLEAN|0x3213210F
 
 [PcdsDynamic, PcdsDynamicEx]
   ## Contains the pointer to a CPU S3 data buffer of structure ACPI_CPU_DATA.

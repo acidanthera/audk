@@ -40,7 +40,6 @@
   ReportStatusCodeLib
   MpInitLib
   TimerLib
-  PeCoffGetEntryPointLib
 
 [Sources]
   CpuDxe.c

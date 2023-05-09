@@ -22,7 +22,8 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include "PiSmmCoreMemoryAllocationServices.h"
+#include "PiSmmCore.h"
+#include "PiSmmCorePrivateData.h"
 
 #include <Library/MemoryProfileLib.h>
 

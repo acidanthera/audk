@@ -23,7 +23,7 @@ Abstract:
 #include <IndustryStandard/Pci.h>
 #include <IndustryStandard/Acpi.h>
 #include <IndustryStandard/SmBios.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include <IndustryStandard/Virtio095.h>
 
 #include <Library/DebugLib.h>

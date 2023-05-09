@@ -6,6 +6,7 @@
 
 **/
 
+#include "ProcessorBind.h"
 #include <PrePi.h>
 
 //
@@ -56,54 +57,40 @@ AllocateCodePages (
 
 EFI_STATUS
 EFIAPI
-LoadPeCoffImage (
-  IN  VOID                  *PeCoffImage,
+LoadUefiImage (
+  IN  VOID                  *UefiImage,
+  IN  UINT32                                    UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
   OUT UINT64                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
-  RETURN_STATUS                 Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  VOID                          *Buffer;
+  RETURN_STATUS                   Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  VOID                            *Buffer;
+  UINT32                          BufferSize;
 
-  ZeroMem (&ImageContext, sizeof (ImageContext));
+  Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
+  ASSERT_EFI_ERROR (Status);
 
-  ImageContext.Handle    = PeCoffImage;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = UefiImageLoaderGetDestinationSize (&ImageContext, &BufferSize);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Allocate Memory for the image
   //
-  Buffer = AllocateCodePages (EFI_SIZE_TO_PAGES ((UINT32)ImageContext.ImageSize));
+  Buffer = AllocateCodePages (EFI_SIZE_TO_PAGES (BufferSize));
   ASSERT (Buffer != 0);
 
-  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)Buffer;
-
   //
-  // Load the image to our new buffer
+  // Load and relocate the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
+  Status = UefiImageLoadImageForExecution (&ImageContext, Buffer, BufferSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
-  ASSERT_EFI_ERROR (Status);
-
-  *ImageAddress = ImageContext.ImageAddress;
-  *ImageSize    = ImageContext.ImageSize;
-  *EntryPoint   = ImageContext.EntryPoint;
-
-  //
-  // Flush not needed for all architectures. We could have a processor specific
-  // function in this library that does the no-op if needed.
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)*ImageAddress, (UINTN)*ImageSize);
+  *ImageAddress = (UINTN) UefiImageLoaderGetImageAddress (&ImageContext);
+  *ImageSize    = UefiImageGetImageSize (&ImageContext);
+  *EntryPoint   = (UINTN) UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return Status;
 }
@@ -122,7 +109,8 @@ LoadDxeCoreFromFfsFile (
   )
 {
   EFI_STATUS            Status;
-  VOID                  *PeCoffImage;
+  VOID                  *UefiImage;
+  UINT32                UefiImageSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
   UINT64                ImageSize;
   EFI_PHYSICAL_ADDRESS  EntryPoint;
@@ -131,13 +119,13 @@ LoadDxeCoreFromFfsFile (
   VOID                  *Hob;
   EFI_FV_FILE_INFO      FvFileInfo;
 
-  Status = FfsFindSectionDataWithHook (EFI_SECTION_PE32, NULL, FileHandle, &PeCoffImage);
+  Status = FfsFindSectionDataWithHook (EFI_SECTION_PE32, NULL, FileHandle, &UefiImage, &UefiImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = LoadPeCoffImage (PeCoffImage, &ImageAddress, &ImageSize, &EntryPoint);
-  // For NT32 Debug  Status = SecWinNtPeiLoadFile (PeCoffImage, &ImageAddress, &ImageSize, &EntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, &EntryPoint);
+  // For NT32 Debug  Status = SecWinNtPeiLoadFile (UefiImage, &ImageAddress, &ImageSize, &EntryPoint);
   ASSERT_EFI_ERROR (Status);
 
   //

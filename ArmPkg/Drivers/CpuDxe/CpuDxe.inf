@@ -47,7 +47,6 @@
   DefaultExceptionHandlerLib
   DxeServicesTableLib
   HobLib
-  PeCoffGetEntryPointLib
   UefiDriverEntryPoint
   UefiLib
 

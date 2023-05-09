@@ -37,6 +37,8 @@
   SmiHandlerProfile.c
   HeapGuard.c
   HeapGuard.h
+  MemoryAllocation.c
+  DebugImageInfo.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -46,8 +48,7 @@
   UefiDriverEntryPoint
   BaseLib
   BaseMemoryLib
-  PeCoffLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   CacheMaintenanceLib
   DebugLib
   ReportStatusCodeLib
@@ -98,6 +99,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPoolType                   ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask               ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdAcpiS3Enable                        ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxEfiSystemTablePointerAddress     ## CONSUMES
 
 [Guids]
   gAprioriGuid                                  ## SOMETIMES_CONSUMES   ## File
@@ -119,6 +121,7 @@
   gSmiHandlerProfileGuid
   gEdkiiEndOfS3ResumeGuid ## SOMETIMES_PRODUCES ## GUID # Install protocol
   gEdkiiS3SmmInitDoneGuid ## SOMETIMES_PRODUCES ## GUID # Install protocol
+  gEfiDebugImageInfoTableGuid                   ## PRODUCES             ## SystemTable
 
 [UserExtensions.TianoCore."ExtraFiles"]
   PiSmmCoreExtra.uni
