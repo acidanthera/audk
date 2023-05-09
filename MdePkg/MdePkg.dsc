@@ -186,6 +186,7 @@
   MdePkg/Library/TdxLib/TdxLib.inf
   MdePkg/Library/MipiSysTLib/MipiSysTLib.inf
   MdePkg/Library/TraceHubDebugSysTLibNull/TraceHubDebugSysTLibNull.inf
+  MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
 
 [Components.EBC]
   MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
