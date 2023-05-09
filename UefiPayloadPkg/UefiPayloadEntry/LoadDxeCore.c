@@ -11,7 +11,7 @@
 /**
     Loads and relocates a PE/COFF image
 
-  @param[in]  UefiImage     Point to a Pe/Coff image.
+  @param[in]   UefiImage      Point to a Pe/Coff image.
   @param[out]  ImageAddress   The image memory address after relocation.
   @param[out]  ImageSize      The image size.
   @param[out]  EntryPoint     The image entry point.
@@ -21,17 +21,19 @@
 **/
 EFI_STATUS
 LoadUefiImage (
-  IN  VOID                          *UefiImage,
-  IN  UINT32                        UefiImageSize,
+  IN  VOID                  *UefiImage,
+  IN  UINT32                UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
-  OUT UINT64                *ImageSize,
+  OUT UINT64                *DestinationSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
   RETURN_STATUS                 Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
-  UINT32                            BufferSize;
-  UINT32                            BufferAlignment;
+  UINT32                            ImageSize;
+  UINT32                            ImageAlignment;
+  UINT32                        BufferPages;
+  UINT32                        BufferSize;
   VOID                          *Buffer;
 
   Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
@@ -40,13 +42,15 @@ LoadUefiImage (
     return Status;
   }
 
-  BufferSize      = UefiImageGetImageSize (&ImageContext);
-  BufferAlignment = UefiImageGetSegmentAlignment (&ImageContext);
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
+  BufferPages    = EFI_SIZE_TO_PAGES (ImageSize);
+  BufferSize     = EFI_PAGES_TO_SIZE (BufferPages);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
   //
   // Allocate Memory for the image
   //
-  Buffer = AllocateAlignedCodePages (EFI_SIZE_TO_PAGES (BufferSize), BufferAlignment);
+  Buffer = AllocateAlignedCodePages (BufferPages, ImageAlignment);
   if (Buffer == NULL) {
     return EFI_OUT_OF_RESOURCES;
   }
@@ -66,9 +70,9 @@ LoadUefiImage (
     return Status;
   }
 
-  *ImageAddress = (UINTN)Buffer;
-  *ImageSize    = BufferSize;
-  *EntryPoint   = UefiImageLoaderGetImageEntryPoint (&ImageContext);
+  *ImageAddress    = (UINTN)Buffer;
+  *DestinationSize = BufferSize;
+  *EntryPoint      = UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return EFI_SUCCESS;
 }
@@ -230,7 +234,7 @@ LoadDxeCore (
   VOID                        *UefiImage;
   UINT32                      UefiImageSize;
   EFI_PHYSICAL_ADDRESS        ImageAddress;
-  UINT64                      ImageSize;
+  UINT64                      DestinationSize;
 
   PayloadFv = (EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)PcdGet32 (PcdPayloadFdMemBase);
 
@@ -268,12 +272,12 @@ LoadDxeCore (
   //
   // Get DXE core info
   //
-  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, DxeCoreEntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &DestinationSize, DxeCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  BuildModuleHob (&FileHeader->Name, ImageAddress, EFI_SIZE_TO_PAGES ((UINT32)ImageSize) * EFI_PAGE_SIZE, *DxeCoreEntryPoint);
+  BuildModuleHob (&FileHeader->Name, ImageAddress, DestinationSize, *DxeCoreEntryPoint);
 
   return EFI_SUCCESS;
 }

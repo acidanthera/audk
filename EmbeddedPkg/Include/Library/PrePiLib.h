@@ -688,7 +688,7 @@ LoadUefiImage (
   IN  VOID                                      *UefiImage,
   IN  UINT32                                    UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
-  OUT UINT64                *ImageSize,
+  OUT UINT32                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   );
 

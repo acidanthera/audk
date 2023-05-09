@@ -395,19 +395,13 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 **/
 EFI_STATUS
 GetUefiImageFixLoadingAssignedAddress (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT    EFI_PHYSICAL_ADDRESS             *LoadAddress
+  OUT    EFI_PHYSICAL_ADDRESS  *LoadAddress,
+  IN     UINT64                ValueInSectionHeader,
+  IN     UINT32                ImageDestSize
   )
 {
   EFI_STATUS           Status;
-  UINT64               ValueInSectionHeader;
   EFI_PHYSICAL_ADDRESS FixLoadingAddress;
-  UINT32               SizeOfImage;
-
-  Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
-  if (RETURN_ERROR (Status)) {
-    return Status;
-  }
 
   if ((INT64)PcdGet64(PcdLoadModuleAtFixAddressEnable) > 0) {
     //
@@ -425,8 +419,7 @@ GetUefiImageFixLoadingAssignedAddress (
   //
   // Check if the memory range is available.
   //
-  SizeOfImage  = UefiImageGetImageSize (ImageContext);
-  Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, SizeOfImage);
+  Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, ImageDestSize);
   *LoadAddress = FixLoadingAddress;
 
    DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
@@ -511,8 +504,11 @@ CoreLoadPeImage (
 {
   EFI_STATUS                        Status;
   BOOLEAN                           DstBufAlocated;
-  UINT32                            Size;
-  UINT32                            Alignment;
+  UINT32                            ImageSize;
+  UINT32                            ImageAlignment;
+  UINT64                            ValueInSectionHeader;
+  UINT32                            DstBufPages;
+  UINT32                            DstBufSize;
   EFI_MEMORY_TYPE                   ImageCodeMemoryType;
   EFI_MEMORY_TYPE                   ImageDataMemoryType;
   UEFI_IMAGE_LOADER_RUNTIME_CONTEXT *RelocationData;
@@ -558,8 +554,10 @@ CoreLoadPeImage (
     return EFI_UNSUPPORTED;
   }
 
-  Size      = UefiImageGetImageSize (ImageContext);
-  Alignment = UefiImageGetSegmentAlignment (ImageContext);
+  ImageSize      = UefiImageGetImageSize (ImageContext);
+  DstBufPages    = EFI_SIZE_TO_PAGES (ImageSize);
+  DstBufSize     = EFI_PAGES_TO_SIZE (DstBufPages);
+  ImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
   BufferAddress = 0;
   //
@@ -570,7 +568,7 @@ CoreLoadPeImage (
     //
     // Allocate Destination Buffer as caller did not pass it in
     //
-    Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
+    Image->NumberOfPages = DstBufPages;
 
     //
     // If the image relocations have not been stripped, then load at any address.
@@ -585,7 +583,12 @@ CoreLoadPeImage (
     // a specified address.
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
-      Status = GetUefiImageFixLoadingAssignedAddress (ImageContext, &BufferAddress);
+      Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
+      if (RETURN_ERROR (Status)) {
+        return Status;
+      }
+
+      Status = GetUefiImageFixLoadingAssignedAddress (&BufferAddress, ValueInSectionHeader, DstBufSize);
 
       if (!EFI_ERROR (Status))  {
         if (BufferAddress != UefiImageGetPreferredAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
@@ -605,7 +608,7 @@ CoreLoadPeImage (
         Status = AllocatePagesEx (
                    AllocateAddress,
                    ImageCodeMemoryType,
-                   Image->NumberOfPages,
+                   DstBufPages,
                    &BufferAddress
                    );
       }
@@ -614,8 +617,8 @@ CoreLoadPeImage (
         Status = AllocateAlignedPagesEx (
                    AllocateAnyPages,
                    ImageCodeMemoryType,
-                   Image->NumberOfPages,
-                   Alignment,
+                   DstBufPages,
+                   ImageAlignment,
                    &BufferAddress
                    );
       }
@@ -645,14 +648,14 @@ CoreLoadPeImage (
 
     if ((Image->NumberOfPages != 0) &&
         (Image->NumberOfPages <
-         (EFI_SIZE_TO_PAGES (Size))))
+         DstBufPages))
     {
-      Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
+      Image->NumberOfPages = DstBufPages;
       ASSERT (FALSE);
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
+    Image->NumberOfPages = DstBufPages;
     BufferAddress        = *DstBuffer;
   }
 
@@ -691,7 +694,7 @@ CoreLoadPeImage (
   Status = UefiImageLoadImageForExecution (
              ImageContext,
              (VOID *)(UINTN)BufferAddress,
-             Size,
+             DstBufSize,
              RelocationData,
              RelocDataSize
              );
@@ -715,7 +718,7 @@ CoreLoadPeImage (
   //
   Image->Type               = UefiImageGetSubsystem (ImageContext);
   Image->Info.ImageBase     = (VOID *)(UINTN)BufferAddress;
-  Image->Info.ImageSize     = UefiImageGetImageSize (ImageContext);
+  Image->Info.ImageSize     = ImageSize;
   Image->Info.ImageCodeType = ImageCodeMemoryType;
   Image->Info.ImageDataType = ImageDataMemoryType;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {

@@ -26,28 +26,32 @@ EFI_STATUS
 EFIAPI
 LoadUefiImage (
   IN  VOID                  *UefiImage,
-  IN  UINT32                                    UefiImageSize,
+  IN  UINT32                UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
-  OUT UINT64                *ImageSize,
+  OUT UINT32                *DestinationSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
   RETURN_STATUS                   Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINT32                          ImageSize;
   VOID                            *Buffer;
   UINT32                          BufferSize;
+  UINT32                          BufferPages;
   UINT32                          BufferAlignment;
 
   Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
   ASSERT_EFI_ERROR (Status);
 
-  BufferSize      = UefiImageGetImageSize (&ImageContext);
+  ImageSize       = UefiImageGetImageSize (&ImageContext);
+  BufferPages     = EFI_SIZE_TO_PAGES (ImageSize);
+  BufferSize      = EFI_PAGES_TO_SIZE (BufferPages);
   BufferAlignment = UefiImageGetSegmentAlignment (&ImageContext);
 
   //
   // Allocate Memory for the image
   //
-  Buffer = AllocateAlignedCodePages (EFI_SIZE_TO_PAGES (BufferSize), BufferAlignment);
+  Buffer = AllocateAlignedCodePages (BufferPages, BufferAlignment);
   ASSERT (Buffer != 0);
 
   //
@@ -56,9 +60,9 @@ LoadUefiImage (
   Status = UefiImageLoadImageForExecution (&ImageContext, Buffer, BufferSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
-  *ImageAddress = (UINTN) Buffer;
-  *ImageSize    = BufferSize;
-  *EntryPoint   = (UINTN) UefiImageLoaderGetImageEntryPoint (&ImageContext);
+  *ImageAddress    = (UINTN) Buffer;
+  *DestinationSize = BufferSize;
+  *EntryPoint      = (UINTN) UefiImageLoaderGetImageEntryPoint (&ImageContext);
 
   return Status;
 }
@@ -80,7 +84,7 @@ LoadDxeCoreFromFfsFile (
   VOID                  *UefiImage;
   UINT32                UefiImageSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
-  UINT64                ImageSize;
+  UINT32                DestinationSize;
   EFI_PHYSICAL_ADDRESS  EntryPoint;
   VOID                  *BaseOfStack;
   VOID                  *TopOfStack;
@@ -92,7 +96,7 @@ LoadDxeCoreFromFfsFile (
     return Status;
   }
 
-  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &ImageSize, &EntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &ImageAddress, &DestinationSize, &EntryPoint);
   // For NT32 Debug  Status = SecWinNtPeiLoadFile (UefiImage, &ImageAddress, &ImageSize, &EntryPoint);
   ASSERT_EFI_ERROR (Status);
 
@@ -102,7 +106,7 @@ LoadDxeCoreFromFfsFile (
   Status = FfsGetFileInfo (FileHandle, &FvFileInfo);
   ASSERT_EFI_ERROR (Status);
 
-  BuildModuleHob (&FvFileInfo.FileName, (EFI_PHYSICAL_ADDRESS)(UINTN)ImageAddress, EFI_SIZE_TO_PAGES ((UINT32)ImageSize) * EFI_PAGE_SIZE, EntryPoint);
+  BuildModuleHob (&FvFileInfo.FileName, (EFI_PHYSICAL_ADDRESS)(UINTN)ImageAddress, DestinationSize, EntryPoint);
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading DxeCore at 0x%10p EntryPoint=0x%10p\n", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)EntryPoint));
 
