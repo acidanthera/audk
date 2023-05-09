@@ -1,7 +1,7 @@
 /** @file
   Superblock managing routines
 
-  Copyright (c) 2021 - 2022 Pedro Falcato All rights reserved.
+  Copyright (c) 2021 - 2023 Pedro Falcato All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -18,7 +18,7 @@ STATIC CONST UINT32  gSupportedIncompatFeat =
   EXT4_FEATURE_INCOMPAT_64BIT | EXT4_FEATURE_INCOMPAT_DIRDATA |
   EXT4_FEATURE_INCOMPAT_FLEX_BG | EXT4_FEATURE_INCOMPAT_FILETYPE |
   EXT4_FEATURE_INCOMPAT_EXTENTS | EXT4_FEATURE_INCOMPAT_LARGEDIR |
-  EXT4_FEATURE_INCOMPAT_MMP | EXT4_FEATURE_INCOMPAT_RECOVER;
+  EXT4_FEATURE_INCOMPAT_MMP | EXT4_FEATURE_INCOMPAT_RECOVER | EXT4_FEATURE_INCOMPAT_CSUM_SEED;
 
 // Future features that may be nice additions in the future:
 // 1) Btree support: Required for write support and would speed up lookups in large directories.
