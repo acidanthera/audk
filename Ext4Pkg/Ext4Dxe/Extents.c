@@ -1,7 +1,7 @@
 /** @file
   Extent related routines
 
-  Copyright (c) 2021 - 2022 Pedro Falcato All rights reserved.
+  Copyright (c) 2021 - 2023 Pedro Falcato All rights reserved.
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
@@ -80,13 +80,15 @@ Ext4GetInoExtentHeader (
 /**
    Checks if an extent header is valid.
    @param[in]      Header         Pointer to the EXT4_EXTENT_HEADER structure.
+   @param[in]      MaxEntries     Maximum number of entries possible for this tree node.
 
    @return TRUE if valid, FALSE if not.
 **/
 STATIC
 BOOLEAN
 Ext4ExtentHeaderValid (
-  IN CONST EXT4_EXTENT_HEADER  *Header
+  IN CONST EXT4_EXTENT_HEADER  *Header,
+  IN UINT16                    MaxEntries
   )
 {
   if (Header->eh_depth > EXT4_EXTENT_TREE_MAX_DEPTH) {
@@ -96,6 +98,18 @@ Ext4ExtentHeaderValid (
 
   if (Header->eh_magic != EXT4_EXTENT_HEADER_MAGIC) {
     DEBUG ((DEBUG_ERROR, "[ext4] Invalid extent header magic %x\n", Header->eh_magic));
+    return FALSE;
+  }
+
+  // Note: We do not need to check eh_entries here, as the next branch makes sure max >= entries
+  if (Header->eh_max > MaxEntries) {
+    DEBUG ((
+      DEBUG_ERROR,
+      "[ext4] Invalid extent header max entries (%u eh_max, "
+      "theoretical max is %u) (larger than permitted)\n",
+      Header->eh_max,
+      MaxEntries
+      ));
     return FALSE;
   }
 
@@ -212,6 +226,9 @@ Ext4ExtentIdxLeafBlock (
   return LShiftU64 (Index->ei_leaf_hi, 32) | Index->ei_leaf_lo;
 }
 
+// Results of sizeof(i_data) / sizeof(extent) - 1 = 4
+#define EXT4_NR_INLINE_EXTENTS  4
+
 /**
    Retrieves an extent from an EXT4 inode.
    @param[in]      Partition     Pointer to the opened EXT4 partition.
@@ -237,6 +254,7 @@ Ext4GetExtent (
   EXT4_EXTENT_HEADER  *ExtHeader;
   EXT4_EXTENT_INDEX   *Index;
   EFI_STATUS          Status;
+  UINT32              MaxExtentsPerNode;
   EXT4_BLOCK_NR       BlockNumber;
 
   Inode  = File->Inode;
@@ -275,11 +293,16 @@ Ext4GetExtent (
 
   ExtHeader = Ext4GetInoExtentHeader (Inode);
 
-  if (!Ext4ExtentHeaderValid (ExtHeader)) {
+  if (!Ext4ExtentHeaderValid (ExtHeader, EXT4_NR_INLINE_EXTENTS)) {
     return EFI_VOLUME_CORRUPTED;
   }
 
   CurrentDepth = ExtHeader->eh_depth;
+
+  // A single node fits into a single block, so we can only have (BlockSize / sizeof(EXT4_EXTENT)) - 1
+  // extents in a single node. Note the -1, because both leaf and internal node headers are 12 bytes,
+  // and so are individual entries.
+  MaxExtentsPerNode = (Partition->BlockSize / sizeof (EXT4_EXTENT)) - 1;
 
   while (ExtHeader->eh_depth != 0) {
     CurrentDepth--;
@@ -309,6 +332,7 @@ Ext4GetExtent (
     }
 
     // Read the leaf block onto the previously-allocated buffer.
+
     Status = Ext4ReadBlocks (Partition, Buffer, 1, BlockNumber);
     if (EFI_ERROR (Status)) {
       FreePool (Buffer);
@@ -317,7 +341,7 @@ Ext4GetExtent (
 
     ExtHeader = Buffer;
 
-    if (!Ext4ExtentHeaderValid (ExtHeader)) {
+    if (!Ext4ExtentHeaderValid (ExtHeader, MaxExtentsPerNode)) {
       FreePool (Buffer);
       return EFI_VOLUME_CORRUPTED;
     }
