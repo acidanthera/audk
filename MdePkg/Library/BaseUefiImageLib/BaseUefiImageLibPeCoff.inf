@@ -37,3 +37,4 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderProhibitTe
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
