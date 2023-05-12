@@ -589,7 +589,7 @@ jobs:
           python3 -m pip install -r requirements.txt
 
       - name: Downloading QEMU
-        uses: robinraju/release-downloader@v1.7
+        uses: robinraju/release-downloader@v1.8
         with:
           repository: "acidanthera/OcBinaryData"
           tag: ${{ env.QEMU_VERSION_TAG }}
@@ -611,14 +611,14 @@ jobs:
           TOOLCHAIN: ${{ matrix.package.toolchain }}
 
       - name: Downloading Windows PE X64 iso
-        uses: robinraju/release-downloader@v1.7
+        uses: robinraju/release-downloader@v1.8
         with:
           repository: "acidanthera/OcBinaryData"
           tag: ${{ env.WINPE_VERSION_TAG }}
           fileName: "winpe_X64.iso"
 
       - name: Downloading Windows PE IA32 iso
-        uses: robinraju/release-downloader@v1.7
+        uses: robinraju/release-downloader@v1.8
         with:
           repository: "acidanthera/OcBinaryData"
           tag: ${{ env.WINPE_VERSION_TAG }}
