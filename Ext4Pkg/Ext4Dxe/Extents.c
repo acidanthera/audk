@@ -254,7 +254,7 @@ Ext4GetExtent (
   EXT4_EXTENT_HEADER  *ExtHeader;
   EXT4_EXTENT_INDEX   *Index;
   EFI_STATUS          Status;
-  UINT32              MaxExtentsPerNode;
+  UINT16              MaxExtentsPerNode;
   EXT4_BLOCK_NR       BlockNumber;
 
   Inode  = File->Inode;
@@ -302,7 +302,7 @@ Ext4GetExtent (
   // A single node fits into a single block, so we can only have (BlockSize / sizeof(EXT4_EXTENT)) - 1
   // extents in a single node. Note the -1, because both leaf and internal node headers are 12 bytes,
   // and so are individual entries.
-  MaxExtentsPerNode = (Partition->BlockSize / sizeof (EXT4_EXTENT)) - 1;
+  MaxExtentsPerNode = (UINT16)((Partition->BlockSize / sizeof (EXT4_EXTENT)) - 1);
 
   while (ExtHeader->eh_depth != 0) {
     CurrentDepth--;
