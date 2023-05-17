@@ -41,6 +41,7 @@
   PcdLib
   BaseCryptLib
   TdxMeasurementLib
+  PrintLib
 
 [FixedPcd]
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase
