@@ -37,6 +37,7 @@
   DebugLib
   HobLib
   PcdLib
+  PrintLib
 
 [FixedPcd]
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase
