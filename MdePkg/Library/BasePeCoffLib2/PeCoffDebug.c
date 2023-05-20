@@ -206,7 +206,6 @@ PeCoffGetPdbPath (
       break;
 
     default:
-      DEBUG_RAISE ();
       return RETURN_UNSUPPORTED;
   }
   //

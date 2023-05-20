@@ -68,6 +68,7 @@ InternalVerifySections (
   // Images without Sections have no usable data, disallow them.
   //
   if (Context->NumberOfSections == 0) {
+    DEBUG_RAISE ();
     return RETURN_VOLUME_CORRUPTED;
   }
 
@@ -274,7 +275,7 @@ InternalValidateRelocInfo (
   //
   // If the Base Relocations have not been stripped, verify their Directory.
   //
-  if (!Context->RelocsStripped && Context->RelocDirSize != 0) {
+  if (Context->RelocDirSize != 0) {
     //
     // Verify the Relocation Directory is not empty.
     //
