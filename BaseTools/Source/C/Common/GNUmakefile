@@ -42,6 +42,7 @@ OBJECTS += \
   $(EDK2_OBJPATH)/BaseTools/ImageTool/PeEmit64.o \
   $(EDK2_OBJPATH)/BaseTools/ImageTool/PeEmitCommon.o \
   $(EDK2_OBJPATH)/BaseTools/ImageTool/BinEmit.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/DynamicBuffer.o \
   $(EDK2_OBJPATH)/OpenCorePkg/User/Library/UserFile.o
 
 OBJECTS += \

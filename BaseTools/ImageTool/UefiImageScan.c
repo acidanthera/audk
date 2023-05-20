@@ -28,8 +28,6 @@ ScanUefiImageGetHeaderInfo (
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
   HeaderInfo->Subsystem         = UefiImageGetSubsystem (Context);
-  // FIXME:
-  HeaderInfo->IsXip             = true;
 
   Status = UefiImageGetFixedAddress (Context, &Address);
   if (!RETURN_ERROR (Status)) {
@@ -119,7 +117,7 @@ ScanUefiImageGetDebugInfo (
   assert (Context   != NULL);
 
   Status = UefiImageGetSymbolsPath (Context, &SymbolsPath, &SymbolsPathSize);
-  if (Status == RETURN_NOT_FOUND) {
+  if (Status == RETURN_NOT_FOUND || Status == RETURN_UNSUPPORTED) {
     return true;
   }
   if (RETURN_ERROR (Status)) {

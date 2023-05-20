@@ -316,10 +316,6 @@ ImageInitUnpaddedSize (
     Segment = &Image->SegmentInfo.Segments[Index];
     Segment->UnpaddedSize = Segment->ImageSize;
 
-    if (Image->HeaderInfo.IsXip) {
-      continue;
-    }
-
     for (; Segment->UnpaddedSize > 0; --Segment->UnpaddedSize) {
       if (Segment->Data[Segment->UnpaddedSize - 1] != 0) {
         break;
