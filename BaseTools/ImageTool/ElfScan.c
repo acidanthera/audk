@@ -667,7 +667,6 @@ ScanElf (
 
   ImageInfo->HeaderInfo.BaseAddress       = BaseAddress;
   ImageInfo->HeaderInfo.EntryPointAddress = (uint32_t)(Ehdr->e_entry - BaseAddress);
-  ImageInfo->HeaderInfo.IsXip             = true;
   ImageInfo->SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
   ImageInfo->RelocInfo.RelocsStripped     = false;
 

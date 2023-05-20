@@ -25,12 +25,6 @@
 
 #define raise() assert(false)
 
-typedef struct {
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY     Dir;
-  EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY Nb10;
-  char                                Name[];
-} DebugData;
-
 #define PAGE(x)     ((x) & ~4095U)
 #define PAGE_OFF(x) ((x) & 4095U)
 
@@ -39,7 +33,6 @@ typedef struct {
   uint32_t EntryPointAddress;
   uint16_t Machine;
   uint16_t Subsystem;
-  uint8_t  IsXip;
   uint8_t  FixedAddress;
   uint8_t  Reserved[6];
 } image_tool_header_info_t;
@@ -60,7 +53,8 @@ typedef struct {
 
 typedef struct {
   uint32_t             SegmentAlignment;
-  uint32_t             NumSegments;
+  uint16_t             NumSegments;
+  uint8_t              Reserved[2];
 
   image_tool_segment_t *Segments;
 } image_tool_segment_info_t;
