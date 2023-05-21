@@ -928,7 +928,7 @@ CoreHandleProtocol (
            UserHandle,
            Protocol,
            Interface,
-           gDxeCoreImageHandle,
+           gImageHandle,
            NULL,
            EFI_OPEN_PROTOCOL_BY_HANDLE_PROTOCOL
            );
