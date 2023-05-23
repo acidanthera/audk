@@ -30,7 +30,7 @@
   **/
 VOID
 IntelTdxInitialize (
-  VOID
+  IN OUT EFI_HOB_PLATFORM_INFO  *PlatformInfoHob
   )
 {
  #ifdef MDE_CPU_X64
@@ -44,6 +44,8 @@ IntelTdxInitialize (
 
   PcdStatus = PcdSet64S (PcdConfidentialComputingGuestAttr, CCAttrIntelTdx);
   ASSERT_RETURN_ERROR (PcdStatus);
+
+  PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrIntelTdx;
 
   PcdStatus = PcdSet64S (PcdTdxSharedBitMask, TdSharedPageMask ());
   ASSERT_RETURN_ERROR (PcdStatus);
