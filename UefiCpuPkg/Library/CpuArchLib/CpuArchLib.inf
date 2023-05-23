@@ -20,6 +20,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
@@ -67,19 +68,18 @@
 [Guids]
   gIdleLoopEventGuid                            ## CONSUMES           ## Event
   gEfiVectorHandoffTableGuid                    ## SOMETIMES_CONSUMES ## SystemTable
+  gUefiOvmfPkgPlatformInfoGuid                  ## CONSUMES  ## HOB
 
 [Ppis]
   gEfiSecPlatformInformation2PpiGuid            ## UNDEFINED # HOB
   gEfiSecPlatformInformationPpiGuid             ## UNDEFINED # HOB
 
 [Pcd]
-  gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask    ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard                       ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask               ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask    ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuStackSwitchExceptionList              ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuKnownGoodStackSize                    ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdTdxSharedBitMask                    ## CONSUMES
 
 [Depex]
   TRUE

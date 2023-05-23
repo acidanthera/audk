@@ -35,6 +35,7 @@ IntelTdxInitialize (
 {
  #ifdef MDE_CPU_X64
   RETURN_STATUS  PcdStatus;
+  UINT64         PageMask;
 
   if (!TdIsEnabled ()) {
     return;
@@ -47,8 +48,11 @@ IntelTdxInitialize (
 
   PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrIntelTdx;
 
-  PcdStatus = PcdSet64S (PcdTdxSharedBitMask, TdSharedPageMask ());
+  PageMask  = TdSharedPageMask ();
+  PcdStatus = PcdSet64S (PcdTdxSharedBitMask, PageMask);
   ASSERT_RETURN_ERROR (PcdStatus);
+
+  PlatformInfoHob->TdxSharedBitMask = PageMask;
 
   PcdStatus = PcdSetBoolS (PcdSetNxForStack, TRUE);
   ASSERT_RETURN_ERROR (PcdStatus);
