@@ -39,8 +39,11 @@ Ext4CalculateExtentChecksum (
    @param[in]      File        Pointer to the open file.
    @param[in]      Extents     Pointer to an array of extents.
    @param[in]      NumberExtents Length of the array.
+
+   @return         Result of the caching
 **/
-VOID
+STATIC
+EFI_STATUS
 Ext4CacheExtents (
   IN EXT4_FILE          *File,
   IN CONST EXT4_EXTENT  *Extents,
@@ -283,7 +286,13 @@ Ext4GetExtent (
     Status = Ext4GetBlocks (Partition, File, (UINT32)LogicalBlock, Extent);
 
     if (!EFI_ERROR (Status)) {
-      Ext4CacheExtents (File, Extent, 1);
+      Status = Ext4CacheExtents (File, Extent, 1);
+
+      if (EFI_ERROR (Status) && (Status != EFI_OUT_OF_RESOURCES)) {
+        return Status;
+      }
+
+      Status = EFI_SUCCESS;
     }
 
     return Status;
@@ -363,7 +372,15 @@ Ext4GetExtent (
    * by linux (and possibly other systems) is quite fancy and usually it results in a small number of extents.
    * Therefore, we shouldn't have any memory issues.
   **/
-  Ext4CacheExtents (File, (EXT4_EXTENT *)(ExtHeader + 1), ExtHeader->eh_entries);
+  Status = Ext4CacheExtents (File, (EXT4_EXTENT *)(ExtHeader + 1), ExtHeader->eh_entries);
+
+  if (EFI_ERROR (Status) && (Status != EFI_OUT_OF_RESOURCES)) {
+    if (Buffer != NULL) {
+      FreePool (Buffer);
+    }
+
+    return Status;
+  }
 
   Ext = Ext4BinsearchExtentExt (ExtHeader, LogicalBlock);
 
@@ -519,8 +536,11 @@ Ext4FreeExtentsMap (
    @param[in]      File        Pointer to the open file.
    @param[in]      Extents     Pointer to an array of extents.
    @param[in]      NumberExtents Length of the array.
+
+   @return         Result of the caching
 **/
-VOID
+STATIC
+EFI_STATUS
 Ext4CacheExtents (
   IN EXT4_FILE          *File,
   IN CONST EXT4_EXTENT  *Extents,
@@ -536,10 +556,15 @@ Ext4CacheExtents (
    */
 
   for (Idx = 0; Idx < NumberExtents; Idx++, Extents++) {
+    if (Extents->ee_len == 0) {
+      // 0-sized extent, must be corruption
+      return EFI_VOLUME_CORRUPTED;
+    }
+
     Extent = AllocatePool (sizeof (EXT4_EXTENT));
 
     if (Extent == NULL) {
-      return;
+      return EFI_OUT_OF_RESOURCES;
     }
 
     CopyMem (Extent, Extents, sizeof (EXT4_EXTENT));
@@ -553,9 +578,11 @@ Ext4CacheExtents (
         continue;
       }
 
-      return;
+      return EFI_SUCCESS;
     }
   }
+
+  return EFI_SUCCESS;
 }
 
 /**
