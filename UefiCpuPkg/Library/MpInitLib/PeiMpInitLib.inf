@@ -39,8 +39,9 @@
 
 [Packages]
   MdePkg/MdePkg.dec
-  UefiCpuPkg/UefiCpuPkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
   BaseLib
@@ -57,8 +58,6 @@
   MicrocodeLib
 
 [Pcd]
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber        ## CONSUMES
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber       ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApInitTimeOutInMicroSeconds      ## SOMETIMES_CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApStackSize                      ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMicrocodePatchAddress            ## CONSUMES
@@ -67,8 +66,6 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApTargetCstate                   ## SOMETIMES_CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaBase                   ## SOMETIMES_CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdGhcbHypervisorFeatures              ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase                       ## CONSUMES
-  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr       ## CONSUMES
 
 [Ppis]
   gEdkiiPeiShadowMicrocodePpiGuid        ## SOMETIMES_CONSUMES
@@ -76,3 +73,4 @@
 [Guids]
   gEdkiiS3SmmInitDoneGuid
   gEdkiiMicrocodePatchHobGuid
+  gUefiOvmfPkgPlatformInfoGuid           ## CONSUMES  ## HOB
