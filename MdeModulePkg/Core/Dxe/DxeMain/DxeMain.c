@@ -517,11 +517,6 @@ DxeMain (
   CoreInitializeDispatcher ();
 
   //
-  // Invoke the DXE Dispatcher
-  //
-  CoreDispatcher ();
-
-  //
   // Initialize CPU Architectural Protocol
   //
   InitializeCpu ();

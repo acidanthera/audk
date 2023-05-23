@@ -94,6 +94,8 @@ EFI_CPU_ARCH_PROTOCOL  gCpuImpl = {
   4                           // DmaBufferAlignment
 };
 
+EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob2 = NULL;
+
 //
 // CPU Arch Protocol Functions
 //
@@ -1216,8 +1218,14 @@ InitializeCpu (
   VOID
   )
 {
-  EFI_STATUS  Status;
-  EFI_EVENT   IdleLoopEvent;
+  EFI_STATUS         Status;
+  EFI_EVENT          IdleLoopEvent;
+  EFI_HOB_GUID_TYPE  *GuidHob;
+
+  GuidHob  = GetFirstGuidHob (&gUefiOvmfPkgPlatformInfoGuid);
+  if (GuidHob != NULL) {
+    mPlatformInfoHob2 = (EFI_HOB_PLATFORM_INFO *)(GET_GUID_HOB_DATA (GuidHob));
+  }
 
   InitializePageTableLib ();
 
