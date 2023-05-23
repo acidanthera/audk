@@ -81,7 +81,7 @@ FIXED_MTRR  mFixedMtrrTable[] = {
   },
 };
 
-EFI_CPU_ARCH_PROTOCOL  gCpu = {
+EFI_CPU_ARCH_PROTOCOL  gCpuImpl = {
   CpuFlushCpuDataCache,
   CpuEnableInterrupt,
   CpuDisableInterrupt,
@@ -1168,7 +1168,7 @@ FreeMemorySpaceMap:
 **/
 VOID
 AddLocalApicMemorySpace (
-  IN EFI_HANDLE  ImageHandle
+  VOID
   )
 {
   EFI_STATUS            Status;
@@ -1189,7 +1189,7 @@ AddLocalApicMemorySpace (
                   0,
                   SIZE_4KB,
                   &BaseAddress,
-                  ImageHandle,
+                  gImageHandle,
                   NULL
                   );
   if (EFI_ERROR (Status)) {
@@ -1206,19 +1206,14 @@ AddLocalApicMemorySpace (
 /**
   Initialize the state information for the CPU Architectural Protocol.
 
-  @param ImageHandle     Image handle this driver.
-  @param SystemTable     Pointer to the System Table.
-
   @retval EFI_SUCCESS           Thread can be successfully created
-  @retval EFI_OUT_OF_RESOURCES  Cannot allocate protocol data structure
-  @retval EFI_DEVICE_ERROR      Cannot create the thread
+  @retval EFI_OUT_OF_RESOURCES  Can not allocate protocol data structure
+  @retval EFI_DEVICE_ERROR      Can not create the thread
 
 **/
 EFI_STATUS
-EFIAPI
 InitializeCpu (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+  VOID
   )
 {
   EFI_STATUS  Status;
@@ -1249,7 +1244,7 @@ InitializeCpu (
   Status = gBS->InstallMultipleProtocolInterfaces (
                   &mCpuHandle,
                   &gEfiCpuArchProtocolGuid,
-                  &gCpu,
+                  &gCpuImpl,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);
@@ -1262,7 +1257,7 @@ InitializeCpu (
   //
   // Add and allocate local APIC memory mapped space
   //
-  AddLocalApicMemorySpace (ImageHandle);
+  AddLocalApicMemorySpace ();
 
   //
   // Setup a callback for idle events

@@ -287,6 +287,12 @@ DxeMain (
   gST->RuntimeServices = gRT;
 
   //
+  // Install the DXE Services Table into the EFI System Tables's Configuration Table
+  //
+  Status = CoreInstallConfigurationTable (&gEfiDxeServicesTableGuid, gDS);
+  ASSERT_EFI_ERROR (Status);
+
+  //
   // Start the Image Services.
   //
   Status = CoreInitializeImageServices (HobStart, &ImageContext);
@@ -325,12 +331,6 @@ DxeMain (
   // FIXME: This is done by DxeIpl, why is this needed here? Difference PEI/DXE?
   //
   UefiImageLoaderRelocateImageExtraAction (&ImageContext);
-
-  //
-  // Install the DXE Services Table into the EFI System Tables's Configuration Table
-  //
-  Status = CoreInstallConfigurationTable (&gEfiDxeServicesTableGuid, gDS);
-  ASSERT_EFI_ERROR (Status);
 
   //
   // Install the HOB List into the EFI System Tables's Configuration Table
@@ -515,6 +515,16 @@ DxeMain (
   // Initialize the DXE Dispatcher
   //
   CoreInitializeDispatcher ();
+
+  //
+  // Invoke the DXE Dispatcher
+  //
+  CoreDispatcher ();
+
+  //
+  // Initialize CPU Architectural Protocol
+  //
+  InitializeCpu ();
 
   //
   // Invoke the DXE Dispatcher

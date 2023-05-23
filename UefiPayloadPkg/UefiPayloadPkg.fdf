@@ -127,7 +127,6 @@ INF CryptoPkg/Driver/CryptoDxe.inf
 !if $(SECURITY_STUB_ENABLE) == TRUE
 INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
 !endif
-INF UefiCpuPkg/CpuDxe/CpuDxe.inf
 
 INF RuleOverride = UI MdeModulePkg/Application/UiApp/UiApp.inf
 INF MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf
