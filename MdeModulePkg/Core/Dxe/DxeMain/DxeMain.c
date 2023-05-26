@@ -245,18 +245,6 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
   //
-  // Setup the default exception handlers
-  //
-  VectorInfoList = NULL;
-  GuidHob        = GetNextGuidHob (&gEfiVectorHandoffInfoPpiGuid, HobStart);
-  if (GuidHob != NULL) {
-    VectorInfoList = (EFI_VECTOR_HANDOFF_INFO *)(GET_GUID_HOB_DATA (GuidHob));
-  }
-
-  Status = InitializeCpuExceptionHandlers (VectorInfoList);
-  ASSERT_EFI_ERROR (Status);
-
-  //
   // Setup Stack Guard
   //
   if (PcdGetBool (PcdCpuStackGuard)) {
@@ -469,6 +457,7 @@ DxeMain (
   // Get persisted vector hand-off info from GUIDeed HOB again due to HobStart may be updated,
   // and install configuration table
   //
+  VectorInfoList = NULL;
   GuidHob = GetNextGuidHob (&gEfiVectorHandoffInfoPpiGuid, HobStart);
   if (GuidHob != NULL) {
     VectorInfoList = (EFI_VECTOR_HANDOFF_INFO *)(GET_GUID_HOB_DATA (GuidHob));
