@@ -307,11 +307,34 @@ DxeMain (
   ASSERT_EFI_ERROR (Status);
 
   //
+  // Initialize the Event Services
+  //
+  Status = CoreInitializeEventServices ();
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Register for the GUIDs of the Architectural Protocols, so the rest of the
+  // EFI Boot Services and EFI Runtime Services tables can be filled in.
+  // Also register for the GUIDs of optional protocols.
+  //
+  CoreNotifyOnProtocolInstallation ();
+
+  //
+  // Initialize CPU Architectural Protocol
+  //
+  InitializeCpu ();
+
+  //
   // Call constructor for all libraries
   //
   ProcessLibraryConstructorList (gImageHandle, gST);
   PERF_CROSSMODULE_END ("PEI");
   PERF_CROSSMODULE_BEGIN ("DXE");
+
+  //
+  // Initialize Multi-processor support
+  //
+  InitializeMpSupport ();
 
   //
   // Log MemoryBaseAddress and MemoryLength again (from
@@ -435,12 +458,6 @@ DxeMain (
 
   DEBUG_CODE_END ();
 
-  //
-  // Initialize the Event Services
-  //
-  Status = CoreInitializeEventServices ();
-  ASSERT_EFI_ERROR (Status);
-
   MemoryProfileInstallProtocol ();
 
   CoreInitializeMemoryAttributesTable ();
@@ -490,13 +507,6 @@ DxeMain (
   ASSERT_EFI_ERROR (Status);
 
   //
-  // Register for the GUIDs of the Architectural Protocols, so the rest of the
-  // EFI Boot Services and EFI Runtime Services tables can be filled in.
-  // Also register for the GUIDs of optional protocols.
-  //
-  CoreNotifyOnProtocolInstallation ();
-
-  //
   // Produce Firmware Volume Protocols, one for each FV in the HOB list.
   //
   Status = FwVolBlockDriverInit (gImageHandle, gST);
@@ -515,11 +525,6 @@ DxeMain (
   // Initialize the DXE Dispatcher
   //
   CoreInitializeDispatcher ();
-
-  //
-  // Initialize CPU Architectural Protocol
-  //
-  InitializeCpu ();
 
   //
   // Invoke the DXE Dispatcher
