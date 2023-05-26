@@ -19,4 +19,13 @@ InitializeCpu (
   VOID
   );
 
+/**
+  Initialize Multi-processor support.
+
+**/
+VOID
+InitializeMpSupport (
+  VOID
+  );
+
 #endif // _CPU_ARCH_LIB_H_
