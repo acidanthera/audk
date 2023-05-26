@@ -324,6 +324,8 @@ DxeMain (
   //
   InitializeCpu ();
 
+  ProtectUefiImage (mCurrentImage, &ImageContext);
+
   //
   // Call constructor for all libraries
   //

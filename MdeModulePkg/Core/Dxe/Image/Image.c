@@ -297,8 +297,6 @@ CoreInitializeImageServices (
 
   InitializeListHead (&mAvailableEmulators);
 
-  ProtectUefiImage (Image, ImageContext);
-
   return Status;
 }
 
