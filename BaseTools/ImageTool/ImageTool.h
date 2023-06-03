@@ -34,7 +34,7 @@ typedef struct {
   uint16_t Machine;
   uint16_t Subsystem;
   uint8_t  FixedAddress;
-  uint8_t  Reserved[6];
+  uint8_t  Reserved[7];
 } image_tool_header_info_t;
 
 typedef struct {
@@ -130,6 +130,11 @@ ToolImageStripRelocs (
   image_tool_image_info_t  *Image
   );
 
+uint8_t
+ToolImageGetRelocSize (
+  uint8_t  Type
+  );
+
 RETURN_STATUS
 ToolContextConstructUefiImage (
   OUT image_tool_image_info_t *Image,
@@ -174,6 +179,13 @@ ConstructHii (
   IN  GUID       *HiiGuid,
   OUT void       **Hii,
   OUT UINT32     *HiiSize
+  );
+
+const image_tool_segment_t *
+ImageGetSegmentByAddress (
+  uint32_t                        *Address,
+  uint32_t                        *RemainingSize,
+  const image_tool_segment_info_t *SegmentInfo
   );
 
 #endif // IMAGE_TOOL_H

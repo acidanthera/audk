@@ -92,7 +92,6 @@ CheckToolImageSegmentInfo (
   return true;
 }
 
-static
 const image_tool_segment_t *
 ImageGetSegmentByAddress (
   uint32_t                        *Address,
@@ -117,6 +116,34 @@ ImageGetSegmentByAddress (
   return NULL;
 }
 
+uint8_t
+ToolImageGetRelocSize (
+  uint8_t  Type
+  )
+{
+  switch (Type) {
+    case EFI_IMAGE_REL_BASED_HIGHLOW:
+    {
+      return sizeof (UINT32);
+    }
+
+    case EFI_IMAGE_REL_BASED_DIR64:
+    {
+      return sizeof (UINT64);
+    }
+
+    case EFI_IMAGE_REL_BASED_ARM_MOV32T:
+    {
+      return sizeof (UINT32);
+    }
+
+    default:
+    {
+      return 0;
+    }
+  }
+}
+
 static
 bool
 CheckToolImageReloc (
@@ -126,6 +153,7 @@ CheckToolImageReloc (
   )
 {
   uint32_t                   RelocOffset;
+  uint8_t                    RelocSize;
   uint32_t                   RemainingSize;
   const image_tool_segment_t *Segment;
   uint16_t                   MovHigh;
@@ -145,60 +173,40 @@ CheckToolImageReloc (
     return false;
   }
 
-  switch (Reloc->Type) {
-    case EFI_IMAGE_REL_BASED_HIGHLOW:
-    {
-      if (RemainingSize < sizeof (UINT32)) {
-        raise ();
-        return false;
-      }
+  RelocSize = ToolImageGetRelocSize (Reloc->Type);
+  if (RelocSize == 0) {
+    raise ();
+    return false;
+  }
 
-      break;
+  if (RelocSize > RemainingSize) {
+    raise ();
+    return false;
+  }
+
+  if (Reloc->Type == EFI_IMAGE_REL_BASED_ARM_MOV32T) {
+    if (!IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16))) {
+      raise ();
+      return false;
     }
 
-    case EFI_IMAGE_REL_BASED_DIR64:
-    {
-      if (RemainingSize < sizeof (UINT64)) {
-        raise ();
-        return false;
-      }
-
-      break;
-    }
-
-    case EFI_IMAGE_REL_BASED_ARM_MOV32T:
-    {
-      if (RemainingSize < sizeof (UINT32)) {
-        raise ();
-        return false;
-      }
-
-      if (!IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16))) {
-        raise ();
-        return false;
-      }
-
-      MovHigh = *(const uint16_t *)&Segment->Data[RelocOffset];
-      MovLow  = *(const uint16_t *)&Segment->Data[RelocOffset + 2];
-      if (((MovHigh & 0xFBF0U) != 0xF200U && (MovHigh & 0xFBF0U) != 0xF2C0U) ||
-        (MovLow & 0x8000U) != 0) {
-        raise ();
-        return false;
-      }
-
-      break;
-    }
-
-    default:
-    {
+    MovHigh = *(const uint16_t *)&Segment->Data[RelocOffset];
+    MovLow  = *(const uint16_t *)&Segment->Data[RelocOffset + 2];
+    if (((MovHigh & 0xFBF0U) != 0xF200U && (MovHigh & 0xFBF0U) != 0xF2C0U) ||
+      (MovLow & 0x8000U) != 0) {
       raise ();
       return false;
     }
   }
 
-  /*if (Segment->Write) {
+  // FIXME: Update drivers?
+  if ((Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER ||
+       Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER) &&
+      Segment->Write) {
     printf("!!! writable reloc at %x !!!\n", Reloc->Target);
-  }*/
+    //raise ();
+    //return false;
+  }
 
   return true;
 }
@@ -211,6 +219,7 @@ CheckToolImageRelocInfo (
   )
 {
   const image_tool_reloc_info_t *RelocInfo;
+  uint32_t                      PrevTarget;
   uint32_t                      Index;
   bool                          Result;
 
@@ -222,7 +231,7 @@ CheckToolImageRelocInfo (
     return true;
   }
 
-  if (RelocInfo->RelocsStripped && (RelocInfo->NumRelocs > 0)) {
+  if (RelocInfo->RelocsStripped) {
     raise ();
     return false;
   }
@@ -232,14 +241,10 @@ CheckToolImageRelocInfo (
     return false;
   }
 
-  Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[0]);
-  if (!Result) {
-    raise ();
-    return false;
-  }
+  PrevTarget = 0;
 
-  for (Index = 1; Index < RelocInfo->NumRelocs; ++Index) {
-    if (RelocInfo->Relocs[Index].Target < RelocInfo->Relocs[Index - 1].Target) {
+  for (Index = 0; Index < RelocInfo->NumRelocs; ++Index) {
+    if (RelocInfo->Relocs[Index].Target < PrevTarget) {
       assert (false);
       return false;
     }
@@ -249,6 +254,8 @@ CheckToolImageRelocInfo (
       raise ();
       return false;
     }
+
+    PrevTarget = RelocInfo->Relocs[Index].Target;
   }
 
   return true;
