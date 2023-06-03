@@ -53,7 +53,13 @@ InternalFinalizeExtraSection (
 
   assert (Size == ImageToolBufferGetSize (Buffer) - Offset);
 
-  strncpy ((char *)SectionHeader->Name, Name, sizeof (SectionHeader->Name));
+  strncpy (
+    (char *)SectionHeader->Name,
+    Name,
+    sizeof (SectionHeader->Name)
+    );
+  SectionHeader->Name[ARRAY_SIZE (SectionHeader->Name) - 1] = 0;
+
   SectionHeader->VirtualSize      = ALIGN_VALUE (Size, PeHdr->SectionAlignment);
   SectionHeader->VirtualAddress   = PeHdr->SizeOfImage;
   SectionHeader->SizeOfRawData    = ALIGN_VALUE (Size, PeHdr->FileAlignment);
