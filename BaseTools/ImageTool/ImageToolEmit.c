@@ -138,6 +138,7 @@ ToolImageEmit (
 
   Success = CheckToolImage (&ImageInfo);
   if (!Success) {
+    raise ();
     ToolImageDestruct (&ImageInfo);
     return NULL;
   }
