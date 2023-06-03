@@ -66,14 +66,14 @@
 [Rule.Common.UEFI_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
     DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    PE32         PE32                   $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
     UI           STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.DXE_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
     DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    PE32         PE32                   $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
     UI           STRING="$(MODULE_NAME)" Optional
     RAW          ACPI  Optional               |.acpi
     RAW          ASL   Optional               |.aml
@@ -82,27 +82,27 @@
 [Rule.Common.DXE_RUNTIME_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
     DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    PE32         PE32                   $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
     UI           STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.UEFI_APPLICATION]
   FILE APPLICATION = $(NAMED_GUID) {
     UI     STRING ="$(MODULE_NAME)"     Optional
-    PE32   PE32                         $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE     UE                           $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.UEFI_DRIVER.BINARY]
   FILE DRIVER = $(NAMED_GUID) {
     DXE_DEPEX DXE_DEPEX Optional      |.depex
-    PE32      PE32                    |.efi
+    UE        UE                      |.efi
     UI        STRING="$(MODULE_NAME)" Optional
     VERSION   STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
   }
 
 [Rule.Common.UEFI_APPLICATION.BINARY]
   FILE APPLICATION = $(NAMED_GUID) {
-    PE32      PE32                    |.efi
+    UE        UE                      |.efi
     UI        STRING="$(MODULE_NAME)" Optional
     VERSION   STRING="$(INF_VERSION)" Optional BUILD_NUM=$(BUILD_NUMBER)
   }

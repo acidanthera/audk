@@ -335,6 +335,10 @@ NameToFormat (
   IN const char  *FormatName
   )
 {
+  if (strcmp (FormatName, "UE") == 0) {
+    return UefiImageFormatUe;
+  }
+
   if (strcmp (FormatName, "PE") == 0) {
     return UefiImageFormatPe;
   }

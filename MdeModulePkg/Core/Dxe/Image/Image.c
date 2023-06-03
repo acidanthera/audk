@@ -246,6 +246,8 @@ CoreInitializeImageServices (
   // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
   if (ImageContext->FormatIndex == UefiImageFormatPe) {
     ImageContext->Ctx.Pe.ImageBuffer = (VOID *) ImageContext->Ctx.Pe.FileBuffer;
+  } else if (ImageContext->FormatIndex == UefiImageFormatUe) {
+    ImageContext->Ctx.Ue.ImageBuffer = (VOID *) ImageContext->Ctx.Ue.FileBuffer;
   } else {
     ASSERT (FALSE);
   }

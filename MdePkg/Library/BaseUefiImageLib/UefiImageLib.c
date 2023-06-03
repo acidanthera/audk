@@ -20,6 +20,7 @@
 #include <Library/UefiImageLib.h>
 #include <Library/UefiImageExtraActionLib.h>
 
+#include "UeSupport.h"
 #include "PeSupport.h"
 
 STATIC_ASSERT (
@@ -39,34 +40,50 @@ STATIC_ASSERT (
 #define UEFI_IMAGE_FORMAT_SUPPORT_FV  0
 #endif
 
-#define UEFI_IMAGE_SUPPORT  \
+#define UEFI_IMAGE_FORMAT_SUPPORT  \
   (UEFI_IMAGE_FORMAT_SUPPORT_NON_FV | UEFI_IMAGE_FORMAT_SUPPORT_FV)
 
-#define FORMAT_EQ(FormatIndex, Format)               \
-  (UEFI_IMAGE_SUPPORT == (1U << (Format)) ||         \
-   ((UEFI_IMAGE_SUPPORT & (1U << (Format))) != 0 &&  \
+#define FORMAT_EQ(FormatIndex, Format)                      \
+  (UEFI_IMAGE_FORMAT_SUPPORT == (1U << (Format)) ||         \
+   ((UEFI_IMAGE_FORMAT_SUPPORT & (1U << (Format))) != 0 &&  \
     (FormatIndex) == (Format)))
 
 #define UEFI_IMAGE_EXEC(Result, FormatIndex, Func, ...)  \
   do {                                                   \
-    ASSERT ((FormatIndex) == UefiImageFormatPe);         \
-    Result = mPeSupport.Func (__VA_ARGS__);              \
+    if (FORMAT_EQ ((FormatIndex), UefiImageFormatUe)) {  \
+      ASSERT ((FormatIndex) == UefiImageFormatUe);       \
+      Result = mUeSupport.Func (__VA_ARGS__);            \
+    } else {                                             \
+      ASSERT ((FormatIndex) == UefiImageFormatPe);       \
+      Result = mPeSupport.Func (__VA_ARGS__);            \
+    }                                                    \
   } while (FALSE)
 
-#define UEFI_IMAGE_EXEC_VOID(FormatIndex, Func, ...)   \
-  do {                                                 \
-    ASSERT ((FormatIndex) == UefiImageFormatPe);       \
-    mPeSupport.Func (__VA_ARGS__);                     \
+#define UEFI_IMAGE_EXEC_VOID(FormatIndex, Func, ...)     \
+  do {                                                   \
+    if (FORMAT_EQ ((FormatIndex), UefiImageFormatUe)) {  \
+      ASSERT ((FormatIndex) == UefiImageFormatUe);       \
+      mUeSupport.Func (__VA_ARGS__);                     \
+    } else {                                             \
+      ASSERT ((FormatIndex) == UefiImageFormatPe);       \
+      mPeSupport.Func (__VA_ARGS__);                     \
+    }                                                    \
   } while (FALSE)
 
 STATIC_ASSERT (
-  UefiImageFormatPe == UefiImageFormatMax - 1,
+  UefiImageFormatMax == 2,
   "Support for more formats needs to be added above."
   );
 
-#define FORMAT_SUPPORTED(Format, Source)            \
-  ((UEFI_IMAGE_SUPPORT & (1U << (Format))) != 0 &&  \
-   (mUefiImageSupportSource[Source] & (1U << (Format))) != 0)
+#define FORMAT_SUPPORTED(Format, Source)                                                                     \
+  ((UEFI_IMAGE_FORMAT_SUPPORT & (1U << (Format))) != 0 &&                                                    \
+   (((Source) == UEFI_IMAGE_SOURCE_NON_FV && (UEFI_IMAGE_FORMAT_SUPPORT_NON_FV & (1U << (Format))) != 0) ||  \
+    ((Source) == UEFI_IMAGE_SOURCE_FV && (UEFI_IMAGE_FORMAT_SUPPORT_FV & (1U << (Format))) != 0)))
+
+STATIC_ASSERT (
+  UEFI_IMAGE_SOURCE_MAX == 3,
+  "Support for more sources needs to be added above."
+  );
 
 STATIC
 RETURN_STATUS
@@ -99,12 +116,6 @@ UefiImageInitializeContextPreHash (
   IN  UEFI_IMAGE_SOURCE                Source
   )
 {
-  CONST UINT8  mUefiImageSupportSource[UEFI_IMAGE_SOURCE_MAX] = {
-    UEFI_IMAGE_FORMAT_SUPPORT_NON_FV,
-    UEFI_IMAGE_FORMAT_SUPPORT_FV,
-    UEFI_IMAGE_SUPPORT
-  };
-
   RETURN_STATUS  Status;
 
 #if (UEFI_IMAGE_FORMAT_SUPPORT_SOURCES & (1U << UEFI_IMAGE_SOURCE_NON_FV)) != 0
@@ -128,7 +139,20 @@ UefiImageInitializeContextPreHash (
     "Support for more formats needs to be added above."
     );
 
-  if (FORMAT_SUPPORTED (UefiImageFormatPe, Source)) {
+  if (FORMAT_SUPPORTED (UefiImageFormatUe, Source)) {
+    Status = InternalInitializeContextPreHash (
+               Context,
+               FileBuffer,
+               FileSize,
+               UefiImageFormatUe
+               );
+    if (!RETURN_ERROR (Status)) {
+      Context->FormatIndex = UefiImageFormatUe;
+      return RETURN_SUCCESS;
+    }
+  }
+
+  if (RETURN_ERROR (Status) && FORMAT_SUPPORTED (UefiImageFormatPe, Source)) {
     Status = InternalInitializeContextPreHash (
                Context,
                FileBuffer,

@@ -904,6 +904,8 @@ Returns:
   fprintf (FvMapFile, "EntryPoint=0x%010llx, ", (unsigned long long) (ImageBaseAddress + AddressOfEntryPoint));
   if (Format == UefiImageFormatPe) {
     fprintf (FvMapFile, "Type=PE");
+  } else if (Format == UefiImageFormatUe) {
+    fprintf (FvMapFile, "Type=UE");
   } else {
     assert (FALSE);
     fprintf (FvMapFile, "Type=Unknown");

@@ -171,7 +171,7 @@ extern UINT64 _gPcd_SkuId_Array[];
 //#define _PCD_SET_MODE_8_PcdUefiImageFormatSupportNonFv  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
 
 #define _PCD_TOKEN_PcdUefiImageFormatSupportFv  0U
-#define _PCD_VALUE_PcdUefiImageFormatSupportFv 0x01
+#define _PCD_VALUE_PcdUefiImageFormatSupportFv 0x03
 #define _PCD_SIZE_PcdUefiImageFormatSupportFv 1
 #define _PCD_GET_MODE_SIZE_PcdUefiImageFormatSupportFv _PCD_SIZE_PcdUefiImageFormatSupportFv
 #define _PCD_GET_MODE_8_PcdUefiImageFormatSupportFv  _PCD_VALUE_PcdUefiImageFormatSupportFv

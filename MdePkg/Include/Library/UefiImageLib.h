@@ -2,10 +2,12 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
+#include <Library/UeImageLib.h>
 #include <Library/PeCoffLib2.h>
 
 typedef enum {
-  UefiImageFormatPe = 0,
+  UefiImageFormatUe = 0,
+  UefiImageFormatPe = 1,
   UefiImageFormatMax
 } UEFI_IMAGE_FORMAT;
 
@@ -19,6 +21,7 @@ typedef UINT8 UEFI_IMAGE_SOURCE;
 typedef struct {
   UINT8                           FormatIndex;
   union {
+    UE_LOADER_IMAGE_CONTEXT       Ue;
     PE_COFF_LOADER_IMAGE_CONTEXT  Pe;
   }                               Ctx;
 } UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
@@ -571,6 +574,22 @@ UefiImageGetRelocsStripped (
 **/
 UINTN
 UefiImageLoaderGetImageAddress (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
+  Retrieves the Image debug address. Due to post-processing, the debug address
+  may deviate from the load address. Symbolication must use this address.
+
+  May be called only after UefiImageLoadImage() has succeeded.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by UefiImageInitializeContext().
+
+  @returns  The Image debug address.
+**/
+UINTN
+UefiImageLoaderGetDebugAddress (
   IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
