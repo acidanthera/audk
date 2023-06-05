@@ -52,7 +52,7 @@ IntelTdxInitialize (
   PcdStatus = PcdSet64S (PcdTdxSharedBitMask, PageMask);
   ASSERT_RETURN_ERROR (PcdStatus);
 
-  PlatformInfoHob->TdxSharedBitMask = PageMask;
+  PlatformInfoHob->PcdTdxSharedBitMask = PageMask;
 
   PcdStatus = PcdSetBoolS (PcdSetNxForStack, TRUE);
   ASSERT_RETURN_ERROR (PcdStatus);
