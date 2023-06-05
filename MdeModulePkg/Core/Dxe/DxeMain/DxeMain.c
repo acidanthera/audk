@@ -312,6 +312,12 @@ DxeMain (
   //
   InitializeCpu ();
 
+  MemoryProfileInstallProtocol ();
+
+  CoreInitializeMemoryAttributesTable ();
+
+  CoreInitializeMemoryProtection ();
+
   ProtectUefiImage (mCurrentImage, &ImageContext);
 
   //
@@ -447,11 +453,6 @@ DxeMain (
   }
 
   DEBUG_CODE_END ();
-
-  MemoryProfileInstallProtocol ();
-
-  CoreInitializeMemoryAttributesTable ();
-  CoreInitializeMemoryProtection ();
 
   //
   // Get persisted vector hand-off info from GUIDeed HOB again due to HobStart may be updated,
