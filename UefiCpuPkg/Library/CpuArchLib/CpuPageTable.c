@@ -310,7 +310,7 @@ GetPageTableEntry (
   //
   AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask & PAGING_1G_ADDRESS_MASK_64;
   if (AddressEncMask == 0) {
-    AddressEncMask = mPlatformInfoHob2->TdxSharedBitMask & PAGING_1G_ADDRESS_MASK_64;
+    AddressEncMask = mPlatformInfoHob2->PcdTdxSharedBitMask & PAGING_1G_ADDRESS_MASK_64;
   }
 
   if (PagingContext->MachineType == IMAGE_FILE_MACHINE_X64) {
