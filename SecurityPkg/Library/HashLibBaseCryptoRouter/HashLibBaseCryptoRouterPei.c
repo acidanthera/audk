@@ -129,24 +129,24 @@ CheckSupportedHashMaskMismatch (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashStart (
-  OUT VOID           **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
   HASH_INTERFACE_HOB  *HashInterfaceHob;
-  VOID               **HashCtx;
+  HASH_HANDLE         *HashCtx;
   UINTN               Index;
   UINT32              HashMask;
 
   HashInterfaceHob = InternalGetHashInterfaceHob (&gEfiCallerIdGuid);
   if (HashInterfaceHob == NULL) {
-    return FALSE;
+    return EFI_UNSUPPORTED;
   }
 
   if (HashInterfaceHob->HashInterfaceCount == 0) {
-    return FALSE;
+    return EFI_UNSUPPORTED;
   }
 
   CheckSupportedHashMaskMismatch (HashInterfaceHob);
@@ -161,9 +161,9 @@ HashStart (
     }
   }
 
-  *HashHandle = HashCtx;
+  *HashHandle = (HASH_HANDLE)HashCtx;
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -175,31 +175,31 @@ HashStart (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashUpdate (
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
+  IN HASH_HANDLE  HashHandle,
+  IN VOID         *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
   HASH_INTERFACE_HOB  *HashInterfaceHob;
-  VOID               **HashCtx;
+  HASH_HANDLE         *HashCtx;
   UINTN               Index;
   UINT32              HashMask;
 
   HashInterfaceHob = InternalGetHashInterfaceHob (&gEfiCallerIdGuid);
   if (HashInterfaceHob == NULL) {
-    return FALSE;
+    return EFI_UNSUPPORTED;
   }
 
   if (HashInterfaceHob->HashInterfaceCount == 0) {
-    return FALSE;
+    return EFI_UNSUPPORTED;
   }
 
   CheckSupportedHashMaskMismatch (HashInterfaceHob);
 
-  HashCtx = (VOID **)HashHandle;
+  HashCtx = (HASH_HANDLE *)HashHandle;
 
   for (Index = 0; Index < HashInterfaceHob->HashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&HashInterfaceHob->HashInterface[Index].HashGuid);
@@ -208,7 +208,7 @@ HashUpdate (
     }
   }
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -225,7 +225,7 @@ HashUpdate (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN VOID                *HashHandle,
+  IN HASH_HANDLE          HashHandle,
   IN TPMI_DH_PCR          PcrIndex,
   IN VOID                 *DataToHash,
   IN UINTN                DataToHashLen,
@@ -234,7 +234,7 @@ HashCompleteAndExtend (
 {
   TPML_DIGEST_VALUES  Digest;
   HASH_INTERFACE_HOB  *HashInterfaceHob;
-  VOID               **HashCtx;
+  HASH_HANDLE         *HashCtx;
   UINTN               Index;
   EFI_STATUS          Status;
   UINT32              HashMask;
@@ -250,7 +250,7 @@ HashCompleteAndExtend (
 
   CheckSupportedHashMaskMismatch (HashInterfaceHob);
 
-  HashCtx = (VOID **)HashHandle;
+  HashCtx = (HASH_HANDLE *)HashHandle;
   ZeroMem (DigestList, sizeof (*DigestList));
 
   for (Index = 0; Index < HashInterfaceHob->HashInterfaceCount; Index++) {
@@ -291,7 +291,7 @@ HashAndExtend (
   )
 {
   HASH_INTERFACE_HOB  *HashInterfaceHob;
-  VOID               *HashHandle;
+  HASH_HANDLE         HashHandle;
   EFI_STATUS          Status;
 
   HashInterfaceHob = InternalGetHashInterfaceHob (&gEfiCallerIdGuid);
