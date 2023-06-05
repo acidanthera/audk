@@ -45,10 +45,10 @@ Tpm2SetSha384ToDigestList (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha384HashInit (
-  OUT VOID           **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
   VOID   *Sha384Ctx;
@@ -60,9 +60,9 @@ Sha384HashInit (
 
   Sha384Init (Sha384Ctx);
 
-  *HashHandle = Sha384Ctx;
+  *HashHandle = (HASH_HANDLE)Sha384Ctx;
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -74,17 +74,20 @@ Sha384HashInit (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha384HashUpdate (
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
+  IN HASH_HANDLE  HashHandle,
+  IN VOID         *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
-  Sha384Update (HashHandle, DataToHash, DataToHashLen);
+  VOID  *Sha384Ctx;
 
-  return TRUE;
+  Sha384Ctx = (VOID *)HashHandle;
+  Sha384Update (Sha384Ctx, DataToHash, DataToHashLen);
+
+  return EFI_SUCCESS;
 }
 
 /**
@@ -95,22 +98,24 @@ Sha384HashUpdate (
 
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha384HashFinal (
-  IN VOID                *HashHandle,
+  IN HASH_HANDLE          HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SHA384_DIGEST_SIZE];
+  VOID   *Sha384Ctx;
 
-  Sha384Final (HashHandle, Digest);
+  Sha384Ctx = (VOID *)HashHandle;
+  Sha384Final (Sha384Ctx, Digest);
 
-  FreePool (HashHandle);
+  FreePool (Sha384Ctx);
 
   Tpm2SetSha384ToDigestList (DigestList, Digest);
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 HASH_INTERFACE  mSha384InternalHashInstance = {

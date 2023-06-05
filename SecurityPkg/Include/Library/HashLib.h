@@ -14,6 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Uefi.h>
 #include <Protocol/Hash.h>
 #include <IndustryStandard/Tpm20.h>
+typedef UINTN HASH_HANDLE;
 
 /**
   Start hash sequence.
@@ -23,10 +24,10 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashStart (
-  OUT VOID          **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   );
 
 /**
@@ -38,11 +39,11 @@ HashStart (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashUpdate (
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
+  IN HASH_HANDLE  HashHandle,
+  IN VOID         *DataToHash,
   IN UINTN        DataToHashLen
   );
 
@@ -60,7 +61,7 @@ HashUpdate (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN VOID                *HashHandle,
+  IN HASH_HANDLE          HashHandle,
   IN TPMI_DH_PCR          PcrIndex,
   IN VOID                 *DataToHash,
   IN UINTN                DataToHashLen,
@@ -95,9 +96,9 @@ HashAndExtend (
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
 typedef
-BOOLEAN
+EFI_STATUS
 (EFIAPI *HASH_INIT)(
-  OUT VOID           **HashHandle
+  OUT HASH_HANDLE    *HashHandle
   );
 
 /**
@@ -110,10 +111,10 @@ BOOLEAN
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
 typedef
-BOOLEAN
+EFI_STATUS
 (EFIAPI *HASH_UPDATE)(
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
+  IN HASH_HANDLE    HashHandle,
+  IN VOID           *DataToHash,
   IN UINTN          DataToHashLen
   );
 
@@ -126,9 +127,9 @@ BOOLEAN
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
 typedef
-BOOLEAN
+EFI_STATUS
 (EFIAPI *HASH_FINAL)(
-  IN VOID                *HashHandle,
+  IN HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES *DigestList
   );
 
