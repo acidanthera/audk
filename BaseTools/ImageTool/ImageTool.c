@@ -356,6 +356,7 @@ GenExecutable (
   IN const char  *FormatName,
   IN const char  *TypeName,
   IN const char  *BaseAddress,
+  IN bool        Xip,
   IN bool        Strip,
   IN bool        FixedAddress
   )
@@ -411,6 +412,7 @@ GenExecutable (
                  BaseAddress != NULL,
                  NewBaseAddress,
                  InputFileName,
+                 Xip,
                  Strip,
                  FixedAddress
                  );
@@ -435,6 +437,7 @@ int main (int argc, const char *argv[])
   const char     *FormatName;
   const char     *TypeName;
   const char     *BaseAddress;
+  bool           Xip;
   bool           Strip;
   bool           FixedAddress;
   int            ArgIndex;
@@ -452,7 +455,7 @@ int main (int argc, const char *argv[])
   if (strcmp (argv[1], "GenImage") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-s] [-f] -o OutputFile InputFile\n");
+      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-x] [-s] [-f] -o OutputFile InputFile\n");
       raise ();
       return -1;
     }
@@ -462,6 +465,7 @@ int main (int argc, const char *argv[])
     FormatName   = NULL;
     TypeName     = NULL;
     BaseAddress  = NULL;
+    Xip          = false;
     Strip        = false;
     FixedAddress = false;
     for (ArgIndex = 2; ArgIndex < argc; ++ArgIndex) {
@@ -497,6 +501,8 @@ int main (int argc, const char *argv[])
         }
 
         BaseAddress = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-x") == 0) {
+        Xip = true;
       } else if (strcmp (argv[ArgIndex], "-s") == 0) {
         Strip = true;
       } else if (strcmp (argv[ArgIndex], "-f") == 0) {
@@ -527,6 +533,7 @@ int main (int argc, const char *argv[])
       FormatName,
       TypeName,
       BaseAddress,
+      Xip,
       Strip,
       FixedAddress
       );

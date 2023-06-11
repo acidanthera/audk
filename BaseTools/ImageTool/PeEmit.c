@@ -7,6 +7,7 @@
 #include "ImageTool.h"
 
 #include "DynamicBuffer.h"
+#include "PeEmitCommon.h"
 
 #if PE_ARCH == 32
 
@@ -644,8 +645,9 @@ ToolImageEmitPeFile (
 #define ToolImageEmitPe  PE_SUFFIX (ToolImageEmitPe)
 void *
 ToolImageEmitPe (
-  image_tool_image_info_t  *Image,
-  uint32_t                 *FileSize
+  const image_tool_image_info_t  *Image,
+  uint32_t                       *FileSize,
+  bool                           Xip
   )
 {
   bool                       Success;
@@ -659,8 +661,7 @@ ToolImageEmitPe (
 
   ImageToolBufferInit (&Buffer);
 
-  // FIXME: Non-XIP is not well-supported right now.
-  Success = ToolImageEmitPeFile (&Buffer, Image, true);
+  Success = ToolImageEmitPeFile (&Buffer, Image, Xip);
   if (!Success) {
     raise ();
     ImageToolBufferFree (&Buffer);

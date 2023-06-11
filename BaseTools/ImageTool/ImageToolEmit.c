@@ -94,6 +94,7 @@ ToolImageEmit (
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
   IN  const char  *SymbolsPath OPTIONAL,
+  IN  bool        Xip,
   IN  bool        Strip,
   IN  bool        FixedAddress
   )
@@ -158,7 +159,7 @@ ToolImageEmit (
 
   OutputFile = NULL;
   if (Format == UefiImageFormatPe) {
-    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Strip);
+    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Xip, Strip);
   } else {
     assert (false);
   }
