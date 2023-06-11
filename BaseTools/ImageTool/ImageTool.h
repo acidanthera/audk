@@ -152,6 +152,7 @@ void *
 ToolImageEmitPe (
   image_tool_image_info_t *Image,
   uint32_t                *FileSize,
+  bool                    Xip,
   bool                    Strip
   );
 
