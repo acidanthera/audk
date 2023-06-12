@@ -166,6 +166,7 @@ ToolImageEmit (
 
   if (OutputFile == NULL) {
     DEBUG_RAISE ();
+    ToolImageDestruct (&ImageInfo);
     return NULL;
   }
 
@@ -175,6 +176,7 @@ ToolImageEmit (
 
   if (EFI_ERROR (Status)) {
     assert (false);
+    FreePool (OutputFile);
     return NULL;
   }
 
