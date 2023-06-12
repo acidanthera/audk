@@ -228,9 +228,8 @@ InitializeDma (
 }
 
 EFI_STATUS
-CpuDxeInitialize (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+InitializeCpu (
+  VOID
   )
 {
   EFI_STATUS  Status;
@@ -270,4 +269,15 @@ CpuDxeInitialize (
   ASSERT_EFI_ERROR (Status);
 
   return Status;
+}
+
+/**
+  Initialize Multi-processor support.
+
+**/
+VOID
+InitializeMpSupport (
+  VOID
+  )
+{
 }
