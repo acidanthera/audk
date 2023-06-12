@@ -418,6 +418,7 @@ GenExecutable (
                  );
 
   if (OutputFile == NULL) {
+    DEBUG_RAISE ();
     return RETURN_ABORTED;
   }
 
@@ -444,7 +445,7 @@ int main (int argc, const char *argv[])
 
   if (argc < 2) {
     fprintf (stderr, "ImageTool: No command is specified\n");
-    raise ();
+    DEBUG_RAISE ();
     return -1;
   }
   //
@@ -456,7 +457,7 @@ int main (int argc, const char *argv[])
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-x] [-s] [-f] -o OutputFile InputFile\n");
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
 
@@ -538,14 +539,14 @@ int main (int argc, const char *argv[])
       FixedAddress
       );
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   } else if (strcmp (argv[1], "HiiSrc") == 0) {
     if (argc < 5 || strcmp (argv[3], "-o") != 0) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool HiiBin GUID -o OutputFile InputFile1 InputFile2 ...\n");
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
 
@@ -553,20 +554,20 @@ int main (int argc, const char *argv[])
 
     Status = HiiSrc (argv[4], argv[2], &argv[5], NumOfFiles);
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   } else if (strcmp (argv[1], "GetAcpi") == 0) {
     if (argc != 5 || strcmp (argv[2], "-o") != 0) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool GetAcpi -o OutputFile InputFile\n");
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
 
     Status = GetAcpi (argv[4], argv[3]);
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   }
