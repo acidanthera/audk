@@ -92,6 +92,28 @@ CheckToolImageSegmentInfo (
   return true;
 }
 
+static
+bool
+CheckToolImageHeaderInfo (
+  const image_tool_header_info_t   *HeaderInfo,
+  const image_tool_segment_info_t  *SegmentInfo,
+  uint32_t                         ImageSize
+  )
+{
+  if (SegmentInfo->Segments[0].ImageAddress > HeaderInfo->EntryPointAddress ||
+      HeaderInfo->EntryPointAddress > ImageSize) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  if (!IS_ALIGNED (HeaderInfo->BaseAddress, SegmentInfo->SegmentAlignment)) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  return true;
+}
+
 const image_tool_segment_t *
 ImageGetSegmentByAddress (
   uint32_t                        *Address,
@@ -296,6 +318,16 @@ CheckToolImage (
     return false;
   }
 
+  Result = CheckToolImageHeaderInfo (
+             &Image->HeaderInfo,
+             &Image->SegmentInfo,
+             ImageSize
+             );
+  if (!Result) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
   Result = CheckToolImageRelocInfo (Image, ImageSize);
   if (!Result) {
     DEBUG_RAISE ();
@@ -371,10 +403,15 @@ ToolImageRelocate (
   uint32_t                   RelocTarget32;
   uint64_t                   RelocTarget64;
 
+  if (!IS_ALIGNED (BaseAddress, Image->SegmentInfo.SegmentAlignment)) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
   Adjust = BaseAddress - Image->HeaderInfo.BaseAddress;
 
   if (Adjust == 0) {
-    return TRUE;
+    return true;
   }
 
   for (Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
