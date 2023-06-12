@@ -238,6 +238,7 @@ ToolContextConstructUefiImage (
   Success = ScanUefiImageGetHeaderInfo (&Image->HeaderInfo, &Context);
   if (!Success) {
     fprintf (stderr, "ImageTool: Could not retrieve header info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
   }
@@ -245,6 +246,7 @@ ToolContextConstructUefiImage (
   Success = ScanUefiImageGetSegmentInfo (&Image->SegmentInfo, &Context);
   if (!Success) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
   }
@@ -252,6 +254,7 @@ ToolContextConstructUefiImage (
   Success = ScanUefiImageGetRelocInfo (&Image->RelocInfo, &Context);
   if (!Success) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
   }
@@ -259,6 +262,7 @@ ToolContextConstructUefiImage (
   Success = ScanUefiImageGetHiiInfo (&Image->HiiInfo, &Context);
   if (!Success) {
     fprintf (stderr, "ImageTool: Could not retrieve HII info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
   }
@@ -266,6 +270,7 @@ ToolContextConstructUefiImage (
   Success = ScanUefiImageGetDebugInfo (&Image->DebugInfo, &Context);
   if (!Success) {
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
+    ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
     return RETURN_VOLUME_CORRUPTED;
   }
