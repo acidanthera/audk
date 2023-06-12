@@ -42,7 +42,7 @@ ImageToolBufferExpand (
                  &NewAllocatedSize
                  );
     if (Overflow) {
-      raise ();
+      DEBUG_RAISE ();
       return MAX_UINT32;
     }
 
@@ -52,13 +52,13 @@ ImageToolBufferExpand (
                  &NewAllocatedSize
                  );
     if (Overflow) {
-      raise ();
+      DEBUG_RAISE ();
       return MAX_UINT32;
     }
 
     NewMemory = realloc (Buffer->Memory, NewAllocatedSize);
     if (NewMemory == NULL) {
-      raise ();
+      DEBUG_RAISE ();
       return MAX_UINT32;
     }
 

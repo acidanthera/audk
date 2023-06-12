@@ -67,7 +67,7 @@ ValidateOutputFile (
 
   Result = CheckToolImage (&OutputImageInfo);
   if (!Result) {
-    raise ();
+    DEBUG_RAISE ();
     ToolImageDestruct (&OutputImageInfo);
     return RETURN_UNSUPPORTED;
   }
@@ -139,7 +139,7 @@ ToolImageEmit (
 
   Success = CheckToolImage (&ImageInfo);
   if (!Success) {
-    raise ();
+    DEBUG_RAISE ();
     ToolImageDestruct (&ImageInfo);
     return NULL;
   }
@@ -165,7 +165,7 @@ ToolImageEmit (
   }
 
   if (OutputFile == NULL) {
-    raise ();
+    DEBUG_RAISE ();
     return NULL;
   }
 

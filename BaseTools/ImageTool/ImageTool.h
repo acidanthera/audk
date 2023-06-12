@@ -18,12 +18,11 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
+#include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <UserFile.h>
 
 #define MAX_PE_ALIGNMENT     0x10000
-
-#define raise() assert(false)
 
 #define PAGE(x)     ((x) & ~4095U)
 #define PAGE_OFF(x) ((x) & 4095U)

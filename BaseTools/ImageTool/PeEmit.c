@@ -98,7 +98,7 @@ ToolImageEmitPeHiiTable (
                      mHiiResourceSectionHeaderSize
                      );
   if (HiiTableOffset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -118,7 +118,7 @@ ToolImageEmitPeHiiTable (
              Image->HiiInfo.DataSize
              );
   if (Offset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -133,7 +133,7 @@ ToolImageEmitPeHiiTable (
               HiiTableOffset
               );
   if (!Success) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -168,7 +168,7 @@ ToolImageEmitPeRelocTable (
 
   RelocBlockOffset = ImageToolBufferAppendReserve (Buffer, sizeof (RelocBlock));
   if (RelocBlockOffset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -186,7 +186,7 @@ ToolImageEmitPeRelocTable (
                  ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
                  );
       if (Offset == MAX_UINT32) {
-        raise ();
+        DEBUG_RAISE ();
         return false;
       }
 
@@ -195,7 +195,7 @@ ToolImageEmitPeRelocTable (
                               sizeof (RelocBlock)
                               );
       if (NewRelocBlockOffset == MAX_UINT32) {
-        raise ();
+        DEBUG_RAISE ();
         return false;
       }
 
@@ -218,7 +218,7 @@ ToolImageEmitPeRelocTable (
 
     Offset = ImageToolBufferAppend (Buffer, &Relocation, sizeof (Relocation));
     if (Offset == MAX_UINT32) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
@@ -228,7 +228,7 @@ ToolImageEmitPeRelocTable (
              ALIGNOF (EFI_IMAGE_BASE_RELOCATION_BLOCK)
              );
   if (Offset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -254,7 +254,7 @@ ToolImageEmitPeRelocTable (
               RelocTableOffset
               );
   if (!Success) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
   SectionHeader->Characteristics |= EFI_IMAGE_SCN_MEM_DISCARDABLE;
@@ -285,7 +285,7 @@ ToolImageEmitPeDebugTable (
 
   DebugDirOffset = ImageToolBufferAppendReserve (Buffer, sizeof (*Data));
   if (DebugDirOffset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -297,7 +297,7 @@ ToolImageEmitPeDebugTable (
              Image->DebugInfo.SymbolsPathLen + 1
              );
   if (Offset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -312,7 +312,7 @@ ToolImageEmitPeDebugTable (
               DebugDirOffset
               );
   if (!Success) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
   SectionHeader->Characteristics |= EFI_IMAGE_SCN_MEM_DISCARDABLE;
@@ -383,7 +383,7 @@ ToolImageEmitPeSection (
                     Segment->UnpaddedSize
                     );
   if (SectionOffset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -461,7 +461,7 @@ ToolImageEmitPeSections (
   EFI_IMAGE_SECTION_HEADER    *SectionHeader;
 
   if (PeHdr->SizeOfImage != Image->SegmentInfo.Segments[0].ImageAddress) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -478,7 +478,7 @@ ToolImageEmitPeSections (
                 Segment
                 );
     if (!Success) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
@@ -486,7 +486,7 @@ ToolImageEmitPeSections (
   if (ToolImagePeHiiTableRequired (Image)) {
     Success = ToolImageEmitPeHiiTable (Buffer, PeHdr, &SectionHeaders[Index], Image);
     if (!Success) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
 
@@ -496,7 +496,7 @@ ToolImageEmitPeSections (
   if (ToolImagePeRelocTableRequired (Image)) {
     Success = ToolImageEmitPeRelocTable (Buffer, PeHdr, &SectionHeaders[Index], Image);
     if (!Success) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
 
@@ -506,7 +506,7 @@ ToolImageEmitPeSections (
   if (ToolImagePeDebugTableRequired (Image)) {
     Success = ToolImageEmitPeDebugTable (Buffer, PeHdr, &SectionHeaders[Index], Image);
     if (!Success) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
 
@@ -527,7 +527,7 @@ ToolImageEmitPeSections (
     }
 
     if (Index == PeHdr->CommonHeader.FileHeader.NumberOfSections) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
@@ -576,7 +576,7 @@ ToolImageEmitPeFile (
 
   Offset = ImageToolBufferAppend (Buffer, &mDosHdr, sizeof (mDosHdr));
   if (Offset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -591,13 +591,13 @@ ToolImageEmitPeFile (
                AlignedSizeOfHeaders - sizeof (mDosHdr)
                );
   if (PeOffset == MAX_UINT32) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
   PeHdr = malloc (SizeOfPeHeaders);
   if (PeHdr == NULL) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -630,7 +630,7 @@ ToolImageEmitPeFile (
   Success = ToolImageEmitPeSections (Buffer, PeHdr, SectionHeaders, Image, Xip);
   if (!Success) {
     free (PeHdr);
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -663,7 +663,7 @@ ToolImageEmitPe (
 
   Success = ToolImageEmitPeFile (&Buffer, Image, Xip);
   if (!Success) {
-    raise ();
+    DEBUG_RAISE ();
     ImageToolBufferFree (&Buffer);
     return NULL;
   }
@@ -673,7 +673,7 @@ ToolImageEmitPe (
   ImageToolBufferFree (&Buffer);
 
   if (FileBuffer == NULL) {
-    raise ();
+    DEBUG_RAISE ();
     return NULL;
   }
 
