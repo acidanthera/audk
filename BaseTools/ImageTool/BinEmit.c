@@ -19,9 +19,6 @@ CreateEntry (
   EFI_IMAGE_RESOURCE_DIRECTORY        *RDir;
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *Entry;
 
-  assert (HiiSectionHeader != NULL);
-  assert (HiiSectionOffset != NULL);
-
   RDir                       = (EFI_IMAGE_RESOURCE_DIRECTORY *)(HiiSectionHeader + *HiiSectionOffset);
   *HiiSectionOffset         += sizeof (EFI_IMAGE_RESOURCE_DIRECTORY);
   RDir->NumberOfNamedEntries = 1;
@@ -49,11 +46,6 @@ CreateStringEntry (
 {
   EFI_IMAGE_RESOURCE_DIRECTORY_STRING  *RDStr;
 
-  assert (Entry            != NULL);
-  assert (HiiSectionHeader != NULL);
-  assert (HiiSectionOffset != NULL);
-  assert (String           != NULL);
-
   Entry->u1.s.NameOffset = *HiiSectionOffset;
   RDStr                  = (EFI_IMAGE_RESOURCE_DIRECTORY_STRING *)(HiiSectionHeader + *HiiSectionOffset);
   RDStr->Length          = (UINT16)StrLen (String);
@@ -77,8 +69,6 @@ InitializeHiiResouceSectionHeader (
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *NameRDirEntry;
   EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY  *LangRDirEntry;
   EFI_IMAGE_RESOURCE_DATA_ENTRY       *ResourceDataEntry;
-
-  assert (HiiSectionHeader != NULL);
 
   HiiSectionOffset = 0;
   //
@@ -122,10 +112,6 @@ ConstructHii (
   void                         *File;
   UINT32                       FileSize;
   UINT8                        NumberOfFormPackages;
-
-  assert (Hii       != NULL);
-  assert (HiiGuid   != NULL);
-  assert (FileNames != NULL);
 
   NumberOfFormPackages = 0;
 

@@ -16,9 +16,6 @@ CheckToolImageSegment (
 {
   bool Overflow;
 
-  assert (Segment            != NULL);
-  assert (PreviousEndAddress != NULL);
-
   if (!IS_ALIGNED (Segment->ImageSize, SegmentInfo->SegmentAlignment)) {
     DEBUG_RAISE ();
     return false;
@@ -57,9 +54,6 @@ CheckToolImageSegmentInfo (
 {
   uint32_t Index;
   bool     Result;
-
-  assert (SegmentInfo != NULL);
-  assert (ImageSize   != NULL);
 
   if (!IS_POW2 (SegmentInfo->SegmentAlignment)) {
     DEBUG_RAISE ();
@@ -123,9 +117,6 @@ ImageGetSegmentByAddress (
 {
   uint32_t Index;
 
-  assert (Address != NULL);
-  assert (SegmentInfo != NULL);
-
   for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
     if ((SegmentInfo->Segments[Index].ImageAddress <= *Address)
      && (*Address < SegmentInfo->Segments[Index].ImageAddress + SegmentInfo->Segments[Index].ImageSize)) {
@@ -180,9 +171,6 @@ CheckToolImageReloc (
   const image_tool_segment_t *Segment;
   uint16_t                   MovHigh;
   uint16_t                   MovLow;
-
-  assert (Image != NULL);
-  assert (Reloc != NULL);
 
   RelocOffset = Reloc->Target;
   Segment     = ImageGetSegmentByAddress (
@@ -245,8 +233,6 @@ CheckToolImageRelocInfo (
   uint32_t                      Index;
   bool                          Result;
 
-  assert (Image != NULL);
-
   RelocInfo = &Image->RelocInfo;
 
   if (RelocInfo->NumRelocs == 0) {
@@ -289,8 +275,6 @@ CheckToolImageDebugInfo (
   const image_tool_debug_info_t *DebugInfo
   )
 {
-  assert (DebugInfo != NULL);
-
   if (DebugInfo->SymbolsPath != NULL) {
     // FIXME: UE-only?
     if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
@@ -309,8 +293,6 @@ CheckToolImage (
 {
   bool     Result;
   uint32_t ImageSize;
-
-  assert (Image != NULL);
 
   Result = CheckToolImageSegmentInfo (&Image->SegmentInfo, &ImageSize);
   if (!Result) {
@@ -369,8 +351,6 @@ ToolImageDestruct (
   )
 {
   uint8_t Index;
-
-  assert (Image != NULL);
 
   if (Image->SegmentInfo.Segments != NULL) {
     for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
