@@ -30,9 +30,6 @@ ScanPeGetRelocInfo (
   UINT16                                RelocType;
   UINT16                                RelocOffset;
 
-  assert (RelocInfo != NULL);
-  assert (Context   != NULL);
-
   // FIXME: PE/COFF context access
   RelocBlockRva = Context->RelocDirRva;
   RelocDirSize  = Context->RelocDirSize;
@@ -158,9 +155,6 @@ ScanPeGetSegmentInfo (
   const char                     *ImageBuffer;
   uint32_t                       Index;
 
-  assert (SegmentInfo != NULL);
-  assert (Context     != NULL);
-
   NumSections = PeCoffGetSectionTable (Context, &Section);
 
   SegmentInfo->Segments = calloc (NumSections, sizeof (*SegmentInfo->Segments));
@@ -229,9 +223,6 @@ ScanPeGetDebugInfo (
   UINT32        PdbPathSize;
   RETURN_STATUS Status;
 
-  assert (DebugInfo != NULL);
-  assert (Context   != NULL);
-
   Status = PeCoffGetPdbPath (Context, &PdbPath, &PdbPathSize);
   if (Status == RETURN_NOT_FOUND) {
     return true;
@@ -267,9 +258,6 @@ ScanPeGetHiiInfo (
   UINT32        HiiSize;
   RETURN_STATUS Status;
   const char    *ImageBuffer;
-
-  assert (HiiInfo != NULL);
-  assert (Context != NULL);
 
   Status = PeCoffGetHiiDataRva (Context, &HiiRva, &HiiSize);
   if (Status == RETURN_NOT_FOUND) {

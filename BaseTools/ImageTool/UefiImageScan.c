@@ -21,9 +21,6 @@ ScanUefiImageGetHeaderInfo (
   RETURN_STATUS  Status;
   UINT64         Address;
 
-  assert (HeaderInfo != NULL);
-  assert (Context    != NULL);
-
   HeaderInfo->BaseAddress       = UefiImageGetPreferredAddress (Context);
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
@@ -56,9 +53,6 @@ ScanUefiImageGetRelocInfo (
 {
   UINT8  FormatIndex;
 
-  assert (RelocInfo != NULL);
-  assert (Context != NULL);
-
   FormatIndex = UefiImageGetFormat (Context);
 
   RelocInfo->RelocsStripped = UefiImageGetRelocsStripped (Context);
@@ -83,9 +77,6 @@ ScanUefiImageGetSegmentInfo (
   )
 {
   UINT8  FormatIndex;
-
-  assert (SegmentInfo != NULL);
-  assert (Context != NULL);
 
   FormatIndex = UefiImageGetFormat (Context);
 
@@ -112,9 +103,6 @@ ScanUefiImageGetDebugInfo (
   RETURN_STATUS  Status;
   const CHAR8    *SymbolsPath;
   UINT32         SymbolsPathSize;
-
-  assert (DebugInfo != NULL);
-  assert (Context   != NULL);
 
   Status = UefiImageGetSymbolsPath (Context, &SymbolsPath, &SymbolsPathSize);
   if (Status == RETURN_NOT_FOUND || Status == RETURN_UNSUPPORTED) {
@@ -151,9 +139,6 @@ ScanUefiImageGetHiiInfo (
   UINT32         HiiRva;
   UINT32         HiiSize;
   const char     *ImageBuffer;
-
-  assert (HiiInfo != NULL);
-  assert (Context != NULL);
 
   Status = UefiImageGetHiiDataRva (Context, &HiiRva, &HiiSize);
   if (Status == RETURN_NOT_FOUND) {
@@ -195,7 +180,6 @@ ToolContextConstructUefiImage (
   void                             *Destination;
   bool                             Success;
 
-  assert (Image != NULL);
   assert (File != NULL || FileSize == 0);
 
   if (FileSize > MAX_UINT32) {

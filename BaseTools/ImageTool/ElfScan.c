@@ -103,8 +103,6 @@ IsShdrLoadable (
   IN const Elf_Shdr  *Shdr
   )
 {
-  assert (Shdr != NULL);
-
   return (Shdr->sh_flags & SHF_ALLOC) != 0;
 }
 
@@ -662,7 +660,6 @@ ScanElf (
   const Elf_Ehdr         *Ehdr;
   Elf_Addr               BaseAddress;
 
-  assert (ImageInfo != NULL);
   assert (File != NULL || FileSize == 0);
 
   Status = ParseElfFile (&Context, File, FileSize);

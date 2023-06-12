@@ -37,10 +37,6 @@ HiiSrc (
   FILE          *FilePtr;
   UINT32        Index;
 
-  assert (FileNames != NULL);
-  assert (HiiName   != NULL);
-  assert (Guid      != NULL);
-
   Status = AsciiStrToGuid (Guid, &HiiGuid);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Invalid GUID - %s\n", Guid);
@@ -246,9 +242,6 @@ GetAcpi (
   const EFI_IMAGE_SECTION_HEADER *Sections;
   UINT16                         Index;
   UINT32                         FileLength;
-
-  assert (PeName   != NULL);
-  assert (AcpiName != NULL);
 
   Pe = UserReadFile (PeName, &PeSize);
   if (Pe == NULL) {
