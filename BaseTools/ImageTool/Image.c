@@ -547,14 +547,16 @@ ToolImageCompare (
       }
     }
 
-    CmpResult = memcmp (
-                  Image1->SegmentInfo.Segments[SegIndex].Data,
-                  Image2->SegmentInfo.Segments[SegIndex].Data,
-                  Image1->SegmentInfo.Segments[SegIndex].ImageSize
-                  );
-    if (CmpResult != 0) {
-      raise ();
-      return false;
+    if (Image1->SegmentInfo.Segments[SegIndex].ImageSize != 0) {
+      CmpResult = memcmp (
+                    Image1->SegmentInfo.Segments[SegIndex].Data,
+                    Image2->SegmentInfo.Segments[SegIndex].Data,
+                    Image1->SegmentInfo.Segments[SegIndex].ImageSize
+                    );
+      if (CmpResult != 0) {
+        DEBUG_RAISE ();
+        return false;
+      }
     }
   }
 
@@ -572,14 +574,16 @@ ToolImageCompare (
     return false;
   }
 
-  CmpResult = memcmp (
-                Image1->RelocInfo.Relocs,
-                Image2->RelocInfo.Relocs,
-                Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
-                );
-  if (CmpResult != 0) {
-    DEBUG_RAISE ();
-    return false;
+  if (Image1->RelocInfo.NumRelocs != 0) {
+    CmpResult = memcmp (
+                  Image1->RelocInfo.Relocs,
+                  Image2->RelocInfo.Relocs,
+                  Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
+                  );
+    if (CmpResult != 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
   }
 
   //
@@ -596,14 +600,16 @@ ToolImageCompare (
     return false;
   }
 
-  CmpResult = memcmp (
-                Image1->HiiInfo.Data,
-                Image2->HiiInfo.Data,
-                Image1->HiiInfo.DataSize
-                );
-  if (CmpResult != 0) {
-    raise ();
-    return false;
+  if (Image1->HiiInfo.DataSize != 0) {
+    CmpResult = memcmp (
+                  Image1->HiiInfo.Data,
+                  Image2->HiiInfo.Data,
+                  Image1->HiiInfo.DataSize
+                  );
+    if (CmpResult != 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
   }
 
   //
