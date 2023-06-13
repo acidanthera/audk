@@ -166,11 +166,11 @@ static
 bool
 CheckToolImageReloc (
   const image_tool_image_info_t *Image,
-  const image_tool_reloc_t      *Reloc
+  const image_tool_reloc_t      *Reloc,
+  uint8_t                       RelocSize
   )
 {
   uint32_t                   RelocOffset;
-  uint8_t                    RelocSize;
   uint32_t                   RemainingSize;
   const image_tool_segment_t *Segment;
   uint16_t                   MovHigh;
@@ -183,12 +183,6 @@ CheckToolImageReloc (
                   &Image->SegmentInfo
                   );
   if (Segment == NULL) {
-    DEBUG_RAISE ();
-    return false;
-  }
-
-  RelocSize = ToolImageGetRelocSize (Reloc->Type);
-  if (RelocSize == 0) {
     DEBUG_RAISE ();
     return false;
   }
@@ -232,7 +226,8 @@ CheckToolImageRelocInfo (
   )
 {
   const image_tool_reloc_info_t *RelocInfo;
-  uint32_t                      PrevTarget;
+  uint8_t                       RelocSize;
+  uint32_t                      MinRelocTarget;
   uint32_t                      Index;
   bool                          Result;
 
@@ -252,21 +247,27 @@ CheckToolImageRelocInfo (
     return false;
   }
 
-  PrevTarget = 0;
+  MinRelocTarget = 0;
 
   for (Index = 0; Index < RelocInfo->NumRelocs; ++Index) {
-    if (RelocInfo->Relocs[Index].Target < PrevTarget) {
-      assert (false);
+    if (RelocInfo->Relocs[Index].Target < MinRelocTarget) {
+      DEBUG_RAISE ();
       return false;
     }
 
-    Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[Index]);
+    RelocSize = ToolImageGetRelocSize (RelocInfo->Relocs[Index].Type);
+    if (RelocSize == 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
+
+    Result = CheckToolImageReloc (Image, &RelocInfo->Relocs[Index], RelocSize);
     if (!Result) {
       DEBUG_RAISE ();
       return false;
     }
 
-    PrevTarget = RelocInfo->Relocs[Index].Target;
+    MinRelocTarget = RelocInfo->Relocs[Index].Target + RelocSize;
   }
 
   return true;
