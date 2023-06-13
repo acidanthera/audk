@@ -526,7 +526,15 @@ InternalAlignedAlloc (
   )
 {
  #ifndef _WIN32
-  return aligned_alloc (Alignment, Size);
+  int   Result;
+  void  *Buffer;
+
+  Result = posix_memalign (&Buffer, Alignment, Size);
+  if (Result != 0) {
+    return NULL;
+  }
+
+  return Buffer;
  #else
   return _aligned_malloc (Size, Alignment);
  #endif
