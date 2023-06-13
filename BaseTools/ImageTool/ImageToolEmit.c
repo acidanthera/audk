@@ -33,9 +33,11 @@ ToolContextConstruct (
              File,
              FileSize
              );
+#ifndef IMAGE_TOOL_DISABLE_ELF
   if (Status == RETURN_UNSUPPORTED) {
     Status = ScanElf (ImageInfo, File, FileSize, SymbolsPath);
   }
+#endif
 
   return Status;
 }
