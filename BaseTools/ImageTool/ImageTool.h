@@ -110,7 +110,8 @@ ImageInitUnpaddedSize (
 bool
 ToolImageRelocate (
   image_tool_image_info_t *Image,
-  uint64_t                BaseAddress
+  uint64_t                BaseAddress,
+  uint32_t                IgnorePrefix
   );
 
 void

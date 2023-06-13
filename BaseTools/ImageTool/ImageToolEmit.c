@@ -145,7 +145,7 @@ ToolImageEmit (
   }
 
   if (Relocate) {
-    Success = ToolImageRelocate (&ImageInfo, BaseAddress);
+    Success = ToolImageRelocate (&ImageInfo, BaseAddress, 0);
     if (!Success) {
       fprintf (stderr, "ImageTool: Failed to relocate input file %s\n", SymbolsPath);
       ToolImageDestruct (&ImageInfo);

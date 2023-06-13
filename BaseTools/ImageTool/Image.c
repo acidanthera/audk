@@ -105,6 +105,11 @@ CheckToolImageHeaderInfo (
     return false;
   }
 
+  if (HeaderInfo->BaseAddress + ImageSize < HeaderInfo->BaseAddress) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
   return true;
 }
 
@@ -161,7 +166,6 @@ static
 bool
 CheckToolImageReloc (
   const image_tool_image_info_t *Image,
-  uint32_t                      ImageSize,
   const image_tool_reloc_t      *Reloc
   )
 {
@@ -224,8 +228,7 @@ CheckToolImageReloc (
 static
 bool
 CheckToolImageRelocInfo (
-  const image_tool_image_info_t *Image,
-  uint32_t                      ImageSize
+  const image_tool_image_info_t *Image
   )
 {
   const image_tool_reloc_info_t *RelocInfo;
@@ -310,7 +313,7 @@ CheckToolImage (
     return false;
   }
 
-  Result = CheckToolImageRelocInfo (Image, ImageSize);
+  Result = CheckToolImageRelocInfo (Image);
   if (!Result) {
     DEBUG_RAISE ();
     return false;
@@ -371,9 +374,12 @@ ToolImageDestruct (
 bool
 ToolImageRelocate (
   image_tool_image_info_t *Image,
-  uint64_t                BaseAddress
+  uint64_t                BaseAddress,
+  uint32_t                IgnorePrefix
   )
 {
+  const image_tool_segment_t *LastSegment;
+  uint32_t                   ImageSize;
   uint64_t                   Adjust;
   const image_tool_reloc_t   *Reloc;
   uint32_t                   RelocOffset;
@@ -392,6 +398,19 @@ ToolImageRelocate (
 
   if (Adjust == 0) {
     return true;
+  }
+
+  LastSegment = &Image->SegmentInfo.Segments[Image->SegmentInfo.NumSegments - 1];
+  ImageSize   = LastSegment->ImageAddress + LastSegment->ImageSize;
+
+  //
+  // When removing the image header prefix, BaseAddress + ImageSize may indeed
+  // overflow. The important part is that the address starting from the first
+  // image segment does not.
+  //
+  if (BaseAddress + ImageSize < BaseAddress + IgnorePrefix) {
+    DEBUG_RAISE ();
+    return false;
   }
 
   for (Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
