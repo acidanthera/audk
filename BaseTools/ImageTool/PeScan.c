@@ -6,11 +6,13 @@
 
 #include "ImageTool.h"
 
+#include "PeScan.h"
+
 #define PE_COFF_SECT_NAME_RELOC  ".reloc\0"
 #define PE_COFF_SECT_NAME_RESRC  ".rsrc\0\0"
 #define PE_COFF_SECT_NAME_DEBUG  ".debug\0"
 
-bool
+RETURN_STATUS
 ScanPeGetRelocInfo (
   OUT image_tool_reloc_info_t       *RelocInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT  *Context
@@ -38,7 +40,7 @@ ScanPeGetRelocInfo (
   // Verify the Relocation Directory is not empty.
   //
   if (RelocDirSize == 0) {
-    return true;
+    return RETURN_SUCCESS;
   }
 
   STATIC_ASSERT (
@@ -53,13 +55,13 @@ ScanPeGetRelocInfo (
                );
   if (Overflow) {
     DEBUG_RAISE ();
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   RelocInfo->Relocs = AllocateZeroPool (ToolRelocsSize);
   if (RelocInfo->Relocs == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Relocs[]\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   TopOfRelocDir = RelocBlockRva + RelocDirSize;
@@ -78,7 +80,7 @@ ScanPeGetRelocInfo (
                 );
   if (Overflow) {
     fprintf (stderr, "ImageTool: Overflow during TopOfRelocDir calculation\n");
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Apply all Base Relocations of the Image.
@@ -96,7 +98,7 @@ ScanPeGetRelocInfo (
                  );
     if (Overflow) {
       fprintf (stderr, "ImageTool: Overflow during SizeOfRelocs calculation\n");
-      return false;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Base Relocation Block is in bounds of the Relocation
@@ -104,7 +106,7 @@ ScanPeGetRelocInfo (
     //
     if (SizeOfRelocs > RelocBlockRvaMax - RelocBlockRva) {
       fprintf (stderr, "ImageTool:  Base Relocation Block is out of bounds of the Relocation Directory\n");
-      return false;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // This arithmetic cannot overflow because we know
@@ -136,7 +138,7 @@ ScanPeGetRelocInfo (
           break;
         default:
           fprintf (stderr, "ImageTool: Unknown RelocType = 0x%x\n", RelocType);
-          return false;
+          return RETURN_UNSUPPORTED;
       }
 
       RelocInfo->Relocs[RelocInfo->NumRelocs].Target = RelocBlock->VirtualAddress + RelocOffset;
@@ -153,13 +155,13 @@ ScanPeGetRelocInfo (
   //
   if (RelocBlockRva != TopOfRelocDir) {
     fprintf (stderr, "ImageTool: Relocation Directory size does not match the contained data\n");
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
-  return true;
+  return RETURN_SUCCESS;
 }
 
-bool
+RETURN_STATUS
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
@@ -183,7 +185,7 @@ ScanPeGetSegmentInfo (
                             );
   if (SegmentInfo->Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments[]\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   ImageBuffer = (char *)PeCoffLoaderGetImageAddress (Context);
@@ -204,7 +206,7 @@ ScanPeGetSegmentInfo (
       ImageSegment->Name = AllocateZeroPool (sizeof (Section->Name));
       if (ImageSegment->Name == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Name\n");
-        return false;
+        return RETURN_OUT_OF_RESOURCES;
       }
 
       memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
@@ -222,7 +224,7 @@ ScanPeGetSegmentInfo (
       if (ImageSegment->Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Data\n");
         FreePool (ImageSegment->Name);
-        return false;
+        return RETURN_OUT_OF_RESOURCES;
       }
 
       ++SegmentInfo->NumSegments;
@@ -230,7 +232,7 @@ ScanPeGetSegmentInfo (
     }
   }
 
-  return true;
+  return RETURN_SUCCESS;
 }
 
 bool
