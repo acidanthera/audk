@@ -51,7 +51,7 @@ HiiSrc (
 
   FilePtr = fopen (HiiName, "w");
   if (FilePtr == NULL) {
-    free (Hii);
+    FreePool (Hii);
     return RETURN_NO_MEDIA;
   }
 
@@ -109,7 +109,7 @@ HiiSrc (
     "  (CONST MODULE_HII_PACKAGE_LIST *)&mModuleHiiPackageList;\n"
     );
 
-  free (Hii);
+  FreePool (Hii);
 
   return RETURN_SUCCESS;
 }
@@ -417,7 +417,7 @@ GenExecutable (
 
   UserWriteFile (OutputFileName, OutputFile, OutputFileSize);
 
-  free (OutputFile);
+  FreePool (OutputFile);
 
   return RETURN_SUCCESS;
 }

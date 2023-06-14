@@ -595,13 +595,11 @@ ToolImageEmitPeFile (
     return false;
   }
 
-  PeHdr = malloc (SizeOfPeHeaders);
+  PeHdr = AllocateZeroPool (SizeOfPeHeaders);
   if (PeHdr == NULL) {
     DEBUG_RAISE ();
     return false;
   }
-
-  memset (PeHdr, 0, SizeOfPeHeaders);
 
   SectionHeaders = (EFI_IMAGE_SECTION_HEADER *)((UINT8 *)PeHdr + SectionHeadersOffset);
 
@@ -629,14 +627,14 @@ ToolImageEmitPeFile (
 
   Success = ToolImageEmitPeSections (Buffer, PeHdr, SectionHeaders, Image, Xip);
   if (!Success) {
-    free (PeHdr);
+    FreePool (PeHdr);
     DEBUG_RAISE ();
     return false;
   }
 
   BufferPeHdr = ImageToolBufferGetPointer (Buffer, PeOffset);
   memmove (BufferPeHdr, PeHdr, SizeOfPeHeaders);
-  free (PeHdr);
+  FreePool (PeHdr);
   BufferPeHdr = NULL;
 
   return true;
