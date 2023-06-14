@@ -45,7 +45,7 @@ ScanUefiImageGetHeaderInfo (
 }
 
 static
-bool
+RETURN_STATUS
 ScanUefiImageGetRelocInfo (
   OUT image_tool_reloc_info_t          *RelocInfo,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -66,11 +66,11 @@ ScanUefiImageGetRelocInfo (
     "ImageTool: Unsupported UefiImage format %u\n",
     FormatIndex
     );
-  return false;
+  return RETURN_UNSUPPORTED;
 }
 
 static
-bool
+RETURN_STATUS
 ScanUefiImageGetSegmentInfo (
   OUT image_tool_segment_info_t        *SegmentInfo,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -91,10 +91,10 @@ ScanUefiImageGetSegmentInfo (
     "ImageTool: Unsupported UefiImage format %u\n",
     FormatIndex
     );
-  return false;
+  return RETURN_UNSUPPORTED;
 }
 
-bool
+RETURN_STATUS
 ScanUefiImageGetDebugInfo (
   OUT image_tool_debug_info_t          *DebugInfo,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -106,11 +106,11 @@ ScanUefiImageGetDebugInfo (
 
   Status = UefiImageGetSymbolsPath (Context, &SymbolsPath, &SymbolsPathSize);
   if (Status == RETURN_NOT_FOUND || Status == RETURN_UNSUPPORTED) {
-    return true;
+    return RETURN_SUCCESS;
   }
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not get SymbolsPath\n");
-    return false;
+    return Status;
   }
 
   assert (SymbolsPathSize >= 1);
@@ -118,17 +118,17 @@ ScanUefiImageGetDebugInfo (
   DebugInfo->SymbolsPath = AllocateCopyPool (SymbolsPathSize, SymbolsPath);
   if (DebugInfo->SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for SymbolsPath\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   assert (DebugInfo->SymbolsPath[SymbolsPathSize - 1] == '\0');
 
   DebugInfo->SymbolsPathLen = SymbolsPathSize - 1;
 
-  return true;
+  return RETURN_SUCCESS;
 }
 
-bool
+RETURN_STATUS
 ScanUefiImageGetHiiInfo (
   OUT image_tool_hii_info_t            *HiiInfo,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -141,11 +141,11 @@ ScanUefiImageGetHiiInfo (
 
   Status = UefiImageGetHiiDataRva (Context, &HiiRva, &HiiSize);
   if (Status == RETURN_NOT_FOUND) {
-    return true;
+    return RETURN_SUCCESS;
   }
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Malformed HII data\n");
-    return false;
+    return Status;
   }
 
   ImageBuffer = (char *)UefiImageLoaderGetImageAddress (Context);
@@ -153,12 +153,12 @@ ScanUefiImageGetHiiInfo (
   HiiInfo->Data = AllocateCopyPool (HiiSize, ImageBuffer + HiiRva);
   if (HiiInfo->Data == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for HiiInfo Data\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   HiiInfo->DataSize = HiiSize;
 
-  return true;
+  return RETURN_SUCCESS;
 }
 
 RETURN_STATUS
@@ -212,7 +212,7 @@ ToolContextConstructUefiImage (
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not Load Image\n");
     FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
+    return Status;
   }
 
   memset (Image, 0, sizeof (*Image));
@@ -225,36 +225,36 @@ ToolContextConstructUefiImage (
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Success = ScanUefiImageGetSegmentInfo (&Image->SegmentInfo, &Context);
-  if (!Success) {
+  Status = ScanUefiImageGetSegmentInfo (&Image->SegmentInfo, &Context);
+  if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not retrieve segment info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
+    return Status;
   }
 
-  Success = ScanUefiImageGetRelocInfo (&Image->RelocInfo, &Context);
-  if (!Success) {
+  Status = ScanUefiImageGetRelocInfo (&Image->RelocInfo, &Context);
+  if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
+    return Status;
   }
 
-  Success = ScanUefiImageGetHiiInfo (&Image->HiiInfo, &Context);
-  if (!Success) {
+  Status = ScanUefiImageGetHiiInfo (&Image->HiiInfo, &Context);
+  if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not retrieve HII info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
+    return Status;
   }
 
-  Success = ScanUefiImageGetDebugInfo (&Image->DebugInfo, &Context);
-  if (!Success) {
+  Status = ScanUefiImageGetDebugInfo (&Image->DebugInfo, &Context);
+  if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not retrieve debug info\n");
     ToolImageDestruct (Image);
     FreeAlignedPages (Destination, DestinationPages);
-    return RETURN_VOLUME_CORRUPTED;
+    return Status;
   }
 
   FreeAlignedPages (Destination, DestinationPages);
