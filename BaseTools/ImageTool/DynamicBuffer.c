@@ -29,7 +29,7 @@ ImageToolBufferExpand (
 {
   bool      Overflow;
   uint32_t  NewAllocatedSize;
-  void      *NewMemory;
+  uint8_t   *NewMemory;
   uint32_t  Offset;
 
   assert (Buffer->DataSize <= Buffer->AllocatedSize);
@@ -56,10 +56,24 @@ ImageToolBufferExpand (
       return MAX_UINT32;
     }
 
-    NewMemory = realloc (Buffer->Memory, NewAllocatedSize);
+    NewMemory = AllocatePool (NewAllocatedSize);
     if (NewMemory == NULL) {
       DEBUG_RAISE ();
       return MAX_UINT32;
+    }
+
+    if (Buffer->DataSize != 0) {
+      memmove (NewMemory, Buffer->Memory, Buffer->DataSize);
+    }
+
+    memset (
+      NewMemory + Buffer->DataSize,
+      0,
+      NewAllocatedSize - Buffer->DataSize
+      );
+
+    if (Buffer->Memory != NULL) {
+      FreePool (Buffer->Memory);
     }
 
     Buffer->Memory        = NewMemory;
@@ -181,12 +195,11 @@ ImageToolBufferDump (
 
   DataSize = ImageToolBufferGetSize (Buffer);
 
-  Data = malloc (DataSize);
+  Data = AllocateCopyPool (DataSize, Buffer->Memory);
   if (Data == NULL) {
     return NULL;
   }
 
-  memmove (Data, Buffer->Memory, DataSize);
   *Size = DataSize;
 
   return Data;
@@ -197,6 +210,9 @@ ImageToolBufferFree (
   image_tool_dynamic_buffer  *Buffer
   )
 {
-  free (Buffer->Memory);
+  if (Buffer->Memory != NULL) {
+     FreePool (Buffer->Memory);
+  }
+
   ImageToolBufferInit (Buffer);
 }

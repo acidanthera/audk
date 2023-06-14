@@ -29,6 +29,7 @@ ScanPeGetRelocInfo (
   const char                            *ImageBuffer;
   UINT16                                RelocType;
   UINT16                                RelocOffset;
+  uint32_t                              ToolRelocsSize;
 
   // FIXME: PE/COFF context access
   RelocBlockRva = Context->RelocDirRva;
@@ -40,7 +41,22 @@ ScanPeGetRelocInfo (
     return true;
   }
 
-  RelocInfo->Relocs = calloc (RelocDirSize / sizeof (UINT16), sizeof (*RelocInfo->Relocs));
+  STATIC_ASSERT (
+    sizeof (*RelocInfo->Relocs) % sizeof (UINT16) == 0,
+    "The division below is inaccurate."
+    );
+
+  Overflow = BaseOverflowMulU32 (
+               RelocDirSize,
+               sizeof (*RelocInfo->Relocs) / sizeof (UINT16),
+               &ToolRelocsSize
+               );
+  if (Overflow) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  RelocInfo->Relocs = AllocateZeroPool (ToolRelocsSize);
   if (RelocInfo->Relocs == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Relocs[]\n");
     return false;
@@ -157,7 +173,14 @@ ScanPeGetSegmentInfo (
 
   NumSections = PeCoffGetSectionTable (Context, &Section);
 
-  SegmentInfo->Segments = calloc (NumSections, sizeof (*SegmentInfo->Segments));
+  STATIC_ASSERT (
+    sizeof (*SegmentInfo->Segments) <= sizeof (*Section),
+    "The multiplication below may overflow."
+    );
+
+  SegmentInfo->Segments = AllocateZeroPool (
+                            NumSections * sizeof (*SegmentInfo->Segments)
+                            );
   if (SegmentInfo->Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments[]\n");
     return false;
@@ -178,7 +201,7 @@ ScanPeGetSegmentInfo (
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RELOC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_DEBUG, sizeof (Section->Name)) != 0) {
-      ImageSegment->Name = calloc (1, sizeof (Section->Name));
+      ImageSegment->Name = AllocateZeroPool (sizeof (Section->Name));
       if (ImageSegment->Name == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Name\n");
         return false;
@@ -192,18 +215,15 @@ ScanPeGetSegmentInfo (
       ImageSegment->Write        = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;
       ImageSegment->Execute      = (Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0;
 
-      ImageSegment->Data = malloc (ImageSegment->ImageSize);
+      ImageSegment->Data = AllocateCopyPool (
+                             ImageSegment->ImageSize,
+                             ImageBuffer + Section->VirtualAddress
+                             );
       if (ImageSegment->Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Data\n");
-        free (ImageSegment->Name);
+        FreePool (ImageSegment->Name);
         return false;
       }
-
-      memmove (
-        ImageSegment->Data,
-        ImageBuffer + Section->VirtualAddress,
-        ImageSegment->ImageSize
-        );
 
       ++SegmentInfo->NumSegments;
       ++ImageSegment;

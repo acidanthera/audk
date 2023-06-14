@@ -115,13 +115,12 @@ ScanUefiImageGetDebugInfo (
 
   assert (SymbolsPathSize >= 1);
 
-  DebugInfo->SymbolsPath = malloc (SymbolsPathSize + 1);
+  DebugInfo->SymbolsPath = AllocateCopyPool (SymbolsPathSize, SymbolsPath);
   if (DebugInfo->SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for SymbolsPath\n");
     return false;
   }
 
-  memmove (DebugInfo->SymbolsPath, SymbolsPath, SymbolsPathSize);
   assert (DebugInfo->SymbolsPath[SymbolsPathSize - 1] == '\0');
 
   DebugInfo->SymbolsPathLen = SymbolsPathSize - 1;
@@ -149,15 +148,14 @@ ScanUefiImageGetHiiInfo (
     return false;
   }
 
-  HiiInfo->Data = malloc (HiiSize);
+  ImageBuffer = (char *)UefiImageLoaderGetImageAddress (Context);
+
+  HiiInfo->Data = AllocateCopyPool (HiiSize, ImageBuffer + HiiRva);
   if (HiiInfo->Data == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for HiiInfo Data\n");
     return false;
   }
 
-  ImageBuffer = (char *)UefiImageLoaderGetImageAddress (Context);
-
-  memmove (HiiInfo->Data, ImageBuffer + HiiRva, HiiSize);
   HiiInfo->DataSize = HiiSize;
 
   return true;

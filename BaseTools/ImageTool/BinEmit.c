@@ -159,7 +159,7 @@ ConstructHii (
 
   CopyGuid (&HiiPackageListHeader.PackageListGuid, HiiGuid);
 
-  HiiPackageData = calloc (1, HiiPackageListHeader.PackageLength);
+  HiiPackageData = AllocateZeroPool (HiiPackageListHeader.PackageLength);
   if (HiiPackageData == NULL) {
     return RETURN_OUT_OF_RESOURCES;
   }

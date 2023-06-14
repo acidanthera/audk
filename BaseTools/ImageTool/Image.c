@@ -358,16 +358,31 @@ ToolImageDestruct (
 
   if (Image->SegmentInfo.Segments != NULL) {
     for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-      free (Image->SegmentInfo.Segments[Index].Name);
-      free (Image->SegmentInfo.Segments[Index].Data);
+      if (Image->SegmentInfo.Segments[Index].Name != NULL) {
+        FreePool (Image->SegmentInfo.Segments[Index].Name);
+      }
+
+      if (Image->SegmentInfo.Segments[Index].Data != NULL) {
+        FreePool (Image->SegmentInfo.Segments[Index].Data);
+      }
     }
 
-    free (Image->SegmentInfo.Segments);
+    if (Image->SegmentInfo.Segments != NULL) {
+      FreePool (Image->SegmentInfo.Segments);
+    }
   }
 
-  free (Image->HiiInfo.Data);
-  free (Image->RelocInfo.Relocs);
-  free (Image->DebugInfo.SymbolsPath);
+  if (Image->HiiInfo.Data != NULL) {
+    FreePool (Image->HiiInfo.Data);
+  }
+
+  if (Image->RelocInfo.Relocs != NULL) {
+    FreePool (Image->RelocInfo.Relocs);
+  }
+
+  if (Image->DebugInfo.SymbolsPath != NULL) {
+    FreePool (Image->DebugInfo.SymbolsPath);
+  }
 
   memset (Image, 0, sizeof (*Image));
 }
@@ -688,7 +703,11 @@ ToolImageStripRelocs (
   )
 {
   Image->RelocInfo.NumRelocs = 0;
-  free (Image->RelocInfo.Relocs);
+
+  if (Image->RelocInfo.Relocs != NULL) {
+    FreePool (Image->RelocInfo.Relocs);
+  }
+
   Image->RelocInfo.Relocs = NULL;
 
   Image->RelocInfo.RelocsStripped = TRUE;

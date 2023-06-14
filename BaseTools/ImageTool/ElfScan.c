@@ -579,7 +579,7 @@ CreateIntermediate (
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Segments = calloc (1, sizeof (*Segments) * ImageInfo->SegmentInfo.NumSegments);
+  Segments = AllocateZeroPool (sizeof (*Segments) * ImageInfo->SegmentInfo.NumSegments);
   if (Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments\n");
     return RETURN_OUT_OF_RESOURCES;
@@ -588,7 +588,7 @@ CreateIntermediate (
   ImageInfo->SegmentInfo.Segments = Segments;
 
   if (NumRelocs != 0) {
-    Relocs = calloc (1, sizeof (*Relocs) * NumRelocs);
+    Relocs = AllocateZeroPool (sizeof (*Relocs) * NumRelocs);
     if (Relocs == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Relocs\n");
       return RETURN_OUT_OF_RESOURCES;
@@ -614,7 +614,7 @@ CreateIntermediate (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
+    Segments[SIndex].Name = AllocateZeroPool (strlen (Name) + 1);
     if (Segments[SIndex].Name == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", Index);
       return RETURN_OUT_OF_RESOURCES;
@@ -628,7 +628,7 @@ CreateIntermediate (
     Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
     Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
 
-    Segments[SIndex].Data = calloc (1, Segments[SIndex].ImageSize);
+    Segments[SIndex].Data = AllocateZeroPool (Segments[SIndex].ImageSize);
     if (Segments[SIndex].Data == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
       return RETURN_OUT_OF_RESOURCES;
@@ -704,11 +704,11 @@ ScanElf (
       return RETURN_INCOMPATIBLE_VERSION;
   }
 
-  ImageInfo->DebugInfo.SymbolsPath = malloc (ImageInfo->DebugInfo.SymbolsPathLen + 1);
+  ImageInfo->DebugInfo.SymbolsPath = AllocatePool (ImageInfo->DebugInfo.SymbolsPathLen + 1);
   if (ImageInfo->DebugInfo.SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Debug Data\n");
     return RETURN_OUT_OF_RESOURCES;
-  };
+  }
 
   if (SymbolsPath != NULL) {
     memmove (ImageInfo->DebugInfo.SymbolsPath, SymbolsPath, ImageInfo->DebugInfo.SymbolsPathLen + 1);
