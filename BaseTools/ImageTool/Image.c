@@ -438,10 +438,7 @@ ToolImageRelocate (
                 &RemainingSize,
                 &Image->SegmentInfo
                 );
-    if (Segment == NULL) {
-      DEBUG_RAISE ();
-      return false;
-    }
+    assert (Segment != NULL);
 
     switch (Reloc->Type) {
       case EFI_IMAGE_REL_BASED_HIGHLOW:
@@ -475,7 +472,7 @@ ToolImageRelocate (
 
       default:
       {
-        DEBUG_RAISE ();
+        assert (false);
         return false;
       }
     }

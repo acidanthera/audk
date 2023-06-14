@@ -61,13 +61,13 @@ ValidateOutputFile (
              NULL
              );
   if (EFI_ERROR (Status)) {
-    assert (false);
+    assert (Status == RETURN_OUT_OF_RESOURCES);
     return Status;
   }
 
   Result = CheckToolImage (&OutputImageInfo);
   if (!Result) {
-    DEBUG_RAISE ();
+    assert (false);
     ToolImageDestruct (&OutputImageInfo);
     return RETURN_UNSUPPORTED;
   }
@@ -175,7 +175,7 @@ ToolImageEmit (
   ToolImageDestruct (&ImageInfo);
 
   if (EFI_ERROR (Status)) {
-    assert (false);
+    assert (Status == RETURN_OUT_OF_RESOURCES);
     FreePool (OutputFile);
     return NULL;
   }
