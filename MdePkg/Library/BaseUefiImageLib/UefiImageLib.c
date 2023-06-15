@@ -515,7 +515,7 @@ UefiImageGetImageSize (
 }
 
 UINT64
-UefiImageGetPreferredAddress (
+UefiImageGetBaseAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -524,7 +524,7 @@ UefiImageGetPreferredAddress (
   UEFI_IMAGE_EXEC (
     Result,
     Context->FormatIndex,
-    GetPreferredAddress,
+    GetBaseAddress,
     Context
     );
 

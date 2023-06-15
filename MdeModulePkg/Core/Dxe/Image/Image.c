@@ -595,7 +595,7 @@ CoreLoadPeImage (
       Status = GetUefiImageFixLoadingAssignedAddress (&BufferAddress, ValueInSectionHeader, DstBufSize);
 
       if (!EFI_ERROR (Status))  {
-        if (BufferAddress != UefiImageGetPreferredAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
+        if (BufferAddress != UefiImageGetBaseAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
           Status = EFI_UNSUPPORTED;
           DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
         }
@@ -607,7 +607,7 @@ CoreLoadPeImage (
       }
     }
     if (EFI_ERROR (Status)) {
-      BufferAddress = UefiImageGetPreferredAddress (ImageContext);
+      BufferAddress = UefiImageGetBaseAddress (ImageContext);
       if ((BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = AllocatePagesEx (
                    AllocateAddress,

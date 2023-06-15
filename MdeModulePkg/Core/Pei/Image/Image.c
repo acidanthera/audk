@@ -276,7 +276,7 @@ LoadAndRelocateUefiImage (
       }
 
       if (!EFI_ERROR (Status)){
-        Success = Destination == UefiImageGetPreferredAddress (ImageContext);
+        Success = Destination == UefiImageGetBaseAddress (ImageContext);
 
         if (!Success) {
           DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
