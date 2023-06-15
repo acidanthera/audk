@@ -128,7 +128,6 @@ ScanPeGetRelocInfo (
       RelocType   = IMAGE_RELOC_TYPE (RelocBlock->Relocations[RelocIndex]);
       RelocOffset = IMAGE_RELOC_OFFSET (RelocBlock->Relocations[RelocIndex]);
 
-      // FIXME: Make separate functions for UE
       switch (RelocType) {
         case EFI_IMAGE_REL_BASED_ABSOLUTE:
           continue;

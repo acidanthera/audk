@@ -26,7 +26,6 @@ CheckToolImageSegment (
     return false;
   }
 
-  // FIXME: Expand prior segment
   if (Segment->ImageAddress != *PreviousEndAddress) {
     DEBUG_RAISE ();
     return false;
