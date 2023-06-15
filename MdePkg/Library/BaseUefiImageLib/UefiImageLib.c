@@ -514,23 +514,6 @@ UefiImageGetImageSize (
   return Result;
 }
 
-UINT32
-UefiImageGetImageSizeInplace (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  UINT32  Result;
-
-  UEFI_IMAGE_EXEC (
-    Result,
-    Context->FormatIndex,
-    GetImageSizeInplace,
-    Context
-    );
-
-  return Result;
-}
-
 UINT64
 UefiImageGetPreferredAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context

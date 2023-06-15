@@ -212,14 +212,6 @@ UefiImageGetImageSizePe (
   return PeCoffGetSizeOfImage (&Context->Ctx.Pe);
 }
 
-UINT32
-UefiImageGetImageSizeInplacePe (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  return PeCoffGetSizeOfImageInplace (&Context->Ctx.Pe);
-}
-
 UINT64
 UefiImageGetPreferredAddressPe (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -763,7 +755,6 @@ GLOBAL_REMOVE_IF_UNREFERENCED CONST UEFI_IMAGE_FORMAT_SUPPORT mPeSupport = {
   UefiImageGetSubsystemPe,
   UefiImageGetSegmentAlignmentPe,
   UefiImageGetImageSizePe,
-  UefiImageGetImageSizeInplacePe,
   UefiImageGetPreferredAddressPe,
   UefiImageGetRelocsStrippedPe,
   UefiImageLoaderGetImageAddressPe,

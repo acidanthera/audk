@@ -229,7 +229,6 @@ typedef struct {
   UEFI_IMAGE_GET_SUBSYSTEM                    GetSubsystem;
   UEFI_IMAGE_GET_SEGMENT_ALIGNMENT            GetSegmentAlignment;
   UEFI_IMAGE_GET_IMAGE_SIZE                   GetImageSize;
-  UEFI_IMAGE_GET_IMAGE_SIZE_INPLACE           GetImageSizeInplace;
   UEFI_IMAGE_GET_PREFERRED_ADDRESS            GetPreferredAddress;
   UEFI_IMAGE_GET_RELOCS_STRIPPED              GetRelocsStripped;
   UEFI_IMAGE_LOADER_GET_IMAGE_ADDRESS         LoaderGetImageAddress;
