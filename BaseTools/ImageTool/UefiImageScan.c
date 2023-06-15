@@ -21,7 +21,7 @@ ScanUefiImageGetHeaderInfo (
   RETURN_STATUS  Status;
   UINT64         Address;
 
-  HeaderInfo->BaseAddress       = UefiImageGetPreferredAddress (Context);
+  HeaderInfo->BaseAddress       = UefiImageGetBaseAddress (Context);
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
   HeaderInfo->Subsystem         = UefiImageGetSubsystem (Context);

@@ -247,7 +247,7 @@ UefiImageLoaderGetRuntimeContextSize (
   Relocate the Image for boot-time usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been loaded by UefiImageLoadImage().
@@ -275,7 +275,7 @@ UefiImageRelocateImage (
   the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been initialised by
@@ -308,7 +308,7 @@ UefiImageLoadImageForExecution (
   Relocate Image for Runtime usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -333,7 +333,7 @@ UefiImageRuntimeRelocateImage (
   required to execute code from the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -542,7 +542,7 @@ UefiImageGetImageSize (
   @returns  The Image preferred load address.
 **/
 UINT64
-UefiImageGetPreferredAddress (
+UefiImageGetBaseAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 

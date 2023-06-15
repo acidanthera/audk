@@ -213,7 +213,7 @@ UefiImageGetImageSizePe (
 }
 
 UINT64
-UefiImageGetPreferredAddressPe (
+UefiImageGetBaseAddressPe (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -755,7 +755,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED CONST UEFI_IMAGE_FORMAT_SUPPORT mPeSupport = {
   UefiImageGetSubsystemPe,
   UefiImageGetSegmentAlignmentPe,
   UefiImageGetImageSizePe,
-  UefiImageGetPreferredAddressPe,
+  UefiImageGetBaseAddressPe,
   UefiImageGetRelocsStrippedPe,
   UefiImageLoaderGetImageAddressPe,
   UefiImageLoaderGetDebugAddressPe,
