@@ -286,12 +286,9 @@ CheckToolImageDebugInfo (
   const image_tool_debug_info_t *DebugInfo
   )
 {
-  if (DebugInfo->SymbolsPath != NULL) {
-    // FIXME: UE-only?
-    if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
-      DEBUG_RAISE ();
-      return false;
-    }
+  if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
+    DEBUG_RAISE ();
+    return false;
   }
 
   return true;
