@@ -171,6 +171,7 @@ ConstructHii (
     File = UserReadFile (FileNames[Index], &FileSize);
     if (File == NULL) {
       fprintf (stderr, "ImageTool: Could not open %s: %s\n", FileNames[Index], strerror (errno));
+      free (HiiPackageData);
       return RETURN_ABORTED;
     }
 

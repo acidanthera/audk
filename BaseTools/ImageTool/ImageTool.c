@@ -109,6 +109,7 @@ HiiSrc (
     "  (CONST MODULE_HII_PACKAGE_LIST *)&mModuleHiiPackageList;\n"
     );
 
+  fclose (FilePtr);
   FreePool (Hii);
 
   return RETURN_SUCCESS;
