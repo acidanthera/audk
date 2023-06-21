@@ -62,8 +62,9 @@ ImageToolBufferExpand (
       return MAX_UINT32;
     }
 
-    if (Buffer->DataSize != 0) {
+    if (Buffer->Memory != NULL) {
       memmove (NewMemory, Buffer->Memory, Buffer->DataSize);
+      FreePool (Buffer->Memory);
     }
 
     memset (
@@ -71,10 +72,6 @@ ImageToolBufferExpand (
       0,
       NewAllocatedSize - Buffer->DataSize
       );
-
-    if (Buffer->Memory != NULL) {
-      FreePool (Buffer->Memory);
-    }
 
     Buffer->Memory        = NewMemory;
     Buffer->AllocatedSize = NewAllocatedSize;
