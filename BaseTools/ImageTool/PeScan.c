@@ -202,13 +202,14 @@ ScanPeGetSegmentInfo (
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RELOC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_DEBUG, sizeof (Section->Name)) != 0) {
-      ImageSegment->Name = AllocateZeroPool (sizeof (Section->Name));
+      ImageSegment->Name = AllocateCopyPool (
+                             sizeof (Section->Name),
+                             Section->Name
+                             );
       if (ImageSegment->Name == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Name\n");
         return RETURN_OUT_OF_RESOURCES;
       }
-
-      memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
 
       ImageSegment->ImageAddress = Section->VirtualAddress;
       ImageSegment->ImageSize    = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
