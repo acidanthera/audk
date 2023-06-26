@@ -1516,8 +1516,6 @@ Returns:
                     FileBufferSize,
                     -1,
                     -1,
-                    NULL,
-                    0,
                     true,
                     NewBaseAddress,
                     NULL,

@@ -99,10 +99,9 @@ InitializeLogo (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                   Status;
-  EFI_HII_PACKAGE_LIST_HEADER  *PackageList;
-  EFI_HII_DATABASE_PROTOCOL    *HiiDatabase;
-  EFI_HANDLE                   Handle;
+  EFI_STATUS                 Status;
+  EFI_HII_DATABASE_PROTOCOL  *HiiDatabase;
+  EFI_HANDLE                 Handle;
 
   Status = gBS->LocateProtocol (
                   &gEfiHiiDatabaseProtocolGuid,
@@ -119,27 +118,11 @@ InitializeLogo (
   ASSERT_EFI_ERROR (Status);
 
   //
-  // Retrieve HII package list from ImageHandle
-  //
-  Status = gBS->OpenProtocol (
-                  ImageHandle,
-                  &gEfiHiiPackageListProtocolGuid,
-                  (VOID **)&PackageList,
-                  ImageHandle,
-                  NULL,
-                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                  );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "HII Image Package with logo not found in PE/COFF resource section\n"));
-    return Status;
-  }
-
-  //
   // Publish HII package list to HII Database.
   //
   Status = HiiDatabase->NewPackageList (
                           HiiDatabase,
-                          PackageList,
+                          &gModuleHiiPackageList->Header,
                           NULL,
                           &mHiiHandle
                           );
