@@ -741,4 +741,4 @@
   # compiler from successfully building some of the OpenSSL source files that
   # use floating point types, so clear the flags here.
   #
-  GCC:*_*_AARCH64_CC_XIPFLAGS ==
+  GCC:*_*_AARCH64_CC_SECPEIFLAGS ==
