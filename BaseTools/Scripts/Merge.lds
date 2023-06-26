@@ -17,7 +17,7 @@ SECTIONS {
 
   .text : ALIGN(CONSTANT(MAXPAGESIZE)) {
     *(.text .text.* .stub .gnu.linkonce.t.*)
-    *(.rodata .rodata.* .data.rel.ro .data.rel.ro.* .gnu.linkonce.r.*)
+    *(.rodata .rodata.* .data.rel.ro .data.rel.ro.* .gnu.linkonce.r.* .hii)
     *(.got .got.*)
 
     /*
@@ -34,10 +34,6 @@ SECTIONS {
   .data : ALIGN(CONSTANT(MAXPAGESIZE)) {
     *(.data .data.* .gnu.linkonce.d.*)
     *(.bss .bss.*)
-  }
-
-  .hii : ALIGN(CONSTANT(MAXPAGESIZE)) {
-    KEEP (*(.hii))
   }
 
   .eh_frame : ALIGN(CONSTANT(MAXPAGESIZE)) {
