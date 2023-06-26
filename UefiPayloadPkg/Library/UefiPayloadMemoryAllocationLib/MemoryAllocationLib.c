@@ -8,7 +8,31 @@
 
 **/
 
-#include "UefiPayloadEntry.h"
+#include <PiPei.h>
+
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/DebugLib.h>
+#include <Library/HobLib.h>
+#include <Guid/MemoryAllocationHob.h>
+
+/**
+  Add a new HOB to the HOB List.
+
+  @param HobType            Type of the new HOB.
+  @param HobLength          Length of the new HOB to allocate.
+
+  @return  NULL if there is no space to create a hob.
+  @return  The address point to the new created hob.
+
+**/
+VOID *
+EFIAPI
+CreateHob (
+  IN  UINT16  HobType,
+  IN  UINT16  HobLength
+  );
 
 /**
   Allocates one or more pages of type EfiBootServicesData.
@@ -245,4 +269,29 @@ AllocateZeroPool (
   ZeroMem (Buffer, AllocationSize);
 
   return Buffer;
+}
+
+/**
+  Frees a buffer that was previously allocated with one of the pool allocation functions in the
+  Memory Allocation Library.
+
+  Frees the buffer specified by Buffer.  Buffer must have been allocated on a previous call to the
+  pool allocation services of the Memory Allocation Library.  If it is not possible to free pool
+  resources, then this function will perform no actions.
+
+  If Buffer was not allocated with a pool allocation function in the Memory Allocation Library,
+  then ASSERT().
+
+  @param  Buffer                The pointer to the buffer to free.
+
+**/
+VOID
+EFIAPI
+FreePool (
+  IN VOID  *Buffer
+  )
+{
+  //
+  // PEI phase does not support to free pool, so leave it as NOP.
+  //
 }
