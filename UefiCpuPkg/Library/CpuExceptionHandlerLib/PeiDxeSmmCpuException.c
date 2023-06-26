@@ -206,7 +206,7 @@ UpdateIdtTable (
         CopyMem (
           (VOID *)ReservedVectors[Index].HookAfterStubHeaderCode,
           (VOID *)TemplateMap->HookAfterStubHeaderStart,
-          TemplateMap->ExceptionStubHeaderSize
+          TemplateMap->HookAfterStubHeaderSize
           );
         AsmVectorNumFixup (
           (VOID *)ReservedVectors[Index].HookAfterStubHeaderCode,
@@ -279,7 +279,7 @@ InitializeCpuExceptionHandlersWorker (
 
   IdtTable = (IA32_IDT_GATE_DESCRIPTOR *)IdtDescriptor.Base;
   AsmGetTemplateAddressMap (&TemplateMap);
-  ASSERT (TemplateMap.ExceptionStubHeaderSize <= HOOKAFTER_STUB_SIZE);
+  ASSERT (TemplateMap.HookAfterStubHeaderSize <= HOOKAFTER_STUB_SIZE);
 
   UpdateIdtTable (IdtTable, &TemplateMap, ExceptionHandlerData);
 

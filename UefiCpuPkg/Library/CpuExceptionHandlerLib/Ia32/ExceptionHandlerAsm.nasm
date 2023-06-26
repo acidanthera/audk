@@ -14,6 +14,12 @@
 ;
 ;------------------------------------------------------------------------------
 
+%ifdef CEHL_MINIMAL_INTERRUPTS
+%define NUM_VECTORS 32
+%else
+%define NUM_VECTORS 256
+%endif
+
 ;
 ; CommonExceptionHandler()
 ;
@@ -33,7 +39,7 @@ ALIGN   8
 ;
 AsmIdtVectorBegin:
 %assign Vector 0
-%rep  256
+%rep  NUM_VECTORS
     push    strict dword %[Vector];
     push    eax
     mov     eax, ASM_PFX(CommonInterruptEntry)
@@ -438,8 +444,9 @@ ASM_PFX(AsmGetTemplateAddressMap):
 
     mov ebx, dword [ebp + 0x8]
     mov dword [ebx],      AsmIdtVectorBegin
-    mov dword [ebx + 0x4], (AsmIdtVectorEnd - AsmIdtVectorBegin) / 256
+    mov dword [ebx + 0x4], (AsmIdtVectorEnd - AsmIdtVectorBegin) / NUM_VECTORS
     mov dword [ebx + 0x8], HookAfterStubBegin
+    mov dword [ebx + 0xC], HookAfterStubHeaderEnd - HookAfterStubBegin
 
     popad
     pop     ebp
