@@ -18,4 +18,8 @@ Source/C/bin/
 Source/C/libs/
 Bin/Win32
 Lib
-BaseToolsBuild/
+BaseToolsBuild/
+ImageTool/ImageTool
+ImageTool/ImageTool32
+ImageTool/ImageTool64
+MicroTool/MicroTool
