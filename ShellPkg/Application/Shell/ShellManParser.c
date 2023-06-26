@@ -561,19 +561,14 @@ ProcessManFile (
   OUT CHAR16       **HelpText
   )
 {
-  CHAR16                       *TempString;
-  SHELL_FILE_HANDLE            FileHandle;
-  EFI_HANDLE                   CmdFileImgHandle;
-  EFI_STATUS                   Status;
-  UINTN                        HelpSize;
-  UINTN                        BriefSize;
-  UINTN                        StringIdWalker;
-  BOOLEAN                      Ascii;
-  CHAR16                       *CmdFileName;
-  CHAR16                       *CmdFilePathName;
-  EFI_DEVICE_PATH_PROTOCOL     *FileDevPath;
-  EFI_DEVICE_PATH_PROTOCOL     *DevPath;
-  EFI_HII_PACKAGE_LIST_HEADER  *PackageListHeader;
+  CHAR16                    *TempString;
+  SHELL_FILE_HANDLE         FileHandle;
+  EFI_STATUS                Status;
+  UINTN                     HelpSize;
+  UINTN                     BriefSize;
+  BOOLEAN                   Ascii;
+  EFI_DEVICE_PATH_PROTOCOL  *FileDevPath;
+  EFI_DEVICE_PATH_PROTOCOL  *DevPath;
 
   if (  (ManFileName == NULL)
      || (Command     == NULL)
@@ -583,17 +578,12 @@ ProcessManFile (
     return (EFI_INVALID_PARAMETER);
   }
 
-  HelpSize          = 0;
-  BriefSize         = 0;
-  StringIdWalker    = 0;
-  TempString        = NULL;
-  Ascii             = FALSE;
-  CmdFileName       = NULL;
-  CmdFilePathName   = NULL;
-  CmdFileImgHandle  = NULL;
-  PackageListHeader = NULL;
-  FileDevPath       = NULL;
-  DevPath           = NULL;
+  HelpSize    = 0;
+  BriefSize   = 0;
+  TempString  = NULL;
+  Ascii       = FALSE;
+  FileDevPath = NULL;
+  DevPath     = NULL;
 
   //
   // See if it's in HII first
@@ -662,118 +652,6 @@ ProcessManFile (
         goto Done;
       }
     }
-
-    //
-    // Load the app image to check  EFI_HII_PACKAGE_LIST_PROTOCOL.
-    //
-    CmdFileName = GetExecuatableFileName (TempString);
-    if (CmdFileName == NULL) {
-      Status = EFI_OUT_OF_RESOURCES;
-      goto Done;
-    }
-
-    //
-    // If the file in CWD then use the file name, else use the full
-    // path name.
-    //
-    CmdFilePathName = ShellFindFilePath (CmdFileName);
-    if (CmdFilePathName == NULL) {
-      Status = EFI_NOT_FOUND;
-      goto Done;
-    }
-
-    DevPath = ShellInfoObject.NewEfiShellProtocol->GetDevicePathFromFilePath (CmdFilePathName);
-    Status  = gBS->LoadImage (FALSE, gImageHandle, DevPath, NULL, 0, &CmdFileImgHandle);
-    if (EFI_ERROR (Status)) {
-      //
-      // With EFI_SECURITY_VIOLATION retval, the Image was loaded and an ImageHandle was created
-      // with a valid EFI_LOADED_IMAGE_PROTOCOL, but the image can not be started right now.
-      // If the caller doesn't have the option to defer the execution of an image, we should
-      // unload image for the EFI_SECURITY_VIOLATION to avoid the resource leak.
-      //
-      if (Status == EFI_SECURITY_VIOLATION) {
-        gBS->UnloadImage (CmdFileImgHandle);
-      }
-
-      *HelpText = NULL;
-      goto Done;
-    }
-
-    Status = gBS->OpenProtocol (
-                    CmdFileImgHandle,
-                    &gEfiHiiPackageListProtocolGuid,
-                    (VOID **)&PackageListHeader,
-                    gImageHandle,
-                    NULL,
-                    EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                    );
-    if (EFI_ERROR (Status)) {
-      *HelpText = NULL;
-      goto Done;
-    }
-
-    //
-    // If get package list on image handle, install it on HiiDatabase.
-    //
-    Status = gBS->InstallProtocolInterface (
-                    &mShellManDriverHandle,
-                    &gEfiDevicePathProtocolGuid,
-                    EFI_NATIVE_INTERFACE,
-                    &mShellManHiiDevicePath
-                    );
-    if (EFI_ERROR (Status)) {
-      goto Done;
-    }
-
-    Status = gHiiDatabase->NewPackageList (
-                             gHiiDatabase,
-                             PackageListHeader,
-                             mShellManDriverHandle,
-                             &mShellManHiiHandle
-                             );
-    if (EFI_ERROR (Status)) {
-      goto Done;
-    }
-
-    StringIdWalker = 1;
-    do {
-      SHELL_FREE_NON_NULL (TempString);
-      if (BriefDesc != NULL) {
-        SHELL_FREE_NON_NULL (*BriefDesc);
-      }
-
-      TempString = HiiGetString (mShellManHiiHandle, (EFI_STRING_ID)StringIdWalker, NULL);
-      if (TempString == NULL) {
-        Status = EFI_NOT_FOUND;
-        goto Done;
-      }
-
-      FileHandle = ConvertEfiFileProtocolToShellHandle (CreateFileInterfaceMem (TRUE), NULL);
-      if (FileHandle == NULL) {
-        Status = EFI_OUT_OF_RESOURCES;
-        goto Done;
-      }
-
-      HelpSize = StrLen (TempString) * sizeof (CHAR16);
-      ShellWriteFile (FileHandle, &HelpSize, TempString);
-      ShellSetFilePosition (FileHandle, 0);
-      HelpSize  = 0;
-      BriefSize = 0;
-      Status    = ManFileFindTitleSection (FileHandle, Command, BriefDesc, &BriefSize, &Ascii);
-      if (!EFI_ERROR (Status) && (HelpText != NULL)) {
-        Status = ManFileFindSections (FileHandle, Sections, HelpText, &HelpSize, Ascii);
-      }
-
-      ShellCloseFile (&FileHandle);
-      if (!EFI_ERROR (Status)) {
-        //
-        // Found what we need and return
-        //
-        goto Done;
-      }
-
-      StringIdWalker += 1;
-    } while (StringIdWalker < 0xFFFF && TempString != NULL);
   }
 
 Done:
@@ -791,13 +669,7 @@ Done:
     mShellManHiiHandle = NULL;
   }
 
-  if (CmdFileImgHandle != NULL) {
-    Status = gBS->UnloadImage (CmdFileImgHandle);
-  }
-
   SHELL_FREE_NON_NULL (TempString);
-  SHELL_FREE_NON_NULL (CmdFileName);
-  SHELL_FREE_NON_NULL (CmdFilePathName);
   SHELL_FREE_NON_NULL (FileDevPath);
   SHELL_FREE_NON_NULL (DevPath);
 
