@@ -67,23 +67,7 @@ HiiResourcesSampleInit (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                   Status;
-  EFI_HII_PACKAGE_LIST_HEADER  *PackageList;
-
-  //
-  // Retrieve HII package list from ImageHandle
-  //
-  Status = gBS->OpenProtocol (
-                  ImageHandle,
-                  &gEfiHiiPackageListProtocolGuid,
-                  (VOID **)&PackageList,
-                  ImageHandle,
-                  NULL,
-                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                  );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
+  EFI_STATUS  Status;
 
   //
   // Publish sample Fromset
@@ -103,7 +87,7 @@ HiiResourcesSampleInit (
   //
   Status = gHiiDatabase->NewPackageList (
                            gHiiDatabase,
-                           PackageList,
+                           &gModuleHiiPackageList->Header,
                            mDriverHandle,
                            &mHiiHandle
                            );
