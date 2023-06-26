@@ -789,7 +789,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                     if not os.path.exists(FileBeforeStrip) or \
                            (os.path.getmtime(File) > os.path.getmtime(FileBeforeStrip)):
                         CopyLongFilePath(File, FileBeforeStrip)
-                    StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stipped')
+                    StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stripped')
                     GenFdsGlobalVariable.GenerateFirmwareImage(
                             StrippedFile,
                             File,
@@ -823,7 +823,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                        (os.path.getmtime(GenSecInputFile) > os.path.getmtime(FileBeforeStrip)):
                     CopyLongFilePath(GenSecInputFile, FileBeforeStrip)
 
-                StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stipped')
+                StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stripped')
                 GenFdsGlobalVariable.GenerateFirmwareImage(
                         StrippedFile,
                         GenSecInputFile,

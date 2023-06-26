@@ -3732,8 +3732,6 @@ Returns:
                      UefiImageFileSize,
                      ImageFormat,
                      -1,
-                     NULL,
-                     0,
                      true,
                      NewBaseAddress,
                      NULL,

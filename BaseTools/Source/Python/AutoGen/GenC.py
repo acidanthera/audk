@@ -1994,6 +1994,14 @@ def CreateHeaderCode(Info, AutoGenC, AutoGenH):
     AutoGenH.Append('\nextern GUID  gEdkiiDscPlatformGuid;')
     AutoGenH.Append('\nextern CHAR8 *gEfiCallerBaseName;\n\n')
 
+    if Info.BuildType == 'UEFI_HII':
+        AutoGenH.Append('typedef struct {\n')
+        AutoGenH.Append('  UINT32                       Size;\n')
+        AutoGenH.Append('  EFI_HII_PACKAGE_LIST_HEADER  Header;\n')
+        AutoGenH.Append('} MODULE_HII_PACKAGE_LIST;\n')
+
+        AutoGenH.Append('\nextern CONST MODULE_HII_PACKAGE_LIST  *gModuleHiiPackageList;\n\n')
+
     if Info.IsLibrary:
         return
 
