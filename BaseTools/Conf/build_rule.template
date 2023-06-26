@@ -408,45 +408,6 @@
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
 
-[Dynamic-Library-File.UEFI_HII]
-    <InputFile>
-        ?.dll
-
-    <OutputFile>
-        $(OUTPUT_DIR)(+)$(MODULE_NAME).efi
-        $(DEBUG_DIR)(+)$(MODULE_NAME).efi
-        $(OUTPUT_DIR)(+)$(MODULE_NAME).map
-
-    <ExtraDependency>
-        $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
-
-    <Command.MSFT, Command.INTEL, Command.CLANGPDB>
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} ${src}
-        $(CP) ${dst} $(DEBUG_DIR)
-        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
-        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
-        -$(CP) $(DEBUG_DIR)(+)*.pdb $(OUTPUT_DIR)
-
-    <Command.GCC, Command.CLANGGCC>
-        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
-        $(OBJCOPY) $(OBJCOPY_STRIPFLAG) $(DEBUG_DIR)(+)$(MODULE_NAME).strip
-
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
-
-        $(CP) ${dst} $(DEBUG_DIR)
-        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
-        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
-
-    <Command.XCODE>
-        # tool to convert Mach-O to PE/COFF
-        "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS)  ${src}  $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
-        # create symbol file for GDB debug
-        -$(DSYMUTIL) ${src}
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
-        $(CP) ${dst} $(DEBUG_DIR)
-        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
-        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
-
 [Dependency-Expression-File]
     <InputFile>
         ?.dxs, ?.Dxs, ?.DXS
@@ -672,7 +633,7 @@
         *.hpk
 
     <OutputFile>
-        $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
+        $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.c
 
     <Command>
-        ImageTool HiiBin $(MODULE_GUID) -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(HII_BINARY_PACKAGES)
+        ImageTool HiiSrc $(MODULE_GUID) -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.c $(HII_BINARY_PACKAGES)
