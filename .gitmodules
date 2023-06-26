@@ -35,3 +35,6 @@
 [submodule "CryptoPkg/Library/MbedTlsLib/mbedtls"]
 	path = CryptoPkg/Library/MbedTlsLib/mbedtls
 	url = https://github.com/ARMmbed/mbedtls
+[submodule "OpenCorePkg"]
+	path = OpenCorePkg
+	url = https://github.com/acidanthera/OpenCorePkg.git
