@@ -9,13 +9,13 @@
 !ERROR "BASE_TOOLS_PATH is not set! Please run toolsetup.bat first!"
 !ENDIF
 
-SUBDIRS = $(BASE_TOOLS_PATH)\Source\C $(BASE_TOOLS_PATH)\Source\Python
+SUBDIRS = $(BASE_TOOLS_PATH)\Source\C $(BASE_TOOLS_PATH)\Source\Python $(BASE_TOOLS_PATH)\ImageTool $(BASE_TOOLS_PATH)\MicroTool
 
 all: c
 
 c :
-  @if defined PYTHON_COMMAND $(PYTHON_COMMAND) $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  all $(BASE_TOOLS_PATH)\Source\C
-  @if not defined PYTHON_COMMAND $(PYTHON_HOME)\python.exe $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  all $(BASE_TOOLS_PATH)\Source\C
+  @if defined PYTHON_COMMAND $(PYTHON_COMMAND) $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  all $(BASE_TOOLS_PATH)\Source\C $(BASE_TOOLS_PATH)\ImageTool $(BASE_TOOLS_PATH)\MicroTool
+  @if not defined PYTHON_COMMAND $(PYTHON_HOME)\python.exe $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  all $(BASE_TOOLS_PATH)\Source\C $(BASE_TOOLS_PATH)\ImageTool $(BASE_TOOLS_PATH)\MicroTool
 
 
 subdirs: $(SUBDIRS)
@@ -31,4 +31,3 @@ clean:
 cleanall:
   @if defined PYTHON_COMMAND $(PYTHON_COMMAND) $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  cleanall $(SUBDIRS)
   @if not defined PYTHON_COMMAND $(PYTHON_HOME)\python.exe $(BASE_TOOLS_PATH)\Source\C\Makefiles\NmakeSubdirs.py  cleanall $(SUBDIRS)
-

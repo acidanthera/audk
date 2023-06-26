@@ -20,7 +20,6 @@
 [Sources]
   UniversalPayloadEntry.c
   LoadDxeCore.c
-  MemoryAllocation.c
   PrintHob.c
   AcpiTable.c
 [Sources.Ia32]
@@ -48,6 +47,7 @@
   HobPrintLib
   StackCheckLib
   UefiImageLib
+  MemoryAllocationLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid

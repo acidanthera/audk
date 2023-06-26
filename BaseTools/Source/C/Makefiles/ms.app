@@ -19,10 +19,9 @@ $(OBJECTS) : $(SOURCE_PATH)\Include\Common\BuildVersion.h
 .PHONY:cleanall
 
 clean:
-	del /f /q $(OBJECTS) *.pdb > nul
+	del /f /q *.obj *.pdb > nul
 
 cleanall:
-	del /f /q $(OBJECTS) $(APPLICATION) *.pdb $(BIN_PATH)\$(APPNAME).pdb > nul
+	del /f /q *.obj $(APPLICATION) *.pdb $(BIN_PATH)\$(APPNAME).pdb > nul
 
 !INCLUDE $(SOURCE_PATH)\Makefiles\ms.rule
-

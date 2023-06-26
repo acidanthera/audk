@@ -271,7 +271,6 @@ if not exist "%EDK_TOOLS_BIN%"  goto check_build_environment
 IF NOT EXIST "%EDK_TOOLS_BIN%\EfiRom.exe" goto check_c_tools
 IF NOT EXIST "%EDK_TOOLS_BIN%\GenFfs.exe" goto check_c_tools
 IF NOT EXIST "%EDK_TOOLS_BIN%\GenFv.exe" goto check_c_tools
-IF NOT EXIST "%EDK_TOOLS_BIN%\GenFw.exe" goto check_c_tools
 IF NOT EXIST "%EDK_TOOLS_BIN%\GenSec.exe" goto check_c_tools
 IF NOT EXIST "%EDK_TOOLS_BIN%\TianoCompress.exe" goto check_c_tools
 IF NOT EXIST "%EDK_TOOLS_BIN%\VfrCompile.exe" goto check_c_tools
