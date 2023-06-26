@@ -269,8 +269,6 @@ extern EFI_PHYSICAL_ADDRESS         mDefaultBaseAddress;
 extern BOOLEAN                    gDispatcherRunning;
 extern EFI_RUNTIME_ARCH_PROTOCOL  gRuntimeTemplate;
 
-extern BOOLEAN  gMemoryAttributesTableForwardCfi;
-
 extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfigurationTable;
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
 extern LOADED_IMAGE_PRIVATE_DATA                   *mCurrentImage;
