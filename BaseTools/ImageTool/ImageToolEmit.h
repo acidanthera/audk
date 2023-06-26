@@ -17,8 +17,6 @@ ToolImageEmit (
   IN  uint32_t    BufferSize,
   IN  int8_t      Format,
   IN  int32_t     Type,
-  IN  void        *HiiFile,
-  IN  uint32_t    HiiFileSize,
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
   IN  const char  *SymbolsPath OPTIONAL,
