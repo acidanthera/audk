@@ -606,36 +606,17 @@ class GenFdsGlobalVariable:
         GenFdsGlobalVariable.CallExternalTool(Cmd, "Failed to generate FV")
 
     @staticmethod
-    def GenerateFirmwareImage(Output, Input, Type="efi", SubType=None, Zero=False,
-                              Strip=False, Replace=False, TimeStamp=None, Join=False,
-                              Align=None, Padding=None, Convert=False, IsMakefile=False):
+    def GenerateFirmwareImage(Output, Input, Format="Auto", Strip=False, IsMakefile=False):
         if not GenFdsGlobalVariable.NeedsUpdate(Output, Input) and not IsMakefile:
             return
         GenFdsGlobalVariable.DebugLogger(EdkLogger.DEBUG_5, "%s needs update because of newer %s" % (Output, Input))
 
-        Cmd = ["GenFw"]
-        if Type.lower() == "te":
-            Cmd.append("-t")
-        if SubType:
-            Cmd += ("-e", SubType)
-        if TimeStamp:
-            Cmd += ("-s", TimeStamp)
-        if Align:
-            Cmd += ("-a", Align)
-        if Padding:
-            Cmd += ("-p", Padding)
-        if Zero:
-            Cmd.append("-z")
+        Cmd = ["ImageTool GenImage"]
+        if Format != "Auto":
+            Cmd += ("-c", Format)
         if Strip:
-            Cmd.append("-l")
-        if Replace:
-            Cmd.append("-r")
-        if Join:
-            Cmd.append("-j")
-        if Convert:
-            Cmd.append("-m")
-        Cmd += ("-o", Output)
-        Cmd += Input
+            Cmd.append("-s")
+        Cmd += ("-o", Output, Input)
         if IsMakefile:
             if " ".join(Cmd).strip() not in GenFdsGlobalVariable.SecCmdList:
                 GenFdsGlobalVariable.SecCmdList.append(" ".join(Cmd).strip())

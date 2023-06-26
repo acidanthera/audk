@@ -289,7 +289,7 @@ class EfiSection (EfiSectionClassObject):
                         StrippedFile = os.path.join(OutputPath, ModuleName + '.stripped')
                         GenFdsGlobalVariable.GenerateFirmwareImage(
                                 StrippedFile,
-                                [File],
+                                File,
                                 Strip=True,
                                 IsMakefile = IsMakefile
                             )
