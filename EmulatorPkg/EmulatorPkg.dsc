@@ -639,9 +639,9 @@
   MSFT:*_*_IA32_DLINK_FLAGS  = /BASE:0x010000000
   MSFT:*_*_X64_DLINK_FLAGS   = /BASE:0x180000000
   #
-  # Clear DLINK_XIPFLAGS to disable alignment overrides
+  # Clear DLINK_SECPEIFLAGS to disable alignment overrides
   #
-  MSFT:*_*_*_DLINK_XIPFLAGS ==
+  MSFT:*_*_*_DLINK_SECPEIFLAGS ==
 
   #
   # Windows/CLANGPDB using Visual Studio includes and libraries
@@ -654,9 +654,9 @@
   CLANGPDB:*_*_IA32_DLINK_FLAGS  = /BASE:0x010000000
   CLANGPDB:*_*_X64_DLINK_FLAGS   = /BASE:0x180000000
   #
-  # Clear DLINK_XIPFLAGS to disable alignment overrides
+  # Clear DLINK_SECPEIFLAGS to disable alignment overrides
   #
-  CLANGPDB:*_*_*_DLINK_XIPFLAGS ==
+  CLANGPDB:*_*_*_DLINK_SECPEIFLAGS ==
 
 !if $(WIN_MINGW32_BUILD)
   #
@@ -700,9 +700,9 @@
   #
   GCC:*_CLANGDWARF_*_DLINK2_FLAGS  ==
   #
-  # Clear DLINK_XIPFLAGS to disable alignment overrides
+  # Clear DLINK_SECPEIFLAGS to disable alignment overrides
   #
-  GCC:*_CLANGDWARF_*_DLINK_XIPFLAGS ==
+  GCC:*_CLANGDWARF_*_DLINK_SECPEIFLAGS ==
 !endif
 
   GCC:RELEASE_*_*_CC_FLAGS = -g0
