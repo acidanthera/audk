@@ -55,6 +55,9 @@ typedef struct {
   BOOLEAN              QemuFwCfgChecked;
   BOOLEAN              QemuFwCfgSupported;
   BOOLEAN              QemuFwCfgDmaSupported;
+
+  UINT64               PteMemoryEncryptionAddressOrMask;
+  UINT64               GhcbBase;
 } EFI_HOB_PLATFORM_INFO;
 #pragma pack()
 

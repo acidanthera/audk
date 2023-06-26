@@ -13,7 +13,7 @@
   FILE_GUID                      = B88F7146-9834-4c55-BFAC-481CC0C33736
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.1
-  LIBRARY_CLASS                  = MpInitLib|DXE_DRIVER
+  LIBRARY_CLASS                  = MpInitLib|DXE_DRIVER DXE_CORE
 
 #
 # The following information is for reference only and not required by the build tools.
@@ -43,6 +43,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
@@ -68,10 +69,9 @@
   gEfiEventExitBootServicesGuid                 ## CONSUMES  ## Event
   gEfiEventLegacyBootGuid                       ## SOMETIMES_CONSUMES  ## Event
   gEdkiiMicrocodePatchHobGuid                   ## SOMETIMES_CONSUMES  ## HOB
+  gUefiOvmfPkgPlatformInfoGuid                  ## CONSUMES  ## HOB
 
 [Pcd]
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuMaxLogicalProcessorNumber            ## CONSUMES
-  gUefiCpuPkgTokenSpaceGuid.PcdCpuBootLogicalProcessorNumber           ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApInitTimeOutInMicroSeconds          ## SOMETIMES_CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuApStackSize                          ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuMicrocodePatchAddress                ## CONSUMES
@@ -83,5 +83,3 @@
   gUefiCpuPkgTokenSpaceGuid.PcdSevEsWorkAreaBase                       ## SOMETIMES_CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdFirstTimeWakeUpAPsBySipi                ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard                      ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdGhcbBase                           ## CONSUMES
-  gEfiMdePkgTokenSpaceGuid.PcdConfidentialComputingGuestAttr           ## CONSUMES

@@ -64,6 +64,10 @@
   ## @libraryclass   Provides functions for manipulating smram savestate registers.
   MmSaveStateLib|Include/Library/MmSaveStateLib.h
 
+  ##  @libraryclass  Installs CPU Architecture Protocol.
+  ##
+  CpuArchLib|Include/Library/CpuArchLib.h
+
 [LibraryClasses.RISCV64]
   ##  @libraryclass  Provides functions to manage MMU features on RISCV64 CPUs.
   ##

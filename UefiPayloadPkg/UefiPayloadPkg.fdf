@@ -159,7 +159,6 @@ INF CryptoPkg/Driver/CryptoDxe.inf
 !if $(SECURITY_STUB_ENABLE) == TRUE
 INF MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
 !endif
-INF UefiCpuPkg/CpuDxe/CpuDxe.inf
 
 INF PcAtChipsetPkg/HpetTimerDxe/HpetTimerDxe.inf
 INF MdeModulePkg/Universal/Metronome/Metronome.inf

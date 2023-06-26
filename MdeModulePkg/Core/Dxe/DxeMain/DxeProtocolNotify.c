@@ -194,10 +194,10 @@ GenericProtocolNotify (
   //
   // It's over kill to do them all every time, but it saves a lot of code.
   //
-  CalculateEfiHdrCrc (&gDxeCoreRT->Hdr);
+  CalculateEfiHdrCrc (&gRT->Hdr);
   CalculateEfiHdrCrc (&gBS->Hdr);
-  CalculateEfiHdrCrc (&gDxeCoreST->Hdr);
-  CalculateEfiHdrCrc (&gDxeCoreDS->Hdr);
+  CalculateEfiHdrCrc (&gST->Hdr);
+  CalculateEfiHdrCrc (&gDS->Hdr);
 }
 
 /**
