@@ -27,10 +27,17 @@ on:
     # https://crontab.guru/#20_23_*_*_4
     - cron: '20 23 * * 4'
 
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+
 jobs:
   analyze:
     name: Analyze
-    runs-on: windows-2019
+    runs-on: windows-latest
+    env:
+      CC: gcc
     permissions:
       actions: read
       contents: read
@@ -39,80 +46,65 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - Package: "ArmPkg"
-            ArchList: "IA32,X64"
-          - Package: "CryptoPkg"
-            ArchList: "IA32"
-          - Package: "CryptoPkg"
-            ArchList: "X64"
-          - Package: "DynamicTablesPkg"
-            ArchList: "IA32,X64"
-          - Package: "FatPkg"
-            ArchList: "IA32,X64"
-          - Package: "FmpDevicePkg"
-            ArchList: "IA32,X64"
-          - Package: "IntelFsp2Pkg"
-            ArchList: "IA32,X64"
-          - Package: "IntelFsp2WrapperPkg"
-            ArchList: "IA32,X64"
-          - Package: "MdeModulePkg"
-            ArchList: "IA32"
-          - Package: "MdeModulePkg"
-            ArchList: "X64"
-          - Package: "MdePkg"
-            ArchList: "IA32,X64"
-          - Package: "PcAtChipsetPkg"
-            ArchList: "IA32,X64"
-          - Package: "PrmPkg"
-            ArchList: "IA32,X64"
-          - Package: "SecurityPkg"
-            ArchList: "IA32,X64"
-          - Package: "ShellPkg"
-            ArchList: "IA32,X64"
-          - Package: "SourceLevelDebugPkg"
-            ArchList: "IA32,X64"
-          - Package: "StandaloneMmPkg"
-            ArchList: "IA32,X64"
-          - Package: "UefiCpuPkg"
-            ArchList: "IA32,X64"
-          - Package: "UnitTestFrameworkPkg"
-            ArchList: "IA32,X64"
+        package: [
+          {name: "Ext4Pkg", selfpkg_dir: "Ext4Pkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "FatPkg", selfpkg_dir: "FatPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "IntelFsp2Pkg", selfpkg_dir: "IntelFsp2Pkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "IntelFsp2WrapperPkg", selfpkg_dir: "IntelFsp2WrapperPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "MdeModulePkg", selfpkg_dir: "MdeModulePkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "MdePkg", selfpkg_dir: "MdePkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "UefiCpuPkg", selfpkg_dir: "UefiCpuPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "UnitTestFrameworkPkg", selfpkg_dir: "UnitTestFrameworkPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "OvmfPkgIa32", selfpkg_dir: "OvmfPkg", archs: "(IA32)", archs_ext: ""},
+          {name: "OvmfPkgX64", selfpkg_dir: "OvmfPkg", archs: "(X64)", archs_ext: ""},
+          {name: "OvmfPkgIa32X64", selfpkg_dir: "OvmfPkg", archs: "(X64)", archs_ext: "IA32"},
+          {name: "UefiPayloadPkg", selfpkg_dir: "UefiPayloadPkg", archs: "(X64)", archs_ext: ""},
+          {name: "UefiPayloadPkg", selfpkg_dir: "UefiPayloadPkg", archs: "(X64)", archs_ext: "IA32"},
+          {name: "NetworkPkg", selfpkg_dir: "NetworkPkg", archs: "(IA32 X64)", archs_ext: ""},
+        ]
+    defaults:
+      run:
+        shell: bash
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
 
-    - name: Install Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.10.6'
-        cache: 'pip'
-        cache-dependency-path: 'pip-requirements.txt'
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip --no-progress
+          choco install iasl --no-progress --version=2017.11.10
 
-    # Initializes the CodeQL tools for scanning.
-    - name: Initialize CodeQL
-      uses: github/codeql-action/init@v2
-      with:
-        languages: 'cpp'
-        # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
-        # Learn more about CodeQL language support at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
-        config-file: ./.github/codeql/codeql-config.yml
-        # Note: Add new queries to codeql-config.yml file as they are enabled.
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
 
-    - name: Install/Upgrade pip Modules
-      run: pip install -r pip-requirements.txt --upgrade
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: 'cpp'
+          # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+          # Learn more about CodeQL language support at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
+          config-file: ./.github/codeql/codeql-config.yml
+          # Note: Add new queries to codeql-config.yml file as they are enabled.
 
-    - name: Setup
-      run: stuart_setup -c .pytool/CISettings.py -t DEBUG -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2019
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          cmd <<< "mklink /D .\\UDK .\\" > /dev/null
 
-    - name: Update
-      run: stuart_update -c .pytool/CISettings.py -t DEBUG -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2019
+      - name: Build package
+        run: export ARCHS=${{ matrix.package.archs }}; . ./efibuild.sh
+        env:
+          TARGETS: DEBUG
+          TOOLCHAINS: VS2019
+          SELFPKG: ${{ matrix.package.name }}
+          SELFPKG_DIR: ${{ matrix.package.selfpkg_dir }}
+          ARCHS_EXT: ${{ matrix.package.archs_ext }}
 
-    - name: Build Tools From Source
-      run: python BaseTools/Edk2ToolsBuild.py -t VS2019
-
-    - name: CI Build
-      run: stuart_ci_build -c .pytool/CISettings.py -p ${{ matrix.Package }} -t DEBUG -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2019
-
-    - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v2
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
