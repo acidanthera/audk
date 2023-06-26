@@ -382,6 +382,7 @@ ASM_PFX(AsmGetTssTemplateMap):
     mov dword [ebx],       ASM_PFX(ExceptionTaskSwtichEntry0)
     mov dword [ebx + 0x4], (AsmExceptionEntryEnd - AsmExceptionEntryBegin) / 32
     mov dword [ebx + 0x8], 0
+    mov dword [ebx + 0xC], 0
 
     popad
     pop     ebp
