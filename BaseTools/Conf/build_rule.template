@@ -134,6 +134,9 @@
     <Command.XCODE>
         "$(CC)" $(DEPS_FLAGS) $(CC_FLAGS) -o ${dst} $(INC) ${src}
 
+## Early stages on ARM/AArch64 execute with strict alignment enabled and will crash,
+#  when compiler generates misaligned access.
+#
 [C-Code-File.BASE.AARCH64,C-Code-File.SEC.AARCH64,C-Code-File.PEI_CORE.AARCH64,C-Code-File.PEIM.AARCH64,C-Code-File.BASE.ARM,C-Code-File.SEC.ARM,C-Code-File.PEI_CORE.ARM,C-Code-File.PEIM.ARM]
     <InputFile>
         ?.c
@@ -145,7 +148,7 @@
         $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
 
     <Command.GCC>
-        "$(CC)" $(DEPS_FLAGS) $(CC_FLAGS) $(CC_XIPFLAGS) -c -o ${dst} $(INC) ${src}
+        "$(CC)" $(DEPS_FLAGS) $(CC_FLAGS) $(CC_SECPEIFLAGS) -c -o ${dst} $(INC) ${src}
 
 [C-Header-File]
     <InputFile>
@@ -324,7 +327,7 @@
         "$(DLINK)" /OUT:${dst} $(DLINK_FLAGS) $(DLINK_XIPFLAGS) $(DLINK_SPATH) @$(STATIC_LIBRARY_FILES_LIST)
 
     <Command.GCC>
-        "$(DLINK)" -o ${dst} $(DLINK_FLAGS) $(DLINK_XIPFLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(CC_XIPFLAGS) $(DLINK2_FLAGS)
+        "$(DLINK)" -o ${dst} $(DLINK_FLAGS) $(DLINK_SECPEIFLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(CC_SECPEIFLAGS) $(DLINK2_FLAGS)
 
 [Static-Library-File.USER_DEFINED]
     <InputFile>
