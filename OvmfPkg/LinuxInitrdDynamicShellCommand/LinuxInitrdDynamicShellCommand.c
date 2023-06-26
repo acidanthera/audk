@@ -423,32 +423,15 @@ InitializeHiiPackage (
   EFI_HANDLE  ImageHandle
   )
 {
-  EFI_STATUS                   Status;
-  EFI_HII_PACKAGE_LIST_HEADER  *PackageList;
-  EFI_HII_HANDLE               HiiHandle;
-
-  //
-  // Retrieve HII package list from ImageHandle
-  //
-  Status = gBS->OpenProtocol (
-                  ImageHandle,
-                  &gEfiHiiPackageListProtocolGuid,
-                  (VOID **)&PackageList,
-                  ImageHandle,
-                  NULL,
-                  EFI_OPEN_PROTOCOL_GET_PROTOCOL
-                  );
-  ASSERT_EFI_ERROR (Status);
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
+  EFI_STATUS      Status;
+  EFI_HII_HANDLE  HiiHandle;
 
   //
   // Publish HII package list to HII Database.
   //
   Status = gHiiDatabase->NewPackageList (
                            gHiiDatabase,
-                           PackageList,
+                           &gModuleHiiPackageList->Header,
                            NULL,
                            &HiiHandle
                            );
