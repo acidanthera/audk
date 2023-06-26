@@ -74,8 +74,5 @@
 [LibraryClasses.LoongArch64]
   CpuLib
 
-[BuildOptions]
-  XCODE:*_*_X64_NASM_FLAGS = -D NO_ABSOLUTE_RELOCS_IN_TEXT
-
 [Guids]
   gEfiDebugImageInfoTableGuid  ## CONSUMES ## SystemTable
