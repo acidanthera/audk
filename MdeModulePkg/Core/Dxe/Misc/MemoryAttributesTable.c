@@ -91,7 +91,6 @@ STATIC EFI_LOCK  mMemoryAttributesTableLock = EFI_INITIALIZE_LOCK_VARIABLE (TPL_
 BOOLEAN                      mMemoryAttributesTableEnable      = TRUE;
 EFI_MEMORY_ATTRIBUTES_TABLE  *mMemoryAttributesTable           = NULL;
 BOOLEAN                      mMemoryAttributesTableReadyToBoot = FALSE;
-BOOLEAN                      gMemoryAttributesTableForwardCfi  = TRUE;
 
 /**
   Install MemoryAttributesTable.
@@ -185,12 +184,7 @@ InstallMemoryAttributesTable (
   MemoryAttributesTable->Version         = EFI_MEMORY_ATTRIBUTES_TABLE_VERSION;
   MemoryAttributesTable->NumberOfEntries = RuntimeEntryCount;
   MemoryAttributesTable->DescriptorSize  = (UINT32)DescriptorSize;
-  if (gMemoryAttributesTableForwardCfi) {
-    MemoryAttributesTable->Flags = EFI_MEMORY_ATTRIBUTES_FLAGS_RT_FORWARD_CONTROL_FLOW_GUARD;
-  } else {
-    MemoryAttributesTable->Flags = 0;
-  }
-
+  MemoryAttributesTable->Flags           = 0;
   DEBUG ((DEBUG_VERBOSE, "MemoryAttributesTable:\n"));
   DEBUG ((DEBUG_VERBOSE, "  Version              - 0x%08x\n", MemoryAttributesTable->Version));
   DEBUG ((DEBUG_VERBOSE, "  NumberOfEntries      - 0x%08x\n", MemoryAttributesTable->NumberOfEntries));
