@@ -396,7 +396,7 @@ InitializePlatform (
     MiscInitialization (PlatformInfoHob);
   }
 
-  IntelTdxInitialize ();
+  IntelTdxInitialize (PlatformInfoHob);
   InstallFeatureControlCallback (PlatformInfoHob);
 
   return EFI_SUCCESS;

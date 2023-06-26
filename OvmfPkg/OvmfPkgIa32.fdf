@@ -218,7 +218,6 @@ INF  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
 INF  MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
 INF  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
 INF  UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
-INF  UefiCpuPkg/CpuDxe/CpuDxe.inf
 !ifdef $(CSM_ENABLE)
   INF OvmfPkg/8259InterruptControllerDxe/8259.inf
   INF OvmfPkg/8254TimerDxe/8254Timer.inf

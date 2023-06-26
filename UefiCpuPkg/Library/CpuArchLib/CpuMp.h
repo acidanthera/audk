@@ -10,15 +10,6 @@
 #define _CPU_MP_H_
 
 /**
-  Initialize Multi-processor support.
-
-**/
-VOID
-InitializeMpSupport (
-  VOID
-  );
-
-/**
   This service retrieves the number of logical processor in the platform
   and the number of those logical processors that are enabled on this boot.
   This service may only be called from the BSP.

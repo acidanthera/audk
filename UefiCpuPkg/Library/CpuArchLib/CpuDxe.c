@@ -81,7 +81,7 @@ FIXED_MTRR  mFixedMtrrTable[] = {
   },
 };
 
-EFI_CPU_ARCH_PROTOCOL  gCpu = {
+EFI_CPU_ARCH_PROTOCOL  gCpuImpl = {
   CpuFlushCpuDataCache,
   CpuEnableInterrupt,
   CpuDisableInterrupt,
@@ -93,6 +93,8 @@ EFI_CPU_ARCH_PROTOCOL  gCpu = {
   1,                          // NumberOfTimers
   4                           // DmaBufferAlignment
 };
+
+EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob2 = NULL;
 
 //
 // CPU Arch Protocol Functions
@@ -1186,7 +1188,7 @@ FreeMemorySpaceMap:
 **/
 VOID
 AddLocalApicMemorySpace (
-  IN EFI_HANDLE  ImageHandle
+  VOID
   )
 {
   EFI_STATUS            Status;
@@ -1207,7 +1209,7 @@ AddLocalApicMemorySpace (
                   0,
                   SIZE_4KB,
                   &BaseAddress,
-                  ImageHandle,
+                  gImageHandle,
                   NULL
                   );
   if (EFI_ERROR (Status)) {
@@ -1224,23 +1226,24 @@ AddLocalApicMemorySpace (
 /**
   Initialize the state information for the CPU Architectural Protocol.
 
-  @param ImageHandle     Image handle this driver.
-  @param SystemTable     Pointer to the System Table.
-
   @retval EFI_SUCCESS           Thread can be successfully created
-  @retval EFI_OUT_OF_RESOURCES  Cannot allocate protocol data structure
-  @retval EFI_DEVICE_ERROR      Cannot create the thread
+  @retval EFI_OUT_OF_RESOURCES  Can not allocate protocol data structure
+  @retval EFI_DEVICE_ERROR      Can not create the thread
 
 **/
 EFI_STATUS
-EFIAPI
 InitializeCpu (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+  VOID
   )
 {
-  EFI_STATUS  Status;
-  EFI_EVENT   IdleLoopEvent;
+  EFI_STATUS         Status;
+  EFI_EVENT          IdleLoopEvent;
+  EFI_HOB_GUID_TYPE  *GuidHob;
+
+  GuidHob  = GetFirstGuidHob (&gUefiOvmfPkgPlatformInfoGuid);
+  if (GuidHob != NULL) {
+    mPlatformInfoHob2 = (EFI_HOB_PLATFORM_INFO *)(GET_GUID_HOB_DATA (GuidHob));
+  }
 
   InitializePageTableLib ();
 
@@ -1267,7 +1270,7 @@ InitializeCpu (
   Status = gBS->InstallMultipleProtocolInterfaces (
                   &mCpuHandle,
                   &gEfiCpuArchProtocolGuid,
-                  &gCpu,
+                  &gCpuImpl,
                   NULL
                   );
   ASSERT_EFI_ERROR (Status);
@@ -1280,7 +1283,7 @@ InitializeCpu (
   //
   // Add and allocate local APIC memory mapped space
   //
-  AddLocalApicMemorySpace (ImageHandle);
+  AddLocalApicMemorySpace ();
 
   //
   // Setup a callback for idle events
@@ -1294,8 +1297,6 @@ InitializeCpu (
                   &IdleLoopEvent
                   );
   ASSERT_EFI_ERROR (Status);
-
-  InitializeMpSupport ();
 
   return Status;
 }
