@@ -44,6 +44,12 @@ struc IA32_IDT_GATE_DESCRIPTOR
   .Reserved_1                    CTYPE_UINT32 1
 endstruc
 
+%ifdef CEHL_MINIMAL_INTERRUPTS
+%define NUM_VECTORS 32
+%else
+%define NUM_VECTORS 256
+%endif
+
 ;
 ; CommonExceptionHandler()
 ;
@@ -63,17 +69,14 @@ SECTION .text
 
 ALIGN   8
 
-; Generate 256 IDT vectors.
+; Generate NUM_VECTORS IDT vectors.
 AsmIdtVectorBegin:
 %assign Vector 0
-%rep  256
-    push    strict qword %[Vector]
+%rep  NUM_VECTORS
+    push    strict dword %[Vector] ; This instruction pushes sign-extended 8-byte value on stack
     push    rax
-%ifdef SMM_DXE_NO_ABSOLUTE_RELOCS_IN_TEXT
-    mov     rax, strict qword 0    ; mov     rax, ASM_PFX(CommonInterruptEntry)
-%else
-    mov     rax, ASM_PFX(CommonInterruptEntry)
-%endif
+    ; This code is not copied, thus relative addressing is safe.
+    lea     rax, [ASM_PFX(CommonInterruptEntry)]
     jmp     rax
 %assign Vector Vector+1
 %endrep
@@ -83,12 +86,9 @@ HookAfterStubHeaderBegin:
     push    strict qword 0      ; 0 will be fixed
 VectorNum:
     push    rax
-%ifdef SMM_DXE_NO_ABSOLUTE_RELOCS_IN_TEXT
-    mov     rax, strict qword 0 ;     mov     rax, HookAfterStubHeaderEnd
-JmpAbsoluteAddress:
-%else
+    ; This code is copied, thus relative addressing would not be safe and we
+    ; need to utilize the absolute address.
     mov     rax, HookAfterStubHeaderEnd
-%endif
     jmp     rax
 
 SECTION .text
@@ -321,6 +321,7 @@ DrFinish:
     call    ASM_PFX(CommonExceptionHandler)
     add     rsp, 4 * 8 + 8
 
+%ifdef CEHL_SUPPORTS_CET
     ; The follow algorithm is used for clear shadow stack token busy bit.
     ; The comment is based on the sample shadow stack.
     ; Shadow stack is 32 bytes aligned.
@@ -367,6 +368,7 @@ DrFinish:
     mov     rax, 0x01           ; Pop off the new save token created
     incsspq rax                 ; SSP should be 0xFC0 now
 CetDone:
+%endif
 
     cli
 ;; UINT64  ExceptionData;
@@ -474,23 +476,10 @@ global ASM_PFX(AsmGetTemplateAddressMap)
 ASM_PFX(AsmGetTemplateAddressMap):
     lea     rax, [AsmIdtVectorBegin]
     mov     qword [rcx], rax
-    mov     qword [rcx + 0x8],  (AsmIdtVectorEnd - AsmIdtVectorBegin) / 256
+    mov     qword [rcx + 0x8],  (AsmIdtVectorEnd - AsmIdtVectorBegin) / NUM_VECTORS
     lea     rax, [HookAfterStubHeaderBegin]
     mov     qword [rcx + 0x10], rax
-
-%ifdef SMM_DXE_NO_ABSOLUTE_RELOCS_IN_TEXT
-; Fix up CommonInterruptEntry address
-    lea    rax, [ASM_PFX(CommonInterruptEntry)]
-    lea    rcx, [AsmIdtVectorBegin]
-%rep  256
-    mov    qword [rcx + (JmpAbsoluteAddress - 8 - HookAfterStubHeaderBegin)], rax
-    add    rcx, (AsmIdtVectorEnd - AsmIdtVectorBegin) / 256
-%endrep
-; Fix up HookAfterStubHeaderEnd
-    lea    rax, [HookAfterStubHeaderEnd]
-    lea    rcx, [JmpAbsoluteAddress]
-    mov    qword [rcx - 8], rax
-%endif
+    mov     qword [rcx + 0x18], HookAfterStubHeaderEnd - HookAfterStubHeaderBegin
 
     ret
 
@@ -502,4 +491,3 @@ ASM_PFX(AsmVectorNumFixup):
     mov     rax, rdx
     mov     [rcx + (VectorNum - 4 - HookAfterStubHeaderBegin)], al
     ret
-

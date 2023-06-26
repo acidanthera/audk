@@ -92,4 +92,4 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
 
 [BuildOptions]
-  XCODE:*_*_X64_NASM_FLAGS = -D SEC_PEI_NO_ABSOLUTE_RELOCS_IN_TEXT
+  *_*_*_NASM_FLAGS  = -DCEHL_MINIMAL_INTERRUPTS
