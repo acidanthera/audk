@@ -81,7 +81,7 @@ case `uname` in
         exit 1
         ;;
       *)
-        TARGET_TOOLS=GCC5
+        TARGET_TOOLS=GCC
         ;;
     esac
     ;;
