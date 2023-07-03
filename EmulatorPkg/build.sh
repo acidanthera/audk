@@ -42,7 +42,7 @@ PLATFORMFILE=
 LAST_ARG=
 RUN_EMULATOR=no
 CLEAN_TYPE=none
-TARGET_TOOLS=GCC5
+TARGET_TOOLS=GCC
 NETWORK_SUPPORT=
 BUILD_NEW_SHELL=
 BUILD_FAT=
@@ -92,7 +92,7 @@ case `uname` in
         exit 1
         ;;
       *)
-        TARGET_TOOLS=GCC5
+        TARGET_TOOLS=GCC
         ;;
     esac
     ;;
