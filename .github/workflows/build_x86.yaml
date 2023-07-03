@@ -406,7 +406,7 @@ jobs:
           path: CLANGDWARF_fw_artifacts.zip
 
   build-linux-gcc5:
-    name: Linux GCC5
+    name: Linux GCC
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -428,7 +428,7 @@ jobs:
         env:
           SELFPKG: OvmfPkgX64
           SELFPKG_DIR: OvmfPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -440,7 +440,7 @@ jobs:
         env:
           SELFPKG: OvmfPkgIa32X64
           SELFPKG_DIR: OvmfPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
@@ -453,7 +453,7 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           SELFPKG_DIR: UefiPayloadPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -465,7 +465,7 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           SELFPKG_DIR: UefiPayloadPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG,NOOPT
@@ -486,16 +486,16 @@ jobs:
         env:
           ARCHS: X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
-          TOOLCHAIN: GCC5
+          TOOLCHAIN: GCC
 
       - name: Zip artifacts
-        run: zip GCC5_fw_artifacts.zip ./firmware_artifacts/* -r
+        run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GCC5 Firmware Artifacts
-          path: GCC5_fw_artifacts.zip
+          name: GCC Firmware Artifacts
+          path: GCC_fw_artifacts.zip
 
   test-firmwares:
     name: Test
@@ -510,7 +510,7 @@ jobs:
           {name: "Ovmf", archs: "X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "X64,3264", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
         ]
     steps:
       - name: Checkout ocbuild repository
