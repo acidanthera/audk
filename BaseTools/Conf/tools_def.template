@@ -17,9 +17,8 @@
 #      - Change RC path to use plugin
 # 3.00 - Update toolchains
 #      - Add support for ARM and AARCH64 to CLANGDWARF
-#      - Remove VS2008, VS2010, VS2012, VS2013, CLANG35, CLANG38, EBC, GCC48, GCC49
+#      - Remove VS2008, VS2010, VS2012, VS2013, CLANG35, CLANG38, EBC, GCC48, GCC49, GCC5
 #      - Add GCC and GCCNOLTO
-#      - Deprecate GCC5.
 # 3.01 - Add toolchain for VS2022
 # 3.02 - Enable stack cookies for IA32, X64, ARM, and AARCH64 builds for GCC and MSVC
 #
@@ -120,8 +119,6 @@ DEFINE CYGWIN_BINX64           = c:/cygwin/opt/tiano/x86_64-pc-mingw64/x86_64-pc
 DEFINE GCCNOLTO_IA32_PREFIX    = ENV(GCCNOLTO_BIN)
 DEFINE GCCNOLTO_X64_PREFIX     = ENV(GCCNOLTO_BIN)
 
-DEFINE GCC5_IA32_PREFIX        = ENV(GCC5_BIN)
-DEFINE GCC5_X64_PREFIX         = ENV(GCC5_BIN)
 DEFINE GCC_IA32_PREFIX         = ENV(GCC_BIN)
 DEFINE GCC_X64_PREFIX          = ENV(GCC_BIN)
 DEFINE GCC_HOST_PREFIX         = ENV(GCC_HOST_BIN)
@@ -200,7 +197,7 @@ DEFINE DTC_BIN                 = ENV(DTC_PREFIX)dtc
 #                             Required to build EBC drivers:
 #                               Intel(r) Compiler for Efi Byte Code (Intel(r) EBC Compiler)
 #   GCCNOLTO    -Linux,Windows-  Requires:
-#                             GCC 4.9 targeting x86_64-linux-gnu, aarch64-linux-gnu, or arm-linux-gnueabi
+#                             GCC 5 targeting x86_64-linux-gnu, aarch64-linux-gnu, or arm-linux-gnueabi
 #                        Optional:
 #                             Required to build platforms or ACPI tables:
 #                               Intel(r) ACPI Compiler from
@@ -229,15 +226,6 @@ DEFINE DTC_BIN                 = ENV(DTC_PREFIX)dtc
 #                        Optional:
 #                             Required to build platforms or ACPI tables:
 #                               Intel(r) ACPI Compiler (iasl.exe) from
-#                               https://acpica.org/downloads
-#
-# Deprecated Tool Chains
-# ======================
-#   GCC5        -Linux,Windows-  Requires:
-#                             GCC 5 with LTO support, targeting x86_64-linux-gnu, aarch64-linux-gnu, arm-linux-gnueabi, riscv64-linux-gnu or loongarch64-linux-gnu
-#                        Optional:
-#                             Required to build platforms or ACPI tables:
-#                               Intel(r) ACPI Compiler from
 #                               https://acpica.org/downloads
 #
 ####################################################################################
@@ -1147,213 +1135,6 @@ RELEASE_GCCNOLTO_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20
 
 ####################################################################################
 #
-# GCC 5 - This configuration is used to compile under Linux to produce
-#         PE/COFF binaries using GCC 5
-#
-####################################################################################
-*_GCC5_*_*_FAMILY                = GCC
-
-*_GCC5_*_MAKE_PATH               = DEF(GCC_HOST_PREFIX)make
-*_GCC5_*_*_DLL                   = ENV(GCC5_DLL)
-*_GCC5_*_ASL_PATH                = DEF(UNIX_IASL_BIN)
-
-*_GCC5_*_PP_FLAGS                = DEF(GCC_PP_FLAGS)
-*_GCC5_*_ASLPP_FLAGS             = DEF(GCC_ASLPP_FLAGS)
-*_GCC5_*_ASLCC_FLAGS             = DEF(GCC_ASLCC_FLAGS)
-*_GCC5_*_VFRPP_FLAGS             = DEF(GCC_VFRPP_FLAGS)
-*_GCC5_*_APP_FLAGS               =
-*_GCC5_*_ASL_FLAGS               = DEF(IASL_FLAGS)
-*_GCC5_*_ASL_OUTFLAGS            = DEF(IASL_OUTFLAGS)
-*_GCC5_*_DEPS_FLAGS                   = DEF(GCC_DEPS_FLAGS)
-
-##################
-# GCC5 IA32 definitions
-##################
-*_GCC5_IA32_OBJCOPY_PATH         = DEF(GCC5_IA32_PREFIX)objcopy
-*_GCC5_IA32_CC_PATH              = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_SLINK_PATH           = DEF(GCC5_IA32_PREFIX)gcc-ar
-*_GCC5_IA32_DLINK_PATH           = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_ASLDLINK_PATH        = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_ASM_PATH             = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_PP_PATH              = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_VFRPP_PATH           = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_ASLCC_PATH           = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_ASLPP_PATH           = DEF(GCC5_IA32_PREFIX)gcc
-*_GCC5_IA32_RC_PATH              = DEF(GCC5_IA32_PREFIX)objcopy
-
-*_GCC5_IA32_ASLCC_FLAGS          = DEF(GCC5_ASLCC_FLAGS) -m32
-*_GCC5_IA32_ASLDLINK_FLAGS       = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-q,-m,elf_i386 -no-pie
-*_GCC5_IA32_ASM_FLAGS            = DEF(GCC5_ASM_FLAGS) -m32 -march=i386
-*_GCC5_IA32_DLINK2_FLAGS         = DEF(GCC5_IA32_DLINK2_FLAGS) -no-pie
-*_GCC5_IA32_NASM_FLAGS           = -f elf32 -DRODATA_SECTION_NAME=.rodata
-
-  DEBUG_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os
-  DEBUG_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
-
-RELEASE_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
-
-  NOOPT_GCC5_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -O0
-  NOOPT_GCC5_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i386,--oformat=elf32-i386 -O0
-
-##################
-# GCC5 X64 definitions
-##################
-*_GCC5_X64_OBJCOPY_PATH          = DEF(GCC5_X64_PREFIX)objcopy
-*_GCC5_X64_CC_PATH               = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_SLINK_PATH            = DEF(GCC5_X64_PREFIX)gcc-ar
-*_GCC5_X64_DLINK_PATH            = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_ASLDLINK_PATH         = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_ASM_PATH              = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_PP_PATH               = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_VFRPP_PATH            = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_ASLCC_PATH            = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_ASLPP_PATH            = DEF(GCC5_X64_PREFIX)gcc
-*_GCC5_X64_RC_PATH               = DEF(GCC5_X64_PREFIX)objcopy
-
-*_GCC5_X64_ASLCC_FLAGS           = DEF(GCC5_ASLCC_FLAGS) -m64
-*_GCC5_X64_ASLDLINK_FLAGS        = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_x86_64
-*_GCC5_X64_ASM_FLAGS             = DEF(GCC5_ASM_FLAGS) -m64
-*_GCC5_X64_DLINK2_FLAGS          = DEF(GCC5_X64_DLINK2_FLAGS)
-*_GCC5_X64_NASM_FLAGS            = -f elf64 -DRODATA_SECTION_NAME=.rodata
-
-  DEBUG_GCC5_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) -flto -DUSING_LTO
-  DEBUG_GCC5_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -flto -Os
-
-RELEASE_GCC5_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) -flto -DUSING_LTO -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC5_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -flto -Os
-
-  NOOPT_GCC5_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) -O0
-  NOOPT_GCC5_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -O0
-
-##################
-# GCC5 ARM definitions
-##################
-*_GCC5_ARM_OBJCOPY_PATH          = ENV(GCC5_ARM_PREFIX)objcopy
-*_GCC5_ARM_CC_PATH               = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_SLINK_PATH            = ENV(GCC5_ARM_PREFIX)gcc-ar
-*_GCC5_ARM_DLINK_PATH            = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_ASLDLINK_PATH         = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_ASM_PATH              = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_PP_PATH               = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_VFRPP_PATH            = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_ASLCC_PATH            = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_ASLPP_PATH            = ENV(GCC5_ARM_PREFIX)gcc
-*_GCC5_ARM_RC_PATH               = ENV(GCC5_ARM_PREFIX)objcopy
-
-*_GCC5_ARM_ASLCC_FLAGS           = DEF(GCC5_ASLCC_FLAGS)
-*_GCC5_ARM_ASLDLINK_FLAGS        = DEF(GCC5_ARM_ASLDLINK_FLAGS)
-*_GCC5_ARM_ASM_FLAGS             = DEF(GCC5_ARM_ASM_FLAGS)
-*_GCC5_ARM_DLINK2_FLAGS          = DEF(GCC5_ARM_DLINK2_FLAGS)
-*_GCC5_ARM_DTCPP_FLAGS           = DEF(GCC_DTCPP_FLAGS)
-*_GCC5_ARM_PP_FLAGS              = DEF(GCC_PP_FLAGS) -mthumb -march=armv7-a
-*_GCC5_ARM_VFRPP_FLAGS           = DEF(GCC_VFRPP_FLAGS) -mthumb -march=armv7-a
-*_GCC5_ARM_CC_SECPEIFLAGS        = DEF(GCC_ARM_CC_SECPEIFLAGS)
-
-  DEBUG_GCC5_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
-  DEBUG_GCC5_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-arm -Wl,-plugin-opt=-pass-through=-llto-arm
-
-RELEASE_GCC5_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC5_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-arm -Wl,-plugin-opt=-pass-through=-llto-arm
-
-  NOOPT_GCC5_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) -O0
-  NOOPT_GCC5_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) -O0
-
-##################
-# GCC5 AARCH64 definitions
-##################
-*_GCC5_AARCH64_OBJCOPY_PATH      = ENV(GCC5_AARCH64_PREFIX)objcopy
-*_GCC5_AARCH64_CC_PATH           = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_SLINK_PATH        = ENV(GCC5_AARCH64_PREFIX)gcc-ar
-*_GCC5_AARCH64_DLINK_PATH        = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_ASLDLINK_PATH     = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_ASM_PATH          = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_PP_PATH           = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_VFRPP_PATH        = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_ASLCC_PATH        = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_ASLPP_PATH        = ENV(GCC5_AARCH64_PREFIX)gcc
-*_GCC5_AARCH64_RC_PATH           = ENV(GCC5_AARCH64_PREFIX)objcopy
-
-*_GCC5_AARCH64_ASLCC_FLAGS       = DEF(GCC5_ASLCC_FLAGS)
-*_GCC5_AARCH64_ASLDLINK_FLAGS    = DEF(GCC5_AARCH64_ASLDLINK_FLAGS)
-*_GCC5_AARCH64_ASM_FLAGS         = DEF(GCC5_AARCH64_ASM_FLAGS)
-*_GCC5_AARCH64_DLINK2_FLAGS      = DEF(GCC5_AARCH64_DLINK2_FLAGS)
-*_GCC5_AARCH64_DTCPP_FLAGS       = DEF(GCC_DTCPP_FLAGS)
-*_GCC5_AARCH64_PP_FLAGS          = DEF(GCC_PP_FLAGS)
-*_GCC5_AARCH64_VFRPP_FLAGS       = DEF(GCC_VFRPP_FLAGS)
-*_GCC5_AARCH64_CC_SECPEIFLAGS    = DEF(GCC_AARCH64_CC_SECPEIFLAGS)
-
-  DEBUG_GCC5_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
-  DEBUG_GCC5_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-aarch64 -Wl,-plugin-opt=-pass-through=-llto-aarch64 -Wno-lto-type-mismatch
-  DEBUG_GCC5_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
-
-RELEASE_GCC5_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC5_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-aarch64 -Wl,-plugin-opt=-pass-through=-llto-aarch64 -Wno-lto-type-mismatch
-RELEASE_GCC5_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
-
-  NOOPT_GCC5_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -O0
-  NOOPT_GCC5_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -O0
-  NOOPT_GCC5_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN) -O0
-
-####################################################################################
-#
-# GCC RISC-V This configuration is used to compile under Linux to produce
-#             PE/COFF binaries using GCC RISC-V tool chain
-#
-####################################################################################
-
-##################
-# GCC5 RISCV64 definitions
-##################
-*_GCC5_RISCV64_OBJCOPY_PATH         = ENV(GCC5_RISCV64_PREFIX)objcopy
-*_GCC5_RISCV64_CC_PATH              = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_SLINK_PATH           = ENV(GCC5_RISCV64_PREFIX)gcc-ar
-*_GCC5_RISCV64_DLINK_PATH           = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_ASLDLINK_PATH        = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_ASM_PATH             = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_PP_PATH              = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_VFRPP_PATH           = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_ASLCC_PATH           = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_ASLPP_PATH           = ENV(GCC5_RISCV64_PREFIX)gcc
-*_GCC5_RISCV64_RC_PATH              = ENV(GCC5_RISCV64_PREFIX)objcopy
-
-*_GCC5_RISCV64_ASLCC_FLAGS          = DEF(GCC_ASLCC_FLAGS)
-*_GCC5_RISCV64_ASLDLINK_FLAGS       = DEF(GCC5_RISCV32_RISCV64_ASLDLINK_FLAGS)
-*_GCC5_RISCV64_ASM_FLAGS            = DEF(GCC5_RISCV64_ASM_FLAGS)
-*_GCC5_RISCV64_CC_FLAGS             = DEF(GCC5_RISCV64_CC_FLAGS) -save-temps
-*_GCC5_RISCV64_DLINK_FLAGS          = DEF(GCC5_RISCV64_DLINK_FLAGS)
-*_GCC5_RISCV64_DLINK2_FLAGS         = DEF(GCC5_RISCV64_DLINK2_FLAGS)
-*_GCC5_RISCV64_DTCPP_FLAGS          = DEF(GCC_DTCPP_FLAGS)
-*_GCC5_RISCV64_PP_FLAGS             = DEF(GCC_PP_FLAGS) DEF(GCC5_RISCV_OPENSBI_TYPES)
-
-##################
-# GCC5 LOONGARCH64 definitions
-##################
-*_GCC5_LOONGARCH64_OBJCOPY_PATH         = ENV(GCC5_LOONGARCH64_PREFIX)objcopy
-*_GCC5_LOONGARCH64_CC_PATH              = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_SLINK_PATH           = ENV(GCC5_LOONGARCH64_PREFIX)gcc-ar
-*_GCC5_LOONGARCH64_DLINK_PATH           = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_ASLDLINK_PATH        = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_ASM_PATH             = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_PP_PATH              = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_VFRPP_PATH           = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_ASLCC_PATH           = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_ASLPP_PATH           = ENV(GCC5_LOONGARCH64_PREFIX)gcc
-*_GCC5_LOONGARCH64_RC_PATH              = ENV(GCC5_LOONGARCH64_PREFIX)objcopy
-
-*_GCC5_LOONGARCH64_ASLCC_FLAGS          = DEF(GCC_ASLCC_FLAGS)
-*_GCC5_LOONGARCH64_ASLDLINK_FLAGS       = DEF(GCC5_LOONGARCH64_ASLDLINK_FLAGS)
-*_GCC5_LOONGARCH64_ASM_FLAGS            = DEF(GCC5_LOONGARCH64_ASM_FLAGS)
-*_GCC5_LOONGARCH64_DLINK_FLAGS          = DEF(GCC5_LOONGARCH64_DLINK_FLAGS)
-*_GCC5_LOONGARCH64_DLINK2_FLAGS         = DEF(GCC5_LOONGARCH64_DLINK2_FLAGS)
-*_GCC5_LOONGARCH64_NASM_FLAGS           = -f elf32
-*_GCC5_LOONGARCH64_PP_FLAGS             = DEF(GCC5_LOONGARCH64_PP_FLAGS)
-
-DEBUG_GCC5_LOONGARCH64_CC_FLAGS         = DEF(GCC5_LOONGARCH64_CC_FLAGS)
-RELEASE_GCC5_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-unused-but-set-variable -Wno-unused-variable
-
-####################################################################################
-#
 # GCC - This configuration is used to compile under Linux to produce
 #       PE/COFF binaries using GCC 5 or newer
 #
@@ -1361,7 +1142,7 @@ RELEASE_GCC5_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-un
 *_GCC_*_*_FAMILY                = GCC
 
 *_GCC_*_MAKE_PATH               = DEF(GCC_HOST_PREFIX)make
-*_GCC_*_*_DLL                   = ENV(GCC_DLL)
+*_GCC_*_*_DLL                   = ENV(GCC5_DLL)
 *_GCC_*_ASL_PATH                = DEF(UNIX_IASL_BIN)
 
 *_GCC_*_PP_FLAGS                = DEF(GCC_PP_FLAGS)
@@ -1371,7 +1152,7 @@ RELEASE_GCC5_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-un
 *_GCC_*_APP_FLAGS               =
 *_GCC_*_ASL_FLAGS               = DEF(IASL_FLAGS)
 *_GCC_*_ASL_OUTFLAGS            = DEF(IASL_OUTFLAGS)
-*_GCC_*_DEPS_FLAGS                   = DEF(GCC_DEPS_FLAGS)
+*_GCC_*_DEPS_FLAGS              = DEF(GCC_DEPS_FLAGS)
 
 ##################
 # GCC IA32 definitions
@@ -1389,20 +1170,19 @@ RELEASE_GCC5_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-un
 *_GCC_IA32_RC_PATH              = DEF(GCC_IA32_PREFIX)objcopy
 
 *_GCC_IA32_ASLCC_FLAGS          = DEF(GCC5_ASLCC_FLAGS) -m32
-*_GCC_IA32_ASLDLINK_FLAGS       = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_i386 -no-pie
+*_GCC_IA32_ASLDLINK_FLAGS       = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-q,-m,elf_i386 -no-pie
 *_GCC_IA32_ASM_FLAGS            = DEF(GCC5_ASM_FLAGS) -m32 -march=i386
 *_GCC_IA32_DLINK2_FLAGS         = DEF(GCC5_IA32_DLINK2_FLAGS) -no-pie
-*_GCC_IA32_OBJCOPY_FLAGS        =
-*_GCC_IA32_NASM_FLAGS           = -f elf32
+*_GCC_IA32_NASM_FLAGS           = -f elf32 -DRODATA_SECTION_NAME=.rodata
 
-  DEBUG_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto
-  DEBUG_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-m,elf_i386,--oformat=elf32-i386
+  DEBUG_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os
+  DEBUG_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
-RELEASE_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
-RELEASE_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-m,elf_i386,--oformat=elf32-i386
+RELEASE_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -flto -Os -Wno-unused-but-set-variable -Wno-unused-const-variable
+RELEASE_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
   NOOPT_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -O0
-  NOOPT_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-m,elf_i386,--oformat=elf32-i386 -O0
+  NOOPT_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i386,--oformat=elf32-i386 -O0
 
 ##################
 # GCC X64 definitions
@@ -1423,8 +1203,7 @@ RELEASE_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -flto -Os -Wl,-
 *_GCC_X64_ASLDLINK_FLAGS        = DEF(GCC5_IA32_X64_ASLDLINK_FLAGS) -Wl,-m,elf_x86_64
 *_GCC_X64_ASM_FLAGS             = DEF(GCC5_ASM_FLAGS) -m64
 *_GCC_X64_DLINK2_FLAGS          = DEF(GCC5_X64_DLINK2_FLAGS)
-*_GCC_X64_OBJCOPY_FLAGS         =
-*_GCC_X64_NASM_FLAGS            = -f elf64
+*_GCC_X64_NASM_FLAGS            = -f elf64 -DRODATA_SECTION_NAME=.rodata
 
   DEBUG_GCC_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) -flto -DUSING_LTO
   DEBUG_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -flto -Os
@@ -1438,6 +1217,7 @@ RELEASE_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -flto -Os
 ##################
 # GCC ARM definitions
 ##################
+*_GCC_ARM_OBJCOPY_PATH          = ENV(GCC_ARM_PREFIX)objcopy
 *_GCC_ARM_CC_PATH               = ENV(GCC_ARM_PREFIX)gcc
 *_GCC_ARM_SLINK_PATH            = ENV(GCC_ARM_PREFIX)gcc-ar
 *_GCC_ARM_DLINK_PATH            = ENV(GCC_ARM_PREFIX)gcc
@@ -1454,9 +1234,8 @@ RELEASE_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS) -flto -Os
 *_GCC_ARM_ASM_FLAGS             = DEF(GCC5_ARM_ASM_FLAGS)
 *_GCC_ARM_DLINK2_FLAGS          = DEF(GCC5_ARM_DLINK2_FLAGS)
 *_GCC_ARM_DTCPP_FLAGS           = DEF(GCC_DTCPP_FLAGS)
-*_GCC_ARM_PLATFORM_FLAGS        = -march=armv7-a -mfloat-abi=soft
-*_GCC_ARM_PP_FLAGS              = $(PLATFORM_FLAGS) DEF(GCC_PP_FLAGS)
-*_GCC_ARM_VFRPP_FLAGS           = $(PLATFORM_FLAGS) DEF(GCC_VFRPP_FLAGS)
+*_GCC_ARM_PP_FLAGS              = DEF(GCC_PP_FLAGS) -mthumb -march=armv7-a
+*_GCC_ARM_VFRPP_FLAGS           = DEF(GCC_VFRPP_FLAGS) -mthumb -march=armv7-a
 *_GCC_ARM_CC_SECPEIFLAGS        = DEF(GCC_ARM_CC_SECPEIFLAGS)
 
   DEBUG_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
@@ -1471,6 +1250,7 @@ RELEASE_GCC_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) -flto -Os -L$(WORKSP
 ##################
 # GCC AARCH64 definitions
 ##################
+*_GCC_AARCH64_OBJCOPY_PATH      = ENV(GCC_AARCH64_PREFIX)objcopy
 *_GCC_AARCH64_CC_PATH           = ENV(GCC_AARCH64_PREFIX)gcc
 *_GCC_AARCH64_SLINK_PATH        = ENV(GCC_AARCH64_PREFIX)gcc-ar
 *_GCC_AARCH64_DLINK_PATH        = ENV(GCC_AARCH64_PREFIX)gcc
@@ -1487,22 +1267,21 @@ RELEASE_GCC_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) -flto -Os -L$(WORKSP
 *_GCC_AARCH64_ASM_FLAGS         = DEF(GCC5_AARCH64_ASM_FLAGS)
 *_GCC_AARCH64_DLINK2_FLAGS      = DEF(GCC5_AARCH64_DLINK2_FLAGS)
 *_GCC_AARCH64_DTCPP_FLAGS       = DEF(GCC_DTCPP_FLAGS)
-*_GCC_AARCH64_PLATFORM_FLAGS    =
-*_GCC_AARCH64_PP_FLAGS          = $(PLATFORM_FLAGS) DEF(GCC_PP_FLAGS)
-*_GCC_AARCH64_VFRPP_FLAGS       = $(PLATFORM_FLAGS) DEF(GCC_VFRPP_FLAGS)
+*_GCC_AARCH64_PP_FLAGS          = DEF(GCC_PP_FLAGS)
+*_GCC_AARCH64_VFRPP_FLAGS       = DEF(GCC_VFRPP_FLAGS)
 *_GCC_AARCH64_CC_SECPEIFLAGS    = DEF(GCC_AARCH64_CC_SECPEIFLAGS)
 
   DEBUG_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
   DEBUG_GCC_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-aarch64 -Wl,-plugin-opt=-pass-through=-llto-aarch64 -Wno-lto-type-mismatch
-  DEBUG_GCC_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20
+  DEBUG_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
 
 RELEASE_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -flto -Wno-unused-but-set-variable -Wno-unused-const-variable
 RELEASE_GCC_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -flto -Os -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-aarch64 -Wl,-plugin-opt=-pass-through=-llto-aarch64 -Wno-lto-type-mismatch
-RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20
+RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
 
   NOOPT_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) -O0
   NOOPT_GCC_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) -O0
-  NOOPT_GCC_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20 -O0
+  NOOPT_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN) -O0
 
 ####################################################################################
 #
@@ -1532,7 +1311,6 @@ RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20
 *_GCC_RISCV64_CC_FLAGS             = DEF(GCC5_RISCV64_CC_FLAGS) -save-temps
 *_GCC_RISCV64_DLINK_FLAGS          = DEF(GCC5_RISCV64_DLINK_FLAGS)
 *_GCC_RISCV64_DLINK2_FLAGS         = DEF(GCC5_RISCV64_DLINK2_FLAGS)
-*_GCC_RISCV64_OBJCOPY_FLAGS        =
 *_GCC_RISCV64_DTCPP_FLAGS          = DEF(GCC_DTCPP_FLAGS)
 *_GCC_RISCV64_PP_FLAGS             = DEF(GCC_PP_FLAGS) DEF(GCC5_RISCV_OPENSBI_TYPES)
 
@@ -1556,7 +1334,6 @@ RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = -z common-page-size=0x20
 *_GCC_LOONGARCH64_ASM_FLAGS            = DEF(GCC5_LOONGARCH64_ASM_FLAGS)
 *_GCC_LOONGARCH64_DLINK_FLAGS          = DEF(GCC5_LOONGARCH64_DLINK_FLAGS)
 *_GCC_LOONGARCH64_DLINK2_FLAGS         = DEF(GCC5_LOONGARCH64_DLINK2_FLAGS)
-*_GCC_LOONGARCH64_OBJCOPY_FLAGS        =
 *_GCC_LOONGARCH64_NASM_FLAGS           = -f elf32
 *_GCC_LOONGARCH64_PP_FLAGS             = DEF(GCC5_LOONGARCH64_PP_FLAGS)
 

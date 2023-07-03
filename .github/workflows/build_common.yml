@@ -540,7 +540,7 @@ jobs:
           SKIP_PACKAGE: 1
 
   build-linux-gcc5:
-    name: Linux GCC5
+    name: Linux GCC
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -561,7 +561,7 @@ jobs:
         env:
           SELFPKG: Ext4Pkg
           SELFPKG_DIR: Ext4Pkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -573,7 +573,7 @@ jobs:
         env:
           SELFPKG: FatPkg
           SELFPKG_DIR: FatPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -585,7 +585,7 @@ jobs:
         env:
           SELFPKG: IntelFsp2Pkg
           SELFPKG_DIR: IntelFsp2Pkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -597,7 +597,7 @@ jobs:
         env:
           SELFPKG: IntelFsp2WrapperPkg
           SELFPKG_DIR: IntelFsp2WrapperPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -609,7 +609,7 @@ jobs:
         env:
           SELFPKG: MdeModulePkg
           SELFPKG_DIR: MdeModulePkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -621,7 +621,7 @@ jobs:
         env:
           SELFPKG: MdePkg
           SELFPKG_DIR: MdePkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -633,7 +633,7 @@ jobs:
         env:
           SELFPKG: UefiCpuPkg
           SELFPKG_DIR: UefiCpuPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -645,7 +645,7 @@ jobs:
         env:
           SELFPKG: UnitTestFrameworkPkg
           SELFPKG_DIR: UnitTestFrameworkPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
@@ -657,7 +657,7 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           SELFPKG_DIR: NetworkPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
