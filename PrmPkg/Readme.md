@@ -71,10 +71,10 @@ on IA32 with the unique UEFI configuration required.
 > later in this document and dump the PRMT table in the OS to check if your PRM module is represented as expected.
 
 * AArch64
-    ``build -p PrmPkg/PrmPkg.dsc -a AARCH64 -t GCC5``
+    ``build -p PrmPkg/PrmPkg.dsc -a AARCH64 -t GCC``
 
-   > ***Note***: Only builds with the GCC5 toolchain have been tested.
-   > ***Note***: For builds with the GCC5 toolchain, the PrmModuleExportDescriptor and any other handler entry points
+   > ***Note***: Only builds with the GCC toolchain have been tested.
+   > ***Note***: For builds with the GCC toolchain, the PrmModuleExportDescriptor and any other handler entry points
    symbols, to be listed in the PRMT, must be explicitly preserved by enumerating these in the AARCH64 linker flags.
    The --require-defined linker flag must be used for each symbol to be preserved.
 

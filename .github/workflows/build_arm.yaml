@@ -16,7 +16,7 @@ env:
 
 jobs:
   build-linux-gcc5:
-    name: Linux GCC5
+    name: Linux GCC
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -51,13 +51,13 @@ jobs:
         env:
           SELFPKG: ArmPkg
           SELFPKG_DIR: ArmPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC5_ARM_PREFIX: arm-linux-gnueabi-
-          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+          GCC_ARM_PREFIX: arm-linux-gnueabi-
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Build ArmPlatformPkg
         if: always()
@@ -65,13 +65,13 @@ jobs:
         env:
           SELFPKG: ArmPlatformPkg
           SELFPKG_DIR: ArmPlatformPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC5_ARM_PREFIX: arm-linux-gnueabi-
-          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+          GCC_ARM_PREFIX: arm-linux-gnueabi-
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Build ArmVirtQemu
         if: always()
@@ -79,13 +79,13 @@ jobs:
         env:
           SELFPKG: ArmVirtQemu
           SELFPKG_DIR: ArmVirtPkg
-          TOOLCHAINS: GCC5
+          TOOLCHAINS: GCC
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC5_ARM_PREFIX: arm-linux-gnueabi-
-          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+          GCC_ARM_PREFIX: arm-linux-gnueabi-
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Prepare artifacts with firmwares
         if: always()
@@ -101,16 +101,16 @@ jobs:
         env:
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
-          TOOLCHAIN: GCC5
+          TOOLCHAIN: GCC
 
       - name: Zip artifacts
-        run: zip GCC5_fw_arm_artifacts.zip ./firmware_artifacts/* -r
+        run: zip GCC_fw_arm_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GCC5 Firmware ARM Artifacts
-          path: GCC5_fw_arm_artifacts.zip
+          name: GCC Firmware ARM Artifacts
+          path: GCC_fw_arm_artifacts.zip
 
   build-linux-clangdwarf:
     name: Linux CLANGDWARF
@@ -217,7 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
         ]
     steps:
