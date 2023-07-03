@@ -1,7 +1,7 @@
 # @file Edk2ToolsBuild.py
 # Invocable class that builds the basetool c files.
 #
-# Supports VS2019, VS2022, and GCC5
+# Supports VS2019, VS2022, and GCC
 ##
 # Copyright (c) Microsoft Corporation
 #
