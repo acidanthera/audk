@@ -183,7 +183,7 @@ DEFINE DTC_BIN                 = ENV(DTC_PREFIX)dtc
 #   VS2026      -win32,win64-  Requires:
 #                             Microsoft Visual Studio 2026 version 18.0 or later
 #   GCCNOLTO    -Linux,Windows-  Requires:
-#                             GCC 4.9 targeting x86_64-linux-gnu or aarch64-linux-gnu
+#                             GCC 5 targeting x86_64-linux-gnu or aarch64-linux-gnu
 #                        Optional:
 #                             Required to build platforms or ACPI tables:
 #                               Intel(r) ACPI Compiler from
