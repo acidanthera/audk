@@ -429,8 +429,8 @@ ToolImageEmitUeRelocTable (
       ChainInProgress  = ChainSupported && RelocOffset <= UE_CHAINED_RELOC_FIXUP_MAX_OFFSET;
 
       if (ChainInProgress) {
-        PrevChainRelocInfo  = RelocOffset;
-        PrevChainRelocInfo |= RelocType << 12U;
+        PrevChainRelocInfo  = RelocType;
+        PrevChainRelocInfo |= RelocOffset << 4U;
         PrevChainRelocInfo |= PrevRelocValue << 16U;
         assert (UE_CHAINED_RELOC_FIXUP_NEXT_OFFSET (PrevChainRelocInfo) == RelocOffset);
         assert (UE_CHAINED_RELOC_FIXUP_NEXT_TYPE (PrevChainRelocInfo) == RelocType);
@@ -448,7 +448,7 @@ ToolImageEmitUeRelocTable (
     }
 
     if (ChainSupported) {
-      ChainRelocInfo  = UE_CHAINED_RELOC_FIXUP_OFFSET_END;
+      ChainRelocInfo  = UE_CHAINED_RELOC_FIXUP_OFFSET_END << 4U;
       ChainRelocInfo |= RelocValue << 16U;
       if ((ChainRelocInfo >> 16U) != RelocValue) {
         DEBUG_RAISE ();
