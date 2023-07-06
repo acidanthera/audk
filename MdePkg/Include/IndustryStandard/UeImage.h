@@ -205,8 +205,8 @@ STATIC_ASSERT (
 ///
 typedef struct {
   ///
-  /// The offset of the first head fixup, in bytes, from the previous UE
-  /// relocation fixup (chained or not). The first UE fixup root is
+  /// The offset of the first head fixup, in bytes, from the end of the previous
+  /// UE relocation fixup (chained or not). The first UE fixup root is
   /// relative to 0.
   ///
   UINT32  FirstOffset;
@@ -214,8 +214,8 @@ typedef struct {
   /// The head fixups of the UE fixup root.
   ///
   /// [Bits 3:0]   The type of the UE relocation fixup.
-  /// [Bits 15:4]  The offset of the next UE head fixup from the last UE
-  ///              relocation fixup in the chain (if chained). If 0x0FFF, the
+  /// [Bits 15:4]  The offset of the next UE head fixup from the end of the last
+  ///              UE relocation fixup in the chain (if chained). If 0x0FFF, the
   ///              current fixup root is terminated.
   ///
   UINT16  Heads[];
@@ -267,8 +267,8 @@ STATIC_ASSERT (
 
   @param[in] FixupInfo  The UE relocation fixup information.
 **/
-#define UE_CHAINED_RELOC_FIXUP_NEXT_OFFSET(FixupInfo) \
-  ((UINT16)(FixupInfo) & 0x0FFFU)
+#define UE_CHAINED_RELOC_FIXUP_NEXT_OFFSET(FixupInfo)  \
+  ((UINT16)((UINT16)(FixupInfo) >> 4U) & 0x0FFFU)
 
 ///
 /// The maximum offset, in bytes, of the next UE chained relocation fixup.
@@ -286,7 +286,7 @@ STATIC_ASSERT (
   @param[in] FixupInfo  The UE relocation fixup information.
 **/
 #define UE_CHAINED_RELOC_FIXUP_NEXT_TYPE(FixupInfo)  \
-  ((UINT8)(((UINT16)(FixupInfo) >> 12U) & 0x0FU))
+  ((UINT8)((UINT16)(FixupInfo) & 0x0FU))
 
 ///
 /// The shift exponent for UE chained relocation fixup values.
@@ -304,12 +304,11 @@ STATIC_ASSERT (
 ///
 /// Definition of the common header of UE chained relocation fixups.
 ///
-/// [Bits 11:0]  The offset to the next chained relocation fixup, from the end
-///              of the current chained relocation fixup. If 0x0FFF, the current
-///              chain is terminated. Consult the fixup root for further
-///              relocation fixups.
-/// [Bits 15:12] The relocation type of the next chained relocation fixup. Only
-///              valid when [Bits 11:0] are non-0.
+/// [Bits 3:0]  The relocation type of the next chained relocation fixup. Only
+///             valid when [Bits 15:4] are not 0x0FFF.
+/// [Bits 15:4] The offset to the next chained relocation fixup from the end
+///             of the current one. If 0x0FFF, the current chain is terminated.
+///             Consult the fixup root for further relocation fixups.
 ///
 typedef UINT16  UE_RELOC_FIXUP_HDR;
 
