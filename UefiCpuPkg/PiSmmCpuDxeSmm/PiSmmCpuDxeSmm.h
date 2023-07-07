@@ -1019,18 +1019,6 @@ AllocatePageTableMemory (
   IN UINTN  Pages
   );
 
-/**
-  Allocate pages for code.
-
-  @param[in]  Pages Number of pages to be allocated.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateCodePages (
-  IN UINTN  Pages
-  );
-
 //
 // S3 related global variable and function prototype.
 //
