@@ -41,6 +41,7 @@ typedef struct {
 } POOL_HEAD;
 
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultCodeType = EfiBootServicesCode;
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
