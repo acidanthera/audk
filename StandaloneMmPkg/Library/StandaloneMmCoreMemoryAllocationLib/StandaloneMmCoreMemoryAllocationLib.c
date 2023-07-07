@@ -18,6 +18,7 @@
 #include "StandaloneMmCoreMemoryAllocationServices.h"
 
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiRuntimeServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultCodeType = EfiRuntimeServicesCode;
 
 EFI_MM_SYSTEM_TABLE  *gMmst = NULL;
 

@@ -28,6 +28,7 @@
 #include <Library/MemoryProfileLib.h>
 
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiRuntimeServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultCodeType = EfiRuntimeServicesCode;
 
 EFI_SMRAM_DESCRIPTOR  *mSmmCoreMemoryAllocLibSmramRanges    = NULL;
 UINTN                 mSmmCoreMemoryAllocLibSmramRangeCount = 0;
