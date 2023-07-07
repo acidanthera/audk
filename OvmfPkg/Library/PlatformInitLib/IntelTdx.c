@@ -18,6 +18,7 @@
 #include <IndustryStandard/IntelTdx.h>
 #include <Library/PeiServicesLib.h>
 #include <Pi/PiHob.h>
+#include <Library/TdxLib.h>
 #include <WorkArea.h>
 #include <ConfidentialComputingGuestAttr.h>
 
