@@ -96,7 +96,7 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
 
 [Protocols]
   gEfiSmmAccess2ProtocolGuid               ## CONSUMES
@@ -114,6 +114,7 @@
   gEdkiiPiSmmMemoryAttributesTableGuid     ## CONSUMES ## SystemTable
   gEfiMemoryAttributesTableGuid            ## CONSUMES ## SystemTable
   gSmmBaseHobGuid                          ## CONSUMES
+  gEfiDebugImageInfoTableGuid              ## CONSUMES ## SystemTable
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmDebug                         ## CONSUMES

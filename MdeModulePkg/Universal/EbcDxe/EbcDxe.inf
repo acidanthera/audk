@@ -53,7 +53,7 @@
 [LibraryClasses]
   CacheMaintenanceLib
   MemoryAllocationLib
-  PeCoffLib
+  UefiImageLib
   UefiBootServicesTableLib
   BaseMemoryLib
   UefiDriverEntryPoint

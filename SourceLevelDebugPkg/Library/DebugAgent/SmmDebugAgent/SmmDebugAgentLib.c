@@ -265,11 +265,6 @@ InitializeDebugAgent (
         //
         TriggerSoftInterrupt (MEMORY_READY_SIGNATURE);
       }
-
-      //
-      // Find and report PE/COFF image info to HOST
-      //
-      FindAndReportModuleImageInfo (SIZE_4KB);
       //
       // Restore saved IDT entries
       //
@@ -379,10 +374,7 @@ InitializeDebugAgent (
         //
         SaveAndSetDebugTimerInterrupt (TRUE);
         EnableInterrupts ();
-
-        FindAndReportModuleImageInfo (SIZE_4KB);
       }
-
       break;
 
     default:

@@ -70,6 +70,24 @@ gSupportedTarget = ['all', 'genc', 'genmake', 'modules', 'libraries', 'fds', 'cl
 TemporaryTablePattern = re.compile(r'^_\d+_\d+_[a-fA-F0-9]+$')
 TmpTableDict = {}
 
+## Return the biggest multiple of alignment that is smaller than or equal to
+#  value.
+#
+#   @param value      The value to align down.
+#   @param alignment  The boundary to align down to.
+#
+def AlignDown(value, alignment):
+    return value - (value % alignment)
+
+## Return the smallest multiple of alignment that is bigger than or equal to
+#  value.
+#
+#   @param value      The value to align up.
+#   @param alignment  The boundary to align up to.
+#
+def AlignUp(value, alignment):
+    return AlignDown(value + alignment - 1, alignment)
+
 ## Check environment PATH variable to make sure the specified tool is found
 #
 #   If the tool is found in the PATH, then True is returned
@@ -688,7 +706,7 @@ class PeImageInfo():
         self.OutputDir        = OutputDir
         self.DebugDir         = DebugDir
         self.Image            = ImageClass
-        self.Image.Size       = (self.Image.Size // 0x1000 + 1) * 0x1000
+        self.Image.Size       = AlignUp(self.Image.Size, 0x1000)
 
 ## The class implementing the EDK2 build process
 #
@@ -1502,12 +1520,15 @@ class Build():
             ## for SMM module in SMRAM, the SMRAM will be allocated from base to top.
             if not ModeIsSmm:
                 BaseAddress = BaseAddress - ModuleInfo.Image.Size
+                BaseAddress = AlignDown(BaseAddress, ModuleInfo.Image.SectionAlignment)
                 #
                 # Update Image to new BaseAddress by GenFw tool
                 #
                 LaunchCommand(["GenFw", "--rebase", str(BaseAddress), "-r", ModuleOutputImage], ModuleInfo.OutputDir)
                 LaunchCommand(["GenFw", "--rebase", str(BaseAddress), "-r", ModuleDebugImage], ModuleInfo.DebugDir)
+            ## for SMM module in SMRAM, the SMRAM will be allocated from base to top.
             else:
+                BaseAddress = AlignUp(BaseAddress, ModuleInfo.Image.SectionAlignment)
                 #
                 # Set new address to the section header only for SMM driver.
                 #

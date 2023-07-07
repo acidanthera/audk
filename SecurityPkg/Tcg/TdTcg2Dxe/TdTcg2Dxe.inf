@@ -46,7 +46,7 @@
   HashLib
   PerformanceLib
   ReportStatusCodeLib
-  PeCoffLib
+  UefiImageLib
   TpmMeasurementLib
   TdxLib
 

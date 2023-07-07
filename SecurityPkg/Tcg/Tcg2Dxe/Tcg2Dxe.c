@@ -9,7 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <PiDxe.h>
 #include <IndustryStandard/Acpi.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include <IndustryStandard/TcpaAcpi.h>
 
 #include <Guid/GlobalVariable.h>
@@ -123,7 +123,7 @@ EFI_HANDLE  mImageHandle;
   PE/COFF image is external input, so this function will validate its data structure
   within this image buffer before use.
 
-  Notes: PE/COFF image is checked by BasePeCoffLib PeCoffLoaderGetImageInfo().
+  Notes: PE/COFF image is checked by UefiImageLibLib UefiImageInitializeContext().
 
   @param[in]  PCRIndex       TPM PCR index
   @param[in]  ImageAddress   Start address of image buffer.
@@ -135,7 +135,7 @@ EFI_HANDLE  mImageHandle;
   @retval other error value
 **/
 EFI_STATUS
-MeasurePeImageAndExtend (
+MeasureUefiImageAndExtend (
   IN  UINT32                PCRIndex,
   IN  EFI_PHYSICAL_ADDRESS  ImageAddress,
   IN  UINTN                 ImageSize,
@@ -1325,7 +1325,7 @@ Tcg2HashLogExtendEvent (
   NewEventHdr.EventType = Event->Header.EventType;
   NewEventHdr.EventSize = Event->Size - sizeof (UINT32) - Event->Header.HeaderSize;
   if ((Flags & PE_COFF_IMAGE) != 0) {
-    Status = MeasurePeImageAndExtend (
+    Status = MeasureUefiImageAndExtend (
                NewEventHdr.PCRIndex,
                DataToHash,
                (UINTN)DataToHashLen,
@@ -1338,7 +1338,7 @@ Tcg2HashLogExtendEvent (
     }
 
     if (Status == EFI_DEVICE_ERROR) {
-      DEBUG ((DEBUG_ERROR, "MeasurePeImageAndExtend - %r. Disable TPM.\n", Status));
+      DEBUG ((DEBUG_ERROR, "MeasureUefiImageAndExtend - %r. Disable TPM.\n", Status));
       mTcgDxeData.BsCap.TPMPresentFlag = FALSE;
       REPORT_STATUS_CODE (
         EFI_ERROR_CODE | EFI_ERROR_MINOR,

@@ -51,8 +51,8 @@
   SerialPortLib
   IoLib
   HobLib
-  PeCoffLib
   CpuLib
+  UefiImageLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid
@@ -95,4 +95,3 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack               ## SOMETIMES_CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy ## SOMETIMES_CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy       ## SOMETIMES_CONSUMES
-
