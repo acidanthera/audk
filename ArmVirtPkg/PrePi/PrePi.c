@@ -158,7 +158,12 @@ RelocateUefiImage (
   Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SectionData, &SectionSize);
   ASSERT_EFI_ERROR (Status);
 
-  Status = UefiImageInitializeContext (&ImageContext, SectionData, SectionSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             SectionData,
+             SectionSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   ASSERT_RETURN_ERROR (Status);
 
   Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);

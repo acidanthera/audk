@@ -350,7 +350,12 @@ SmmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContextPreHash (ImageContext, Buffer, (UINT32) Size);
+  Status = UefiImageInitializeContextPreHash (
+             ImageContext,
+             Buffer,
+             (UINT32) Size,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {
       gBS->FreePool (Buffer);

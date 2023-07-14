@@ -49,7 +49,7 @@
   PrintLib
   BaseMemoryLib
   BaseLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   ThunkPpiList
   ThunkProtocolList
   PpiListLib

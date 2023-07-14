@@ -121,8 +121,8 @@ OBJECTS = $(OBJECTS) \
 
 OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\CommonSupport.obj \
-  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\PeCoffSupport.obj \
-  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\UefiImageLibPeCoff.obj
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\PeSupport.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\UefiImageLib.obj
 
 OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull\UefiImageExtraActionLib.obj
