@@ -53,7 +53,7 @@ enum {
 typedef UINT32 UE_SEGMENT_IMAGE_INFO;
 
 ///
-/// Definition of an UE segment header.
+/// Definition of a UE segment header.
 ///
 typedef struct {
   ///
@@ -72,7 +72,7 @@ STATIC_ASSERT (
   );
 
 ///
-/// Definition of an UE XIP segment header.
+/// Definition of a UE XIP segment header.
 ///
 typedef struct {
   ///
@@ -116,7 +116,7 @@ STATIC_ASSERT (
 #define UE_LOAD_TABLE_ALIGNMENT  8U
 
 ///
-/// Definition of UE load table identifiers.
+/// Definition of the UE load table identifiers.
 ///
 enum {
   //
@@ -131,7 +131,7 @@ enum {
 };
 
 ///
-/// Definition of an UE load table header.
+/// Definition of a UE load table header.
 ///
 typedef struct {
   ///
@@ -173,7 +173,7 @@ STATIC_ASSERT (
 //
 
 ///
-/// Definitions of the generic chainable UE relocation identifiers.
+/// Definitions of the generic UE relocation identifiers.
 ///
 enum {
   UeReloc32 = 0x00,
@@ -183,7 +183,7 @@ enum {
 
 #if 0
 ///
-/// Definition of the ARM chainable UE relocation identifiers.
+/// Definition of the ARM UE relocation identifiers.
 ///
 enum {
   UeRelocArmMovtMovw = 0x02
@@ -191,7 +191,7 @@ enum {
 #endif
 
 ///
-/// The alignment requirement for an UE fixup root.
+/// The alignment requirement for a UE fixup root.
 ///
 #define UE_FIXUP_ROOT_ALIGNMENT  4U
 
@@ -201,7 +201,7 @@ STATIC_ASSERT (
   );
 
 ///
-/// Definition of an UE fixup root.
+/// Definition of a UE fixup root.
 ///
 typedef struct {
   ///
@@ -340,7 +340,7 @@ typedef UINT32  UE_RELOC_FIXUP_ARM_MOVT_MOVW;
 //
 
 ///
-/// Definition of an UE segment name. Must be \0-terminated.
+/// Definition of a UE segment name. Must be \0-terminated.
 ///
 typedef UINT8 UE_SEGMENT_NAME[8];
 
@@ -350,10 +350,11 @@ STATIC_ASSERT (
   );
 
 ///
-/// Definition of an UE load table header.
+/// Definition of the UE debug table header.
 ///
 typedef struct {
   ///
+  /// Information about the image regarding the symbols file.
   ///
   /// [Bits 1:0] The offset, in image alignment units, to be subtracted from the
   ///            UE base address in order to retrieve the UE symbols base
@@ -390,7 +391,7 @@ typedef struct {
   ((UINT8)((ImageInfo) & 0x03U))
 
 /**
-  Retrieves the UE segment name table of an UE debug table.
+  Retrieves the UE segment name table of a UE debug table.
 
   @param[in] DebugTable  The UE debug table.
 **/
@@ -419,7 +420,7 @@ STATIC_ASSERT (
 //
 
 ///
-/// The file magic number of an UE header.
+/// The file magic number of a UE header.
 ///
 #define UE_HEADER_MAGIC  SIGNATURE_16 ('U', 'E')
 
@@ -447,7 +448,7 @@ enum {
 };
 
 ///
-/// Definition of an UE file header.
+/// Definition of a UE file header.
 ///
 typedef struct {
   ///
@@ -461,6 +462,8 @@ typedef struct {
   /// [Bits 7:3] Indicates the supported architectures.
   ///
   UINT8         Type;
+  ///
+  /// Information about the UE load tables and segments.
   ///
   /// [Bits 2:0] The number of UE load tables.
   /// [Bits 7:3] The index of the last segment in the UE segment table.
