@@ -142,6 +142,8 @@ SmmNewDebugImageInfoEntry (
     if (!RETURN_ERROR (Status)) {
       NormalImage->PdbPath = AllocateCopyPool (PdbPathSize, PdbPath);
     }
+
+    NormalImage->DebugBase = UefiImageLoaderGetDebugAddress (ImageContext);
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
     //
