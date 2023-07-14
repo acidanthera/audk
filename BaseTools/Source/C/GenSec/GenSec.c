@@ -1163,7 +1163,8 @@ GetAlignmentFromFile(char *InFile, UINT32 *Alignment)
   Status = UefiImageInitializeContext (
              &ImageContext,
              ImageFileBuffer + CurSecHdrSize,
-             ImageFileSize
+             ImageFileSize,
+             UEFI_IMAGE_SOURCE_FV
              );
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and return status is %x", InFile, (int) Status);

@@ -287,7 +287,12 @@ MmLoadImage (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (&ImageContext, DriverEntry->Pe32Data, DriverEntry->Pe32DataSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             DriverEntry->Pe32Data,
+             DriverEntry->Pe32DataSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }

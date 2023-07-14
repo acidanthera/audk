@@ -238,12 +238,17 @@ CoreInitializeImageServices (
   Status = UefiImageInitializeContext (
              ImageContext,
              (VOID *) (UINTN) DxeCoreImageBaseAddress,
-             (UINT32) DxeCoreImageLength
+             (UINT32) DxeCoreImageLength,
+             UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
 
   // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
-  ImageContext->ImageBuffer = (VOID *) ImageContext->FileBuffer;
+  if (ImageContext->FormatIndex == UefiImageFormatPe) {
+    ImageContext->Ctx.Pe.ImageBuffer = (VOID *) ImageContext->Ctx.Pe.FileBuffer;
+  } else {
+    ASSERT (FALSE);
+  }
 
   ASSERT ((UINTN) DxeCoreEntryPoint == UefiImageLoaderGetImageEntryPoint (ImageContext));
 
@@ -1191,7 +1196,12 @@ CoreLoadImageCommon (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContextPreHash (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
+  Status = UefiImageInitializeContextPreHash (
+             &ImageContext,
+             FHand.Source,
+             (UINT32) FHand.SourceSize,
+             ImageIsFromFv
+             );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     return Status;

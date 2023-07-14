@@ -19,6 +19,230 @@
 #include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
+#include <Library/PcdLib.h>
+
+#include "PeSupport.h"
+
+RETURN_STATUS
+UefiImageInitializeContextPreHashPe (
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN  CONST VOID                       *FileBuffer,
+  IN  UINT32                           FileSize
+  )
+{
+  return PeCoffInitializeContext (&Context->Ctx.Pe, FileBuffer, FileSize);
+}
+
+BOOLEAN
+UefiImageHashImageDefaultPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT VOID                             *HashContext,
+  IN     UEFI_IMAGE_LOADER_HASH_UPDATE    HashUpdate
+  )
+{
+  return PeCoffHashImageAuthenticode (&Context->Ctx.Pe, HashContext, HashUpdate);
+}
+
+RETURN_STATUS
+UefiImageInitializeContextPostHashPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return RETURN_SUCCESS;
+}
+
+RETURN_STATUS
+UefiImageLoadImagePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    VOID                             *Destination,
+  IN     UINT32                           DestinationSize
+  )
+{
+  return PeCoffLoadImage (&Context->Ctx.Pe, Destination, DestinationSize);
+}
+
+BOOLEAN
+UefiImageImageIsInplacePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffImageIsInplace (&Context->Ctx.Pe);
+}
+
+RETURN_STATUS
+UefiImageLoadImageInplacePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffLoadImageInplace (&Context->Ctx.Pe);
+}
+
+RETURN_STATUS
+UefiImageRelocateImageInplacePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffRelocateImageInplace (&Context->Ctx.Pe);
+}
+
+RETURN_STATUS
+UefiImageLoaderGetRuntimeContextSizePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT32                           *Size
+  )
+{
+  return PeCoffLoaderGetRuntimeContextSize (&Context->Ctx.Pe, Size);
+}
+
+RETURN_STATUS
+UefiImageRelocateImagePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *Context,
+  IN     UINT64                             BaseAddress,
+  OUT    UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     UINT32                             RuntimeContextSize
+  )
+{
+  return PeCoffRelocateImage (
+           &Context->Ctx.Pe,
+           BaseAddress,
+           (PE_COFF_LOADER_RUNTIME_CONTEXT *)RuntimeContext,
+           RuntimeContextSize
+           );
+}
+
+RETURN_STATUS
+UefiImageRuntimeRelocateImagePe (
+  IN OUT VOID        *Image,
+  IN     UINT32      ImageSize,
+  IN     UINT64      BaseAddress,
+  IN     CONST VOID  *RuntimeContext
+  )
+{
+  return PeCoffRuntimeRelocateImage (
+           Image,
+           ImageSize,
+           BaseAddress,
+           (CONST PE_COFF_LOADER_RUNTIME_CONTEXT *)RuntimeContext
+           );
+}
+
+VOID
+UefiImageDiscardSegmentsPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  PeCoffDiscardSections (&Context->Ctx.Pe);
+}
+
+RETURN_STATUS
+UefiImageGetSymbolsPathPe (
+  IN  CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT CONST CHAR8                            **SymbolsPath,
+  OUT UINT32                                 *SymbolsPathSize
+  )
+{
+  return PeCoffGetPdbPath (&Context->Ctx.Pe, SymbolsPath, SymbolsPathSize);
+}
+
+RETURN_STATUS
+UefiImageGetFirstCertificatePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    CONST WIN_CERTIFICATE            **Certificate
+  )
+{
+  return PeCoffGetFirstCertificate (&Context->Ctx.Pe, Certificate);
+}
+
+RETURN_STATUS
+UefiImageGetNextCertificatePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN OUT CONST WIN_CERTIFICATE            **Certificate
+  )
+{
+  return PeCoffGetNextCertificate (&Context->Ctx.Pe, Certificate);
+}
+
+RETURN_STATUS
+UefiImageGetHiiDataRvaPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT32                           *HiiRva,
+  OUT    UINT32                           *HiiSize
+  )
+{
+  return PeCoffGetHiiDataRva (&Context->Ctx.Pe, HiiRva, HiiSize);
+}
+
+UINT32
+UefiImageGetEntryPointAddressPe (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetAddressOfEntryPoint (&Context->Ctx.Pe);
+}
+
+UINT16
+UefiImageGetMachinePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetMachine (&Context->Ctx.Pe);
+}
+
+UINT16
+UefiImageGetSubsystemPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetSubsystem (&Context->Ctx.Pe);
+}
+
+UINT32
+UefiImageGetSegmentAlignmentPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetSectionAlignment (&Context->Ctx.Pe);
+}
+
+UINT32
+UefiImageGetImageSizePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetSizeOfImage (&Context->Ctx.Pe);
+}
+
+UINT32
+UefiImageGetImageSizeInplacePe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetSizeOfImageInplace (&Context->Ctx.Pe);
+}
+
+UINT64
+UefiImageGetPreferredAddressPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetImageBase (&Context->Ctx.Pe);
+}
+
+BOOLEAN
+UefiImageGetRelocsStrippedPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffGetRelocsStripped (&Context->Ctx.Pe);
+}
+
+UINTN
+UefiImageLoaderGetImageAddressPe (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffLoaderGetImageAddress (&Context->Ctx.Pe);
+}
 
 /**
   Retrieves the memory protection attributes corresponding to PE/COFF Image
@@ -107,8 +331,8 @@ InternalInsertImageRecordSegmentPadding (
 }
 
 UEFI_IMAGE_RECORD *
-UefiImageLoaderGetImageRecordPeCoff (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+UefiImageLoaderGetImageRecordPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   UEFI_IMAGE_RECORD              *ImageRecord;
@@ -135,7 +359,7 @@ UefiImageLoaderGetImageRecordPeCoff (
   // Determine the maximum amount of Image record sections and allocate the
   // Image record.
   //
-  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (&Context->Ctx.Pe, &Sections);
 
   STATIC_ASSERT (
     MAX_UINT16 <= MAX_UINT32 / 2 - 1,
@@ -162,14 +386,13 @@ UefiImageLoaderGetImageRecordPeCoff (
                     + MaxNumRecordSegments * sizeof (*ImageRecord->Segments)
                   );
   if (ImageRecord == NULL) {
-    DEBUG_RAISE ();
     return NULL;
   }
 
   ImageRecord->Signature = UEFI_IMAGE_RECORD_SIGNATURE;
   InitializeListHead (&ImageRecord->Link);
 
-  SectionAlignment = PeCoffGetSectionAlignment (Context);
+  SectionAlignment = PeCoffGetSectionAlignment (&Context->Ctx.Pe);
   //
   // Map the Image Headers as read-only data. If the first Image section is
   // loaded at the start of the Image memory space, the condition
@@ -177,7 +400,7 @@ UefiImageLoaderGetImageRecordPeCoff (
   // ignored.
   //
   StartAddress    = 0;
-  EndAddress      = PeCoffGetSizeOfHeaders (Context);
+  EndAddress      = PeCoffGetSizeOfHeaders (&Context->Ctx.Pe);
   Characteristics = EFI_IMAGE_SCN_MEM_READ;
   Attributes      = EFI_MEMORY_XP | EFI_MEMORY_RO;
   ASSERT (Attributes == InternalCharacteristicsToAttributes (Characteristics));
@@ -268,8 +491,8 @@ UefiImageLoaderGetImageRecordPeCoff (
   RecordSegment->Attributes = Attributes;
   ++NumRecordSegments;
 
-  ImageAddress = PeCoffLoaderGetImageAddress (Context);
-  SizeOfImage  = PeCoffGetSizeOfImage (Context);
+  ImageAddress = PeCoffLoaderGetImageAddress (&Context->Ctx.Pe);
+  SizeOfImage  = PeCoffGetSizeOfImage (&Context->Ctx.Pe);
   //
   // The Image trailer, if existent, is treated as padding and as such is
   // reported as read-only data, as intended. Because it is not part of the
@@ -318,14 +541,16 @@ InternalDebugLocateImage (
   //
   // Search for the Image Header in 4 Byte steps. All dynamically loaded
   // Images start at a page boundary to allow for Image section protection,
-  // but XIP Images may not.
+  // but XIP Images may not. As all Image Headers are at least 4 Byte aligned
+  // due to natural alignment, even XIP TE Image Headers should start at a
+  // 4 Byte boundary.
   //
   // Do not attempt to access memory of the first page as it may be protected as
   // part of NULL dereference detection.
   //
   for (; EFI_PAGE_SIZE <= (UINTN) Buffer; Buffer -= 4) {
     //
-    // Try to parse the current memory as PE/COFF Image. Pass MAX_UINT32
+    // Try to parse the current memory as PE/COFF or TE Image. Pass MAX_UINT32
     // as the file size as there isn't any more information available. Only the
     // Image Header memory will be accessed as part of initialisation.
     //
@@ -362,6 +587,7 @@ InternalDebugLocateImage (
     //
     // We know that (UINTN) Buffer <= Address from the initialisation.
     //
+    // FIXME: Set to non-stripped base for XIP TE Images.
     if (Address < (UINTN) Buffer + PeCoffGetSizeOfImage (Context)) {
       Context->ImageBuffer = Buffer;
       //
@@ -374,7 +600,7 @@ InternalDebugLocateImage (
       return RETURN_SUCCESS;
     }
     //
-    // Continue for the unlikely case that a PE/COFF Image embeds another
+    // Continue for the unlikely case that a PE/COFF or TE Image embeds another
     // one within its data, the outer Image may still follow.
     //
   }
@@ -383,9 +609,9 @@ InternalDebugLocateImage (
 }
 
 RETURN_STATUS
-UefiImageDebugLocateImagePeCoff (
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                         Address
+UefiImageDebugLocateImagePe (
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN  UINTN                            Address
   )
 {
   RETURN_STATUS Status;
@@ -404,14 +630,15 @@ UefiImageDebugLocateImagePeCoff (
   // the Image base to not access too much (potentially protected) memory.
   //
   if (!PcdGetBool (PcdImageLoaderLoadHeader)) {
-    DEBUG_RAISE ();
     return RETURN_NOT_FOUND;
   }
+
+  Context->FormatIndex = UefiImageFormatPe;
   //
   // Align the search buffer to a 4 Byte boundary.
   //
   Status = InternalDebugLocateImage (
-             Context,
+             &Context->Ctx.Pe,
              (CHAR8 *) (Address & ~(UINTN) 3U),
              Address,
              FALSE
@@ -423,24 +650,27 @@ UefiImageDebugLocateImagePeCoff (
 }
 
 RETURN_STATUS
-UefiImageGetFixedAddressPeCoff (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  OUT    UINT64                        *Address
+UefiImageGetFixedAddressPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  OUT    UINT64                           *Address
   )
 {
+  UINT32                         SectionAlignment;
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
   UINT16                         NumberOfSections;
   UINT16                         SectionIndex;
   UINT64                         FixedAddress;
 
   ASSERT (Address != NULL);
+
+  SectionAlignment = PeCoffGetSectionAlignment (&Context->Ctx.Pe);
   //
   // If this feature is enabled, the build tool will save the address in the
   // PointerToRelocations and PointerToLineNumbers fields of the first Image
   // section header that doesn't hold code. The 64-bit value across those fields
   // will be non-zero if and only if the module has been assigned an address.
   //
-  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (&Context->Ctx.Pe, &Sections);
   for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
     if ((Sections[SectionIndex].Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
       continue;
@@ -450,7 +680,7 @@ UefiImageGetFixedAddressPeCoff (
                      (CONST VOID *) &Sections[SectionIndex].PointerToRelocations
                      );
     if (FixedAddress != 0) {
-      if (!IS_ALIGNED (FixedAddress, Context->SectionAlignment)) {
+      if (!IS_ALIGNED (FixedAddress, SectionAlignment)) {
         return RETURN_UNSUPPORTED;
       }
 
@@ -465,8 +695,8 @@ UefiImageGetFixedAddressPeCoff (
 }
 
 VOID
-UefiImageDebugPrintSegmentsPeCoff (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
+UefiImageDebugPrintSegmentsPe (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
   CONST EFI_IMAGE_SECTION_HEADER *Sections;
@@ -474,30 +704,27 @@ UefiImageDebugPrintSegmentsPeCoff (
   UINT16                         SectionIndex;
   CONST UINT8                    *Name;
 
-  NumberOfSections = PeCoffGetSectionTable (Context, &Sections);
+  NumberOfSections = PeCoffGetSectionTable (&Context->Ctx.Pe, &Sections);
 
   for (SectionIndex = 0; SectionIndex < NumberOfSections; ++SectionIndex) {
     Name = Sections[SectionIndex].Name;
     DEBUG ((
       DEBUG_VERBOSE,
-      "  Section - '%c%c%c%c%c%c%c%c'\n"
+      "  Section - '%c%c%c%c%c%c%c%c'\n",
       "  VirtualSize          - 0x%08x\n"
       "  VirtualAddress       - 0x%08x\n"
       "  SizeOfRawData        - 0x%08x\n"
-      "  PointerToRawData     - 0x%08x\n",
-      Name[0], Name[1], Name[2], Name[3], Name[4], Name[5], Name[6], Name[7],
-      Sections[SectionIndex].VirtualSize,
-      Sections[SectionIndex].VirtualAddress,
-      Sections[SectionIndex].SizeOfRawData,
-      Sections[SectionIndex].PointerToRawData
-      ));
-    DEBUG ((
-      DEBUG_VERBOSE,
+      "  PointerToRawData     - 0x%08x\n"
       "  PointerToRelocations - 0x%08x\n"
       "  PointerToLinenumbers - 0x%08x\n"
       "  NumberOfRelocations  - 0x%08x\n"
       "  NumberOfLinenumbers  - 0x%08x\n"
       "  Characteristics      - 0x%08x\n",
+      Name[0], Name[1], Name[2], Name[3], Name[4], Name[5], Name[6], Name[7],
+      Sections[SectionIndex].VirtualSize,
+      Sections[SectionIndex].VirtualAddress,
+      Sections[SectionIndex].SizeOfRawData,
+      Sections[SectionIndex].PointerToRawData,
       Sections[SectionIndex].PointerToRelocations,
       Sections[SectionIndex].PointerToLinenumbers,
       Sections[SectionIndex].NumberOfRelocations,
@@ -506,3 +733,34 @@ UefiImageDebugPrintSegmentsPeCoff (
       ));
   }
 }
+
+GLOBAL_REMOVE_IF_UNREFERENCED CONST UEFI_IMAGE_FORMAT_SUPPORT mPeSupport = {
+  UefiImageInitializeContextPreHashPe,
+  UefiImageHashImageDefaultPe,
+  UefiImageInitializeContextPostHashPe,
+  UefiImageLoadImagePe,
+  UefiImageImageIsInplacePe,
+  UefiImageLoadImageInplacePe,
+  UefiImageRelocateImageInplacePe,
+  UefiImageLoaderGetRuntimeContextSizePe,
+  UefiImageRelocateImagePe,
+  UefiImageRuntimeRelocateImagePe,
+  UefiImageDiscardSegmentsPe,
+  UefiImageGetSymbolsPathPe,
+  UefiImageGetFirstCertificatePe,
+  UefiImageGetNextCertificatePe,
+  UefiImageGetHiiDataRvaPe,
+  UefiImageGetEntryPointAddressPe,
+  UefiImageGetMachinePe,
+  UefiImageGetSubsystemPe,
+  UefiImageGetSegmentAlignmentPe,
+  UefiImageGetImageSizePe,
+  UefiImageGetImageSizeInplacePe,
+  UefiImageGetPreferredAddressPe,
+  UefiImageGetRelocsStrippedPe,
+  UefiImageLoaderGetImageAddressPe,
+  UefiImageLoaderGetImageRecordPe,
+  UefiImageDebugLocateImagePe,
+  UefiImageGetFixedAddressPe,
+  UefiImageDebugPrintSegmentsPe
+};

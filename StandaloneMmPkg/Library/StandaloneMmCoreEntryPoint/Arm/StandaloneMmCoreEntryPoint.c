@@ -361,7 +361,12 @@ _ModuleEntryPoint (
   DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", TeData));
 
   // Obtain the PE/COFF Section information for the Standalone MM core module
-  Status = UefiImageInitializeContext (&ImageContext, TeData, TeDataSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             TeData,
+             TeDataSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
 
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to locate Standalone MM Core PE-COFF Section information - %r\n", Status));

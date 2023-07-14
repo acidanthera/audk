@@ -183,7 +183,12 @@ LoadAndRelocateUefiImage (
 
   ReturnStatus = EFI_SUCCESS;
 
-  Status = UefiImageInitializeContext (ImageContext, Pe32Data, Pe32DataSize);
+  Status = UefiImageInitializeContext (
+             ImageContext,
+             Pe32Data,
+             Pe32DataSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -362,7 +367,12 @@ LoadAndRelocateUefiImageInPlace (
 
   CopyMem (ImageAddress, Pe32Data, ImageSize);
 
-  Status = UefiImageInitializeContext (&ImageContext, ImageAddress, ImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             ImageAddress,
+             ImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;

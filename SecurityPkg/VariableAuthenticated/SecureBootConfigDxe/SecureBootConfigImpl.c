@@ -1975,7 +1975,15 @@ EnrollImageSignatureToSigDB (
     goto ON_EXIT;
   }
 
-  Status = UefiImageInitializeContextPreHash (&ImageContext, ImageBase, (UINT32)ImageSize);
+  //
+  // Secure Boot does not apply to images from FVs.
+  //
+  Status = UefiImageInitializeContextPreHash (
+             &ImageContext,
+             ImageBase,
+             (UINT32)ImageSize,
+             UEFI_IMAGE_SOURCE_NON_FV
+             );
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
   }
