@@ -143,6 +143,7 @@ InitializeSeparateExceptionStacks (
 BOOLEAN
 GetImageInfoByIp (
   OUT UINTN        *ImageBase,
+  OUT UINTN        *DebugBase,
   OUT CONST CHAR8  **SymbolsPath,
   IN  UINTN        CurrentEip
   )
@@ -180,6 +181,7 @@ GetImageInfoByIp (
     if (CurrentEip >= (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase &&
         CurrentEip < (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize) {
       *ImageBase   = (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase;
+      *DebugBase   = NormalImage->DebugBase;
       *SymbolsPath = NormalImage->PdbPath;
       return TRUE;
     }

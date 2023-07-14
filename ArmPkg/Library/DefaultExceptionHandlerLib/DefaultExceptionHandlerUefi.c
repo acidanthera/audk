@@ -19,6 +19,7 @@
 
   @param  FaultAddress         Address to find PE/COFF image for.
   @param  ImageBase            Return load address of found image
+  @param  ImageBase            Return debug address of found image
 
   @retval NULL                 FaultAddress not in a loaded PE/COFF image.
   @retval                      Path and file name of PE/COFF image.
@@ -27,7 +28,8 @@
 CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase
+  OUT UINTN  *ImageBase,
+  OUT UINTN  *DebugBase
   )
 {
   EFI_STATUS                         Status;
@@ -56,6 +58,7 @@ GetImageName (
             (Address <= ((CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase + DebugTable->NormalImage->LoadedImageProtocolInstance->ImageSize)))
         {
           *ImageBase           = (UINTN)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase;
+          *DebugBase           = (UINTN)DebugTable->NormalImage->DebugBase;
           return DebugTable->NormalImage->PdbPath;
         }
       }

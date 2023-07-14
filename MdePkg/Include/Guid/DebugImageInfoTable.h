@@ -48,6 +48,7 @@ typedef struct {
   ///
   EFI_HANDLE                   ImageHandle;
   CHAR8                      *PdbPath;
+  UINTN                        DebugBase;
 } EFI_DEBUG_IMAGE_INFO_NORMAL;
 
 typedef union {

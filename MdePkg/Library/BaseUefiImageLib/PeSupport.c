@@ -244,6 +244,14 @@ UefiImageLoaderGetImageAddressPe (
   return PeCoffLoaderGetImageAddress (&Context->Ctx.Pe);
 }
 
+UINTN
+UefiImageLoaderGetDebugAddressPe (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return PeCoffLoaderGetImageAddress (&Context->Ctx.Pe);
+}
+
 /**
   Retrieves the memory protection attributes corresponding to PE/COFF Image
   section permissions.
@@ -759,6 +767,7 @@ GLOBAL_REMOVE_IF_UNREFERENCED CONST UEFI_IMAGE_FORMAT_SUPPORT mPeSupport = {
   UefiImageGetPreferredAddressPe,
   UefiImageGetRelocsStrippedPe,
   UefiImageLoaderGetImageAddressPe,
+  UefiImageLoaderGetDebugAddressPe,
   UefiImageLoaderGetImageRecordPe,
   UefiImageDebugLocateImagePe,
   UefiImageGetFixedAddressPe,

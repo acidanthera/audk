@@ -578,6 +578,23 @@ UefiImageLoaderGetImageAddress (
   return Result;
 }
 
+UINTN
+UefiImageLoaderGetDebugAddress (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  UINTN Result;
+
+  UEFI_IMAGE_EXEC (
+    Result,
+    Context->FormatIndex,
+    LoaderGetDebugAddress,
+    Context
+    );
+
+  return Result;
+}
+
 UEFI_IMAGE_RECORD *
 UefiImageLoaderGetImageRecord (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context

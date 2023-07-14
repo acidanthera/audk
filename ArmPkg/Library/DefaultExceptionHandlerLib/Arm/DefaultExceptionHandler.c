@@ -50,7 +50,8 @@ STATIC CONST CPSR_CHAR  mCpsrChar[] = {
 CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase
+  OUT UINTN  *ImageBase,
+  OUT UINTN  *DebugBase
   );
 
 /**
@@ -221,6 +222,7 @@ DefaultExceptionHandler (
   DEBUG_CODE_BEGIN ();
   CONST CHAR8   *Pdb;
   UINT32        ImageBase;
+  UINT32        DebugBase;
   UINT32        Offset;
   CHAR8         CpsrStr[CPSR_STRING_SIZE];  // char per bit. Lower 5-bits are mode
                                             // that is a 3 char string
@@ -231,7 +233,7 @@ DefaultExceptionHandler (
   CpsrString (SystemContext.SystemContextArm->CPSR, CpsrStr);
   DEBUG ((DEBUG_ERROR, "%a\n", CpsrStr));
 
-  Pdb    = GetImageName (SystemContext.SystemContextArm->PC, &ImageBase);
+  Pdb    = GetImageName (SystemContext.SystemContextArm->PC, &ImageBase, &DebugBase);
   Offset = SystemContext.SystemContextArm->PC - ImageBase;
   if (Pdb != NULL) {
     DEBUG ((DEBUG_ERROR, "%a\n", Pdb));
@@ -246,7 +248,7 @@ DefaultExceptionHandler (
     //
     // FIXME: Used to have  (ELF or Mach-O offset) 0x%x
     //        Substitute with .text address (better + may be needed for GDB symbols?)
-    DEBUG ((EFI_D_ERROR, "loaded at 0x%08x (PE/COFF offset) 0x%x", ImageBase, Offset));
+    DEBUG ((EFI_D_ERROR, "loaded at 0x%08x (DebugBase=0x%08x) (PE/COFF offset) 0x%x", ImageBase, DebugBase, Offset));
 
     // If we come from an image it is safe to show the instruction. We know it should not fault
     DisAsm  = (UINT8 *)(UINTN)SystemContext.SystemContextArm->PC;

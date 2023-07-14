@@ -177,6 +177,12 @@ UINTN
   );
 
 typedef
+UINTN
+(*UEFI_IMAGE_LOADER_GET_DEBUG_ADDRESS) (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+typedef
 UEFI_IMAGE_RECORD *
 (*UEFI_IMAGE_LOADER_GET_IMAGE_RECORD) (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
@@ -227,6 +233,7 @@ typedef struct {
   UEFI_IMAGE_GET_PREFERRED_ADDRESS            GetPreferredAddress;
   UEFI_IMAGE_GET_RELOCS_STRIPPED              GetRelocsStripped;
   UEFI_IMAGE_LOADER_GET_IMAGE_ADDRESS         LoaderGetImageAddress;
+  UEFI_IMAGE_LOADER_GET_DEBUG_ADDRESS         LoaderGetDebugAddress;
   UEFI_IMAGE_LOADER_GET_IMAGE_RECORD          LoaderGetImageRecord;
   UEFI_IMAGE_DEBUG_LOCATE_IMAGE               DebugLocateImage;
   UEFI_IMAGE_GET_FIXED_ADDRESS                GetFixedAddress;
