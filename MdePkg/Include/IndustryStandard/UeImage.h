@@ -443,8 +443,7 @@ enum {
 enum {
   UeSubsystemEfiApplication        = 0,
   UeSubsystemEfiBootServicesDriver = 1,
-  UeSubsystemEfiRuntimeDriver      = 2,
-  UeSubsystemSalRuntimeDriver      = 3
+  UeSubsystemEfiRuntimeDriver      = 2
 };
 
 ///

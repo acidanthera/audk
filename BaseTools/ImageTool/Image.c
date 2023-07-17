@@ -235,8 +235,7 @@ CheckToolImageReloc (
 #endif
 
   // FIXME: Update drivers?
-  if ((Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER ||
-       Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER) &&
+  if (Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER &&
        Segment->Write) {
     printf("!!! writable reloc at %x !!!\n", Reloc->Target);
     //DEBUG_RAISE ();
