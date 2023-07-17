@@ -44,3 +44,4 @@
 
 [BuildOptions]
   *_*_*_CC_FLAGS = -DUEFI_IMAGE_FORMAT_SUPPORT_SOURCES=0x02
+  MSFT:*_*_*_CC_FLAGS = /wd4204
