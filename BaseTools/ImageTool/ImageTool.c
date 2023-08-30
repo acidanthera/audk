@@ -347,6 +347,7 @@ RETURN_STATUS
 GenExecutable (
   IN const char  *OutputFileName,
   IN const char  *InputFileName,
+  IN const char  *SymbolsPath OPTIONAL,
   IN const char  *FormatName,
   IN const char  *TypeName,
   IN const char  *BaseAddress,
@@ -397,6 +398,10 @@ GenExecutable (
     return RETURN_ABORTED;
   }
 
+  if (SymbolsPath == NULL) {
+    SymbolsPath = InputFileName;
+  }
+
   OutputFile = ToolImageEmit (
                  &OutputFileSize,
                  InputFile,
@@ -405,7 +410,7 @@ GenExecutable (
                  Type,
                  BaseAddress != NULL,
                  NewBaseAddress,
-                 InputFileName,
+                 SymbolsPath,
                  Xip,
                  Strip,
                  FixedAddress
@@ -429,6 +434,7 @@ int main (int argc, const char *argv[])
   UINT32         NumOfFiles;
   const char     *OutputName;
   const char     *InputName;
+  const char     *SymbolsPath;
   const char     *FormatName;
   const char     *TypeName;
   const char     *BaseAddress;
@@ -450,13 +456,14 @@ int main (int argc, const char *argv[])
   if (strcmp (argv[1], "GenImage") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-x] [-s] [-f] -o OutputFile InputFile\n");
+      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-d SymbolsPath] [-x] [-s] [-f] -o OutputFile InputFile\n");
       DEBUG_RAISE ();
       return -1;
     }
 
     OutputName   = NULL;
     InputName    = NULL;
+    SymbolsPath  = NULL;
     FormatName   = NULL;
     TypeName     = NULL;
     BaseAddress  = NULL;
@@ -496,6 +503,14 @@ int main (int argc, const char *argv[])
         }
 
         BaseAddress = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-d") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -d\n");
+          return -1;
+        }
+
+        SymbolsPath = argv[ArgIndex];
       } else if (strcmp (argv[ArgIndex], "-x") == 0) {
         Xip = true;
       } else if (strcmp (argv[ArgIndex], "-s") == 0) {
@@ -525,6 +540,7 @@ int main (int argc, const char *argv[])
     Status = GenExecutable (
       OutputName,
       InputName,
+      SymbolsPath,
       FormatName,
       TypeName,
       BaseAddress,
