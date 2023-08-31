@@ -1428,7 +1428,7 @@ InitializeImageServices (
 **/
 EFI_STATUS
 LoadAndRelocateUefiImageInPlace (
-  IN  VOID  *Pe32Data,
+  IN  VOID    *Pe32Data,
   IN  VOID    *ImageAddress,
   IN  UINT32  ImageSize
   );
@@ -1446,8 +1446,8 @@ LoadAndRelocateUefiImageInPlace (
 EFI_STATUS
 PeiGetPe32Data (
   IN     EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT    VOID                         **Pe32Data,
-  OUT    UINT32                       *Pe32DataSize
+  OUT    VOID                 **Pe32Data,
+  OUT    UINT32               *Pe32DataSize
   );
 
 /**
