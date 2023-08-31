@@ -154,31 +154,31 @@ GetUefiImageFixLoadingAssignedAddress (
 **/
 EFI_STATUS
 LoadAndRelocateUefiImage (
-  IN  EFI_PEI_FILE_HANDLE   FileHandle,
-  IN  VOID                  *Pe32Data,
-  IN  UINT32                                    Pe32DataSize,
-  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT           *ImageContext,
-  OUT EFI_PHYSICAL_ADDRESS                      *ImageAddress,
-  OUT UINTN                                     *DebugBase
+  IN  EFI_PEI_FILE_HANDLE              FileHandle,
+  IN  VOID                             *Pe32Data,
+  IN  UINT32                           Pe32DataSize,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  OUT EFI_PHYSICAL_ADDRESS             *ImageAddress,
+  OUT UINTN                            *DebugBase
   )
 {
   EFI_STATUS                    Status;
   BOOLEAN                       Success;
   PEI_CORE_INSTANCE             *Private;
-  UINT32                                ImageSize;
-  UINT32                                ImageAlignment;
-  UINT64                                ValueInSectionHeader;
+  UINT32                        ImageSize;
+  UINT32                        ImageAlignment;
+  UINT64                        ValueInSectionHeader;
   BOOLEAN                       IsXipImage;
   EFI_STATUS                    ReturnStatus;
   BOOLEAN                       IsS3Boot;
   BOOLEAN                       IsPeiModule;
   BOOLEAN                       IsRegisterForShadow;
   EFI_FV_FILE_INFO              FileInfo;
-  UINT32                                DestinationPages;
-  UINT32                                DestinationSize;
-  EFI_PHYSICAL_ADDRESS                  Destination;
-  UINT16                                Machine;
-  BOOLEAN                               LoadDynamically;
+  UINT32                        DestinationPages;
+  UINT32                        DestinationSize;
+  EFI_PHYSICAL_ADDRESS          Destination;
+  UINT16                        Machine;
+  BOOLEAN                       LoadDynamically;
 
   Private = PEI_CORE_INSTANCE_FROM_PS_THIS (GetPeiServicesTablePointer ());
 
@@ -357,12 +357,12 @@ LoadAndRelocateUefiImage (
 **/
 EFI_STATUS
 LoadAndRelocateUefiImageInPlace (
-  IN  VOID  *Pe32Data,
+  IN  VOID    *Pe32Data,
   IN  VOID    *ImageAddress,
   IN  UINT32  ImageSize
   )
 {
-  EFI_STATUS                    Status;
+  EFI_STATUS                      Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   ASSERT (Pe32Data != ImageAddress);
@@ -455,11 +455,11 @@ PeiLoadImageLoadImage (
   OUT    UINT32                  *AuthenticationState
   )
 {
-  EFI_STATUS            Status;
-  VOID                  *Pe32Data;
-  UINT32                      Pe32DataSize;
-  EFI_PHYSICAL_ADDRESS  ImageAddress;
-  UINTN                 DebugBase;
+  EFI_STATUS                      Status;
+  VOID                            *Pe32Data;
+  UINT32                          Pe32DataSize;
+  EFI_PHYSICAL_ADDRESS            ImageAddress;
+  UINTN                           DebugBase;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   *EntryPoint          = 0;
@@ -541,7 +541,6 @@ PeiLoadImageLoadImage (
                EfiFileName,
                sizeof (EfiFileName)
                );
-
     if (!RETURN_ERROR (Status)) {
       DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
     }

@@ -428,7 +428,7 @@ GetUefiImageFixLoadingAssignedAddress (
   Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, ImageDestSize);
   *LoadAddress = FixLoadingAddress;
 
-   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
+  DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
   return Status;
 }
 
