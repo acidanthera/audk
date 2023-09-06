@@ -740,7 +740,7 @@ CoreLoadPeImage (
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
+  Image->EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol
