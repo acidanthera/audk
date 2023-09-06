@@ -115,7 +115,7 @@ ToolImageUeDebugTableRequired (
 
 static
 int8_t
-InternelGetUeMachine (
+InternalGetUeMachine (
   uint16_t  Machine
   )
 {
@@ -773,7 +773,7 @@ ToolImageEmitUeFile (
     return false;
   }
 
-  Machine = InternelGetUeMachine (Image->HeaderInfo.Machine);
+  Machine = InternalGetUeMachine (Image->HeaderInfo.Machine);
   if (Machine < 0) {
     DEBUG_RAISE ();
     return false;
