@@ -16,6 +16,45 @@ typedef enum {
 #define UEFI_IMAGE_SOURCE_ALL     2U
 #define UEFI_IMAGE_SOURCE_MAX     3U
 
+typedef struct {
+  UINT32     ImageBuffer;
+  UINT32     AddressOfEntryPoint;
+  UINT8      ImageType;
+  UINT32     FileBuffer;
+  UINT32     ExeHdrOffset;
+  UINT32     SizeOfImage;
+  UINT32     FileSize;
+  UINT16     Subsystem;
+  UINT32     SectionAlignment;
+  UINT32     SectionsOffset;
+  UINT16     NumberOfSections;
+  UINT32     SizeOfHeaders;
+} PE_HOB_IMAGE_CONTEXT;
+
+typedef struct {
+  UINT32     ImageBuffer;
+  UINT32     FileBuffer;
+  UINT32     EntryPointAddress;
+  UINT32     LoadTablesFileOffset;
+  UINT8      NumLoadTables;
+  UINT32     LoadTables;
+  UINT32     Segments;
+  UINT8      LastSegmentIndex;
+  UINT32     SegmentAlignment;
+  UINT32     ImageSize;
+  UINT8      Subsystem;
+  UINT8      SegmentImageInfoIterSize;
+  UINT32     SegmentsFileOffset;
+} UE_HOB_IMAGE_CONTEXT;
+
+typedef struct {
+  UINT8                   FormatIndex;
+  union {
+    UE_HOB_IMAGE_CONTEXT  Ue;
+    PE_HOB_IMAGE_CONTEXT  Pe;
+  }                       Ctx;
+} HOB_IMAGE_CONTEXT;
+
 typedef UINT8 UEFI_IMAGE_SOURCE;
 
 typedef struct {

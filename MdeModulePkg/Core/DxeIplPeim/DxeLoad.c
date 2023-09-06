@@ -10,6 +10,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeIpl.h"
 
+#include <Library/UefiImageLib.h>
+
 //
 // Module Globals used in the DXE to PEI hand off
 // These must be module globals, so the stack can be switched
@@ -267,6 +269,7 @@ DxeLoadCore (
   EDKII_PEI_CAPSULE_ON_DISK_PPI    *PeiCapsuleOnDisk;
   EFI_MEMORY_TYPE_INFORMATION      MemoryData[EfiMaxMemoryType + 1];
   VOID                             *CapsuleOnDiskModePpi;
+  HOB_IMAGE_CONTEXT                *ImageContext;
 
   //
   // if in S3 Resume, restore configure
@@ -399,6 +402,9 @@ DxeLoadCore (
   //
   FileHandle = DxeIplFindDxeCore ();
 
+  ImageContext = BuildGuidHob (&gUefiImageLoaderImageContextGuid, sizeof (HOB_IMAGE_CONTEXT));
+  ASSERT (ImageContext != NULL);
+
   //
   // Load the DXE Core from a Firmware Volume.
   //
@@ -411,7 +417,7 @@ DxeLoadCore (
     ASSERT_EFI_ERROR (Status);
 
     Status = LoadFile->LoadFile (
-                         LoadFile,
+                         (CONST EFI_PEI_LOAD_FILE_PPI *)&ImageContext,
                          FileHandle,
                          &DxeCoreAddress,
                          &DxeCoreSize,
