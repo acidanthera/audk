@@ -461,6 +461,10 @@ PeiLoadImageLoadImage (
   EFI_PHYSICAL_ADDRESS            ImageAddress;
   UINTN                           DebugBase;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINTN                           Instance;
+  EFI_PEI_LOAD_FILE_PPI           *LoadFile;
+  BOOLEAN                         IsHook;
+  HOB_IMAGE_CONTEXT               *Hob;
 
   *EntryPoint          = 0;
   *AuthenticationState = 0;
@@ -492,14 +496,62 @@ PeiLoadImageLoadImage (
   Status = LoadAndRelocateUefiImage (
              FileHandle,
              Pe32Data,
-    Pe32DataSize,
-    &ImageContext,
-    &ImageAddress,
-    &DebugBase
+             Pe32DataSize,
+             &ImageContext,
+             &ImageAddress,
+             &DebugBase
              );
-
   if (EFI_ERROR (Status)) {
     return Status;
+  }
+
+  //
+  // Save ImageContext into DXE CORE HOB 
+  //
+  Instance = 0;
+  IsHook   = TRUE;
+  do {
+    Status = PeiServicesLocatePpi (&gEfiPeiLoadFilePpiGuid, Instance++, NULL, (VOID **)&LoadFile);
+    if ((UINTN)PeiServices == (UINTN)LoadFile) {
+      IsHook = FALSE;
+    }
+  } while (!EFI_ERROR (Status));
+
+  if (IsHook) {
+    Hob = (HOB_IMAGE_CONTEXT *)*PeiServices;
+
+    Hob->FormatIndex = ImageContext.FormatIndex;
+
+    if (Hob->FormatIndex == UefiImageFormatPe) {
+      Hob->Ctx.Pe.ImageBuffer         = (UINT32)(UINTN)ImageContext.Ctx.Pe.ImageBuffer;
+      Hob->Ctx.Pe.AddressOfEntryPoint = ImageContext.Ctx.Pe.AddressOfEntryPoint;
+      Hob->Ctx.Pe.ImageType           = ImageContext.Ctx.Pe.ImageType;
+      Hob->Ctx.Pe.FileBuffer          = (UINT32)(UINTN)ImageContext.Ctx.Pe.FileBuffer;
+      Hob->Ctx.Pe.ExeHdrOffset        = ImageContext.Ctx.Pe.ExeHdrOffset;
+      Hob->Ctx.Pe.SizeOfImage         = ImageContext.Ctx.Pe.SizeOfImage;
+      Hob->Ctx.Pe.FileSize            = ImageContext.Ctx.Pe.FileSize;
+      Hob->Ctx.Pe.Subsystem           = ImageContext.Ctx.Pe.Subsystem;
+      Hob->Ctx.Pe.SectionAlignment    = ImageContext.Ctx.Pe.SectionAlignment;
+      Hob->Ctx.Pe.SectionsOffset      = ImageContext.Ctx.Pe.SectionsOffset;
+      Hob->Ctx.Pe.NumberOfSections    = ImageContext.Ctx.Pe.NumberOfSections;
+      Hob->Ctx.Pe.SizeOfHeaders       = ImageContext.Ctx.Pe.SizeOfHeaders;
+    } else if (Hob->FormatIndex == UefiImageFormatUe) {
+      Hob->Ctx.Ue.ImageBuffer              = (UINT32)(UINTN)ImageContext.Ctx.Ue.ImageBuffer;
+      Hob->Ctx.Ue.FileBuffer               = (UINT32)(UINTN)ImageContext.Ctx.Ue.FileBuffer;
+      Hob->Ctx.Ue.EntryPointAddress        = ImageContext.Ctx.Ue.EntryPointAddress;
+      Hob->Ctx.Ue.LoadTablesFileOffset     = ImageContext.Ctx.Ue.LoadTablesFileOffset;
+      Hob->Ctx.Ue.NumLoadTables            = ImageContext.Ctx.Ue.NumLoadTables;
+      Hob->Ctx.Ue.LoadTables               = (UINT32)(UINTN)ImageContext.Ctx.Ue.LoadTables;
+      Hob->Ctx.Ue.Segments                 = (UINT32)(UINTN)ImageContext.Ctx.Ue.Segments;
+      Hob->Ctx.Ue.LastSegmentIndex         = ImageContext.Ctx.Ue.LastSegmentIndex;
+      Hob->Ctx.Ue.SegmentAlignment         = ImageContext.Ctx.Ue.SegmentAlignment;
+      Hob->Ctx.Ue.ImageSize                = ImageContext.Ctx.Ue.ImageSize;
+      Hob->Ctx.Ue.Subsystem                = ImageContext.Ctx.Ue.Subsystem;
+      Hob->Ctx.Ue.SegmentImageInfoIterSize = ImageContext.Ctx.Ue.SegmentImageInfoIterSize;
+      Hob->Ctx.Ue.SegmentsFileOffset       = ImageContext.Ctx.Ue.SegmentsFileOffset;
+    } else {
+      ASSERT (FALSE);
+    }
   }
 
   //
@@ -577,7 +629,7 @@ PeiLoadImageLoadImageWrapper (
   )
 {
   return PeiLoadImageLoadImage (
-           GetPeiServicesTablePointer (),
+           (CONST EFI_PEI_SERVICES **)This,
            FileHandle,
            ImageAddressArg,
            ImageSizeArg,

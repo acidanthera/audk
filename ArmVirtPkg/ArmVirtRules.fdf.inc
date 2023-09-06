@@ -59,7 +59,7 @@
 
 [Rule.Common.DXE_CORE]
   FILE DXE_CORE = $(NAMED_GUID) {
-    PE32     PE32                       $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE       UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
     UI       STRING="$(MODULE_NAME)" Optional
   }
 
