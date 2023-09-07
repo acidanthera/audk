@@ -14,6 +14,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
 #include <Library/DebugLib.h>
+#include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
@@ -23,6 +24,8 @@
 struct UE_LOADER_RUNTIME_CONTEXT_ {
   UINT8   Machine;
   UINT8   Reserved[7];
+  UINT32  FixupSize;
+  UINT64  *FixupData;
   UINT32  RelocTableSize;
   UINT8   RelocTable[];
 };
@@ -457,7 +460,9 @@ InternalApplyRelocation (
   IN     UINT8   Machine,
   IN     UINT16  RelocType,
   IN     UINT32  *RelocTarget,
-  IN     UINT64  Adjust
+  IN     UINT64  Adjust,
+     OUT UINT64  *FixupData OPTIONAL,
+  IN     BOOLEAN IsRuntime
   )
 {
   BOOLEAN               Overflow;
@@ -497,8 +502,23 @@ InternalApplyRelocation (
         // Relocate the target instruction.
         //
         FixupValue.Value32  = ReadUnaligned32 (Fixup);
+        //
+        // If the Image relocation target value mismatches, skip or abort.
+        //
+        // if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
+        //   if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+        //     return RETURN_SUCCESS;
+        //   }
+        //
+        //   return RETURN_VOLUME_CORRUPTED;
+        // }
+
         FixupValue.Value32 += (UINT32) Adjust;
         WriteUnaligned32 (Fixup, FixupValue.Value32);
+
+        // if (!IsRuntime) {
+        //   *FixupData = FixupValue.Value32;
+        // }
     } else {
       ASSERT (RelocType == UeReloc64);
 
@@ -515,8 +535,23 @@ InternalApplyRelocation (
       // Relocate target the instruction.
       //
       FixupValue.Value64  = ReadUnaligned64 (Fixup);
+      //
+      // If the Image relocation target value mismatches, skip or abort.
+      //
+      if (IsRuntime && (FixupValue.Value64 != *FixupData)) {
+        if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+          return RETURN_SUCCESS;
+        }
+
+        return RETURN_VOLUME_CORRUPTED;
+      }
+
       FixupValue.Value64 += Adjust;
       WriteUnaligned64 (Fixup, FixupValue.Value64);
+
+      if (!IsRuntime) {
+        *FixupData = FixupValue.Value64;
+      }
     }
   } else {
 #if 0
@@ -668,7 +703,9 @@ InternaRelocateImage (
   IN     CONST VOID  *RelocTable,
   IN     UINT32      RelocTableSize,
   IN     BOOLEAN     Chaining,
-  IN     UINT64      BaseAddress
+  IN     UINT64      BaseAddress,
+     OUT UINT64      *FixupData OPTIONAL,
+  IN     BOOLEAN     IsRuntime
   )
 {
   RETURN_STATUS        Status;
@@ -769,8 +806,12 @@ InternaRelocateImage (
                    Machine,
                    RelocType,
                    &RelocTarget,
-                   Adjust
+                   Adjust,
+                   FixupData,
+                   IsRuntime
                    );
+
+        ++FixupData;
       }
 
       if (RETURN_ERROR (Status)) {
@@ -851,6 +892,12 @@ UeRelocateImage (
       Context->FileBuffer + Context->LoadTablesFileOffset,
       Context->RelocTableSize
       );
+
+    RuntimeContext->FixupSize = Context->RelocTableSize / sizeof (UINT16) * sizeof (UINT64);
+    RuntimeContext->FixupData = AllocateRuntimeZeroPool (RuntimeContext->FixupSize);
+    if (RuntimeContext->FixupData == NULL) {
+      ASSERT (FALSE);
+    }
   }
 
   return InternaRelocateImage (
@@ -861,7 +908,9 @@ UeRelocateImage (
            RelocTable,
            Context->RelocTableSize,
            Chaining,
-           BaseAddress
+           BaseAddress,
+           RuntimeContext != NULL ? RuntimeContext->FixupData : NULL,
+           FALSE
            );
 }
 
@@ -884,7 +933,9 @@ UeRelocateImageForRuntime (
            RuntimeContext->RelocTable,
            RuntimeContext->RelocTableSize,
            FALSE,
-           BaseAddress
+           BaseAddress,
+           RuntimeContext->FixupData,
+           TRUE
            );
 }
 

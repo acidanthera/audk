@@ -30,3 +30,4 @@
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRelocTypePolicy
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRtRelocAllowTargetMismatch
