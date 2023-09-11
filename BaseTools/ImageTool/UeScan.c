@@ -77,6 +77,30 @@ InternalProcessRelocChain (
         WriteUnaligned64 (Fixup, FixupValue.Value64);
 
         Reloc.Type = EFI_IMAGE_REL_BASED_DIR64;
+      } else if (RelocType == UeReloc32) {
+        FixupSize = sizeof (UINT32);
+        //
+        // Verify the image relocation fixup target is in bounds of the image
+        // buffer.
+        //
+        if (FixupSize > RemRelocTargetSize) {
+          DEBUG_RAISE ();
+          return RETURN_VOLUME_CORRUPTED;
+        }
+        //
+        // Relocate the target instruction.
+        //
+        FixupInfo.Value32   = ReadUnaligned32 (Fixup);
+        FixupValue.Value32  = UE_CHAINED_RELOC_FIXUP_VALUE_32 (FixupInfo.Value32);
+        WriteUnaligned32 (Fixup, FixupValue.Value32);
+
+        Reloc.Type = EFI_IMAGE_REL_BASED_HIGHLOW;
+        //
+        // Imitate the common header of UE chained relocation fixups,
+        // as for 32-bit files all relocs have the same type.
+        //
+        FixupInfo.Value32 = FixupInfo.Value32 << 4;
+        FixupInfo.Value32 |= UeReloc32;
       } else {
         //
         // The Image relocation fixup type is unknown, disallow the Image.
@@ -272,7 +296,7 @@ ScanUeGetRelocInfo (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (Chaining && RelocType != UeReloc32) {
+      if (Chaining) {
         Status = InternalProcessRelocChain (
                    &Buffer,
                    SegmentInfo,

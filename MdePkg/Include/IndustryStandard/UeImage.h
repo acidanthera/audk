@@ -321,6 +321,29 @@ typedef UINT16  UE_RELOC_FIXUP_HDR;
 ///
 typedef UINT64  UE_RELOC_FIXUP_64;
 
+///
+/// The shift exponent for UE chained 32-bit relocation fixup values.
+///
+#define UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT  12U
+
+/**
+  Retrieves the value of the current UE chained 32-bit relocation fixup.
+
+  @param[in] FixupInfo  The UE relocation fixup information.
+**/
+#define UE_CHAINED_RELOC_FIXUP_VALUE_32(FixupInfo)  \
+  (UINT32)((UINT32)(FixupInfo) >> UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT)
+
+///
+/// Definition of the generic 32-bit UE chained relocation fixup.
+///
+/// [Bits 11:0]  The offset to the next chained relocation fixup from the end
+///              of the current one. If 0x0FFF, the current chain is terminated.
+///              Consult the fixup root for further relocation fixups.
+/// [Bits 31:12] The address value to relocate.
+///
+typedef UINT32  UE_RELOC_FIXUP_32;
+
 #if 0
 ///
 /// Definition of the ARM Thumb MOVT/MOVW UE chained relocation fixup.

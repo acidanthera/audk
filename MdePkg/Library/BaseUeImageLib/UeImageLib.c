@@ -505,20 +505,20 @@ InternalApplyRelocation (
         //
         // If the Image relocation target value mismatches, skip or abort.
         //
-        // if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
-        //   if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
-        //     return RETURN_SUCCESS;
-        //   }
-        //
-        //   return RETURN_VOLUME_CORRUPTED;
-        // }
+        if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
+          if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+            return RETURN_SUCCESS;
+          }
+
+          return RETURN_VOLUME_CORRUPTED;
+        }
 
         FixupValue.Value32 += (UINT32) Adjust;
         WriteUnaligned32 (Fixup, FixupValue.Value32);
 
-        // if (!IsRuntime) {
-        //   *FixupData = FixupValue.Value32;
-        // }
+        if (!IsRuntime) {
+          *FixupData = FixupValue.Value32;
+        }
     } else {
       ASSERT (RelocType == UeReloc64);
 
@@ -657,7 +657,30 @@ InternalProcessRelocChain (
         FixupInfo.Value64   = ReadUnaligned64 ((CONST VOID *)Fixup);
         FixupValue.Value64  = UE_CHAINED_RELOC_FIXUP_VALUE (FixupInfo.Value64);
         FixupValue.Value64 += Adjust;
-        WriteUnaligned64 ((VOID *) Fixup, FixupValue.Value64);
+        WriteUnaligned64 ((VOID *)Fixup, FixupValue.Value64);
+      } else if (RelocType == UeReloc32) {
+        FixupSize = sizeof (UINT32);
+        //
+        // Verify the image relocation fixup target is in bounds of the image
+        // buffer.
+        //
+        if (FixupSize > RemFixupTargetSize) {
+          DEBUG_RAISE ();
+          return RETURN_VOLUME_CORRUPTED;
+        }
+        //
+        // Relocate the target instruction.
+        //
+        FixupInfo.Value32   = ReadUnaligned32 ((CONST VOID *)Fixup);
+        FixupValue.Value32  = UE_CHAINED_RELOC_FIXUP_VALUE_32 (FixupInfo.Value32);
+        FixupValue.Value32 += (UINT32) Adjust;
+        WriteUnaligned32 ((VOID *)Fixup, FixupValue.Value32);
+        //
+        // Imitate the common header of UE chained relocation fixups,
+        // as for 32-bit files all relocs have the same type.
+        //
+        FixupInfo.Value32 = FixupInfo.Value32 << 4;
+        FixupInfo.Value32 |= UeReloc32;
       } else {
         //
         // The image relocation fixup type is unknown, disallow the image.
@@ -790,7 +813,7 @@ InternaRelocateImage (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (Chaining && RelocType != UeReloc32) {
+      if (Chaining) {
         Status = InternalProcessRelocChain (
                    Image,
                    ImageSize,

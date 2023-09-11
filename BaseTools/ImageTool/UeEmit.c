@@ -315,6 +315,7 @@ ToolImageEmitUeRelocTable (
   uint32_t       RelocOffset;
 
   uint64_t       ChainRelocInfo;
+  uint32_t       ChainRelocInfo32;
 
   uint8_t        PrevRelocType;
   uint32_t       PrevRelocTarget;
@@ -323,6 +324,7 @@ ToolImageEmitUeRelocTable (
   uint8_t        PrevRelocSize;
 
   uint64_t       PrevChainRelocInfo;
+  uint32_t       PrevChainRelocInfo32;
 
   bool           ChainInProgress;
   bool           ChainSupported;
@@ -385,7 +387,7 @@ ToolImageEmitUeRelocTable (
       {
         RelocSize      = sizeof (UINT32);
         RelocType      = UeReloc32;
-        ChainSupported = false;
+        ChainSupported = Chaining;
         break;
       }
 
@@ -426,9 +428,9 @@ ToolImageEmitUeRelocTable (
     //
 
     if (ChainInProgress) {
-      ChainInProgress  = ChainSupported && RelocOffset <= UE_CHAINED_RELOC_FIXUP_MAX_OFFSET;
+      ChainInProgress  = ChainSupported && (RelocOffset <= UE_CHAINED_RELOC_FIXUP_MAX_OFFSET) && (PrevRelocType == RelocType);
 
-      if (ChainInProgress) {
+      if (ChainInProgress && (RelocType == UeReloc64)) {
         PrevChainRelocInfo  = RelocType;
         PrevChainRelocInfo |= RelocOffset << 4U;
         PrevChainRelocInfo |= PrevRelocValue << 16U;
@@ -444,10 +446,22 @@ ToolImageEmitUeRelocTable (
           &PrevChainRelocInfo,
           PrevRelocSize
           );
+      } else if (ChainInProgress && (RelocType == UeReloc32)) {
+        PrevChainRelocInfo32 = RelocOffset;
+        PrevChainRelocInfo32 |= PrevRelocValue << UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT;
+
+        assert (PrevRelocSize <= sizeof (PrevChainRelocInfo32));
+
+        ImageToolBufferWrite (
+          Buffer,
+          PrevRelocFileOffset,
+          &PrevChainRelocInfo32,
+          PrevRelocSize
+          );
       }
     }
 
-    if (ChainSupported) {
+    if (ChainSupported && (RelocType == UeReloc64)) {
       ChainRelocInfo  = UE_CHAINED_RELOC_FIXUP_OFFSET_END << 4U;
       ChainRelocInfo |= RelocValue << 16U;
       if ((ChainRelocInfo >> 16U) != RelocValue) {
@@ -464,6 +478,28 @@ ToolImageEmitUeRelocTable (
         Buffer,
         RelocFileOffset,
         &ChainRelocInfo,
+        RelocSize
+        );
+
+      if (ChainInProgress) {
+        continue;
+      }
+
+      ChainInProgress = true;
+    } else if (ChainSupported && (RelocType == UeReloc32)) {
+      ChainRelocInfo32  = UE_CHAINED_RELOC_FIXUP_OFFSET_END;
+      ChainRelocInfo32 |= RelocValue << UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT;
+      if ((ChainRelocInfo32 >> UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT) != RelocValue) {
+        DEBUG_RAISE ();
+        return false;
+      }
+
+      assert (RelocSize <= sizeof (ChainRelocInfo32));
+
+      ImageToolBufferWrite (
+        Buffer,
+        RelocFileOffset,
+        &ChainRelocInfo32,
         RelocSize
         );
 
