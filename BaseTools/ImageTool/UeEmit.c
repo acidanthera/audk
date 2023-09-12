@@ -822,8 +822,7 @@ ToolImageEmitUeFile (
   LastSegmentIndex = (uint8_t)(Image->SegmentInfo.NumSegments - 1U);
 
   Chaining = Image->HeaderInfo.BaseAddress == 0 &&
-             !Image->HeaderInfo.FixedAddress &&
-             Image->HeaderInfo.Subsystem != EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER;
+             !Image->HeaderInfo.FixedAddress;
 
   UeHdr.Magic = UE_HEADER_MAGIC;
 
