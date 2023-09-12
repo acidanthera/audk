@@ -19,13 +19,14 @@
 #include <Library/PeCoffLib2.h>
 #include <Library/UefiImageLib.h>
 #include <Library/UeImageLib.h>
-#include <Library/PcdLib.h>
 
 struct UE_LOADER_RUNTIME_CONTEXT_ {
   UINT8   Machine;
   UINT8   Reserved[7];
   UINT32  FixupSize;
   UINT64  *FixupData;
+  UINT32  UnchainedRelocsSize;
+  UINT8   *UnchainedRelocs;
   UINT32  RelocTableSize;
   UINT8   RelocTable[];
 };
@@ -461,8 +462,7 @@ InternalApplyRelocation (
   IN     UINT16  RelocType,
   IN     UINT32  *RelocTarget,
   IN     UINT64  Adjust,
-     OUT UINT64  *FixupData OPTIONAL,
-  IN     BOOLEAN IsRuntime
+  IN     UINT64  *FixupData
   )
 {
   BOOLEAN               Overflow;
@@ -473,6 +473,8 @@ InternalApplyRelocation (
   VOID                  *Fixup;
   UINT8                 FixupSize;
   UE_RELOC_FIXUP_VALUE  FixupValue;
+
+  ASSERT (FixupData != NULL);
 
   FixupTarget = *RelocTarget;
   //
@@ -505,7 +507,7 @@ InternalApplyRelocation (
         //
         // If the Image relocation target value mismatches, skip or abort.
         //
-        if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
+        if (FixupValue.Value32 != (UINT32)*FixupData) {
           if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
             return RETURN_SUCCESS;
           }
@@ -515,10 +517,6 @@ InternalApplyRelocation (
 
         FixupValue.Value32 += (UINT32) Adjust;
         WriteUnaligned32 (Fixup, FixupValue.Value32);
-
-        if (!IsRuntime) {
-          *FixupData = FixupValue.Value32;
-        }
     } else {
       ASSERT (RelocType == UeReloc64);
 
@@ -538,7 +536,7 @@ InternalApplyRelocation (
       //
       // If the Image relocation target value mismatches, skip or abort.
       //
-      if (IsRuntime && (FixupValue.Value64 != *FixupData)) {
+      if (FixupValue.Value64 != *FixupData) {
         if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
           return RETURN_SUCCESS;
         }
@@ -548,10 +546,6 @@ InternalApplyRelocation (
 
       FixupValue.Value64 += Adjust;
       WriteUnaligned64 (Fixup, FixupValue.Value64);
-
-      if (!IsRuntime) {
-        *FixupData = FixupValue.Value64;
-      }
     }
   } else {
 #if 0
@@ -608,15 +602,78 @@ InternalApplyRelocation (
 
 STATIC
 RETURN_STATUS
+UnchainReloc (
+  IN OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+  IN     CONST UINT8                *MetaSource OPTIONAL,
+  IN     UINT32                     MetaSize,
+  IN     BOOLEAN                    IsRuntime,
+  IN     UINT16                     RelocOffset,
+  IN     UINT64                     *FixupData
+  )
+{
+  UINT32  OldSize;
+  UINT16  FixupHdr;
+  UINT32  FixupIndex;
+
+  if ((RuntimeContext != NULL) && !IsRuntime) {
+    if (MetaSource == NULL) {
+      FixupIndex = RuntimeContext->UnchainedRelocsSize - sizeof (UINT16);
+
+      FixupHdr   = *(UINT16 *)&RuntimeContext->UnchainedRelocs[FixupIndex];
+      FixupHdr   = (RelocOffset << 4U) | UE_RELOC_FIXUP_TYPE(FixupHdr);
+
+      *(UINT16 *)&RuntimeContext->UnchainedRelocs[FixupIndex] = FixupHdr;
+
+      return RETURN_SUCCESS;
+    }
+
+    OldSize = RuntimeContext->UnchainedRelocsSize;
+    RuntimeContext->UnchainedRelocs = ReallocateRuntimePool (
+                                        OldSize,
+                                        OldSize + MetaSize,
+                                        RuntimeContext->UnchainedRelocs
+                                        );
+    if (RuntimeContext->UnchainedRelocs == NULL) {
+      return RETURN_OUT_OF_RESOURCES;
+    }
+
+    CopyMem (RuntimeContext->UnchainedRelocs + OldSize, MetaSource, MetaSize);
+
+    RuntimeContext->UnchainedRelocsSize += MetaSize;
+
+    if (FixupData != NULL) {
+      OldSize = RuntimeContext->FixupSize;
+      RuntimeContext->FixupData = ReallocateRuntimePool (
+                                    OldSize,
+                                    OldSize + sizeof (*FixupData),
+                                    RuntimeContext->FixupData
+                                    );
+      if (RuntimeContext->FixupData == NULL) {
+        return RETURN_OUT_OF_RESOURCES;
+      }
+
+      CopyMem ((UINT8 *)RuntimeContext->FixupData + OldSize, FixupData, sizeof (*FixupData));
+
+      RuntimeContext->FixupSize += sizeof (*FixupData);
+    }
+  }
+
+  return RETURN_SUCCESS;
+}
+
+STATIC
+RETURN_STATUS
 InternalProcessRelocChain (
   IN OUT VOID    *Image,
   IN     UINT32  ImageSize,
   IN     UINT8   Machine,
   IN     UINT16  FirstRelocType,
   IN     UINT32  *ChainStart,
-  IN     UINT64  Adjust
+  IN     UINT64  Adjust,
+  IN OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL
   )
 {
+  RETURN_STATUS         Status;
   UINT16                RelocType;
   UINT16                RelocOffset;
   UINT32                RelocTarget;
@@ -628,6 +685,8 @@ InternalProcessRelocChain (
   UE_RELOC_FIXUP_VALUE  FixupInfo;
   UINT8                 FixupSize;
   UE_RELOC_FIXUP_VALUE  FixupValue;
+  UINT16                FixupHdr;
+  UINT64                FixupData;
 
   RelocType   = FirstRelocType;
   RelocTarget = *ChainStart;
@@ -658,6 +717,8 @@ InternalProcessRelocChain (
         FixupValue.Value64  = UE_CHAINED_RELOC_FIXUP_VALUE (FixupInfo.Value64);
         FixupValue.Value64 += Adjust;
         WriteUnaligned64 ((VOID *)Fixup, FixupValue.Value64);
+
+        FixupData = FixupValue.Value64;
       } else if (RelocType == UeReloc32) {
         FixupSize = sizeof (UINT32);
         //
@@ -675,6 +736,8 @@ InternalProcessRelocChain (
         FixupValue.Value32  = UE_CHAINED_RELOC_FIXUP_VALUE_32 (FixupInfo.Value32);
         FixupValue.Value32 += (UINT32) Adjust;
         WriteUnaligned32 ((VOID *)Fixup, FixupValue.Value32);
+
+        FixupData = FixupValue.Value32;
         //
         // Imitate the common header of UE chained relocation fixups,
         // as for 32-bit files all relocs have the same type.
@@ -699,6 +762,20 @@ InternalProcessRelocChain (
     RelocTarget += FixupSize;
 
     RelocOffset = UE_CHAINED_RELOC_FIXUP_NEXT_OFFSET (FixupInfo.Value32);
+    FixupHdr    = (RelocOffset << 4) | RelocType;
+
+    Status = UnchainReloc (
+               RuntimeContext,
+               (CONST UINT8 *)&FixupHdr,
+               sizeof (FixupHdr),
+               FALSE,
+               0,
+               &FixupData
+               );
+    if (RETURN_ERROR (Status)) {
+      return Status;
+    }
+
     if (RelocOffset == UE_CHAINED_RELOC_FIXUP_OFFSET_END) {
       *ChainStart = RelocTarget;
       return RETURN_SUCCESS;
@@ -727,7 +804,7 @@ InternaRelocateImage (
   IN     UINT32      RelocTableSize,
   IN     BOOLEAN     Chaining,
   IN     UINT64      BaseAddress,
-     OUT UINT64      *FixupData OPTIONAL,
+     OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
   IN     BOOLEAN     IsRuntime
   )
 {
@@ -748,6 +825,7 @@ InternaRelocateImage (
   UINT32               RelocTarget;
 
   UINT32               OldTableOffset;
+  UINT64               *FixupData;
 
   ASSERT (Image != NULL);
   ASSERT (RelocTable != NULL || RelocTableSize == 0);
@@ -773,6 +851,7 @@ InternaRelocateImage (
   }
 
   RelocTarget = 0;
+  FixupData   = RuntimeContext != NULL ? RuntimeContext->FixupData : NULL;
 
   STATIC_ASSERT (
     MIN_SIZE_OF_UE_FIXUP_ROOT <= UE_LOAD_TABLE_ALIGNMENT,
@@ -799,6 +878,18 @@ InternaRelocateImage (
       DEBUG_RAISE ();
       return RETURN_VOLUME_CORRUPTED;
     }
+
+    Status = UnchainReloc (
+               RuntimeContext,
+               (CONST UINT8 *)RelocRoot,
+               sizeof (*RelocRoot),
+               IsRuntime,
+               0,
+               NULL
+               );
+    if (RETURN_ERROR (Status)) {
+      return Status;
+    }
     //
     // Process all relocation fixups of the current root.
     //
@@ -813,14 +904,15 @@ InternaRelocateImage (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (Chaining) {
+      if (!IsRuntime) {
         Status = InternalProcessRelocChain (
                    Image,
                    ImageSize,
                    Machine,
                    RelocType,
                    &RelocTarget,
-                   Adjust
+                   Adjust,
+                   RuntimeContext
                    );
       } else {
         Status = InternalApplyRelocation (
@@ -830,8 +922,7 @@ InternaRelocateImage (
                    RelocType,
                    &RelocTarget,
                    Adjust,
-                   FixupData,
-                   IsRuntime
+                   FixupData
                    );
 
         ++FixupData;
@@ -842,6 +933,19 @@ InternaRelocateImage (
       }
 
       RelocOffset = UE_RELOC_FIXUP_OFFSET (FixupInfo);
+
+      Status = UnchainReloc (
+                 RuntimeContext,
+                 NULL,
+                 0,
+                 IsRuntime,
+                 RelocOffset,
+                 NULL
+                 );
+      if (RETURN_ERROR (Status)) {
+        return Status;
+      }
+
       if (RelocOffset == UE_HEAD_FIXUP_OFFSET_END) {
         break;
       }
@@ -901,11 +1005,6 @@ UeRelocateImage (
   Chaining = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0;
 
   if (RuntimeContext != NULL) {
-    if (Chaining) {
-      DEBUG_RAISE ();
-      return RETURN_VOLUME_CORRUPTED;
-    }
-
     RuntimeContext->Machine        = Context->Machine;
     RuntimeContext->RelocTableSize = Context->RelocTableSize;
 
@@ -915,12 +1014,6 @@ UeRelocateImage (
       Context->FileBuffer + Context->LoadTablesFileOffset,
       Context->RelocTableSize
       );
-
-    RuntimeContext->FixupSize = Context->RelocTableSize / sizeof (UINT16) * sizeof (UINT64);
-    RuntimeContext->FixupData = AllocateRuntimeZeroPool (RuntimeContext->FixupSize);
-    if (RuntimeContext->FixupData == NULL) {
-      ASSERT (FALSE);
-    }
   }
 
   return InternaRelocateImage (
@@ -932,7 +1025,7 @@ UeRelocateImage (
            Context->RelocTableSize,
            Chaining,
            BaseAddress,
-           RuntimeContext != NULL ? RuntimeContext->FixupData : NULL,
+           RuntimeContext,
            FALSE
            );
 }
@@ -953,11 +1046,11 @@ UeRelocateImageForRuntime (
            ImageSize,
            RuntimeContext->Machine,
            (UINTN)Image,
-           RuntimeContext->RelocTable,
-           RuntimeContext->RelocTableSize,
+           RuntimeContext->UnchainedRelocs,
+           RuntimeContext->UnchainedRelocsSize,
            FALSE,
            BaseAddress,
-           RuntimeContext->FixupData,
+           (UE_LOADER_RUNTIME_CONTEXT *)RuntimeContext,
            TRUE
            );
 }
