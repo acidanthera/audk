@@ -614,6 +614,7 @@ UnchainReloc (
   UINT32  OldSize;
   UINT16  FixupHdr;
   UINT32  FixupIndex;
+  UINT8   Addend;
 
   if ((RuntimeContext != NULL) && !IsRuntime) {
     if (MetaSource == NULL) {
@@ -623,6 +624,22 @@ UnchainReloc (
       FixupHdr   = (RelocOffset << 4U) | UE_RELOC_FIXUP_TYPE(FixupHdr);
 
       *(UINT16 *)&RuntimeContext->UnchainedRelocs[FixupIndex] = FixupHdr;
+
+      Addend = ALIGN_VALUE_ADDEND(RuntimeContext->UnchainedRelocsSize, ALIGNOF(UE_FIXUP_ROOT));
+      if ((RelocOffset == UE_HEAD_FIXUP_OFFSET_END) && (Addend != 0)) {
+        OldSize = RuntimeContext->UnchainedRelocsSize;
+        RuntimeContext->UnchainedRelocs = ReallocateRuntimePool (
+                                            OldSize,
+                                            OldSize + Addend,
+                                            RuntimeContext->UnchainedRelocs
+                                            );
+        if (RuntimeContext->UnchainedRelocs == NULL) {
+          return RETURN_OUT_OF_RESOURCES;
+        }
+
+        ZeroMem (RuntimeContext->UnchainedRelocs + OldSize, Addend);
+        RuntimeContext->UnchainedRelocsSize += Addend;
+      }
 
       return RETURN_SUCCESS;
     }
@@ -742,7 +759,7 @@ InternalProcessRelocChain (
         // Imitate the common header of UE chained relocation fixups,
         // as for 32-bit files all relocs have the same type.
         //
-        FixupInfo.Value32 = FixupInfo.Value32 << 4;
+        FixupInfo.Value32 = FixupInfo.Value32 << 4U;
         FixupInfo.Value32 |= UeReloc32;
       } else {
         //
@@ -762,7 +779,7 @@ InternalProcessRelocChain (
     RelocTarget += FixupSize;
 
     RelocOffset = UE_CHAINED_RELOC_FIXUP_NEXT_OFFSET (FixupInfo.Value32);
-    FixupHdr    = (RelocOffset << 4) | RelocType;
+    FixupHdr    = (RelocOffset << 4U) | RelocType;
 
     Status = UnchainReloc (
                RuntimeContext,
