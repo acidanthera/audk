@@ -176,8 +176,9 @@ STATIC_ASSERT (
 /// Definitions of the generic UE relocation identifiers.
 ///
 enum {
-  UeReloc32 = 0x00,
-  UeReloc64 = 0x01,
+  UeReloc32       = 0x00,
+  UeReloc64       = 0x01,
+  UeReloc32NoMeta = 0x02,
   UeRelocGenericMax
 };
 

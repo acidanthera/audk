@@ -430,6 +430,16 @@ ToolImageEmitUeRelocTable (
     if (ChainInProgress) {
       ChainInProgress  = ChainSupported && (RelocOffset <= UE_CHAINED_RELOC_FIXUP_MAX_OFFSET) && (PrevRelocType == RelocType);
 
+      if (ChainInProgress && (RelocType == UeReloc32)) {
+        ChainRelocInfo32  = UE_CHAINED_RELOC_FIXUP_OFFSET_END;
+        ChainRelocInfo32 |= RelocValue << UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT;
+        if ((ChainRelocInfo32 >> UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT) != RelocValue) {
+          ChainInProgress = false;
+          ChainSupported  = false;
+          RelocType       = UeReloc32NoMeta;
+        }
+      }
+
       if (ChainInProgress && (RelocType == UeReloc64)) {
         PrevChainRelocInfo  = RelocType;
         PrevChainRelocInfo |= RelocOffset << 4U;
@@ -490,24 +500,25 @@ ToolImageEmitUeRelocTable (
       ChainRelocInfo32  = UE_CHAINED_RELOC_FIXUP_OFFSET_END;
       ChainRelocInfo32 |= RelocValue << UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT;
       if ((ChainRelocInfo32 >> UE_CHAINED_RELOC_FIXUP_VALUE_32_SHIFT) != RelocValue) {
-        DEBUG_RAISE ();
-        return false;
-      }
+        ChainInProgress = false;
+        ChainSupported  = false;
+        RelocType       = UeReloc32NoMeta;
+      } else {
+        assert (RelocSize <= sizeof (ChainRelocInfo32));
 
-      assert (RelocSize <= sizeof (ChainRelocInfo32));
-
-      ImageToolBufferWrite (
-        Buffer,
-        RelocFileOffset,
-        &ChainRelocInfo32,
-        RelocSize
+        ImageToolBufferWrite (
+          Buffer,
+          RelocFileOffset,
+          &ChainRelocInfo32,
+          RelocSize
         );
 
-      if (ChainInProgress) {
-        continue;
-      }
+        if (ChainInProgress) {
+          continue;
+        }
 
-      ChainInProgress = true;
+        ChainInProgress = true;
+      }
     }
 
     if (Index > 0 && RelocOffset <= UE_HEAD_FIXUP_MAX_OFFSET) {
