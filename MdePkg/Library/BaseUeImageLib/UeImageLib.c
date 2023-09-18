@@ -462,7 +462,8 @@ InternalApplyRelocation (
   IN     UINT16  RelocType,
   IN     UINT32  *RelocTarget,
   IN     UINT64  Adjust,
-  IN     UINT64  *FixupData
+  IN OUT UINT64  *FixupData,
+  IN     BOOLEAN IsRuntime
   )
 {
   BOOLEAN               Overflow;
@@ -492,34 +493,32 @@ InternalApplyRelocation (
   //
   if (RelocType < UeRelocGenericMax) {
     if (RelocType == UeReloc32) {
-        FixupSize = sizeof (UINT32);
-        //
-        // Verify the relocation fixup target is in bounds of the image buffer.
-        //
-        if (FixupSize > RemFixupTargetSize) {
-          DEBUG_RAISE ();
-          return RETURN_VOLUME_CORRUPTED;
-        }
-        //
-        // Relocate the target instruction.
-        //
-        FixupValue.Value32  = ReadUnaligned32 (Fixup);
-        //
-        // If the Image relocation target value mismatches, skip or abort.
-        //
-        if (FixupValue.Value32 != (UINT32)*FixupData) {
-          if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
-            return RETURN_SUCCESS;
-          }
-
-          return RETURN_VOLUME_CORRUPTED;
+      FixupSize = sizeof (UINT32);
+      //
+      // Verify the relocation fixup target is in bounds of the image buffer.
+      //
+      if (FixupSize > RemFixupTargetSize) {
+        DEBUG_RAISE ();
+        return RETURN_VOLUME_CORRUPTED;
+      }
+      //
+      // Relocate the target instruction.
+      //
+      FixupValue.Value32  = ReadUnaligned32 (Fixup);
+      //
+      // If the Image relocation target value mismatches, skip or abort.
+      //
+      if (FixupValue.Value32 != (UINT32)*FixupData) {
+        if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+          return RETURN_SUCCESS;
         }
 
-        FixupValue.Value32 += (UINT32) Adjust;
-        WriteUnaligned32 (Fixup, FixupValue.Value32);
-    } else {
-      ASSERT (RelocType == UeReloc64);
+        return RETURN_VOLUME_CORRUPTED;
+      }
 
+      FixupValue.Value32 += (UINT32) Adjust;
+      WriteUnaligned32 (Fixup, FixupValue.Value32);
+    } else if (RelocType == UeReloc64) {
       FixupSize = sizeof (UINT64);
       //
       // Verify the image relocation fixup target is in bounds of the image
@@ -546,6 +545,42 @@ InternalApplyRelocation (
 
       FixupValue.Value64 += Adjust;
       WriteUnaligned64 (Fixup, FixupValue.Value64);
+    } else if (RelocType == UeReloc32NoMeta) {
+      FixupSize = sizeof (UINT32);
+      //
+      // Verify the relocation fixup target is in bounds of the image buffer.
+      //
+      if (FixupSize > RemFixupTargetSize) {
+        DEBUG_RAISE ();
+        return RETURN_VOLUME_CORRUPTED;
+      }
+      //
+      // Relocate the target instruction.
+      //
+      FixupValue.Value32  = ReadUnaligned32 (Fixup);
+      //
+      // If the Image relocation target value mismatches, skip or abort.
+      //
+      if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
+        if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
+          return RETURN_SUCCESS;
+        }
+
+        return RETURN_VOLUME_CORRUPTED;
+      }
+
+      FixupValue.Value32 += (UINT32) Adjust;
+      WriteUnaligned32 (Fixup, FixupValue.Value32);
+
+      if (!IsRuntime) {
+        *FixupData = FixupValue.Value32;
+      }
+    } else {
+      //
+      // The image relocation fixup type is unknown, disallow the image.
+      //
+      DEBUG_RAISE ();
+      return RETURN_UNSUPPORTED;
     }
   } else {
 #if 0
@@ -842,7 +877,8 @@ InternaRelocateImage (
   UINT32               RelocTarget;
 
   UINT32               OldTableOffset;
-  UINT64               *FixupData;
+  UINT64               FixupData;
+  UINT64               *FixupPointer;
 
   ASSERT (Image != NULL);
   ASSERT (RelocTable != NULL || RelocTableSize == 0);
@@ -868,7 +904,10 @@ InternaRelocateImage (
   }
 
   RelocTarget = 0;
-  FixupData   = RuntimeContext != NULL ? RuntimeContext->FixupData : NULL;
+
+  if (IsRuntime) {
+    FixupPointer = RuntimeContext->FixupData;
+  }
 
   STATIC_ASSERT (
     MIN_SIZE_OF_UE_FIXUP_ROOT <= UE_LOAD_TABLE_ALIGNMENT,
@@ -921,7 +960,7 @@ InternaRelocateImage (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (!IsRuntime) {
+      if (!IsRuntime && (RelocType != UeReloc32NoMeta)) {
         Status = InternalProcessRelocChain (
                    Image,
                    ImageSize,
@@ -939,10 +978,26 @@ InternaRelocateImage (
                    RelocType,
                    &RelocTarget,
                    Adjust,
-                   FixupData
+                   IsRuntime ? FixupPointer : &FixupData,
+                   IsRuntime
                    );
 
-        ++FixupData;
+        if (RETURN_ERROR (Status)) {
+          return Status;
+        }
+
+        Status = UnchainReloc (
+                   RuntimeContext,
+                   (CONST UINT8 *)&FixupInfo,
+                   sizeof (FixupInfo),
+                   IsRuntime,
+                   0,
+                   &FixupData
+                   );
+
+        if (IsRuntime) {
+          ++FixupPointer;
+        }
       }
 
       if (RETURN_ERROR (Status)) {

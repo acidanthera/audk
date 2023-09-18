@@ -182,7 +182,7 @@ InternalApplyRelocation (
   // Apply the relocation fixup per type.
   //
   if (RelocType < UeRelocGenericMax) {
-    if (RelocType == UeReloc32) {
+    if ((RelocType == UeReloc32) || (RelocType == UeReloc32NoMeta)) {
       FixupSize  = sizeof (UINT32);
       Reloc.Type = EFI_IMAGE_REL_BASED_HIGHLOW;
     } else {
@@ -296,7 +296,7 @@ ScanUeGetRelocInfo (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (Chaining) {
+      if (Chaining && (RelocType != UeReloc32NoMeta)) {
         Status = InternalProcessRelocChain (
                    &Buffer,
                    SegmentInfo,
