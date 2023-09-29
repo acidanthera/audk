@@ -27,8 +27,6 @@ struct UE_LOADER_RUNTIME_CONTEXT_ {
   UINT64  *FixupData;
   UINT32  UnchainedRelocsSize;
   UINT8   *UnchainedRelocs;
-  UINT32  RelocTableSize;
-  UINT8   RelocTable[];
 };
 
 typedef union {
@@ -430,14 +428,11 @@ UeLoaderGetRuntimeContextSize (
 {
   ASSERT (Context != NULL);
   ASSERT (Size != NULL);
-  //
-  // FIXME: Do we need bookkeeping? Can we prevent relocs to writable segments?
-  //
-  *Size = sizeof (UE_LOADER_RUNTIME_CONTEXT) + Context->RelocTableSize;
+
+  *Size = sizeof (UE_LOADER_RUNTIME_CONTEXT);
   return RETURN_SUCCESS;
 }
 
-// FIXME:!!!
 /**
   Apply an image relocation fixup.
 
@@ -716,12 +711,12 @@ UnchainReloc (
 STATIC
 RETURN_STATUS
 InternalProcessRelocChain (
-  IN OUT VOID    *Image,
-  IN     UINT32  ImageSize,
-  IN     UINT8   Machine,
-  IN     UINT16  FirstRelocType,
-  IN     UINT32  *ChainStart,
-  IN     UINT64  Adjust,
+  IN OUT VOID                       *Image,
+  IN     UINT32                     ImageSize,
+  IN     UINT8                      Machine,
+  IN     UINT16                     FirstRelocType,
+  IN     UINT32                     *ChainStart,
+  IN     UINT64                     Adjust,
   IN OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL
   )
 {
@@ -848,16 +843,16 @@ InternalProcessRelocChain (
 STATIC
 RETURN_STATUS
 InternaRelocateImage (
-  IN OUT VOID        *Image,
-  IN     UINT32      ImageSize,
-  IN     UINT8       Machine,
-  IN     UINT64      OldBaseAddress,
-  IN     CONST VOID  *RelocTable,
-  IN     UINT32      RelocTableSize,
-  IN     BOOLEAN     Chaining,
-  IN     UINT64      BaseAddress,
+  IN OUT VOID                       *Image,
+  IN     UINT32                     ImageSize,
+  IN     UINT8                      Machine,
+  IN     UINT64                     OldBaseAddress,
+  IN     CONST VOID                 *RelocTable,
+  IN     UINT32                     RelocTableSize,
+  IN     BOOLEAN                    Chaining,
+  IN     UINT64                     BaseAddress,
      OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
-  IN     BOOLEAN     IsRuntime
+  IN     BOOLEAN                    IsRuntime
   )
 {
   RETURN_STATUS        Status;
@@ -1056,7 +1051,7 @@ RETURN_STATUS
 UeRelocateImage (
   IN OUT UE_LOADER_IMAGE_CONTEXT    *Context,
   IN     UINT64                     BaseAddress,
-  OUT    UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
+     OUT UE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
   IN     UINT32                     RuntimeContextSize
   )
 {
@@ -1077,15 +1072,7 @@ UeRelocateImage (
   Chaining = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0;
 
   if (RuntimeContext != NULL) {
-    RuntimeContext->Machine        = Context->Machine;
-    RuntimeContext->RelocTableSize = Context->RelocTableSize;
-
-    ASSERT (Context->RelocTableSize <= RuntimeContextSize - sizeof (*RuntimeContext));
-    CopyMem (
-      RuntimeContext->RelocTable,
-      Context->FileBuffer + Context->LoadTablesFileOffset,
-      Context->RelocTableSize
-      );
+    RuntimeContext->Machine = Context->Machine;
   }
 
   return InternaRelocateImage (
@@ -1112,7 +1099,6 @@ UeRelocateImageForRuntime (
 {
   ASSERT (RuntimeContext != NULL);
 
-  // FIXME: Relocs to writable segments?
   return InternaRelocateImage (
            Image,
            ImageSize,

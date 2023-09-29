@@ -39,9 +39,8 @@
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
-
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv
 
