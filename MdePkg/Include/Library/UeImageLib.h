@@ -17,6 +17,7 @@ typedef struct {
   UINT8                Subsystem;
   UINT8                Machine;
   BOOLEAN              FixedAddress;
+  BOOLEAN              XIP;
   UINT8                LastSegmentIndex;
   UINT32               SegmentsFileOffset; // Unused for XIP
   UINT32               SegmentAlignment;

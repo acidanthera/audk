@@ -908,6 +908,136 @@ ToolImageEmitUeFile (
   return true;
 }
 
+static
+bool
+ToolImageEmitUeXipFile (
+  image_tool_dynamic_buffer  *Buffer,
+  image_tool_image_info_t    *Image
+  )
+{
+  bool       Success;
+  UE_HEADER  UeHdr;
+  uint8_t    AlignmentExponent;
+  int8_t     Machine;
+  uint8_t    Subsystem;
+  uint8_t    LastSegmentIndex;
+  uint8_t    NumLoadTables;
+  uint32_t   Offset;
+  uint32_t   UeHdrOff;
+  bool       Chaining;
+  uint16_t   Index;
+  uint64_t   BaseAddress;
+
+  assert (Image->SegmentInfo.NumSegments > 0);
+
+  if (Image->SegmentInfo.NumSegments > UE_HEADER_NUM_SEGMENTS_MAX) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  if (Image->HiiInfo.DataSize > 0) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  BaseAddress = Image->HeaderInfo.BaseAddress;
+  UeHdrOff    = ALIGN_VALUE(sizeof (UeHdr), Image->SegmentInfo.SegmentAlignment);
+
+  Success = ToolImageRelocate (Image, BaseAddress + UeHdrOff, 0);
+  if (!Success) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  AlignmentExponent = AlignmentToExponent (Image->SegmentInfo.SegmentAlignment);
+  if (12 > AlignmentExponent || AlignmentExponent > 27) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  Machine = InternalGetUeMachine (Image->HeaderInfo.Machine);
+  if (Machine < 0) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  NumLoadTables    = 0U;
+  Subsystem        = (uint8_t)(Image->HeaderInfo.Subsystem - 10U);
+  LastSegmentIndex = (uint8_t)(Image->SegmentInfo.NumSegments - 1U);
+  Chaining         = false;
+
+  UeHdr.Magic = UE_HEADER_MAGIC;
+
+  UeHdr.Type = (Machine << 3U) | Subsystem;
+  assert (UE_HEADER_SUBSYSTEM (UeHdr.Type) == Subsystem);
+  assert (UE_HEADER_ARCH (UeHdr.Type) == Machine);
+
+  UeHdr.TableCounts  = NumLoadTables;
+  UeHdr.TableCounts |= LastSegmentIndex << 3U;
+  assert (UE_HEADER_LAST_SEGMENT_INDEX (UeHdr.TableCounts) == LastSegmentIndex);
+  assert (UE_HEADER_NUM_LOAD_TABLES (UeHdr.TableCounts) == NumLoadTables);
+
+  UeHdr.EntryPointAddress = Image->HeaderInfo.EntryPointAddress + UeHdrOff;
+
+  UeHdr.ImageInfo  = BaseAddress >> 12ULL;
+  UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_XIP;
+  UeHdr.ImageInfo |= (uint64_t)Image->HeaderInfo.FixedAddress << 57ULL;
+  UeHdr.ImageInfo |= (uint64_t)Image->RelocInfo.RelocsStripped << 58ULL;
+  UeHdr.ImageInfo |= (uint64_t)Chaining << 59ULL;
+  UeHdr.ImageInfo |= (uint64_t)(AlignmentExponent - 12U) << 60ULL;
+  assert (UE_HEADER_BASE_ADDRESS (UeHdr.ImageInfo) == BaseAddress);
+  assert ((UeHdr.ImageInfo & (0xFULL << 52ULL)) == 0);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0) == Image->HeaderInfo.FixedAddress);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0) == Image->RelocInfo.RelocsStripped);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0) == Chaining);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0) == TRUE);
+  assert (UE_HEADER_SEGMENT_ALIGNMENT (UeHdr.ImageInfo) == Image->SegmentInfo.SegmentAlignment);
+
+  Offset = ImageToolBufferAppend (Buffer, &UeHdr, sizeof (UeHdr));
+  if (Offset == MAX_UINT32) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  Success = ToolImageEmitUeSegmentHeaders (Buffer, Image);
+  if (!Success) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  Offset = ImageToolBufferAppendReserveAlign (
+             Buffer,
+             Image->SegmentInfo.SegmentAlignment
+             );
+  if (Offset == MAX_UINT32) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
+    Offset = ImageToolBufferAppend (
+               Buffer,
+               Image->SegmentInfo.Segments[Index].Data,
+               Image->SegmentInfo.Segments[Index].UnpaddedSize
+               );
+    if (Offset == MAX_UINT32) {
+      DEBUG_RAISE ();
+      return false;
+    }
+
+    Offset = ImageToolBufferAppendReserve (
+               Buffer,
+               Image->SegmentInfo.Segments[Index].ImageSize - Image->SegmentInfo.Segments[Index].UnpaddedSize
+               );
+    if (Offset == MAX_UINT32) {
+      DEBUG_RAISE ();
+      return false;
+    }
+  }
+
+  return true;
+}
+
 void *
 ToolImageEmitUe (
   image_tool_image_info_t  *Image,
@@ -921,29 +1051,27 @@ ToolImageEmitUe (
   uint32_t                   BaseAddressSubtrahend;
   void                       *FileBuffer;
 
-  // LCOV_EXCL_START
-  if (Xip) {
-    DEBUG_RAISE ();
-    return NULL;
-  }
-  // LCOV_EXCL_STOP
-
-  Success = ToolImageStripEmptyPrefix (&BaseAddressSubtrahend, Image);
-  if (!Success) {
-    DEBUG_RAISE ();
-    return NULL;
-  }
-
-  if (Strip) {
-    ToolImageStripRelocs (Image);
-  }
+  ImageToolBufferInit (&Buffer);
 
   ImageInitUnpaddedSize (Image);
   ToolImageEmitUePadChainedRelocs (Image);
 
-  ImageToolBufferInit (&Buffer);
+  if (Xip) {
+    Success = ToolImageEmitUeXipFile (&Buffer, Image);
+  } else {
+    Success = ToolImageStripEmptyPrefix (&BaseAddressSubtrahend, Image);
+    if (!Success) {
+      DEBUG_RAISE ();
+      return NULL;
+    }
 
-  Success = ToolImageEmitUeFile (&Buffer, Image, BaseAddressSubtrahend);
+    if (Strip) {
+      ToolImageStripRelocs (Image);
+    }
+
+    Success = ToolImageEmitUeFile (&Buffer, Image, BaseAddressSubtrahend);
+  }
+
   if (!Success) {
     DEBUG_RAISE ();
     ImageToolBufferFree (&Buffer);

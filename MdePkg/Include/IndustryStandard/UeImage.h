@@ -501,7 +501,8 @@ typedef struct {
   ///
   /// [Bits 51:0]  The base UEFI page of the UE image, i.e., the base address in
   ///              4 KiB units.
-  /// [Bits 56:52] Reserved for future use. Must be zero.
+  /// [Bits 55:52] Reserved for future use. Must be zero.
+  /// [Bit 56]     Indicates whether the UE image is XIP
   /// [Bit 57]     Indicates whether the UE image is designated for a fixed
   ///              address.
   /// [Bit 58]     Indicates whether the UE relocation table has been stripped.
@@ -568,6 +569,11 @@ STATIC_ASSERT (
 **/
 #define UE_HEADER_SEGMENT_ALIGNMENT(ImageInfo)  \
   (1U << ((UINT8)RShiftU64 (ImageInfo, 60) + 12U))
+
+///
+/// UE header image information bit that indicates whether the image is XIP.
+///
+#define UE_HEADER_IMAGE_INFO_XIP            0x0100000000000000ULL
 
 ///
 /// UE header image information bit that indicates whether the image is

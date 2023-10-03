@@ -273,6 +273,10 @@ InternalInitializeContextLate (
     return RETURN_UNSUPPORTED;
   }
 
+  if (Context->XIP) {
+    return RETURN_SUCCESS;
+  }
+
   return InternalVerifyLoadTables (Context);
 }
 
@@ -320,6 +324,7 @@ UeInitializeContextPostHash (
 
   Context->FixedAddress   = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0;
   Context->RelocsStripped = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0;
+  Context->XIP            = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0;
 
   Context->LastSegmentIndex = LastSegmentIndex;
   Context->NumLoadTables    = NumLoadTables;
