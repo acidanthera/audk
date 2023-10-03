@@ -187,6 +187,11 @@ ToolImageEmit (
     return NULL;
   }
 
+  if ((Format == UefiImageFormatUe) && Xip) {
+    ToolImageDestruct (&ImageInfo);
+    return OutputFile;
+  }
+
   Status = ValidateOutputFile (OutputFile, *OutputFileSize, &ImageInfo);
 
   ToolImageDestruct (&ImageInfo);
