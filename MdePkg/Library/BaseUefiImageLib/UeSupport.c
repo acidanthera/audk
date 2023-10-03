@@ -89,6 +89,14 @@ UefiImageLoadImageInplaceUe (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
+  ASSERT (Context != NULL);
+
+  if (Context->Ctx.Ue.XIP) {
+    Context->Ctx.Ue.ImageBuffer = (UINT8 *) Context->Ctx.Ue.FileBuffer;
+
+    return RETURN_SUCCESS;
+  }
+
   return RETURN_UNSUPPORTED;
 }
 
