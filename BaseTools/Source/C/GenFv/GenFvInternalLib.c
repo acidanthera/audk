@@ -3625,6 +3625,8 @@ Returns:
   UINT32                                FfsFileLength;
   UINTN                                 FileOffset;
   EFI_FFS_INTEGRITY_CHECK               *IntegrityCheck;
+  UINT8                                 *AfterPePart;
+  UINT32                                AfterPeSize;
 
   Index               = 0;
   Cptr                = NULL;
@@ -3876,6 +3878,24 @@ Returns:
     }
 
     if (ImageFormat == UefiImageFormatUe) {
+      if ((RebasedImageSize + sizeof (EFI_COMMON_SECTION_HEADER)) >= 0x00FFFFFFU) {
+        Error (NULL, 0, 4001, "Invalid", "rebased file is too large (%s)", FileName);
+        return EFI_UNSUPPORTED;
+      }
+
+      AfterPeSize = GetFfsFileLength (*FfsFile) - (FileOffset + SectPeSize);
+      AfterPePart = calloc (1, AfterPeSize);
+      if (AfterPePart == NULL) {
+        fprintf (stderr, "GenFv: Could not allocate memory for AfterPePart\n");
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      memmove (
+        AfterPePart,
+        (UINT8 *)((UINTN)(*FfsFile) + FileOffset + SectPeSize),
+        AfterPeSize
+        );
+
       FfsFileLength = GetFfsFileLength (*FfsFile) - SectPeSize + RebasedImageSize;
       *FfsFile = realloc (*FfsFile, FfsFileLength);
       if (*FfsFile == NULL) {
@@ -3884,10 +3904,21 @@ Returns:
       }
       *FileSize = FfsFileLength;
 
+      CurrentPe32Section.CommonHeader = (EFI_COMMON_SECTION_HEADER *)((UINTN)(*FfsFile) + FileOffset - CurSecHdrSize);
+      CurrentPe32Section.CommonHeader->Size[0] = (UINT8)((RebasedImageSize + sizeof (EFI_COMMON_SECTION_HEADER)) & 0x000000FF);
+      CurrentPe32Section.CommonHeader->Size[1] = (UINT8)(((RebasedImageSize + sizeof (EFI_COMMON_SECTION_HEADER)) & 0x0000FF00) >> 8);
+      CurrentPe32Section.CommonHeader->Size[2] = (UINT8)(((RebasedImageSize + sizeof (EFI_COMMON_SECTION_HEADER)) & 0x00FF0000) >> 16);
+
       memmove (
         (UINT8 *)((UINTN)(*FfsFile) + FileOffset),
         RebasedImage,
         RebasedImageSize
+        );
+
+      memmove (
+        (UINT8 *)((UINTN)(*FfsFile) + FileOffset + RebasedImageSize),
+        AfterPePart,
+        AfterPeSize
         );
 
       if (FfsHeaderSize > sizeof(EFI_FFS_FILE_HEADER)) {
@@ -3908,7 +3939,8 @@ Returns:
       IntegrityCheck->Checksum.File = 0;
 
       IntegrityCheck->Checksum.Header = CalculateChecksum8 (
-                                          (UINT8 *)(*FfsFile), FfsHeaderSize);
+                                          (UINT8 *)(*FfsFile), FfsHeaderSize
+                                          );
 
       if ((*FfsFile)->Attributes & FFS_ATTRIB_CHECKSUM) {
         //
@@ -3916,7 +3948,8 @@ Returns:
         //
         IntegrityCheck->Checksum.File = CalculateChecksum8 (
                                           (UINT8 *)(*FfsFile) + FfsHeaderSize,
-                                          FfsFileLength - FfsHeaderSize);
+                                          FfsFileLength - FfsHeaderSize
+                                          );
       } else {
         IntegrityCheck->Checksum.File = FFS_FIXED_CHECKSUM;
       }
@@ -3978,7 +4011,9 @@ Returns:
     UefiImageFileBuffer = NULL;
     UefiImageFileSize   = 0;
 
-    free (SymbolsPathCpy);
+    if (SymbolsPathCpy != NULL) {
+      free (SymbolsPathCpy);
+    }
   }
 
   return EFI_SUCCESS;
