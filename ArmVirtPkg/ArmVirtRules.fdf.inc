@@ -35,13 +35,13 @@
 ############################################################################
 
 [Rule.Common.SEC]
-  FILE SEC = $(NAMED_GUID) RELOCS_STRIPPED FIXED {
-    PE32  PE32 Align = Auto             $(INF_OUTPUT)/$(MODULE_NAME).efi
+  FILE SEC = $(NAMED_GUID) {
+    UE    UE          $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.SEC.SELF_RELOC]
   FILE SEC = $(NAMED_GUID) {
-    PE32  PE32 Align = Auto         $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE    UE          $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.PEI_CORE]
