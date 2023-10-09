@@ -36,60 +36,60 @@
 
 [Rule.Common.SEC]
   FILE SEC = $(NAMED_GUID) {
-    UE    UE          $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.SEC.SELF_RELOC]
   FILE SEC = $(NAMED_GUID) {
-    UE    UE          $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.PEI_CORE]
-  FILE PEI_CORE = $(NAMED_GUID) FIXED {
-    PE32   PE32 Align = Auto            $(INF_OUTPUT)/$(MODULE_NAME).efi
-    UI     STRING ="$(MODULE_NAME)" Optional
+  FILE PEI_CORE = $(NAMED_GUID) {
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.PEIM]
-  FILE PEIM = $(NAMED_GUID) FIXED {
-     PEI_DEPEX PEI_DEPEX Optional       $(INF_OUTPUT)/$(MODULE_NAME).depex
-     PE32     PE32 Align = Auto         $(INF_OUTPUT)/$(MODULE_NAME).efi
-     UI       STRING="$(MODULE_NAME)" Optional
+  FILE PEIM = $(NAMED_GUID) {
+    PEI_DEPEX PEI_DEPEX Optional      $(INF_OUTPUT)/$(MODULE_NAME).depex
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.DXE_CORE]
   FILE DXE_CORE = $(NAMED_GUID) {
-    UE       UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
-    UI       STRING="$(MODULE_NAME)" Optional
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.UEFI_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
-    DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
-    UI           STRING="$(MODULE_NAME)" Optional
+    DXE_DEPEX DXE_DEPEX               Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.DXE_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
-    DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
-    UI           STRING="$(MODULE_NAME)" Optional
-    RAW          ACPI  Optional               |.acpi
-    RAW          ASL   Optional               |.aml
+    DXE_DEPEX DXE_DEPEX               Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
+    RAW       ACPI  Optional          |.acpi
+    RAW       ASL   Optional          |.aml
   }
 
 [Rule.Common.DXE_RUNTIME_DRIVER]
   FILE DRIVER = $(NAMED_GUID) {
-    DXE_DEPEX    DXE_DEPEX              Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
-    UE           UE                     $(INF_OUTPUT)/$(MODULE_NAME).efi
-    UI           STRING="$(MODULE_NAME)" Optional
+    DXE_DEPEX DXE_DEPEX               Optional $(INF_OUTPUT)/$(MODULE_NAME).depex
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
   }
 
 [Rule.Common.UEFI_APPLICATION]
   FILE APPLICATION = $(NAMED_GUID) {
-    UI     STRING ="$(MODULE_NAME)"     Optional
-    UE     UE                           $(INF_OUTPUT)/$(MODULE_NAME).efi
+    UI        STRING="$(MODULE_NAME)" Optional
+    UE        UE                      $(INF_OUTPUT)/$(MODULE_NAME).efi
   }
 
 [Rule.Common.UEFI_DRIVER.BINARY]
