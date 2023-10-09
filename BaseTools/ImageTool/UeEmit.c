@@ -924,7 +924,6 @@ ToolImageEmitUeXipFile (
   uint8_t    NumLoadTables;
   uint32_t   Offset;
   uint32_t   UeHdrOff;
-  bool       Chaining;
   uint16_t   Index;
   uint64_t   BaseAddress;
 
@@ -964,7 +963,6 @@ ToolImageEmitUeXipFile (
   NumLoadTables    = 0U;
   Subsystem        = (uint8_t)(Image->HeaderInfo.Subsystem - 10U);
   LastSegmentIndex = (uint8_t)(Image->SegmentInfo.NumSegments - 1U);
-  Chaining         = false;
 
   UeHdr.Magic = UE_HEADER_MAGIC;
 
@@ -981,15 +979,14 @@ ToolImageEmitUeXipFile (
 
   UeHdr.ImageInfo  = BaseAddress >> 12ULL;
   UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_XIP;
-  UeHdr.ImageInfo |= (uint64_t)Image->HeaderInfo.FixedAddress << 57ULL;
-  UeHdr.ImageInfo |= (uint64_t)Image->RelocInfo.RelocsStripped << 58ULL;
-  UeHdr.ImageInfo |= (uint64_t)Chaining << 59ULL;
+  UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_FIXED_ADDRESS;
+  UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED;
   UeHdr.ImageInfo |= (uint64_t)(AlignmentExponent - 12U) << 60ULL;
   assert (UE_HEADER_BASE_ADDRESS (UeHdr.ImageInfo) == BaseAddress);
   assert ((UeHdr.ImageInfo & (0xFULL << 52ULL)) == 0);
-  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0) == Image->HeaderInfo.FixedAddress);
-  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0) == Image->RelocInfo.RelocsStripped);
-  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0) == Chaining);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0) == TRUE);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0) == TRUE);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0) == FALSE);
   assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0) == TRUE);
   assert (UE_HEADER_SEGMENT_ALIGNMENT (UeHdr.ImageInfo) == Image->SegmentInfo.SegmentAlignment);
 
