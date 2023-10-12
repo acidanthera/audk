@@ -89,7 +89,7 @@
   gEfiPeiDecompressPpiGuid               ## PRODUCES
   gEfiEndOfPeiSignalPpiGuid              ## SOMETIMES_PRODUCES # Not produced on S3 boot path
   gEfiPeiReadOnlyVariable2PpiGuid        ## SOMETIMES_CONSUMES
-  gEfiPeiLoadFilePpiGuid                 ## SOMETIMES_CONSUMES
+  gEfiPeiLoadFileWithHobPpiGuid          ## SOMETIMES_CONSUMES
   gEfiPeiS3Resume2PpiGuid                ## SOMETIMES_CONSUMES # Consumed on S3 boot path
   gEfiPeiRecoveryModulePpiGuid           ## SOMETIMES_CONSUMES # Consumed on recovery boot path
   ## SOMETIMES_CONSUMES
@@ -130,7 +130,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy       ## SOMETIMES_CONSUMES
 
 [Depex]
-  gEfiPeiLoadFilePpiGuid AND gEfiPeiMasterBootModePpiGuid
+  gEfiPeiLoadFileWithHobPpiGuid AND gEfiPeiMasterBootModePpiGuid
 
 #
 # [BootMode]
