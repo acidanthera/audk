@@ -260,7 +260,7 @@ DxeLoadCore (
   EFI_BOOT_MODE                    BootMode;
   EFI_PEI_FILE_HANDLE              FileHandle;
   EFI_PEI_READ_ONLY_VARIABLE2_PPI  *Variable;
-  EFI_PEI_LOAD_FILE_PPI            *LoadFile;
+  EFI_PEI_LOAD_FILE_WITH_HOB_PPI   *LoadFile;
   UINTN                            Instance;
   UINT32                           AuthenticationState;
   UINTN                            DataSize;
@@ -410,19 +410,19 @@ DxeLoadCore (
   //
   Instance = 0;
   do {
-    Status = PeiServicesLocatePpi (&gEfiPeiLoadFilePpiGuid, Instance++, NULL, (VOID **)&LoadFile);
+    Status = PeiServicesLocatePpi (&gEfiPeiLoadFileWithHobPpiGuid, Instance++, NULL, (VOID **)&LoadFile);
     //
     // These must exist an instance of EFI_PEI_LOAD_FILE_PPI to support to load DxeCore file handle successfully.
     //
     ASSERT_EFI_ERROR (Status);
 
     Status = LoadFile->LoadFile (
-                         (CONST EFI_PEI_LOAD_FILE_PPI *)&ImageContext,
                          FileHandle,
                          &DxeCoreAddress,
                          &DxeCoreSize,
                          &DxeCoreEntryPoint,
-                         &AuthenticationState
+                         &AuthenticationState,
+                         ImageContext
                          );
   } while (EFI_ERROR (Status));
 
