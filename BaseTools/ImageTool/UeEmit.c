@@ -39,7 +39,8 @@ static
 bool
 ToolImageEmitUeSegmentHeaders (
   image_tool_dynamic_buffer      *Buffer,
-  const image_tool_image_info_t  *Image
+  const image_tool_image_info_t  *Image,
+  bool                           Xip
   )
 {
   uint16_t    Index;
@@ -82,7 +83,7 @@ ToolImageEmitUeSegmentHeaders (
     assert (UE_SEGMENT_SIZE (Segment.ImageInfo) == Image->SegmentInfo.Segments[Index].ImageSize);
     assert (UE_SEGMENT_PERMISSIONS (Segment.ImageInfo) == Permissions);
 
-    Segment.FileSize = Image->SegmentInfo.Segments[Index].UnpaddedSize;
+    Segment.FileSize = Xip ? Image->SegmentInfo.Segments[Index].ImageSize : Image->SegmentInfo.Segments[Index].UnpaddedSize;
 
     Offset = ImageToolBufferAppend (Buffer, &Segment, sizeof (Segment));
     if (Offset == MAX_UINT32) {
@@ -798,7 +799,7 @@ ToolImageEmitUeFile (
   uint8_t    NumLoadTables;
   uint32_t   Offset;
   bool       Chaining;
-  uint32_t   SegmentHeaersOffset;
+  uint32_t   SegmentHeadersOffset;
   uint32_t   LoadTablesOffset;
   uint32_t   SegmentsOffset;
 
@@ -866,9 +867,9 @@ ToolImageEmitUeFile (
     return false;
   }
 
-  SegmentHeaersOffset = ImageToolBufferGetSize (Buffer);
+  SegmentHeadersOffset = ImageToolBufferGetSize (Buffer);
 
-  Success = ToolImageEmitUeSegmentHeaders (Buffer, Image);
+  Success = ToolImageEmitUeSegmentHeaders (Buffer, Image, false);
   if (!Success) {
     DEBUG_RAISE ();
     return false;
@@ -894,7 +895,7 @@ ToolImageEmitUeFile (
   Success = ToolImageEmitUeLoadTables (
               Buffer,
               LoadTablesOffset,
-              SegmentHeaersOffset,
+              SegmentHeadersOffset,
               SegmentsOffset,
               Image,
               BaseAddressSubtrahend,
@@ -912,7 +913,8 @@ static
 bool
 ToolImageEmitUeXipFile (
   image_tool_dynamic_buffer  *Buffer,
-  image_tool_image_info_t    *Image
+  image_tool_image_info_t    *Image,
+  bool                       Strip
   )
 {
   bool       Success;
@@ -923,9 +925,10 @@ ToolImageEmitUeXipFile (
   uint8_t    LastSegmentIndex;
   uint8_t    NumLoadTables;
   uint32_t   Offset;
-  uint32_t   UeHdrOff;
   uint16_t   Index;
-  uint64_t   BaseAddress;
+  uint32_t   SegmentHeadersOffset;
+  uint32_t   LoadTablesOffset;
+  uint32_t   SegmentsOffset;
 
   assert (Image->SegmentInfo.NumSegments > 0);
 
@@ -935,15 +938,6 @@ ToolImageEmitUeXipFile (
   }
 
   if (Image->HiiInfo.DataSize > 0) {
-    DEBUG_RAISE ();
-    return false;
-  }
-
-  BaseAddress = Image->HeaderInfo.BaseAddress;
-  UeHdrOff    = ALIGN_VALUE(sizeof (UeHdr), Image->SegmentInfo.SegmentAlignment);
-
-  Success = ToolImageRelocate (Image, BaseAddress + UeHdrOff, 0);
-  if (!Success) {
     DEBUG_RAISE ();
     return false;
   }
@@ -960,7 +954,7 @@ ToolImageEmitUeXipFile (
     return false;
   }
 
-  NumLoadTables    = 0U;
+  NumLoadTables    = (!Strip && ToolImageUeRelocTableRequired (Image)) ? 1U : 0U;
   Subsystem        = (uint8_t)(Image->HeaderInfo.Subsystem - 10U);
   LastSegmentIndex = (uint8_t)(Image->SegmentInfo.NumSegments - 1U);
 
@@ -975,29 +969,38 @@ ToolImageEmitUeXipFile (
   assert (UE_HEADER_LAST_SEGMENT_INDEX (UeHdr.TableCounts) == LastSegmentIndex);
   assert (UE_HEADER_NUM_LOAD_TABLES (UeHdr.TableCounts) == NumLoadTables);
 
-  UeHdr.EntryPointAddress = Image->HeaderInfo.EntryPointAddress + UeHdrOff;
-
-  UeHdr.ImageInfo  = BaseAddress >> 12ULL;
+  UeHdr.ImageInfo  = Image->HeaderInfo.BaseAddress >> 12ULL;
   UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_XIP;
-  UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_FIXED_ADDRESS;
-  UeHdr.ImageInfo |= UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED;
+  UeHdr.ImageInfo |= (uint64_t)Image->HeaderInfo.FixedAddress << 57ULL;
+  UeHdr.ImageInfo |= (uint64_t)Strip << 58ULL;
   UeHdr.ImageInfo |= (uint64_t)(AlignmentExponent - 12U) << 60ULL;
-  assert (UE_HEADER_BASE_ADDRESS (UeHdr.ImageInfo) == BaseAddress);
+  assert (UE_HEADER_BASE_ADDRESS (UeHdr.ImageInfo) == Image->HeaderInfo.BaseAddress);
   assert ((UeHdr.ImageInfo & (0xFULL << 52ULL)) == 0);
-  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0) == TRUE);
-  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0) == TRUE);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0) == Image->HeaderInfo.FixedAddress);
+  assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0) == Strip);
   assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_CHAINED_FIXUPS) != 0) == FALSE);
   assert (((UeHdr.ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0) == TRUE);
   assert (UE_HEADER_SEGMENT_ALIGNMENT (UeHdr.ImageInfo) == Image->SegmentInfo.SegmentAlignment);
 
-  Offset = ImageToolBufferAppend (Buffer, &UeHdr, sizeof (UeHdr));
+  Offset = ImageToolBufferAppendReserve (Buffer, sizeof (UeHdr));
   if (Offset == MAX_UINT32) {
     DEBUG_RAISE ();
     return false;
   }
 
-  Success = ToolImageEmitUeSegmentHeaders (Buffer, Image);
+  SegmentHeadersOffset = ImageToolBufferGetSize (Buffer);
+
+  Success = ToolImageEmitUeSegmentHeaders (Buffer, Image, true);
   if (!Success) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  LoadTablesOffset = ImageToolBufferAppendReserve (
+                       Buffer,
+                       NumLoadTables * sizeof (UE_LOAD_TABLE)
+                       );
+  if (LoadTablesOffset == MAX_UINT32) {
     DEBUG_RAISE ();
     return false;
   }
@@ -1007,6 +1010,17 @@ ToolImageEmitUeXipFile (
              Image->SegmentInfo.SegmentAlignment
              );
   if (Offset == MAX_UINT32) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  SegmentsOffset = ImageToolBufferGetSize (Buffer);
+
+  UeHdr.EntryPointAddress = Image->HeaderInfo.EntryPointAddress + SegmentsOffset;
+  ImageToolBufferWrite (Buffer, 0, &UeHdr, sizeof (UeHdr));
+
+  Success = ToolImageRelocate (Image, Image->HeaderInfo.BaseAddress + SegmentsOffset, 0);
+  if (!Success) {
     DEBUG_RAISE ();
     return false;
   }
@@ -1027,6 +1041,21 @@ ToolImageEmitUeXipFile (
                Image->SegmentInfo.Segments[Index].ImageSize - Image->SegmentInfo.Segments[Index].UnpaddedSize
                );
     if (Offset == MAX_UINT32) {
+      DEBUG_RAISE ();
+      return false;
+    }
+  }
+
+  if (!Strip && ToolImageUeRelocTableRequired (Image)) {
+    Success = ToolImageEmitUeRelocTable (
+                Buffer,
+                LoadTablesOffset,
+                SegmentHeadersOffset,
+                SegmentsOffset,
+                Image,
+                false
+                );
+    if (!Success) {
       DEBUG_RAISE ();
       return false;
     }
@@ -1054,7 +1083,7 @@ ToolImageEmitUe (
   ToolImageEmitUePadChainedRelocs (Image);
 
   if (Xip) {
-    Success = ToolImageEmitUeXipFile (&Buffer, Image);
+    Success = ToolImageEmitUeXipFile (&Buffer, Image, Strip);
   } else {
     Success = ToolImageStripEmptyPrefix (&BaseAddressSubtrahend, Image);
     if (!Success) {

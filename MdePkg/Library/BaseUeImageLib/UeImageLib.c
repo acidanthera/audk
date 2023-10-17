@@ -119,6 +119,10 @@ InternalVerifySegments (
   Context->LoadTablesFileOffset = SegmentEndFileOffset;
   Context->ImageSize            = SegmentEndImageAddress;
 
+  if (Context->XIP) {
+    Context->ImageSize += Context->SegmentsFileOffset;
+  }
+
   return RETURN_SUCCESS;
 }
 
@@ -273,10 +277,6 @@ InternalInitializeContextLate (
     return RETURN_UNSUPPORTED;
   }
 
-  if (Context->XIP) {
-    return RETURN_SUCCESS;
-  }
-
   return InternalVerifyLoadTables (Context);
 }
 
@@ -297,6 +297,14 @@ UeInitializeContextPostHash (
 
   UeHdr = (CONST UE_HEADER *)Context->FileBuffer;
 
+  Context->FixedAddress   = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0;
+  Context->RelocsStripped = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0;
+  Context->XIP            = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0;
+
+  Context->Segments                 = UeHdr->Segments;
+  Context->SegmentImageInfoIterSize = sizeof (*UeHdr->Segments);
+  Context->SegmentAlignment         = UE_HEADER_SEGMENT_ALIGNMENT (UeHdr->ImageInfo);
+
   LastSegmentIndex = UE_HEADER_LAST_SEGMENT_INDEX (UeHdr->TableCounts);
   NumLoadTables    = UE_HEADER_NUM_LOAD_TABLES (UeHdr->TableCounts);
 
@@ -305,6 +313,9 @@ UeInitializeContextPostHash (
 
   HeaderSize = LoadTablesFileOffset + (UINT32) NumLoadTables * sizeof (UE_LOAD_TABLE);
   ASSERT (HeaderSize <= MAX_SIZE_OF_UE_HEADER);
+  if (Context->XIP) {
+    HeaderSize = ALIGN_VALUE (HeaderSize, Context->SegmentAlignment);
+  }
 
   if (HeaderSize > Context->UnsignedFileSize) {
     DEBUG_RAISE ();
@@ -317,17 +328,9 @@ UeInitializeContextPostHash (
                           (CONST UINT8 *) UeHdr + LoadTablesFileOffset
                           );
 
-  Context->SegmentsFileOffset       = HeaderSize;
-  Context->Segments                 = UeHdr->Segments;
-  Context->SegmentImageInfoIterSize = sizeof (*UeHdr->Segments);
-  Context->SegmentAlignment         = UE_HEADER_SEGMENT_ALIGNMENT (UeHdr->ImageInfo);
-
-  Context->FixedAddress   = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_FIXED_ADDRESS) != 0;
-  Context->RelocsStripped = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_RELOCATION_FIXUPS_STRIPPED) != 0;
-  Context->XIP            = (UeHdr->ImageInfo & UE_HEADER_IMAGE_INFO_XIP) != 0;
-
-  Context->LastSegmentIndex = LastSegmentIndex;
-  Context->NumLoadTables    = NumLoadTables;
+  Context->SegmentsFileOffset = HeaderSize;
+  Context->LastSegmentIndex   = LastSegmentIndex;
+  Context->NumLoadTables      = NumLoadTables;
 
   BaseAddress = UE_HEADER_BASE_ADDRESS (UeHdr->ImageInfo);
 
@@ -508,7 +511,7 @@ InternalApplyRelocation (
       //
       // If the Image relocation target value mismatches, skip or abort.
       //
-      if (FixupValue.Value32 != (UINT32)*FixupData) {
+      if (IsRuntime && (FixupValue.Value32 != (UINT32)*FixupData)) {
         if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
           return RETURN_SUCCESS;
         }
@@ -535,7 +538,7 @@ InternalApplyRelocation (
       //
       // If the Image relocation target value mismatches, skip or abort.
       //
-      if (FixupValue.Value64 != *FixupData) {
+      if (IsRuntime && (FixupValue.Value64 != *FixupData)) {
         if (PcdGetBool (PcdImageLoaderRtRelocAllowTargetMismatch)) {
           return RETURN_SUCCESS;
         }
@@ -960,7 +963,7 @@ InternaRelocateImage (
       //
       RelocType = UE_RELOC_FIXUP_TYPE (FixupInfo);
 
-      if (!IsRuntime && (RelocType != UeReloc32NoMeta)) {
+      if (Chaining && !IsRuntime && (RelocType != UeReloc32NoMeta)) {
         Status = InternalProcessRelocChain (
                    Image,
                    ImageSize,
@@ -1080,11 +1083,15 @@ UeRelocateImage (
     RuntimeContext->Machine = Context->Machine;
   }
 
+  if (Context->XIP) {
+    Context->EntryPointAddress -= Context->SegmentsFileOffset;
+  }
+
   return InternaRelocateImage (
            Context->ImageBuffer,
            Context->ImageSize,
            Context->Machine,
-           Context->BaseAddress,
+           Context->XIP ? (Context->BaseAddress + Context->SegmentsFileOffset) : Context->BaseAddress,
            RelocTable,
            Context->RelocTableSize,
            Chaining,
