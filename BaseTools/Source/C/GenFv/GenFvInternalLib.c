@@ -3864,7 +3864,7 @@ Returns:
                      NewBaseAddress,
                      NULL,
                      TRUE,
-                     Strip,
+                     ImageFormat == UefiImageFormatUe ? (*FfsFile)->Type == EFI_FV_FILETYPE_SECURITY_CORE : Strip,
                      FALSE
                      );
 
