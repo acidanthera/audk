@@ -909,6 +909,7 @@ ToolImageEmitUeFile (
   return true;
 }
 
+// FIXME: Find a better solution. Separate metadata storage?
 static
 bool
 ToolImageEmitUeXipFile (
