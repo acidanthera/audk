@@ -16,6 +16,7 @@ typedef enum {
 #define UEFI_IMAGE_SOURCE_ALL     2U
 #define UEFI_IMAGE_SOURCE_MAX     3U
 
+// FIXME: Get rid of pointers.
 typedef struct {
   UINT32     ImageBuffer;
   UINT32     AddressOfEntryPoint;
