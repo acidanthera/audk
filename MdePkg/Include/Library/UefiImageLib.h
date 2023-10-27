@@ -6,8 +6,8 @@
 #include <Library/PeCoffLib2.h>
 
 typedef enum {
-  UefiImageFormatUe = 0,
-  UefiImageFormatPe = 1,
+  UefiImageFormatPe = 0,
+  UefiImageFormatUe = 1,
   UefiImageFormatMax
 } UEFI_IMAGE_FORMAT;
 

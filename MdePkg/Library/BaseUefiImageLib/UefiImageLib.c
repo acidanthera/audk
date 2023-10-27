@@ -135,7 +135,7 @@ UefiImageInitializeContextPreHash (
   Status = RETURN_UNSUPPORTED;
 
   STATIC_ASSERT (
-    UefiImageFormatPe == UefiImageFormatMax - 1,
+    UefiImageFormatUe == UefiImageFormatMax - 1,
     "Support for more formats needs to be added above."
     );
 

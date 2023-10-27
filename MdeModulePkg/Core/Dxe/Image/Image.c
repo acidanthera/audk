@@ -1225,7 +1225,7 @@ CoreLoadImageCommon (
              &ImageContext,
              FHand.Source,
              (UINT32) FHand.SourceSize,
-             ImageIsFromFv
+             UEFI_IMAGE_SOURCE_FV
              );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
@@ -1240,8 +1240,8 @@ CoreLoadImageCommon (
     SecurityStatus = gSecurity2->FileAuthentication (
                                    gSecurity2,
                                    OriginalFilePath,
-                                  &ImageContext,
-                                  sizeof (ImageContext),
+                                   &ImageContext,
+                                   sizeof (ImageContext),
                                    BootPolicy
                                    );
     if (!EFI_ERROR (SecurityStatus) && ImageIsFromFv) {
