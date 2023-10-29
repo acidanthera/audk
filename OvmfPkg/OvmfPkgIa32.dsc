@@ -589,6 +589,9 @@
     gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x0
   !endif
 
+  # Fix incorrect W^X permissions at load time.
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|TRUE
+
 ################################################################################
 #
 # Pcd Dynamic Section - list of all EDK II PCD Entries defined by this Platform

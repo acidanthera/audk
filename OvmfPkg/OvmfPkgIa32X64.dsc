@@ -554,6 +554,9 @@
   gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x1
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
 
+  # Fix incorrect W^X permissions at load time.
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|TRUE
+
 [PcdsFixedAtBuild.IA32]
   #
   # The NumberOfPages values below are ad-hoc. They are updated sporadically at
