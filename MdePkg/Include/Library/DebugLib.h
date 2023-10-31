@@ -557,7 +557,7 @@ UnitTestDebugAssert (
   are not included in a module.
 
 **/
-#define DEBUG_CODE_BEGIN()  do { if (DebugCodeEnabled ()) { UINT8  __DebugCodeLocal
+#define DEBUG_CODE_BEGIN()  do { if (DebugCodeEnabled ()) { volatile UINT8  __DebugCodeLocal
 
 /**
   The macro that marks the end of debug source code.

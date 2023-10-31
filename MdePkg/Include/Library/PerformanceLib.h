@@ -734,7 +734,7 @@ LogPerformanceMeasurement (
   Otherwise, the source lines between PERF_CODE_BEGIN() and PERF_CODE_END() are not included in a module.
 
 **/
-#define PERF_CODE_BEGIN()  do { if (PerformanceMeasurementEnabled ()) { UINT8  __PerformanceCodeLocal
+#define PERF_CODE_BEGIN()  do { if (PerformanceMeasurementEnabled ()) { volatile UINT8  __PerformanceCodeLocal
 
 /**
   Macro that marks the end of performance measurement source code.
