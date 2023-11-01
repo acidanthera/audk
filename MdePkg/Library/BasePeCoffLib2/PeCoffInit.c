@@ -580,7 +580,7 @@ InternalInitializePe (
     Context->SecDirOffset = SecDir->VirtualAddress;
     Context->SecDirSize   = SecDir->Size;
     //
-    // Verify the Security Direction is in bounds of the Image buffer.
+    // Verify the Security Directory is in bounds of the Image buffer.
     //
     Overflow = BaseOverflowAddU32 (
                  Context->SecDirOffset,
