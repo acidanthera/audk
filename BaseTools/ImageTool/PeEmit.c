@@ -591,6 +591,12 @@ ToolImageEmitPeFile (
   SizeOfPeHeaders      = SectionHeadersOffset + SectionHeadersSize;
   SizeOfHeaders        = sizeof (mDosHdr) + SizeOfPeHeaders;
   AlignedSizeOfHeaders = ALIGN_VALUE (SizeOfHeaders, FileAlignment);
+  //
+  // Necessary adjustment for '-D EDK2_REDUCE_FW_SIZE' build option.
+  //
+  if (AlignedSizeOfHeaders < Image->SegmentInfo.Segments[0].ImageAddress) {
+    AlignedSizeOfHeaders = (uint32_t)Image->SegmentInfo.Segments[0].ImageAddress;
+  }
 
   PeOffset = ImageToolBufferAppendReserve (
                Buffer,
@@ -626,7 +632,7 @@ ToolImageEmitPeFile (
   PeHdr->ImageBase           = (EFI_IMAGE_NT_BASE_ADDRESS)Image->HeaderInfo.BaseAddress;
   PeHdr->SectionAlignment    = Image->SegmentInfo.SegmentAlignment;
   PeHdr->FileAlignment       = FileAlignment;
-  PeHdr->SizeOfImage         = ALIGN_VALUE (SizeOfHeaders, PeHdr->SectionAlignment);
+  PeHdr->SizeOfImage         = AlignedSizeOfHeaders;
   PeHdr->SizeOfHeaders       = AlignedSizeOfHeaders;
   PeHdr->Subsystem           = Image->HeaderInfo.Subsystem;
   PeHdr->NumberOfRvaAndSizes = EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES;
