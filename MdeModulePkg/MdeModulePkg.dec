@@ -1367,11 +1367,13 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdMemoryProfileDriverPath|{0x0}|VOID*|0x00001043
 
   ## Set image protection policy. The policy is bitwise.
-  #  If a bit is set, the image will be protected by DxeCore if it is aligned.
+  #  If a bit is set, the image will be protected by DxeCore if it is aligned,
   #   The code section becomes read-only, and the data section becomes non-executable.
-  #  If a bit is clear, nothing will be done to image code/data sections.<BR><BR>
+  #  If a bit is clear, nothing will be done to image code/data sections.
+  #  If BIT2 is set unaligned images will stop boot process regardless of their origin.<BR><BR>
   #    BIT0       - Image from unknown device. <BR>
   #    BIT1       - Image from firmware volume.<BR>
+  #    BIT2       - Forbid loading of unaligned images.<BR>
   #  <BR>
   #  Note: If a bit is cleared, the data section could be still non-executable if
   #  PcdDxeNxMemoryProtectionPolicy is enabled for EfiLoaderData, EfiBootServicesData
