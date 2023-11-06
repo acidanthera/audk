@@ -49,8 +49,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Protection policy bit definition
 //
-#define DO_NOT_PROTECT                 0x00000000
-#define PROTECT_IF_ALIGNED_ELSE_ALLOW  0x00000001
+#define DO_NOT_PROTECT                    0x00000000
+#define PROTECT_IF_ALIGNED_ELSE_ALLOW     0x00000001
+#define PROTECT_IF_ALIGNED_ELSE_DISALLOW  0x00000002
 
 #define MEMORY_TYPE_OS_RESERVED_MIN   0x80000000
 #define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
@@ -78,11 +79,15 @@ GetProtectionPolicyFromImageType (
 {
   ASSERT (ImageIsFromFv == FALSE || ImageIsFromFv == TRUE);
 
+  if ((mImageProtectionPolicy & 4U) != 0) {
+    return PROTECT_IF_ALIGNED_ELSE_DISALLOW;
+  }
+
   if (((ImageIsFromFv + 1) & mImageProtectionPolicy) == 0) {
     return DO_NOT_PROTECT;
-  } else {
-    return PROTECT_IF_ALIGNED_ELSE_ALLOW;
   }
+
+  return PROTECT_IF_ALIGNED_ELSE_ALLOW;
 }
 
 /**
@@ -233,13 +238,13 @@ ProtectUefiImage (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  RETURN_STATUS               PdbStatus;
-  UINT32                                SectionAlignment;
-  UEFI_IMAGE_RECORD                    *ImageRecord;
-  CONST CHAR8                          *PdbPointer;
-  UINT32                               PdbSize;
-  BOOLEAN                               IsAligned;
-  UINT32                                ProtectionPolicy;
+  RETURN_STATUS      PdbStatus;
+  UINT32             SectionAlignment;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  CONST CHAR8        *PdbPointer;
+  UINT32             PdbSize;
+  BOOLEAN            IsAligned;
+  UINT32             ProtectionPolicy;
 
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
@@ -250,8 +255,10 @@ ProtectUefiImage (
       return;
     case PROTECT_IF_ALIGNED_ELSE_ALLOW:
       break;
+    case PROTECT_IF_ALIGNED_ELSE_DISALLOW:
+      break;
     default:
-      ASSERT (FALSE);
+      DEBUG_RAISE ();
       return;
   }
 
@@ -273,6 +280,11 @@ ProtectUefiImage (
       SectionAlignment));
     if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_VERBOSE, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
+    }
+
+    if (ProtectionPolicy == PROTECT_IF_ALIGNED_ELSE_DISALLOW) {
+      DEBUG_RAISE ();
+      return;
     }
 
     goto Finish;
