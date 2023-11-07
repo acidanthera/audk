@@ -2363,7 +2363,7 @@
   #  BIT1 - Enable Debug Print.<BR>
   #  BIT4 - Enable BreakPoint as ASSERT.<BR>
   # @Prompt DEBUG_RAISE() Property.
-  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask|0x01|UINT8|0x0000001b
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask|0|UINT8|0x0000001b
 
   ## This flag is used to control the print out Debug message.<BR><BR>
   #  BIT0  - Initialization message.<BR>
