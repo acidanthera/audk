@@ -29,7 +29,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "EfiUtilityMsgs.h"
 #include "ParseInf.h"
 #include "FvLib.h"
-#include <Library/UefiImageLib.h>
 
 //
 // GenSec Tool Information
@@ -1121,61 +1120,6 @@ Returns:
   //
   *OutFileBuffer = FileBuffer;
 
-  return EFI_SUCCESS;
-}
-
-STATIC
-EFI_STATUS
-GetAlignmentFromFile(char *InFile, UINT32 *Alignment)
-  /*
-    InFile is input file for getting alignment
-    return the alignment
-    */
-{
-  FILE                             *InFileHandle;
-  UINT8                            *ImageFileBuffer;
-  UINTN                            ImageFileSize;
-  UINT32                           CurSecHdrSize;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
-  EFI_COMMON_SECTION_HEADER        *CommonHeader;
-  EFI_STATUS                       Status;
-
-  InFileHandle        = NULL;
-  ImageFileBuffer     = NULL;
-  *Alignment          = 0;
-
-  InFileHandle = fopen(LongFilePath(InFile), "rb");
-  if (InFileHandle == NULL){
-    Error (NULL, 0, 0001, "Error opening file", InFile);
-    return EFI_ABORTED;
-  }
-  ImageFileSize = _filelength (fileno(InFileHandle));
-  ImageFileBuffer = (UINT8 *) malloc (ImageFileSize);
-  if (ImageFileBuffer == NULL) {
-    fclose (InFileHandle);
-    Error(NULL, 0, 4001, "Resource", "memory cannot be allocated for %s", InFile);
-    return EFI_OUT_OF_RESOURCES;
-  }
-  fread (ImageFileBuffer, sizeof (UINT8), ImageFileSize, InFileHandle);
-  fclose (InFileHandle);
-  CommonHeader = (EFI_COMMON_SECTION_HEADER *) ImageFileBuffer;
-  CurSecHdrSize = GetSectionHeaderLength(CommonHeader);
-  Status = UefiImageInitializeContext (
-             &ImageContext,
-             ImageFileBuffer + CurSecHdrSize,
-             ImageFileSize,
-             UEFI_IMAGE_SOURCE_FV
-             );
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and return status is %x", InFile, (int) Status);
-    return Status;
-   }
-  *Alignment = UefiImageGetSegmentAlignment (&ImageContext);
-  // Free the allocated memory resource
-  if (ImageFileBuffer != NULL) {
-    free (ImageFileBuffer);
-    ImageFileBuffer = NULL;
-  }
   return EFI_SUCCESS;
 }
 

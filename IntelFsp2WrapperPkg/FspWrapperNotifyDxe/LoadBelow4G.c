@@ -35,16 +35,16 @@ RelocateImageUnder4GIfNeeded (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_STATUS                    Status;
-  UINT8                         *Buffer;
-  UINTN                         BufferSize;
-  EFI_HANDLE                    NewImageHandle;
-  UINT32                        ImageSize;
-  UINT32                        ImageAlignment;
-  UINTN                         Pages;
-  EFI_PHYSICAL_ADDRESS          FfsBuffer;
+  EFI_STATUS                      Status;
+  UINT8                           *Buffer;
+  UINTN                           BufferSize;
+  EFI_HANDLE                      NewImageHandle;
+  UINT32                          ImageSize;
+  UINT32                          ImageAlignment;
+  UINTN                           Pages;
+  EFI_PHYSICAL_ADDRESS            FfsBuffer;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
-  VOID                          *Interface;
+  VOID                            *Interface;
 
   //
   // If it is already <4G, no need do relocate

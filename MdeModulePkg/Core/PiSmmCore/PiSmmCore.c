@@ -772,17 +772,6 @@ SmmEntryPoint (
 }
 
 /**
-  Insert image record.
-
-  @param[in]  DriverEntry    Driver information
-**/
-VOID
-SmmInsertImageRecord (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext
-  );
-
-/**
   Install LoadedImage protocol for SMM Core.
 **/
 VOID

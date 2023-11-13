@@ -1082,15 +1082,15 @@ ConvertPeiCorePpiPointers (
   IN  PEI_CORE_FV_HANDLE  *CoreFvHandle
   )
 {
-  EFI_FV_FILE_INFO      FileInfo;
-  EFI_PHYSICAL_ADDRESS  OrgImageBase;
-  EFI_PHYSICAL_ADDRESS  MigratedImageBase;
-  UINTN                 PeiCoreModuleSize;
-  EFI_PEI_FILE_HANDLE   PeiCoreFileHandle;
-  VOID                  *PeiCoreImageBase;
-  UINT32                PeiCoreImageSize;
-  //VOID                  *PeiCoreEntryPoint;
-  EFI_STATUS            Status;
+  EFI_FV_FILE_INFO                FileInfo;
+  EFI_PHYSICAL_ADDRESS            OrgImageBase;
+  EFI_PHYSICAL_ADDRESS            MigratedImageBase;
+  UINTN                           PeiCoreModuleSize;
+  EFI_PEI_FILE_HANDLE             PeiCoreFileHandle;
+  VOID                            *PeiCoreImageBase;
+  UINT32                          PeiCoreImageSize;
+  //VOID                           *PeiCoreEntryPoint;
+  EFI_STATUS                      Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   PeiCoreFileHandle = NULL;

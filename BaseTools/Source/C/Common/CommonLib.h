@@ -113,6 +113,12 @@ LongFilePath (
  IN CHAR8 *FileName
 );
 
+EFI_STATUS
+GetAlignmentFromFile (
+  IN  CHAR8   *InFile,
+  OUT UINT32  *Alignment
+  );
+
 /*++
 
 Routine Description:
