@@ -150,10 +150,10 @@ FindAndReportEntryPoints (
   OUT EFI_PEI_CORE_ENTRY_POINT    *PeiCoreEntryPoint
   )
 {
-  EFI_STATUS                    Status;
-  EFI_PHYSICAL_ADDRESS          SecCoreImageBase;
+  EFI_STATUS                       Status;
+  EFI_PHYSICAL_ADDRESS             SecCoreImageBase;
   UINT32                           SecCoreImageSize;
-  EFI_PHYSICAL_ADDRESS          PeiCoreImageBase;
+  EFI_PHYSICAL_ADDRESS             PeiCoreImageBase;
   UINT32                           PeiCoreImageSize;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 

@@ -277,7 +277,7 @@ ReadyToLockEventNotify (
   UINT32                           ImageSize;
   UINT32                           ImageAlignment;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
-  EFI_PHYSICAL_ADDRESS LoadAddress;
+  EFI_PHYSICAL_ADDRESS             LoadAddress;
 
   Status = gBS->LocateProtocol (&gEfiDxeSmmReadyToLockProtocolGuid, NULL, &Interface);
   if (EFI_ERROR (Status)) {
@@ -317,17 +317,19 @@ ReadyToLockEventNotify (
              UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
+
   ImageSize      = UefiImageGetImageSize (&ImageContext);
   ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
-  Pages = EFI_SIZE_TO_PAGES (ImageSize);
-  LoadAddress = 0xFFFFFFFF;
-  Status    = AllocateAlignedPagesEx (
-                AllocateMaxAddress,
-                EfiReservedMemoryType,
-                Pages,
-                ImageAlignment,
-                &LoadAddress
-                );
+  Pages          = EFI_SIZE_TO_PAGES (ImageSize);
+  LoadAddress    = 0xFFFFFFFF;
+
+  Status = AllocateAlignedPagesEx (
+             AllocateMaxAddress,
+             EfiReservedMemoryType,
+             Pages,
+             ImageAlignment,
+             &LoadAddress
+             );
   ASSERT_EFI_ERROR (Status);
 
   //

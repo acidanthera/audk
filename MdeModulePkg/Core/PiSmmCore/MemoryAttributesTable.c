@@ -797,8 +797,8 @@ DumpImageRecord (
 **/
 VOID
 SmmInsertImageRecord (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   RETURN_STATUS                        PdbStatus;

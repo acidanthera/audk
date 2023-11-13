@@ -233,17 +233,6 @@ GetUefiImageFixLoadingAssignedAddress (
 }
 
 /**
-  Insert image record.
-
-  @param[in]  DriverEntry    Driver information
-**/
-VOID
-SmmInsertImageRecord (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext
-  );
-
-/**
   Loads an EFI image into SMRAM.
 
   @param  DriverEntry             EFI_SMM_DRIVER_ENTRY instance
@@ -254,8 +243,8 @@ SmmInsertImageRecord (
 EFI_STATUS
 EFIAPI
 SmmLoadImage (
-  IN OUT EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
+  IN OUT EFI_SMM_DRIVER_ENTRY            *DriverEntry,
+     OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   UINT32                         AuthenticationStatus;
@@ -276,7 +265,7 @@ SmmLoadImage (
   EFI_DEVICE_PATH_PROTOCOL       *OriginalFilePath;
   EFI_DEVICE_PATH_PROTOCOL       *HandleFilePath;
   EFI_FIRMWARE_VOLUME2_PROTOCOL  *Fv;
-  EFI_PHYSICAL_ADDRESS LoadAddress;
+  EFI_PHYSICAL_ADDRESS           LoadAddress;
 
   PERF_LOAD_IMAGE_BEGIN (DriverEntry->ImageHandle);
 
@@ -750,11 +739,11 @@ SmmDispatcher (
   VOID
   )
 {
-  EFI_STATUS            Status;
-  LIST_ENTRY            *Link;
-  EFI_SMM_DRIVER_ENTRY  *DriverEntry;
-  BOOLEAN               ReadyToRun;
-  BOOLEAN               PreviousSmmEntryPointRegistered;
+  EFI_STATUS                      Status;
+  LIST_ENTRY                      *Link;
+  EFI_SMM_DRIVER_ENTRY            *DriverEntry;
+  BOOLEAN                         ReadyToRun;
+  BOOLEAN                         PreviousSmmEntryPointRegistered;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   if (!gRequestDispatch) {

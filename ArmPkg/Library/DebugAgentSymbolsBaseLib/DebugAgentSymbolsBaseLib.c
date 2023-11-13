@@ -176,12 +176,12 @@ GetImageContext (
   EFI_COMMON_SECTION_HEADER               *Section;
   VOID                                    *EfiImage;
 
-  Section      = (EFI_COMMON_SECTION_HEADER *)(FfsHeader + 1);
+  Section       = (EFI_COMMON_SECTION_HEADER *)(FfsHeader + 1);
   SectionLength = 0;
-  SectionSize  = *(UINT32 *)(FfsHeader->Size) & 0x00FFFFFF;
-  SectionSize -= sizeof (EFI_FFS_FILE_HEADER);
-  ParsedLength = 0;
-  EfiImage     = NULL;
+  SectionSize   = *(UINT32 *)(FfsHeader->Size) & 0x00FFFFFF;
+  SectionSize  -= sizeof (EFI_FFS_FILE_HEADER);
+  ParsedLength  = 0;
+  EfiImage      = NULL;
 
   while (ParsedLength < SectionSize) {
     //
