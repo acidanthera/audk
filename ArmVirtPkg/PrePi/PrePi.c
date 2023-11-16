@@ -162,7 +162,8 @@ RelocateUefiImage (
              &ImageContext,
              SectionData,
              SectionSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   ASSERT_RETURN_ERROR (Status);
 
