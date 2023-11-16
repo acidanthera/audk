@@ -586,7 +586,7 @@
   !elseif $(WINDOWS_10_IA32) == TRUE
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
-    gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x0
+    gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x70000000
   !endif
 
 ################################################################################

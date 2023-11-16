@@ -250,7 +250,7 @@ GetAcpi (
     return RETURN_ABORTED;
   }
 
-  Status = PeCoffInitializeContext (&Context, Pe, (UINT32)PeSize);
+  Status = PeCoffInitializeContext (&Context, Pe, (UINT32)PeSize, UefiImageOriginFv);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not initialise Context\n");
     free (Pe);

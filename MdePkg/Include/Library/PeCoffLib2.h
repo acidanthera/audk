@@ -22,6 +22,17 @@
 
 #include <Guid/WinCertificate.h>
 
+typedef enum {
+  UefiImageOriginFv        = 0,
+  UefiImageOriginOptionROM = 1,
+  UefiImageOriginUserImage = 2,
+  UefiImageOriginMax
+} UEFI_IMAGE_ORIGIN;
+///
+/// If set, less than 4KB aligned image from firmware volume prevents boot.
+///
+#define PCD_IMAGE_PROTECTION_POLICY_FV_STOP_BOOT     BIT31
+
 // FIXME: Where to put this?
 //
 // PcdImageLoaderAlignmentPolicy bits.
@@ -186,7 +197,8 @@ RETURN_STATUS
 PeCoffInitializeContext (
   OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                    *FileBuffer,
-  IN  UINT32                        FileSize
+  IN  UINT32                        FileSize,
+  IN  UINT8                         ImageOrigin
   );
 
 /**
