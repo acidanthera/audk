@@ -1203,7 +1203,6 @@ CoreLoadImageCommon (
              ImageIsFromFv
              );
   if (EFI_ERROR (Status)) {
-    ASSERT (FALSE);
     return Status;
   }
 
