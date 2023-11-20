@@ -1238,13 +1238,12 @@ CoreLoadImageCommon (
              UEFI_IMAGE_SOURCE_FV,
              ImageOrigin
              );
-  if (Status == EFI_NOT_STARTED) {
-    goto Done;
-  }
-
   if (EFI_ERROR (Status)) {
-    CpuDeadLoop ();
-    return Status; ///< Should be unreachable.
+    if ((ImageOrigin != UefiImageOriginUserImage) && (Status != EFI_NOT_STARTED)) {
+      CpuDeadLoop ();
+    }
+
+    goto Done;
   }
 
   // FIXME: Context
@@ -1304,8 +1303,11 @@ CoreLoadImageCommon (
 
   Status = UefiImageInitializeContextPostHash (&ImageContext);
   if (EFI_ERROR (Status)) {
-    CpuDeadLoop ();
-    return Status; ///< Should be unreachable.
+    if (ImageOrigin != UefiImageOriginUserImage) {
+      CpuDeadLoop ();
+    }
+
+    goto Done;
   }
 
   //
