@@ -20,26 +20,145 @@
 // Global Descriptor Entry structures
 //
 
-typedef struct _GDT_ENTRY {
-  UINT16    Limit15_0;
-  UINT16    Base15_0;
-  UINT8     Base23_16;
-  UINT8     Type;
-  UINT8     Limit19_16_and_flags;
-  UINT8     Base31_24;
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  UINT8     Type : 4;
+  UINT8     S    : 1;
+  UINT8     DPL  : 2;
+  UINT8     P    : 1;
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     AVL                : 1;
+  UINT8     L                  : 1;
+  UINT8     D_B                : 1;
+  UINT8     G                  : 1;
+  UINT8     BaseAddress_31_24;
+} SEGMENT_DESCRIPTOR;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  //
+  // Type
+  //
+  UINT8     Accessed           : 1;
+  UINT8     Writable           : 1;
+  UINT8     ExpansionDirection : 1;
+  UINT8     IsCode             : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Available          : 1;
+  UINT8     Reserved           : 1;
+  UINT8     UpperBound         : 1;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} DATA_SEGMENT_32;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  //
+  // Type
+  //
+  UINT8     Accessed   : 1;
+  UINT8     Readable   : 1;
+  UINT8     Conforming : 1;
+  UINT8     IsCode     : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Available          : 1;
+  UINT8     Reserved           : 1;
+  UINT8     Is32Bit            : 1;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} CODE_SEGMENT_32;
+
+typedef struct {
+  UINT32    Reserved1;
+  UINT8     Reserved2;
+  //
+  // Type
+  //
+  UINT8     Accessed   : 1;
+  UINT8     Readable   : 1;
+  UINT8     Conforming : 1;
+  UINT8     IsCode     : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     Reserved3   : 4;
+  UINT8     Available   : 1;
+  UINT8     LongMode    : 1;
+  UINT8     Is32Bit     : 1;
+  UINT8     Granularity : 1;
+  UINT8     Reserved4;
+} CODE_SEGMENT_64;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+
+  UINT8     Type                     : 4;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Reserved           : 3;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} SYSTEM_SEGMENT;
+
+typedef struct {
+  UINT16    OffsetInSegment_15_0;
+  UINT16    SegmentSelector;
+
+  UINT8     ParameterCount : 5;
+  UINT8     Reserved       : 3;
+
+  UINT8     Type                     : 4;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+  UINT16    OffsetInSegment_31_16;
+} CALL_GATE_32;
+
+typedef struct {
+  CALL_GATE_32  Common;
+  UINT32        OffsetInSegment_63_31;
+  UINT32        Reserved;
+} CALL_GATE_64;
+
+typedef union {
+  DATA_SEGMENT_32    DataSegment32;
+  CODE_SEGMENT_32    CodeSegment32;
+  CODE_SEGMENT_64    CodeSegment64;
+  CALL_GATE_32       CallGate32;
+  SYSTEM_SEGMENT     SystemSegment;
+  SEGMENT_DESCRIPTOR SegmentDescriptor;
 } GDT_ENTRY;
 
-typedef
-  struct _GDT_ENTRIES {
-  GDT_ENTRY    Null;
-  GDT_ENTRY    Linear;
-  GDT_ENTRY    LinearCode;
-  GDT_ENTRY    SysData;
-  GDT_ENTRY    SysCode;
-  GDT_ENTRY    SysCode16;
-  GDT_ENTRY    LinearData64;
-  GDT_ENTRY    LinearCode64;
-  GDT_ENTRY    Spare5;
+typedef struct {
+  SEGMENT_DESCRIPTOR Null;
+  DATA_SEGMENT_32    Linear;
+  CODE_SEGMENT_32    LinearCode;
+  DATA_SEGMENT_32    SysData;
+  CODE_SEGMENT_32    SysCode;
+  CODE_SEGMENT_32    SysCode16;
+  DATA_SEGMENT_32    LinearData64;
+  CODE_SEGMENT_64    LinearCode64;
+  SEGMENT_DESCRIPTOR Spare5;
 } GDT_ENTRIES;
 
 #pragma pack ()

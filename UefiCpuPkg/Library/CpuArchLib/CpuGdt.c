@@ -14,104 +14,174 @@
 // Global descriptor table (GDT) Template
 //
 STATIC GDT_ENTRIES  mGdtTemplate = {
-  //
-  // NULL_SEL
-  //
-  {
-    0x0,            // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x0,            // type
-    0x0,            // limit 19:16, flags
-    0x0,            // base 31:24
+  .Null = {
+    .SegmentLimit_15_0  = 0x0,
+    .BaseAddress_15_0   = 0x0,
+    .BaseAddress_23_16  = 0x0,
+    .Type               = 0x0,
+    .S                  = 0,
+    .DPL                = 0,
+    .P                  = 0,
+    .SegmentLimit_19_16 = 0x0,
+    .AVL                = 0,
+    .L                  = 0,
+    .D_B                = 0,
+    .G                  = 0,
+    .BaseAddress_31_24  = 0x0
   },
-  //
-  // LINEAR_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x092,          // present, ring 0, data, read/write
-    0x0CF,          // page-granular, 32-bit
-    0x0,
+  .Linear = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 0,
+    .Writable                 = 1,
+    .ExpansionDirection       = 0,
+    .IsCode                   = 0,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .UpperBound               = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // LINEAR_CODE_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x09F,          // present, ring 0, code, execute/read, conforming, accessed
-    0x0CF,          // page-granular, 32-bit
-    0x0,
+  .LinearCode = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 1,
+    .Readable                 = 1,
+    .Conforming               = 1,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .Is32Bit                  = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // SYS_DATA_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x093,          // present, ring 0, data, read/write, accessed
-    0x0CF,          // page-granular, 32-bit
-    0x0,
+  .SysData = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 1,
+    .Writable                 = 1,
+    .ExpansionDirection       = 0,
+    .IsCode                   = 0,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .UpperBound               = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // SYS_CODE_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x09A,          // present, ring 0, code, execute/read
-    0x0CF,          // page-granular, 32-bit
-    0x0,
+  .SysCode = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 0,
+    .Readable                 = 1,
+    .Conforming               = 0,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .Is32Bit                  = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // SYS_CODE16_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x09A,          // present, ring 0, code, execute/read
-    0x08F,          // page-granular, 16-bit
-    0x0,            // base 31:24
+  .SysCode16 = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 0,
+    .Readable                 = 1,
+    .Conforming               = 0,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .Is32Bit                  = 0,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // LINEAR_DATA64_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x092,          // present, ring 0, data, read/write
-    0x0CF,          // page-granular, 32-bit
-    0x0,
+  .LinearData64 = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 0,
+    .Writable                 = 1,
+    .ExpansionDirection       = 0,
+    .IsCode                   = 0,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .UpperBound               = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
   },
-  //
-  // LINEAR_CODE64_SEL
-  //
-  {
-    0x0FFFF,        // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x09A,          // present, ring 0, code, execute/read
-    0x0AF,          // page-granular, 64-bit code
-    0x0,            // base (high)
+  .LinearCode64 = {
+    .Reserved1                = 0x0,
+    .Reserved2                = 0x0,
+
+    .Accessed                 = 0,
+    .Readable                 = 1,
+    .Conforming               = 0,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .Reserved3                = 0x0,
+    .Available                = 0,
+    .LongMode                 = 1,
+    .Is32Bit                  = 0,
+    .Granularity              = 1,
+    .Reserved4                = 0x0
   },
-  //
-  // SPARE5_SEL
-  //
-  {
-    0x0,            // limit 15:0
-    0x0,            // base 15:0
-    0x0,            // base 23:16
-    0x0,            // type
-    0x0,            // limit 19:16, flags
-    0x0,            // base 31:24
+  .Spare5 = {
+    .SegmentLimit_15_0  = 0x0,
+    .BaseAddress_15_0   = 0x0,
+    .BaseAddress_23_16  = 0x0,
+    .Type               = 0x0,
+    .S                  = 0,
+    .DPL                = 0,
+    .P                  = 0,
+    .SegmentLimit_19_16 = 0x0,
+    .AVL                = 0,
+    .L                  = 0,
+    .D_B                = 0,
+    .G                  = 0,
+    .BaseAddress_31_24  = 0x0,
   },
 };
 
