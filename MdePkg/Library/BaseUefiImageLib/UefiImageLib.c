@@ -152,7 +152,6 @@ UefiImageInitializeContextPreHash (
                );
     if (!RETURN_ERROR (Status)) {
       Context->FormatIndex = UefiImageFormatUe;
-      return RETURN_SUCCESS;
     }
   }
 
@@ -166,7 +165,6 @@ UefiImageInitializeContextPreHash (
                );
     if (!RETURN_ERROR (Status)) {
       Context->FormatIndex = UefiImageFormatPe;
-      return RETURN_SUCCESS;
     }
   }
 
