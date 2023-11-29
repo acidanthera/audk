@@ -859,7 +859,6 @@ SmmCoreInstallLoadedImage (
   //
   SmmInitializeDebugImageInfoTable ();
   SmmNewDebugImageInfoEntry (
-    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
     &mSmmCoreDriverEntry->SmmLoadedImage,
     mSmmCoreDriverEntry->SmmImageHandle,
     &gSmmCorePrivate->PiSmmCoreImageContext

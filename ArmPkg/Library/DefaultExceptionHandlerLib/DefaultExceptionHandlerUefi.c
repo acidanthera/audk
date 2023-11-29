@@ -50,16 +50,16 @@ GetImageName (
 
   Address = (CHAR8 *)(UINTN)FaultAddress;
   for (Entry = 0; Entry < DebugTableHeader->TableSize; Entry++, DebugTable++) {
-    if (DebugTable->NormalImage != NULL) {
-      if ((DebugTable->NormalImage->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) &&
-          (DebugTable->NormalImage->LoadedImageProtocolInstance != NULL))
+    if (DebugTable->NormalImage2 != NULL) {
+      if ((DebugTable->NormalImage2->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2) &&
+          (DebugTable->NormalImage2->LoadedImageProtocolInstance != NULL))
       {
-        if ((Address >= (CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase) &&
-            (Address <= ((CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase + DebugTable->NormalImage->LoadedImageProtocolInstance->ImageSize)))
+        if ((Address >= (CHAR8 *)DebugTable->NormalImage2->LoadedImageProtocolInstance->ImageBase) &&
+            (Address <= ((CHAR8 *)DebugTable->NormalImage2->LoadedImageProtocolInstance->ImageBase + DebugTable->NormalImage2->LoadedImageProtocolInstance->ImageSize)))
         {
-          *ImageBase           = (UINTN)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase;
-          *DebugBase           = (UINTN)DebugTable->NormalImage->DebugBase;
-          return DebugTable->NormalImage->PdbPath;
+          *ImageBase           = (UINTN)DebugTable->NormalImage2->LoadedImageProtocolInstance->ImageBase;
+          *DebugBase           = (UINTN)DebugTable->NormalImage2->DebugBase;
+          return DebugTable->NormalImage2->PdbPath;
         }
       }
     }
