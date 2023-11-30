@@ -407,11 +407,11 @@ typedef struct {
   (OFFSET_OF (UE_DEBUG_TABLE, SymbolsPath) + 1U)
 
 /**
-  Retrieves the UE symbols address offset in SegmentAlignment-units.
+  Retrieves the UE symbol address subtrahend in SegmentAlignment-units.
 
   @param[in] ImageInfo  The UE debug table image information.
 **/
-#define UE_DEBUG_TABLE_IMAGE_INFO_SYM_OFFSET_FACTOR(ImageInfo)  \
+#define UE_DEBUG_TABLE_IMAGE_INFO_SYM_SUBTRAHEND_FACTOR(ImageInfo)  \
   ((UINT8)((ImageInfo) & 0x03U))
 
 /**

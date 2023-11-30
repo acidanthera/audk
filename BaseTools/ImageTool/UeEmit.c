@@ -598,7 +598,7 @@ ToolImageEmitUeDebugTable (
   )
 {
   UE_DEBUG_TABLE   DebugTable;
-  uint8_t          SymOffsetFactor;
+  uint8_t          SymSubtrahendFactor;
   uint32_t         DebugTableOffset;
   uint32_t         DebugTableSize;
   uint16_t         Index;
@@ -609,14 +609,14 @@ ToolImageEmitUeDebugTable (
   assert (Image->DebugInfo.SymbolsPathLen <= MAX_UINT8);
   assert (IS_ALIGNED (BaseAddressSubtrahend, Image->SegmentInfo.SegmentAlignment));
 
-  SymOffsetFactor = (uint8_t)(BaseAddressSubtrahend / Image->SegmentInfo.SegmentAlignment);
-  if (SymOffsetFactor > 0x03) {
+  SymSubtrahendFactor = (uint8_t)(BaseAddressSubtrahend / Image->SegmentInfo.SegmentAlignment);
+  if (SymSubtrahendFactor > 0x03) {
     DEBUG_RAISE ();
     return false;
   }
 
-  DebugTable.ImageInfo = SymOffsetFactor;
-  assert (UE_DEBUG_TABLE_IMAGE_INFO_SYM_OFFSET_FACTOR (DebugTable.ImageInfo) == SymOffsetFactor);
+  DebugTable.ImageInfo = SymSubtrahendFactor;
+  assert (UE_DEBUG_TABLE_IMAGE_INFO_SYM_SUBTRAHEND_FACTOR (DebugTable.ImageInfo) == SymSubtrahendFactor);
   assert ((DebugTable.ImageInfo & 0xFCU) == 0);
 
   DebugTable.SymbolsPathLength = (uint8_t)Image->DebugInfo.SymbolsPathLen;

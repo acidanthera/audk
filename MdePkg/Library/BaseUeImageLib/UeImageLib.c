@@ -1231,21 +1231,21 @@ UeLoaderGetImageDebugAddress (
   RETURN_STATUS         Status;
   CONST UE_DEBUG_TABLE  *DebugTable;
   UINT8                 SymOffsetFactor;
-  UINT32                SymOffsetAddend;
+  UINT32                SymOffsetSubtrahend;
 
   ASSERT (Context != NULL);
 
-  SymOffsetAddend = 0;
+  SymOffsetSubtrahend = 0;
 
   Status = InternalGetDebugTable (Context, &DebugTable);
   if (!RETURN_ERROR (Status)) {
-    SymOffsetFactor = UE_DEBUG_TABLE_IMAGE_INFO_SYM_OFFSET_FACTOR (
+    SymOffsetFactor = UE_DEBUG_TABLE_IMAGE_INFO_SYM_SUBTRAHEND_FACTOR (
                         DebugTable->ImageInfo
                         );
-    SymOffsetAddend = (UINT32)SymOffsetFactor * Context->SegmentAlignment;
+    SymOffsetSubtrahend = (UINT32)SymOffsetFactor * Context->SegmentAlignment;
   }
 
-  return UeLoaderGetImageAddress (Context) + SymOffsetAddend;
+  return UeLoaderGetImageAddress (Context) - SymOffsetSubtrahend;
 }
 
 RETURN_STATUS
