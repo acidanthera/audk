@@ -442,6 +442,10 @@ int main (int argc, const char *argv[])
   bool           FixedAddress;
   int            ArgIndex;
 
+  PcdGet8 (PcdUefiImageFormatSupportNonFv) = 0x00;
+  PcdGet8 (PcdUefiImageFormatSupportFv)    = 0x03;
+  PcdGet32 (PcdImageProtectionPolicy)      = 0x00;
+
   if (argc < 2) {
     fprintf (stderr, "ImageTool: No command is specified\n");
     DEBUG_RAISE ();
