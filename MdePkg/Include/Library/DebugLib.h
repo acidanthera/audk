@@ -408,7 +408,7 @@ UnitTestDebugAssert (
 #else
 #define ASSERT(Expression)       \
     do {                           \
-      if ((FALSE)) {               \
+      if (FALSE) {                 \
         (VOID) (Expression);       \
       }                            \
     } while (FALSE)
@@ -433,18 +433,13 @@ UnitTestDebugAssert (
         _DEBUG (Expression);       \
       }                            \
     } while (FALSE)
-#elif defined (__GNUC__) || defined (__clang__)
-#define DEBUG(Expression)                                \
-    do {                                                   \
-      _Pragma("GCC diagnostic push")                       \
-      _Pragma("GCC diagnostic ignored \"-Wunused-value\"") \
-      if ((FALSE)) {                                       \
-        (VOID) Expression;                                 \
-      }                                                    \
-      _Pragma("GCC diagnostic pop")                        \
-    } while (FALSE)
 #else
-#define DEBUG(Expression)
+#define DEBUG(Expression)        \
+    do {                           \
+      if (FALSE) {                 \
+        _DEBUG (Expression);       \
+      }                            \
+    } while (FALSE)
 #endif
 
 /**
@@ -472,7 +467,7 @@ UnitTestDebugAssert (
 #else
 #define ASSERT_EFI_ERROR(StatusParameter)                                             \
     do {                                                                                \
-      if ((FALSE)) {                                                                    \
+      if (FALSE) {                                                                      \
         (VOID) (StatusParameter);                                                       \
       }                                                                                 \
     } while (FALSE)
@@ -504,7 +499,7 @@ UnitTestDebugAssert (
 #else
 #define ASSERT_RETURN_ERROR(StatusParameter)                          \
     do {                                                                \
-      if ((FALSE)) {                                                    \
+      if (FALSE) {                                                      \
         (VOID) (StatusParameter);                                       \
       }                                                                 \
     } while (FALSE)
