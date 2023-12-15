@@ -14,13 +14,15 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <stdlib.h>
 
 #include <Common/UefiBaseTypes.h>
-#include <Common/PeImageEx.h> // for PE32 structure definitions
+#include <IndustryStandard/PeImage2.h> // for PE32 structure definitions
 
 #include <IndustryStandard/Pci22.h>  // for option ROM header structures
 #include <IndustryStandard/Pci30.h>
 
 #include "Compress.h"
 #include "CommonLib.h"
+
+#include <Library/UefiImageLib.h>
 
 //
 // Version of this utility
@@ -205,8 +207,9 @@ Returns:
 
 static
 int
-CheckPE32File (
-  FILE    *Fptr,
+CheckUefiImageFile (
+  VOID    *FileBuffer,
+  UINT32  FileSize,
   UINT16  *MachineType,
   UINT16  *SubSystem
   )
@@ -246,12 +249,12 @@ ProcessEfiFile (
 
 Routine Description:
 
-  Process a PE32 EFI file.
+  Process a UEFI image file.
 
 Arguments:
 
   OutFptr     - file pointer to output binary ROM image file we're creating
-  InFile      - structure contains information on the PE32 file to process
+  InFile      - structure contains information on the UEFI image file to process
   VendId      - vendor ID as required in the option ROM header
   DevId       - device ID as required in the option ROM header
   Size        - pointer to where to return the size added to the output file
