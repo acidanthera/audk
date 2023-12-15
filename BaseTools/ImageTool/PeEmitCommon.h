@@ -13,13 +13,15 @@
 void *
 ToolImageEmitPe32 (
   const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
+  uint32_t                      *FileSize,
+  bool                          Xip
   );
 
 void *
 ToolImageEmitPe64 (
   const image_tool_image_info_t *Image,
-  uint32_t                      *FileSize
+  uint32_t                      *FileSize,
+  bool                          Xip
   );
 
 #endif // PE_EMIT_COMMON_H
