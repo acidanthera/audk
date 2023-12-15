@@ -327,6 +327,7 @@ AsmGetTssTemplateMap (
 BOOLEAN
 GetImageInfoByIp (
   OUT UINTN        *ImageBase,
+  OUT UINTN        *DebugBase,
   OUT CONST CHAR8  **SymbolsPath,
   IN  UINTN        CurrentEip
   );
