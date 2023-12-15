@@ -32,12 +32,12 @@ typedef struct {
   EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY  Nb10;
 } image_tool_debug_dir_t;
 
-#define SIZE_OF_DATA_DIRECRORY  \
+#define SIZE_OF_DATA_DIRECTORY  \
   EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES * sizeof (EFI_IMAGE_DATA_DIRECTORY)
 
 #define SIZE_OF_OPTIONAL_HEADER                                             \
   sizeof (EFI_IMAGE_NT_HEADERS) - sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR)  \
-    + SIZE_OF_DATA_DIRECRORY
+    + SIZE_OF_DATA_DIRECTORY
 
 static
 bool
@@ -581,7 +581,7 @@ ToolImageEmitPeFile (
     return false;
   }
 
-  SectionHeadersOffset = sizeof (*PeHdr) + SIZE_OF_DATA_DIRECRORY;
+  SectionHeadersOffset = sizeof (*PeHdr) + SIZE_OF_DATA_DIRECTORY;
   SectionHeadersSize   = NumSections * sizeof (EFI_IMAGE_SECTION_HEADER);
   SizeOfPeHeaders      = SectionHeadersOffset + SectionHeadersSize;
   SizeOfHeaders        = sizeof (mDosHdr) + SizeOfPeHeaders;
