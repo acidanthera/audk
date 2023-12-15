@@ -2353,6 +2353,13 @@
   # @Expression  0x80000002 | (gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask & 0xC0) == 0
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0|UINT8|0x00000005
 
+  ## The mask is used to control DEBUG_RAISE() behavior.<BR><BR>
+  #  BIT0 - Enable Debug Assert.<BR>
+  #  BIT1 - Enable Debug Print.<BR>
+  #  BIT4 - Enable BreakPoint as ASSERT.<BR>
+  # @Prompt DEBUG_RAISE() Property.
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask|0|UINT8|0x0000001b
+
   ## This flag is used to control the print out Debug message.<BR><BR>
   #  BIT0  - Initialization message.<BR>
   #  BIT1  - Warning message.<BR>
