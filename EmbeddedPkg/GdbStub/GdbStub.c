@@ -873,10 +873,10 @@ QxferLibrary (
 
   if (gDebugTable != NULL) {
     for ( ; gEfiDebugImageTableEntry < gDebugImageTableHeader->TableSize; gEfiDebugImageTableEntry++, gDebugTable++) {
-      if (gDebugTable->NormalImage != NULL) {
-        if ((gDebugTable->NormalImage->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) &&
-            (gDebugTable->NormalImage->LoadedImageProtocolInstance != NULL)) {
-          Pdb = gDebugTable->NormalImage->PdbPath;
+      if (gDebugTable->NormalImage2 != NULL) {
+        if ((gDebugTable->NormalImage2->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2) &&
+            (gDebugTable->NormalImage2->LoadedImageProtocolInstance != NULL)) {
+          Pdb = gDebugTable->NormalImage2->PdbPath;
           if (Pdb != NULL) {
             Size = AsciiSPrint (
                      gXferLibraryBuffer,
