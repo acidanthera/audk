@@ -20,6 +20,7 @@ ToolImageEmit (
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
   IN  const char  *SymbolsPath OPTIONAL,
+  IN  bool        Xip,
   IN  bool        Strip,
   IN  bool        FixedAddress
   );

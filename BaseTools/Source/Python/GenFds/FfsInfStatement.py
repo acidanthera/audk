@@ -824,6 +824,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                     GenFdsGlobalVariable.GenerateFirmwareImage(
                             StrippedFile,
                             File,
+                            Xip=True,
                             Strip=True,
                             IsMakefile=IsMakefile
                         )
@@ -858,6 +859,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                 GenFdsGlobalVariable.GenerateFirmwareImage(
                         StrippedFile,
                         GenSecInputFile,
+                        Xip=True,
                         Strip=True,
                         IsMakefile=IsMakefile
                     )

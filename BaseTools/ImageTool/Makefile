@@ -20,7 +20,7 @@ PE = $(UDK_PATH)\MdePkg\Library\BasePeCoffLib2
 UA = $(UDK_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull
 
 OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj UefiImageScan.obj PeScan.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj ImageToolEmit.obj
-OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj
+OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj DynamicBuffer.obj
 OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj PeCoffHash.obj
 
 BASE = $(UDK_PATH)\MdePkg\Library\BaseLib

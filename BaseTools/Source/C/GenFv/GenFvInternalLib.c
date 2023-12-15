@@ -3808,6 +3808,7 @@ Returns:
                      true,
                      NewBaseAddress,
                      NULL,
+                     TRUE,
                      Strip,
                      FALSE
                      );
