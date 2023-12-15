@@ -9,6 +9,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
@@ -24,7 +25,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Common/PiFirmwareFile.h>
 #include <Common/PiFirmwareVolume.h>
 #include <Guid/FirmwareFileSystem2.h>
-#include <Common/PeImageEx.h>
 #include <Common/GuidedSectionExtractionEx.h>
 
 #include "Compress.h"
@@ -37,7 +37,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "ParseGuidedSectionTools.h"
 #include "StringFuncs.h"
 #include "ParseInf.h"
-#include "PeCoffLib.h"
+
+#include "../../../ImageTool/ImageToolEmit.h"
 
 //
 // Utility global variables
@@ -1418,248 +1419,62 @@ Returns:
 }
 
 EFI_STATUS
-EFIAPI
-RebaseImageRead (
-  IN     VOID    *FileHandle,
-  IN     UINTN   FileOffset,
-  IN OUT UINT32  *ReadSize,
-  OUT    VOID    *Buffer
-  )
-/*++
-
-Routine Description:
-
-  Support routine for the PE/COFF Loader that reads a buffer from a PE/COFF file
-
-Arguments:
-
-  FileHandle - The handle to the PE/COFF file
-
-  FileOffset - The offset, in bytes, into the file to read
-
-  ReadSize   - The number of bytes to read from the file starting at FileOffset
-
-  Buffer     - A pointer to the buffer to read the data into.
-
-Returns:
-
-  EFI_SUCCESS - ReadSize bytes of data were read into Buffer from the PE/COFF file starting at FileOffset
-
---*/
-{
-  CHAR8   *Destination8;
-  CHAR8   *Source8;
-  UINT32  Length;
-
-  Destination8  = Buffer;
-  Source8       = (CHAR8 *) ((UINTN) FileHandle + FileOffset);
-  Length        = *ReadSize;
-  while (Length--) {
-    *(Destination8++) = *(Source8++);
-  }
-
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
-SetAddressToSectionHeader (
-  IN     CHAR8   *FileName,
-  IN OUT UINT8   *FileBuffer,
-  IN     UINT64  NewPe32BaseAddress
-  )
-/*++
-
-Routine Description:
-
-  Set new base address into the section header of PeImage
-
-Arguments:
-
-  FileName           - Name of file
-  FileBuffer         - Pointer to PeImage.
-  NewPe32BaseAddress - New Base Address for PE image.
-
-Returns:
-
-  EFI_SUCCESS          Set new base address into this image successfully.
-
---*/
-{
-  EFI_STATUS                            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
-  UINTN                                 Index;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION       *ImgHdr;
-  EFI_IMAGE_SECTION_HEADER              *SectionHeader;
-
-  //
-  // Initialize context
-  //
-  memset (&ImageContext, 0, sizeof (ImageContext));
-  ImageContext.Handle     = (VOID *) FileBuffer;
-  ImageContext.ImageRead  = (PE_COFF_LOADER_READ_FILE) RebaseImageRead;
-  Status                  = PeCoffLoaderGetImageInfo (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid", "The input PeImage %s is not valid", FileName);
-    return Status;
-  }
-
-  if (ImageContext.RelocationsStripped) {
-    Error (NULL, 0, 3000, "Invalid", "The input PeImage %s has no relocation to be fixed up", FileName);
-    return Status;
-  }
-
-  //
-  // Get PeHeader pointer
-  //
-  ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)(FileBuffer + ImageContext.PeCoffHeaderOffset);
-
-  //
-  // Get section header list
-  //
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-    (UINTN) ImgHdr +
-    sizeof (UINT32) +
-    sizeof (EFI_IMAGE_FILE_HEADER) +
-    ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-    );
-
-  //
-  // Set base address into the first section header that doesn't point to code section.
-  //
-  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index ++, SectionHeader ++) {
-    if ((SectionHeader->Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      *(UINT64 *) &SectionHeader->PointerToRelocations = NewPe32BaseAddress;
-      break;
-    }
-  }
-
-  //
-  // BaseAddress is set to section header.
-  //
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
 RebaseImage (
   IN     CHAR8   *FileName,
   IN OUT UINT8   *FileBuffer,
-  IN     UINT64  NewPe32BaseAddress
+  IN     UINT32  FileBufferSize,
+  IN     UINT64  NewBaseAddress
   )
 /*++
 
 Routine Description:
 
-  Set new base address into PeImage, and fix up PeImage based on new address.
+  Set new base address into UefiImage, and fix up UefiImage based on new address.
 
 Arguments:
 
   FileName           - Name of file
-  FileBuffer         - Pointer to PeImage.
-  NewPe32BaseAddress - New Base Address for PE image.
+  FileBuffer         - Pointer to UefiImage.
+  NewBaseAddress     - New Base Address for UEFI image.
 
 Returns:
 
   EFI_INVALID_PARAMETER   - BaseAddress is not valid.
-  EFI_SUCCESS             - Update PeImage is correctly.
+  EFI_SUCCESS             - Update UefiImage is correctly.
 
 --*/
 {
-  EFI_STATUS                            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
-  UINTN                                 Index;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION       *ImgHdr;
-  UINT8                                 *MemoryImagePointer;
-  EFI_IMAGE_SECTION_HEADER              *SectionHeader;
+  UINT32 RebasedSize;
+  VOID   *RebasedBuffer;
 
-  //
-  // Initialize context
-  //
-  memset (&ImageContext, 0, sizeof (ImageContext));
-  ImageContext.Handle     = (VOID *) FileBuffer;
-  ImageContext.ImageRead  = (PE_COFF_LOADER_READ_FILE) RebaseImageRead;
-  Status                  = PeCoffLoaderGetImageInfo (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid", "The input PeImage %s is not valid", FileName);
-    return Status;
+  RebasedBuffer = ToolImageEmit (
+                    &RebasedSize,
+                    FileBuffer,
+                    FileBufferSize,
+                    -1,
+                    -1,
+                    NULL,
+                    0,
+                    true,
+                    NewBaseAddress,
+                    NULL,
+                    FALSE,
+                    TRUE
+                    );
+  if (RebasedBuffer == NULL) {
+    Error (NULL, 0, 3000, "Invalid", "The input UefiImage %s is not valid", FileName);
+    return EFI_UNSUPPORTED;
   }
 
-  if (ImageContext.RelocationsStripped) {
-    Error (NULL, 0, 3000, "Invalid", "The input PeImage %s has no relocation to be fixed up", FileName);
-    return Status;
+  if (RebasedSize > FileBufferSize) {
+    Error (NULL, 0, 3000, "Invalid", "Rebased %s too large: %u vs %u", FileName, RebasedSize, FileBufferSize);
+    return EFI_UNSUPPORTED;
   }
 
-  //
-  // Get PeHeader pointer
-  //
-  ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)(FileBuffer + ImageContext.PeCoffHeaderOffset);
+  memmove (FileBuffer, RebasedBuffer, RebasedSize);
+  memset (FileBuffer + RebasedSize, 0, FileBufferSize - RebasedSize);
 
-  //
-  // Load and Relocate Image Data
-  //
-  MemoryImagePointer = (UINT8 *) malloc ((UINTN) ImageContext.ImageSize + ImageContext.SectionAlignment);
-  if (MemoryImagePointer == NULL) {
-    Error (NULL, 0, 4001, "Resource", "memory cannot be allocated on rebase of %s", FileName);
-    return EFI_OUT_OF_RESOURCES;
-  }
-  memset ((VOID *) MemoryImagePointer, 0, (UINTN) ImageContext.ImageSize + ImageContext.SectionAlignment);
-  ImageContext.ImageAddress = ((UINTN) MemoryImagePointer + ImageContext.SectionAlignment - 1) & (~((INT64)ImageContext.SectionAlignment - 1));
-
-  Status =  PeCoffLoaderLoadImage (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid", "LocateImage() call failed on rebase of %s", FileName);
-    free ((VOID *) MemoryImagePointer);
-    return Status;
-  }
-
-  ImageContext.DestinationAddress = NewPe32BaseAddress;
-  Status                          = PeCoffLoaderRelocateImage (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid", "RelocateImage() call failed on rebase of %s", FileName);
-    free ((VOID *) MemoryImagePointer);
-    return Status;
-  }
-
-  //
-  // Copy Relocated data to raw image file.
-  //
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-    (UINTN) ImgHdr +
-    sizeof (UINT32) +
-    sizeof (EFI_IMAGE_FILE_HEADER) +
-    ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-    );
-
-  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index ++, SectionHeader ++) {
-    CopyMem (
-      FileBuffer + SectionHeader->PointerToRawData,
-      (VOID*) (UINTN) (ImageContext.ImageAddress + SectionHeader->VirtualAddress),
-      SectionHeader->SizeOfRawData
-      );
-  }
-
-  free ((VOID *) MemoryImagePointer);
-
-  //
-  // Update Image Base Address
-  //
-  if (ImgHdr->Pe32.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    ImgHdr->Pe32.OptionalHeader.ImageBase = (UINT32) NewPe32BaseAddress;
-  } else if (ImgHdr->Pe32Plus.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-    ImgHdr->Pe32Plus.OptionalHeader.ImageBase = NewPe32BaseAddress;
-  } else {
-    Error (NULL, 0, 3000, "Invalid", "unknown PE magic signature %X in PE32 image %s",
-      ImgHdr->Pe32.OptionalHeader.Magic,
-      FileName
-      );
-    return EFI_ABORTED;
-  }
-
-  //
-  // Set new base address into section header
-  //
-  Status = SetAddressToSectionHeader (FileName, FileBuffer, NewPe32BaseAddress);
-
-  return Status;
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS
@@ -1795,7 +1610,7 @@ Returns:
       if (EnableHash) {
         ToolInputFileName  = "edk2Temp_InputEfi.tmp";
         ToolOutputFileName = "edk2Temp_OutputHash.tmp";
-        RebaseImage(ToolInputFileName, (UINT8*)Ptr + SectionHeaderLen, 0);
+        RebaseImage(ToolInputFileName, (UINT8*)Ptr + SectionHeaderLen, SectionLength - SectionHeaderLen, 0);
         PutFileImage (
           ToolInputFileName,
           (CHAR8*)Ptr + SectionHeaderLen,
@@ -1830,7 +1645,7 @@ Returns:
           CHAR8 *NewStr;
           UINT32 nFileLen;
           if((fp = fopen(ToolOutputFileName,"r")) == NULL) {
-            Error (NULL, 0, 0004, "Hash the PE32 image failed.", NULL);
+            Error (NULL, 0, 0004, "Hash the UEFI image failed.", NULL);
           }
           else {
             fseek(fp,0,SEEK_SET);
@@ -2517,7 +2332,7 @@ Returns:
             The offset from the start of the input file to start \n\
             processing an FV\n");
   fprintf (stdout, "  --hash\n\
-            Generate HASH value of the entire PE image\n");
+            Generate HASH value of the entire UEFI image\n");
   fprintf (stdout, "  --sfo\n\
             Reserved for future use\n");
 }

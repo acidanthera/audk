@@ -93,6 +93,76 @@ extern UINT64 _gPcd_SkuId_Array[];
 #define _PCD_GET_MODE_32_PcdDebugPrintErrorLevel  _PCD_VALUE_PcdDebugPrintErrorLevel
 //#define _PCD_SET_MODE_32_PcdDebugPrintErrorLevel  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
 
+#define _PCD_TOKEN_PcdImageLoaderDebugSupport  0U
+#define _PCD_SIZE_PcdImageLoaderDebugSupport 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderDebugSupport  _PCD_SIZE_PcdImageLoaderDebugSupport
+#define _PCD_VALUE_PcdImageLoaderDebugSupport  TRUE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderDebugSupport  _PCD_VALUE_PcdImageLoaderDebugSupport
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderDebugSupport  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderHashProhibitOverlap  0U
+#define _PCD_SIZE_PcdImageLoaderHashProhibitOverlap 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderHashProhibitOverlap  _PCD_SIZE_PcdImageLoaderHashProhibitOverlap
+#define _PCD_VALUE_PcdImageLoaderHashProhibitOverlap  FALSE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderHashProhibitOverlap  _PCD_VALUE_PcdImageLoaderHashProhibitOverlap
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderHashProhibitOverlap  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderAllowMisalignedOffset  0U
+#define _PCD_SIZE_PcdImageLoaderAllowMisalignedOffset 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderAllowMisalignedOffset  _PCD_SIZE_PcdImageLoaderAllowMisalignedOffset
+#define _PCD_VALUE_PcdImageLoaderAllowMisalignedOffset  FALSE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderAllowMisalignedOffset  _PCD_VALUE_PcdImageLoaderAllowMisalignedOffset
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderAllowMisalignedOffset  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderRemoveXForWX  0U
+#define _PCD_SIZE_PcdImageLoaderRemoveXForWX 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderRemoveXForWX  _PCD_SIZE_PcdImageLoaderRemoveXForWX
+#define _PCD_VALUE_PcdImageLoaderRemoveXForWX  FALSE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderRemoveXForWX  _PCD_VALUE_PcdImageLoaderRemoveXForWX
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderRemoveXForWX  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderWXorX  0U
+#define _PCD_SIZE_PcdImageLoaderWXorX 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderWXorX  _PCD_SIZE_PcdImageLoaderWXorX
+#define _PCD_VALUE_PcdImageLoaderWXorX  TRUE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderWXorX  _PCD_VALUE_PcdImageLoaderWXorX
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderWXorX  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderLoadHeader  0U
+#define _PCD_SIZE_PcdImageLoaderLoadHeader 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderLoadHeader  _PCD_SIZE_PcdImageLoaderLoadHeader
+#define _PCD_VALUE_PcdImageLoaderLoadHeader  TRUE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderLoadHeader  _PCD_VALUE_PcdImageLoaderLoadHeader
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderLoadHeader  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderRtRelocAllowTargetMismatch  0U
+#define _PCD_SIZE_PcdImageLoaderRtRelocAllowTargetMismatch 1
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderRtRelocAllowTargetMismatch  _PCD_SIZE_PcdImageLoaderRtRelocAllowTargetMismatch
+#define _PCD_VALUE_PcdImageLoaderRtRelocAllowTargetMismatch  TRUE
+#define _PCD_GET_MODE_BOOL_PcdImageLoaderRtRelocAllowTargetMismatch  _PCD_VALUE_PcdImageLoaderRtRelocAllowTargetMismatch
+//#define _PCD_SET_MODE_BOOL_PcdImageLoaderRtRelocAllowTargetMismatch  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderAlignmentPolicy  0U
+#define _PCD_SIZE_PcdImageLoaderAlignmentPolicy 4
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderAlignmentPolicy  _PCD_SIZE_PcdImageLoaderAlignmentPolicy
+#define _PCD_VALUE_PcdImageLoaderAlignmentPolicy  0U
+#define _PCD_GET_MODE_32_PcdImageLoaderAlignmentPolicy  _PCD_VALUE_PcdImageLoaderAlignmentPolicy
+//#define _PCD_SET_MODE_32_PcdImageLoaderAlignmentPolicy  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdImageLoaderRelocTypePolicy  0U
+#define _PCD_SIZE_PcdImageLoaderRelocTypePolicy 4
+#define _PCD_GET_MODE_SIZE_PcdImageLoaderRelocTypePolicy  _PCD_SIZE_PcdImageLoaderRelocTypePolicy
+#define _PCD_VALUE_PcdImageLoaderRelocTypePolicy  0U
+#define _PCD_GET_MODE_32_PcdImageLoaderRelocTypePolicy  _PCD_VALUE_PcdImageLoaderRelocTypePolicy
+//#define _PCD_SET_MODE_32_PcdImageLoaderRelocTypePolicy  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdDebugRaisePropertyMask  0U
+#define _PCD_SIZE_PcdDebugRaisePropertyMask 1
+#define _PCD_GET_MODE_SIZE_PcdDebugRaisePropertyMask  _PCD_SIZE_PcdDebugRaisePropertyMask
+#define _PCD_VALUE_PcdDebugRaisePropertyMask  0xFFU
+#define _PCD_GET_MODE_8_PcdDebugRaisePropertyMask  _PCD_VALUE_PcdDebugRaisePropertyMask
+//#define _PCD_SET_MODE_8_PcdDebugRaisePropertyMask  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
 
 #ifdef __cplusplus
 }

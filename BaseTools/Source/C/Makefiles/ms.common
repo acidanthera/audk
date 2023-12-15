@@ -86,7 +86,7 @@ LINKER = $(LD)
 INC = $(INC) -I . -I $(SOURCE_PATH)\Include -I $(ARCH_INCLUDE) -I $(SOURCE_PATH)\Common
 INC = $(INC) -I $(EDK2_PATH)\MdePkg\Include
 
-INC = $(INC) -I $(EDK2_PATH)\MdePkg\Include -I $(EDK2_PATH)\MdeModulePkg\Include
+INC = $(INC) -I $(EDK2_PATH)\MdePkg\Include -I $(EDK2_PATH)\MdeModulePkg\Include -I $(EDK2_PATH)/OpenCorePkg/User/Include
 
 EDK2_INC = $(INC) /FI..\Include\Common\AutoGen.h
 
