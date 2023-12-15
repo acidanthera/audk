@@ -96,10 +96,10 @@ UefiImageLoaderGetRuntimeContextSizePe (
 
 RETURN_STATUS
 UefiImageRelocateImagePe (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *Context,
-  IN     UINT64                             BaseAddress,
-  OUT    UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
-  IN     UINT32                             RuntimeContextSize
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT64                           BaseAddress,
+  OUT    VOID                             *RuntimeContext OPTIONAL,
+  IN     UINT32                           RuntimeContextSize
   )
 {
   return PeCoffRelocateImage (

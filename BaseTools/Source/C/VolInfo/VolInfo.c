@@ -1505,6 +1505,7 @@ Returns:
                     true,
                     NewBaseAddress,
                     NULL,
+                    TRUE,
                     FALSE,
                     TRUE
                     );

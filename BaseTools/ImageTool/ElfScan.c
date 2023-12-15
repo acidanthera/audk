@@ -102,8 +102,6 @@ IsShdrLoadable (
   IN const Elf_Shdr  *Shdr
   )
 {
-  assert (Shdr != NULL);
-
   return (Shdr->sh_flags & SHF_ALLOC) != 0;
 }
 
@@ -363,7 +361,12 @@ SetRelocs (
             //
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n", ELF_R_TYPE (Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
+            fprintf (
+              stderr,
+              "ImageTool: Unsupported ELF EM_X86_64 relocation 0x%llx in %s\n",
+              (unsigned long long)ELF_R_TYPE (Rel->r_info),
+              ImageInfo->DebugInfo.SymbolsPath
+              );
             return RETURN_INCOMPATIBLE_VERSION;
         }
       } else if (Ehdr->e_machine == EM_AARCH64) {
@@ -405,7 +408,12 @@ SetRelocs (
 
             break;
           default:
-            fprintf (stderr, "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n", ELF_R_TYPE (Rel->r_info), ImageInfo->DebugInfo.SymbolsPath);
+            fprintf (
+              stderr,
+              "ImageTool: Unsupported ELF EM_AARCH64 relocation 0x%llx in %s\n",
+              (unsigned long long)ELF_R_TYPE (Rel->r_info),
+              ImageInfo->DebugInfo.SymbolsPath
+              );
             return RETURN_INCOMPATIBLE_VERSION;
         }
       }
@@ -580,7 +588,7 @@ CreateIntermediate (
     return RETURN_VOLUME_CORRUPTED;
   }
 
-  Segments = calloc (1, sizeof (*Segments) * ImageInfo->SegmentInfo.NumSegments);
+  Segments = AllocateZeroPool (sizeof (*Segments) * ImageInfo->SegmentInfo.NumSegments);
   if (Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments\n");
     return RETURN_OUT_OF_RESOURCES;
@@ -589,7 +597,7 @@ CreateIntermediate (
   ImageInfo->SegmentInfo.Segments = Segments;
 
   if (NumRelocs != 0) {
-    Relocs = calloc (1, sizeof (*Relocs) * NumRelocs);
+    Relocs = AllocateZeroPool (sizeof (*Relocs) * NumRelocs);
     if (Relocs == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Relocs\n");
       return RETURN_OUT_OF_RESOURCES;
@@ -615,7 +623,7 @@ CreateIntermediate (
       return RETURN_VOLUME_CORRUPTED;
     }
 
-    Segments[SIndex].Name = calloc (1, strlen (Name) + 1);
+    Segments[SIndex].Name = AllocateZeroPool (strlen (Name) + 1);
     if (Segments[SIndex].Name == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Name\n", Index);
       return RETURN_OUT_OF_RESOURCES;
@@ -629,7 +637,7 @@ CreateIntermediate (
     Segments[SIndex].Write        = (Shdr->sh_flags & SHF_WRITE) != 0;
     Segments[SIndex].Execute      = (Shdr->sh_flags & SHF_EXECINSTR) != 0;
 
-    Segments[SIndex].Data = calloc (1, Segments[SIndex].ImageSize);
+    Segments[SIndex].Data = AllocateZeroPool (Segments[SIndex].ImageSize);
     if (Segments[SIndex].Data == NULL) {
       fprintf (stderr, "ImageTool: Could not allocate memory for Segment #%d Data\n", Index);
       return RETURN_OUT_OF_RESOURCES;
@@ -661,7 +669,6 @@ ScanElf (
   const Elf_Ehdr         *Ehdr;
   Elf_Addr               BaseAddress;
 
-  assert (ImageInfo != NULL);
   assert (File != NULL || FileSize == 0);
 
   Status = ParseElfFile (&Context, File, FileSize);
@@ -676,7 +683,6 @@ ScanElf (
 
   ImageInfo->HeaderInfo.BaseAddress       = BaseAddress;
   ImageInfo->HeaderInfo.EntryPointAddress = (uint32_t)(Ehdr->e_entry - BaseAddress);
-  ImageInfo->HeaderInfo.IsXip             = true;
   ImageInfo->SegmentInfo.SegmentAlignment = (uint32_t)Context.Alignment;
   ImageInfo->RelocInfo.RelocsStripped     = false;
 
@@ -707,7 +713,7 @@ ScanElf (
       return RETURN_INCOMPATIBLE_VERSION;
   }
 
-  ImageInfo->DebugInfo.SymbolsPath = malloc (ImageInfo->DebugInfo.SymbolsPathLen + 1);
+  ImageInfo->DebugInfo.SymbolsPath = AllocatePool (ImageInfo->DebugInfo.SymbolsPathLen + 1);
   if (ImageInfo->DebugInfo.SymbolsPath == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Debug Data\n");
     return RETURN_OUT_OF_RESOURCES;

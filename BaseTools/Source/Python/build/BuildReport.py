@@ -641,7 +641,7 @@ class ModuleReport(object):
             if os.path.isfile(DefaultEFIfile):
                 Tempfile = os.path.join(OutputDir, self.ModuleName + "_hash.tmp")
                 # rebase the efi image since its base address may not zero
-                cmd = ["ImageTool GenImage -b 0 -o", Tempfile, DefaultEFIfile]
+                cmd = ["ImageTool GenImage -x -b 0 -o", Tempfile, DefaultEFIfile]
                 try:
                     PopenObject = subprocess.Popen(' '.join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 except Exception as X:

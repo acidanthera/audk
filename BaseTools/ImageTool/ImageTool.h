@@ -18,18 +18,11 @@
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
+#include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <UserFile.h>
 
 #define MAX_PE_ALIGNMENT  0x10000
-
-#define raise()  assert(false)
-
-typedef struct {
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY        Dir;
-  EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY    Nb10;
-  char                                   Name[];
-} DebugData;
 
 #define PAGE(x)      ((x) & ~4095U)
 #define PAGE_OFF(x)  ((x) & 4095U)
@@ -39,9 +32,8 @@ typedef struct {
   uint32_t    EntryPointAddress;
   uint16_t    Machine;
   uint16_t    Subsystem;
-  uint8_t     IsXip;
   uint8_t     FixedAddress;
-  uint8_t     Reserved[6];
+  uint8_t     Reserved[7];
 } image_tool_header_info_t;
 
 typedef struct {
@@ -60,7 +52,8 @@ typedef struct {
 
 typedef struct {
   uint32_t                SegmentAlignment;
-  uint32_t                NumSegments;
+  uint16_t                NumSegments;
+  uint8_t                 Reserved[2];
 
   image_tool_segment_t    *Segments;
 } image_tool_segment_info_t;
@@ -117,7 +110,8 @@ ImageInitUnpaddedSize (
 bool
 ToolImageRelocate (
   image_tool_image_info_t  *Image,
-  uint64_t                 BaseAddress
+  uint64_t                 BaseAddress,
+  uint32_t                 IgnorePrefix
   );
 
 void
@@ -134,6 +128,11 @@ ToolImageCompare (
 void
 ToolImageStripRelocs (
   image_tool_image_info_t  *Image
+  );
+
+uint8_t
+ToolImageGetRelocSize (
+  uint8_t  Type
   );
 
 RETURN_STATUS
@@ -153,6 +152,7 @@ void *
 ToolImageEmitPe (
   image_tool_image_info_t  *Image,
   uint32_t                 *FileSize,
+  bool                     Xip,
   bool                     Strip
   );
 
@@ -180,6 +180,13 @@ ConstructHii (
   IN  GUID        *HiiGuid,
   OUT void        **Hii,
   OUT UINT32      *HiiSize
+  );
+
+const image_tool_segment_t *
+ImageGetSegmentByAddress (
+  uint32_t                         *Address,
+  uint32_t                         *RemainingSize,
+  const image_tool_segment_info_t  *SegmentInfo
   );
 
 #endif // IMAGE_TOOL_H

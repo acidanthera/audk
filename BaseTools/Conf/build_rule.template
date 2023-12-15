@@ -404,7 +404,7 @@
         $(DEBUG_DIR)(+)$(MODULE_NAME).efi
 
     <Command.MSFT, Command.INTEL, Command.CLANGPDB>
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} ${src}
+        ImageTool GenImage -c PE -x -t $(MODULE_TYPE) -o ${dst} ${src}
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
@@ -414,7 +414,7 @@
         $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
         $(OBJCOPY) $(OBJCOPY_STRIPFLAG) $(DEBUG_DIR)(+)$(MODULE_NAME).strip
 
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+        ImageTool GenImage -c PE -x -t $(MODULE_TYPE) -d ${src} -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
 
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
@@ -425,7 +425,7 @@
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS)  ${src}  $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
         # create symbol file for GDB debug
         -$(DSYMUTIL) ${src}
-        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
+        ImageTool GenImage -c PE -x -t $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)

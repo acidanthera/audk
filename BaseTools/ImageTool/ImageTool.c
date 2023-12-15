@@ -36,10 +36,6 @@ HiiSrc (
   FILE           *FilePtr;
   UINT32         Index;
 
-  assert (FileNames != NULL);
-  assert (HiiName   != NULL);
-  assert (Guid      != NULL);
-
   Status = AsciiStrToGuid (Guid, &HiiGuid);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Invalid GUID - %s\n", Guid);
@@ -54,7 +50,7 @@ HiiSrc (
 
   FilePtr = fopen (HiiName, "w");
   if (FilePtr == NULL) {
-    free (Hii);
+    FreePool (Hii);
     return RETURN_NO_MEDIA;
   }
 
@@ -113,7 +109,8 @@ HiiSrc (
     "  (CONST MODULE_HII_PACKAGE_LIST *)&mModuleHiiPackageList;\n"
     );
 
-  free (Hii);
+  fclose (FilePtr);
+  FreePool (Hii);
 
   return RETURN_SUCCESS;
 }
@@ -256,9 +253,6 @@ GetAcpi (
   UINT16                          Index;
   UINT32                          FileLength;
 
-  assert (PeName   != NULL);
-  assert (AcpiName != NULL);
-
   Pe = UserReadFile (PeName, &PeSize);
   if (Pe == NULL) {
     fprintf (stderr, "ImageTool: Could not open %s: %s\n", PeName, strerror (errno));
@@ -366,9 +360,11 @@ RETURN_STATUS
 GenExecutable (
   IN const char  *OutputFileName,
   IN const char  *InputFileName,
+  IN const char  *SymbolsPath OPTIONAL,
   IN const char  *FormatName,
   IN const char  *TypeName,
   IN const char  *BaseAddress,
+  IN bool        Xip,
   IN bool        Strip,
   IN bool        FixedAddress
   )
@@ -415,6 +411,10 @@ GenExecutable (
     return RETURN_ABORTED;
   }
 
+  if (SymbolsPath == NULL) {
+    SymbolsPath = InputFileName;
+  }
+
   OutputFile = ToolImageEmit (
                  &OutputFileSize,
                  InputFile,
@@ -423,18 +423,20 @@ GenExecutable (
                  Type,
                  BaseAddress != NULL,
                  NewBaseAddress,
-                 InputFileName,
+                 SymbolsPath,
+                 Xip,
                  Strip,
                  FixedAddress
                  );
 
   if (OutputFile == NULL) {
+    DEBUG_RAISE ();
     return RETURN_ABORTED;
   }
 
   UserWriteFile (OutputFileName, OutputFile, OutputFileSize);
 
-  free (OutputFile);
+  FreePool (OutputFile);
 
   return RETURN_SUCCESS;
 }
@@ -449,16 +451,18 @@ main (
   UINT32         NumOfFiles;
   const char     *OutputName;
   const char     *InputName;
+  const char     *SymbolsPath;
   const char     *FormatName;
   const char     *TypeName;
   const char     *BaseAddress;
+  bool           Xip;
   bool           Strip;
   bool           FixedAddress;
   int            ArgIndex;
 
   if (argc < 2) {
     fprintf (stderr, "ImageTool: No command is specified\n");
-    raise ();
+    DEBUG_RAISE ();
     return -1;
   }
 
@@ -470,16 +474,18 @@ main (
   if (strcmp (argv[1], "GenImage") == 0) {
     if (argc < 5) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
-      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-s] [-f] -o OutputFile InputFile\n");
-      raise ();
+      fprintf (stderr, "    Usage: ImageTool GenImage [-c Format] [-t ModuleType] [-b BaseAddress] [-d SymbolsPath] [-x] [-s] [-f] -o OutputFile InputFile\n");
+      DEBUG_RAISE ();
       return -1;
     }
 
     OutputName   = NULL;
     InputName    = NULL;
+    SymbolsPath  = NULL;
     FormatName   = NULL;
     TypeName     = NULL;
     BaseAddress  = NULL;
+    Xip          = false;
     Strip        = false;
     FixedAddress = false;
     for (ArgIndex = 2; ArgIndex < argc; ++ArgIndex) {
@@ -515,6 +521,16 @@ main (
         }
 
         BaseAddress = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-d") == 0) {
+        ++ArgIndex;
+        if (ArgIndex == argc) {
+          fprintf (stderr, "Must specify an argument to -d\n");
+          return -1;
+        }
+
+        SymbolsPath = argv[ArgIndex];
+      } else if (strcmp (argv[ArgIndex], "-x") == 0) {
+        Xip = true;
       } else if (strcmp (argv[ArgIndex], "-s") == 0) {
         Strip = true;
       } else if (strcmp (argv[ArgIndex], "-f") == 0) {
@@ -542,21 +558,23 @@ main (
     Status = GenExecutable (
                OutputName,
                InputName,
+               SymbolsPath,
                FormatName,
                TypeName,
                BaseAddress,
+               Xip,
                Strip,
                FixedAddress
                );
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   } else if (strcmp (argv[1], "HiiSrc") == 0) {
     if ((argc < 5) || (strcmp (argv[3], "-o") != 0)) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool HiiBin GUID -o OutputFile InputFile1 InputFile2 ...\n");
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
 
@@ -564,20 +582,20 @@ main (
 
     Status = HiiSrc (argv[4], argv[2], &argv[5], NumOfFiles);
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   } else if (strcmp (argv[1], "GetAcpi") == 0) {
     if ((argc != 5) || (strcmp (argv[2], "-o") != 0)) {
       fprintf (stderr, "ImageTool: Command arguments are missing\n");
       fprintf (stderr, "    Usage: ImageTool GetAcpi -o OutputFile InputFile\n");
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
 
     Status = GetAcpi (argv[4], argv[3]);
     if (RETURN_ERROR (Status)) {
-      raise ();
+      DEBUG_RAISE ();
       return -1;
     }
   }
