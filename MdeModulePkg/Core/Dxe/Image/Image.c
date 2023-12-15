@@ -1347,7 +1347,7 @@ CoreLoadImageCommon (
   // Register the image in the Debug Image Info Table if the attribute is set
   //
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_DEBUG_IMAGE_INFO_TABLE_REGISTRATION) != 0) {
-    CoreNewDebugImageInfoEntry (EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL, &Image->Info, Image->Handle, &ImageContext);
+    CoreNewDebugImageInfoEntry (&Image->Info, Image->Handle, &ImageContext);
   }
 
   //

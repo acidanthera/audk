@@ -211,12 +211,12 @@ GetImagePdb (
   }
 
   for (Entry = 0; Entry < DebugTableHeader->TableSize; Entry++, DebugTable++) {
-    if (DebugTable->NormalImage != NULL) {
-      if ((DebugTable->NormalImage->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) &&
-          (DebugTable->NormalImage->LoadedImageProtocolInstance != NULL))
+    if (DebugTable->NormalImage2 != NULL) {
+      if ((DebugTable->NormalImage2->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2) &&
+          (DebugTable->NormalImage2->LoadedImageProtocolInstance != NULL))
       {
-        if (ImageBase == DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase) {
-          return DebugTable->NormalImage->PdbPath;
+        if (ImageBase == DebugTable->NormalImage2->LoadedImageProtocolInstance->ImageBase) {
+          return DebugTable->NormalImage2->PdbPath;
         }
       }
     }

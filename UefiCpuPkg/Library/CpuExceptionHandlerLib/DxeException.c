@@ -143,13 +143,14 @@ InitializeSeparateExceptionStacks (
 BOOLEAN
 GetImageInfoByIp (
   OUT UINTN        *ImageBase,
+  OUT UINTN        *DebugBase,
   OUT CONST CHAR8  **SymbolsPath,
   IN  UINTN        CurrentEip
   )
 {
-  EFI_STATUS                         Status;
-  UINT32                             Index;
-  CONST EFI_DEBUG_IMAGE_INFO_NORMAL  *NormalImage;
+  EFI_STATUS                          Status;
+  UINT32                              Index;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL2  *NormalImage2;
 
   if (mDebugImageInfoTable == NULL) {
     Status = EfiGetSystemConfigurationTable (
@@ -169,19 +170,20 @@ GetImageInfoByIp (
       continue;
     }
 
-    if (*mDebugImageInfoTable->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+    if (*mDebugImageInfoTable->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2) {
       continue;
     }
 
-    NormalImage = mDebugImageInfoTable->EfiDebugImageInfoTable[Index].NormalImage;
+    NormalImage2 = mDebugImageInfoTable->EfiDebugImageInfoTable[Index].NormalImage2;
 
-    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+    ASSERT (NormalImage2->LoadedImageProtocolInstance != NULL);
 
-    if ((CurrentEip >= (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase) &&
-        (CurrentEip < (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize))
+    if ((CurrentEip >= (UINTN)NormalImage2->LoadedImageProtocolInstance->ImageBase) &&
+        (CurrentEip < (UINTN)NormalImage2->LoadedImageProtocolInstance->ImageBase + NormalImage2->LoadedImageProtocolInstance->ImageSize))
     {
-      *ImageBase   = (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase;
-      *SymbolsPath = NormalImage->PdbPath;
+      *ImageBase   = (UINTN)NormalImage2->LoadedImageProtocolInstance->ImageBase;
+      *DebugBase   = NormalImage2->DebugBase;
+      *SymbolsPath = NormalImage2->PdbPath;
       return TRUE;
     }
   }

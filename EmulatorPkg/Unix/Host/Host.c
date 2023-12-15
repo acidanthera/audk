@@ -887,15 +887,17 @@ PrintLoadAddress (
   if (EFI_ERROR (Status)) {
     fprintf (
       stderr,
-      "0x%08lx Loading NO DEBUG with entry point 0x%08lx\n",
+      "0x%08lx (0x%08lx) Loading NO DEBUG with entry point 0x%08lx\n",
       (unsigned long)UefiImageLoaderGetImageAddress (ImageContext),
+      (unsigned long)UefiImageLoaderGetDebugAddress (ImageContext),
       (unsigned long)UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
   } else {
     fprintf (
       stderr,
-      "0x%08lx Loading %s with entry point 0x%08lx\n",
+      "0x%08lx (0x%08lx) Loading %s with entry point 0x%08lx\n",
       (unsigned long)UefiImageLoaderGetImageAddress (ImageContext),
+      (unsigned long)UefiImageLoaderGetDebugAddress (ImageContext),
       PdbPath,
       (unsigned long)UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
@@ -947,7 +949,7 @@ GdbScriptAddImage (
     if (FeaturePcdGet (PcdEmulatorLazyLoadSymbols)) {
       GdbTempFile = fopen (gGdbWorkingFileName, "a");
       if (GdbTempFile != NULL) {
-        long unsigned int  SymbolsAddr = (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext);
+        long unsigned int  SymbolsAddr = (long unsigned int)UefiImageLoaderGetDebugAddress (ImageContext);
         mScriptSymbolChangesCount++;
         fprintf (
           GdbTempFile,
@@ -958,7 +960,7 @@ GdbScriptAddImage (
           );
         fclose (GdbTempFile);
         // This is for the lldb breakpoint only
-        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetDebugAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -969,7 +971,7 @@ GdbScriptAddImage (
           GdbTempFile,
           "add-symbol-file %s -o 0x%08lx\n",
           PdbPath,
-          (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext)
+          (long unsigned int)UefiImageLoaderGetDebugAddress (ImageContext)
           );
         fclose (GdbTempFile);
 
@@ -979,7 +981,7 @@ GdbScriptAddImage (
         // Also used for the lldb breakpoint script. The lldb breakpoint script does
         // not use the file, it uses the arguments.
         //
-        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetDebugAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
