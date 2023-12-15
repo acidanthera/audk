@@ -1,5 +1,5 @@
 /** @file
-Utility program to create an EFI option ROM image from binary and EFI PE32 files.
+Utility program to create an EFI option ROM image from binary and UEFI image files.
 
 Copyright (c) 1999 - 2018, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -426,12 +426,12 @@ ProcessEfiFile (
 
 Routine Description:
 
-  Process a PE32 EFI file.
+  Process an UEFI image file.
 
 Arguments:
 
   OutFptr     - file pointer to output binary ROM image file we're creating
-  InFile      - structure contains information on the PE32 file to process
+  InFile      - structure contains information on the UEFI image file to process
   VendId      - vendor ID as required in the option ROM header
   DevId       - device ID as required in the option ROM header
   Size        - pointer to where to return the size added to the output file
@@ -471,21 +471,39 @@ Returns:
   //
   // Initialize our buffer pointers to null.
   //
-  Buffer            = NULL;
   CompressedBuffer  = NULL;
 
-  //
-  // Double-check the file to make sure it's what we expect it to be
-  //
-  Status = CheckPE32File (InFptr, &MachineType, &SubSystem);
-  if (Status != STATUS_SUCCESS) {
-    goto BailOut;
-  }
   //
   // Seek to the end of the input file and get the file size
   //
   fseek (InFptr, 0, SEEK_END);
   FileSize = ftell (InFptr);
+
+  //
+  // Allocate memory for the entire file (in case we have to compress), then
+  // seek back to the beginning of the file and read it into our buffer.
+  //
+  Buffer = (UINT8 *) malloc (FileSize);
+  if (Buffer == NULL) {
+    Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+    Status = STATUS_ERROR;
+    goto BailOut;
+  }
+
+  fseek (InFptr, 0, SEEK_SET);
+  if (fread (Buffer, FileSize, 1, InFptr) != 1) {
+    Error (NULL, 0, 0004, "Error reading file", "File %s", InFile->FileName);
+    Status = STATUS_ERROR;
+    goto BailOut;
+  }
+
+  //
+  // Double-check the file to make sure it's what we expect it to be
+  //
+  Status = CheckUefiImageFile (Buffer, FileSize, &MachineType, &SubSystem);
+  if (Status != STATUS_SUCCESS) {
+    goto BailOut;
+  }
 
   //
   // Get the size of the headers we're going to put in front of the image. The
@@ -517,23 +535,6 @@ Returns:
 
   if (mOptions.Verbose) {
     VerboseMsg("  File size   = 0x%X\n", (unsigned) FileSize);
-  }
-  //
-  // Allocate memory for the entire file (in case we have to compress), then
-  // seek back to the beginning of the file and read it into our buffer.
-  //
-  Buffer = (UINT8 *) malloc (FileSize);
-  if (Buffer == NULL) {
-    Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-    Status = STATUS_ERROR;
-    goto BailOut;
-  }
-
-  fseek (InFptr, 0, SEEK_SET);
-  if (fread (Buffer, FileSize, 1, InFptr) != 1) {
-    Error (NULL, 0, 0004, "Error reading file", "File %s", InFile->FileName);
-    Status = STATUS_ERROR;
-    goto BailOut;
   }
   //
   // Now determine the size of the final output file. It's either the header size
@@ -805,8 +806,9 @@ BailOut:
 
 static
 int
-CheckPE32File (
-  FILE      *Fptr,
+CheckUefiImageFile (
+  VOID      *FileBuffer,
+  UINT32    FileSize,
   UINT16    *MachineType,
   UINT16    *SubSystem
   )
@@ -814,13 +816,14 @@ CheckPE32File (
 
 Routine Description:
 
-  Given a file pointer to a supposed PE32 image file, verify that it is indeed a
-  PE32 image file, and then return the machine type in the supplied pointer.
+  Given a file pointer to a supposed UEFI image file, verify that it is indeed a
+  UEFI image file, and then return the machine type in the supplied pointer.
 
 Arguments:
 
-  Fptr          File pointer to the already-opened PE32 file
-  MachineType   Location to stuff the machine type of the PE32 file. This is needed
+  FileBuffer    File buffer of the UEFI image file
+  FileSize      File size, in bytes, of FileBuffer
+  MachineType   Location to stuff the machine type of the UEFI file. This is needed
                 because the image may be Itanium-based, IA32, or EBC.
 
 Returns:
@@ -830,67 +833,24 @@ Returns:
 
 --*/
 {
-  EFI_IMAGE_DOS_HEADER            DosHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION PeHdr;
+  RETURN_STATUS                    Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  Context;
 
-  //
-  // Position to the start of the file
-  //
-  fseek (Fptr, 0, SEEK_SET);
-
-  //
-  // Read the DOS header
-  //
-  if (fread (&DosHeader, sizeof (DosHeader), 1, Fptr) != 1) {
-    Error (NULL, 0, 0004, "Failed to read the DOS stub from the input file!", NULL);
-    return STATUS_ERROR;
-  }
-  //
-  // Check the magic number (0x5A4D)
-  //
-  if (DosHeader.e_magic != EFI_IMAGE_DOS_SIGNATURE) {
-    Error (NULL, 0, 2000, "Invalid parameter", "Input file does not appear to be a PE32 image (magic number)!");
-    return STATUS_ERROR;
-  }
-  //
-  // Position into the file and check the PE signature
-  //
-  fseek (Fptr, (long) DosHeader.e_lfanew, SEEK_SET);
-
-  //
-  // Read PE headers
-  //
-  if (fread (&PeHdr, sizeof (PeHdr), 1, Fptr) != 1) {
-    Error (NULL, 0, 0004, "Failed to read PE/COFF headers from input file!", NULL);
+  Status = UefiImageInitializeContext (&Context, FileBuffer, FileSize);
+  if (RETURN_ERROR (Status)) {
+    Error (NULL, 0, 2000, "Invalid parameter", "Input file does not appear to be an UEFI image - %llu!", Status);
     return STATUS_ERROR;
   }
 
-
-  //
-  // Check the PE signature in the header "PE\0\0"
-  //
-  if (PeHdr.Pe32.Signature != EFI_IMAGE_NT_SIGNATURE) {
-    Error (NULL, 0, 2000, "Invalid parameter", "Input file does not appear to be a PE32 image (signature)!");
-    return STATUS_ERROR;
-  }
-
-  memcpy ((char *) MachineType, &PeHdr.Pe32.FileHeader.Machine, 2);
-
-  if (PeHdr.Pe32.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    *SubSystem = PeHdr.Pe32.OptionalHeader.Subsystem;
-  } else if (PeHdr.Pe32Plus.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-    *SubSystem = PeHdr.Pe32Plus.OptionalHeader.Subsystem;
-  } else {
-    Error (NULL, 0, 2000, "Invalid parameter", "Unable to find subsystem type!");
-    return STATUS_ERROR;
-  }
+  *MachineType = UefiImageGetMachine (&Context);
+  *SubSystem   = UefiImageGetSubsystem (&Context);
 
   if (mOptions.Verbose) {
     VerboseMsg("  Got subsystem = 0x%X from image\n", *SubSystem);
   }
 
   //
-  // File was successfully identified as a PE32
+  // File was successfully identified as an UEFI image
   //
   return STATUS_SUCCESS;
 }
@@ -1354,9 +1314,9 @@ Returns:
   fprintf (stdout, "  -o FileName, --output FileName\n\
             File will be created to store the output content.\n");
   fprintf (stdout, "  -e EfiFileName\n\
-            EFI PE32 image files.\n");
+            UEFI image files.\n");
   fprintf (stdout, "  -ec EfiFileName\n\
-            EFI PE32 image files and will be compressed.\n");
+            UEFI image files and will be compressed.\n");
   fprintf (stdout, "  -b BinFileName\n\
             Legacy binary files.\n");
   fprintf (stdout, "  -l ClassCode\n\

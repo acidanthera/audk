@@ -86,7 +86,7 @@ endif
 
 INCLUDE = $(TOOL_INCLUDE) -I $(MAKEROOT) -I $(MAKEROOT)/Include/Common -I $(MAKEROOT)/Include/ -I $(MAKEROOT)/Include/IndustryStandard -I $(MAKEROOT)/Common/ -I .. -I . $(ARCH_INCLUDE)
 
-INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/ -I $(EDK2_PATH)/MdeModulePkg/Include/
+INCLUDE += -I $(EDK2_PATH)/MdePkg/Include/ -I $(EDK2_PATH)/MdeModulePkg/Include/ -I $(EDK2_PATH)/OpenCorePkg/User/Include
 
 EDK2_INCLUDE = -include $(MAKEROOT)/Include/Common/AutoGen.h
 
