@@ -11,7 +11,6 @@ MAKEROOT ?= ..
 LIBNAME = Common
 
 OBJECTS = \
-  BasePeCoff.o \
   BinderFuncs.o \
   CommonLib.o \
   Crc32.o \
@@ -25,12 +24,25 @@ OBJECTS = \
   OsPath.o \
   ParseGuidedSectionTools.o \
   ParseInf.o \
-  PeCoffLoaderEx.o \
   SimpleFileParsing.o \
   StringFuncs.o \
   TianoCompress.o
 
 OBJECTS += AutoGen.o DebugLib.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/ImageToolEmit.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/Image.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/ElfScan32.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/ElfScan64.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/ElfScanCommon.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/UefiImageScan.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/PeScan.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/PeEmit32.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/PeEmit64.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/PeEmitCommon.o \
+  $(EDK2_OBJPATH)/BaseTools/ImageTool/BinEmit.o \
+  $(EDK2_OBJPATH)/OpenCorePkg/User/Library/UserFile.o
 
 OBJECTS += \
   $(EDK2_OBJPATH)/MdePkg/Library/BaseDebugPrintErrorLevelLib/BaseDebugPrintErrorLevelLib.o
@@ -91,6 +103,30 @@ OBJECTS += \
 OBJECTS += \
   $(EDK2_OBJPATH)/MdePkg/Library/BasePrintLib/PrintLib.o \
   $(EDK2_OBJPATH)/MdePkg/Library/BasePrintLib/PrintLibInternal.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseOverflowLib/BaseAlignment.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseOverflowLib/BaseBitOverflow.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseOverflowLib/BaseMath.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseOverflowLib/BaseNativeOverflow.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseOverflowLib/BaseTripleOverflow.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffDebug.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffHash.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffHii.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffInfo.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffInit.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffLoad.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BasePeCoffLib2/PeCoffRelocate.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/CommonSupport.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/PeCoffSupport.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/UefiImageLibPeCoff.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageExtraActionLibNull/UefiImageExtraActionLib.o
 
 OBJECTS += \
   $(EDK2_OBJPATH)/MdeModulePkg/Library/BaseMemoryProfileLibNull/BaseMemoryProfileLibNull.o

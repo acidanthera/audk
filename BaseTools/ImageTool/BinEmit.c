@@ -5,6 +5,9 @@
 
 #include "ImageTool.h"
 
+#include <Uefi/UefiBaseType.h>
+#include <Uefi/UefiSpec.h>
+
 static
 EFI_IMAGE_RESOURCE_DIRECTORY_ENTRY *
 CreateEntry (

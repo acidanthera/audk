@@ -52,13 +52,6 @@ typedef struct {
   bool              HasPieRelocs;
 } tool_elf_scan_context;
 
-#if defined (_MSC_EXTENSIONS)
-#define EFI_IMAGE_MACHINE_IA32            0x014C
-#define EFI_IMAGE_MACHINE_X64             0x8664
-#define EFI_IMAGE_MACHINE_ARMTHUMB_MIXED  0x01C2
-#define EFI_IMAGE_MACHINE_AARCH64         0xAA64
-#endif
-
 #define GetShrbyIndex  ELF_SUFFIX(GetShrbyIndex)
 static
 Elf_Shdr *
@@ -696,17 +689,17 @@ ScanElf (
   switch (Ehdr->e_machine) {
  #if ELF_ARCH == 64
     case EM_X86_64:
-      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_X64;
+      ImageInfo->HeaderInfo.Machine = IMAGE_FILE_MACHINE_X64;
       break;
     case EM_AARCH64:
-      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_AARCH64;
+      ImageInfo->HeaderInfo.Machine = IMAGE_FILE_MACHINE_ARM64;
       break;
  #elif ELF_ARCH == 32
     case EM_386:
-      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_IA32;
+      ImageInfo->HeaderInfo.Machine = IMAGE_FILE_MACHINE_I386;
       break;
     case EM_ARM:
-      ImageInfo->HeaderInfo.Machine = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED;
+      ImageInfo->HeaderInfo.Machine = IMAGE_FILE_MACHINE_ARMTHUMB_MIXED;
       break;
  #endif
     default:
