@@ -9,7 +9,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "WinNtInclude.h"
 
 #ifndef __GNUC__
-#include <windows.h>
 #include <io.h>
 #include <sys/types.h>
 #include <sys/stat.h>
