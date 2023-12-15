@@ -650,4 +650,9 @@ UefiImageDebugPrintImageRecord (
   IN CONST UEFI_IMAGE_RECORD  *ImageRecord
   );
 
+UINTN
+UefiImageLoaderGetDebugAddress (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
 #endif // UEFI_IMAGE_LIB_H_

@@ -230,6 +230,7 @@ InitializeSeparateExceptionStacks (
 BOOLEAN
 GetImageInfoByIp (
   OUT UINTN        *ImageBase,
+  OUT UINTN        *DebugBase,
   OUT CONST CHAR8  **SymbolsPath,
   IN  UINTN        CurrentEip
   )
@@ -244,6 +245,7 @@ GetImageInfoByIp (
   }
 
   *ImageBase = UefiImageLoaderGetImageAddress (&ImageContext);
+  *DebugBase = UefiImageLoaderGetDebugAddress (&ImageContext);
 
   Status = UefiImageGetSymbolsPath (&ImageContext, SymbolsPath, &PdbPathSize);
   return !RETURN_ERROR (Status);

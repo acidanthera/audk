@@ -571,7 +571,6 @@ SmmLoadImage (
   // Register the image in the Debug Image Info Table if the attribute is set
   //
   SmmNewDebugImageInfoEntry (
-    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
     &DriverEntry->SmmLoadedImage,
     DriverEntry->SmmImageHandle,
     ImageContext

@@ -52,14 +52,14 @@ SmmGetSystemConfigurationTable (
 CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTableHeader = NULL;
 
 // FIXME:
-CONST EFI_DEBUG_IMAGE_INFO_NORMAL *
+CONST EFI_DEBUG_IMAGE_INFO_NORMAL2 *
 InternalLocateImage (
   IN  UINTN              CurrentEip
   )
 {
   EFI_STATUS                        Status;
   UINT32                            Index;
-  CONST EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL2 *NormalImage2;
 
   if (mDebugImageInfoTableHeader == NULL) {
     Status = SmmGetSystemConfigurationTable (
@@ -79,17 +79,17 @@ InternalLocateImage (
       continue;
     }
 
-    if (*mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+    if (*mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2) {
       continue;
     }
 
-    NormalImage = mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].NormalImage;
+    NormalImage2 = mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].NormalImage2;
 
-    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+    ASSERT (NormalImage2->LoadedImageProtocolInstance != NULL);
 
-    if (CurrentEip >= (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase &&
-        CurrentEip < (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize) {
-      return NormalImage;
+    if (CurrentEip >= (UINTN) NormalImage2->LoadedImageProtocolInstance->ImageBase &&
+        CurrentEip < (UINTN) NormalImage2->LoadedImageProtocolInstance->ImageBase + NormalImage2->LoadedImageProtocolInstance->ImageSize) {
+      return NormalImage2;
     }
   }
 
