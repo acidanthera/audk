@@ -95,6 +95,7 @@ class DataSection (DataSectionClassObject):
             GenFdsGlobalVariable.GenerateFirmwareImage(
                     StrippedFile,
                     GenFdsGlobalVariable.MacroExtend(self.SectFileName, Dict),
+                    Xip=True,
                     Strip=True,
                     IsMakefile = IsMakefile
                 )

@@ -290,6 +290,7 @@ class EfiSection (EfiSectionClassObject):
                         GenFdsGlobalVariable.GenerateFirmwareImage(
                                 StrippedFile,
                                 File,
+                                Xip=True,
                                 Strip=True,
                                 IsMakefile = IsMakefile
                             )

@@ -71,10 +71,10 @@ RETURN_STATUS
 typedef
 RETURN_STATUS
 (*UEFI_IMAGE_RELOCARE_IMAGE) (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *Context,
-  IN     UINT64                             BaseAddress,
-  OUT    UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RuntimeContext OPTIONAL,
-  IN     UINT32                             RuntimeContextSize
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
+  IN     UINT64                           BaseAddress,
+  OUT    VOID                             *RuntimeContext OPTIONAL,
+  IN     UINT32                           RuntimeContextSize
   );
 
 typedef
