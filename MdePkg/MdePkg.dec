@@ -2433,6 +2433,13 @@
   # @Expression  0x80000002 | (gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask & 0xC0) == 0
   gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask|0|UINT8|0x00000005
 
+  ## The mask is used to control DEBUG_RAISE() behavior.<BR><BR>
+  #  BIT0 - Enable Debug Assert.<BR>
+  #  BIT1 - Enable Debug Print.<BR>
+  #  BIT4 - Enable BreakPoint as ASSERT.<BR>
+  # @Prompt DEBUG_RAISE() Property.
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask|0|UINT8|0x0000001b
+
   ## This flag is used to filter the output of the DEBUG_PRINT macro and DebugPrint functions.<BR><BR>
   #  The default value is 0x80000000, meaning that DebugPrint returns immediately for anything
   #  except errors. You might set this to a value like 0x80000002 to also enable warnings.<BR><BR>
