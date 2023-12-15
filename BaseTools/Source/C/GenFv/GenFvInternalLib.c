@@ -31,12 +31,16 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <io.h>
 #endif
 #include <assert.h>
+#include <stdbool.h>
 
 #include <Guid/FfsSectionAlignmentPadding.h>
 
 #include "GenFvInternalLib.h"
 #include "FvLib.h"
-#include "PeCoffLib.h"
+#include <Library/PeCoffLib2.h>
+#include <Library/UefiImageLib.h>
+
+#include "../../../ImageTool/ImageToolEmit.h"
 
 #define ARM64_UNCONDITIONAL_JUMP_INSTRUCTION      0x14000000
 
@@ -708,24 +712,24 @@ Returns:
 EFI_STATUS
 WriteMapFile (
   IN OUT FILE                  *FvMapFile,
-  IN     CHAR8                 *FileName,
+  IN     CONST CHAR8           *FileName,
   IN     EFI_FFS_FILE_HEADER   *FfsFile,
   IN     EFI_PHYSICAL_ADDRESS  ImageBaseAddress,
-  IN     PE_COFF_LOADER_IMAGE_CONTEXT *pImageContext
+  IN     UEFI_IMAGE_LOADER_IMAGE_CONTEXT *pImageContext
   )
 /*++
 
 Routine Description:
 
   This function gets the basic debug information (entrypoint, baseaddress, .text, .data section base address)
-  from PE/COFF image and abstracts Pe Map file information and add them into FvMap file for Debug.
+  from UEFI image and abstracts UEFI image Map file information and add them into FvMap file for Debug.
 
 Arguments:
 
   FvMapFile             A pointer to FvMap File
   FileName              Ffs File PathName
   FfsFile               A pointer to Ffs file image.
-  ImageBaseAddress      PeImage Base Address.
+  ImageBaseAddress      UefiImage Base Address.
   pImageContext         Image Context Information.
 
 Returns:
@@ -745,9 +749,8 @@ Returns:
   EFI_PHYSICAL_ADDRESS                FunctionAddress;
   UINT32                              FunctionType;
   CHAR8                               FunctionTypeName [MAX_LINE_LEN];
+  UINT8                               Format;
   UINT32                              AddressOfEntryPoint;
-  UINT32                              Offset;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION     *ImgHdr;
   long long                           TempLongAddress;
   EFI_PHYSICAL_ADDRESS                LinkTimeBaseAddress;
   BOOLEAN                             IsUseClang;
@@ -813,13 +816,9 @@ Returns:
   *Cptr2 = '.';
 
   //
-  // AddressOfEntryPoint and Offset in Image
+  // AddressOfEntryPoint in Image
   //
-  assert (!pImageContext->IsTeImage);
-
-  ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *) ((UINT8 *) pImageContext->Handle + pImageContext->PeCoffHeaderOffset);
-  AddressOfEntryPoint = ImgHdr->Pe32.OptionalHeader.AddressOfEntryPoint;
-  Offset = 0;
+  AddressOfEntryPoint = UefiImageGetEntryPointAddress (pImageContext);
 
   //
   // module information output
@@ -829,11 +828,18 @@ Returns:
     fprintf (FvMapFile, "BaseAddress=%010llx, ", (unsigned long long) ImageBaseAddress);
   } else {
     fprintf (FvMapFile, "%s (Fixed Flash Address, ", KeyWord);
-    fprintf (FvMapFile, "BaseAddress=0x%010llx, ", (unsigned long long) (ImageBaseAddress + Offset));
+    fprintf (FvMapFile, "BaseAddress=0x%010llx, ", (unsigned long long) ImageBaseAddress);
   }
 
+  Format = UefiImageGetFormat (pImageContext);
+
   fprintf (FvMapFile, "EntryPoint=0x%010llx, ", (unsigned long long) (ImageBaseAddress + AddressOfEntryPoint));
-  fprintf (FvMapFile, "Type=PE");
+  if (Format == UefiImageFormatPe) {
+    fprintf (FvMapFile, "Type=PE");
+  } else {
+    assert (FALSE);
+    fprintf (FvMapFile, "Type=Unknown");
+  }
   fprintf (FvMapFile, ")\n");
 
   fprintf (FvMapFile, "(GUID=%s)\n\n", FileGuidName);
@@ -1250,7 +1256,7 @@ Returns:
         return EFI_ABORTED;
       }
       //
-      // Rebase the PE image in FileBuffer of FFS file for XIP
+      // Rebase the UEFI image in FileBuffer of FFS file for XIP
       // Rebase for the debug genfvmap tool
       //
       Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, &FileSize, (UINTN) *VtfFileImage - (UINTN) FvImage->FileImage, FvMapFile);
@@ -1302,7 +1308,7 @@ Returns:
   //
   if ((UINTN) (FvImage->CurrentFilePointer + FileSize) <= (UINTN) (*VtfFileImage)) {
     //
-    // Rebase the PE image in FileBuffer of FFS file for XIP.
+    // Rebase the UEFI image in FileBuffer of FFS file for XIP.
     // Rebase Bs and Rt drivers for the debug genfvmap tool.
     //
     Status = FfsRebase (FvInfo, FvInfo->FvFiles[Index], (EFI_FFS_FILE_HEADER **)&FileBuffer, &FileSize, (UINTN) FvImage->CurrentFilePointer - (UINTN) FvImage->FileImage, FvMapFile);
@@ -1539,14 +1545,15 @@ Returns:
   }
 
   SecHeaderSize = GetSectionHeaderLength(Pe32Section.CommonHeader);
-  Status = GetPe32Info (
+  Status = GetUefiImageInfo (
             (VOID *) ((UINTN) Pe32Section.Pe32Section + SecHeaderSize),
+            GetSectionFileLength (Pe32Section.CommonHeader) - SecHeaderSize,
             &EntryPoint,
             &MachineType
             );
 
   if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid", "could not get the PE32 entry point for the SEC core.");
+    Error (NULL, 0, 3000, "Invalid", "could not get the UEFI image entry point for the SEC core.");
     return EFI_ABORTED;
   }
 
@@ -1564,7 +1571,7 @@ Returns:
   }
 
   //
-  // Physical address is FV base + offset of PE32 + offset of the entry point
+  // Physical address is FV base + offset of UEFI image + offset of the entry point
   //
   SecCorePhysicalAddress = FvInfo->BaseAddress;
   SecCorePhysicalAddress += (UINTN) Pe32Section.Pe32Section + SecHeaderSize - (UINTN) FvImage->FileImage;
@@ -1587,18 +1594,19 @@ Returns:
     }
 
     SecHeaderSize = GetSectionHeaderLength(Pe32Section.CommonHeader);
-    Status = GetPe32Info (
+    Status = GetUefiImageInfo (
               (VOID *) ((UINTN) Pe32Section.Pe32Section + SecHeaderSize),
+              GetSectionFileLength (Pe32Section.CommonHeader) - SecHeaderSize,
               &EntryPoint,
               &MachineType
               );
 
     if (EFI_ERROR (Status)) {
-      Error (NULL, 0, 3000, "Invalid", "could not get the PE32 entry point for the PEI core.");
+      Error (NULL, 0, 3000, "Invalid", "could not get the UEFI image entry point for the PEI core.");
       return EFI_ABORTED;
     }
     //
-    // Physical address is FV base + offset of PE32 + offset of the entry point
+    // Physical address is FV base + offset of UEFI image + offset of the entry point
     //
     PeiCorePhysicalAddress = FvInfo->BaseAddress;
     PeiCorePhysicalAddress += (UINTN) Pe32Section.Pe32Section + SecHeaderSize - (UINTN) FvImage->FileImage;
@@ -1827,13 +1835,14 @@ Returns:
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = GetPe32Info(
+  Status = GetUefiImageInfo(
     (VOID *)((UINTN)Pe32Section.Pe32Section + GetSectionHeaderLength(Pe32Section.CommonHeader)),
+    GetSectionFileLength (Pe32Section.CommonHeader) - GetSectionHeaderLength(Pe32Section.CommonHeader),
     &EntryPoint,
     CoreMachineType
     );
   if (EFI_ERROR(Status)) {
-    Error(NULL, 0, 3000, "Invalid", "could not get the PE32 machine type for the core.");
+    Error(NULL, 0, 3000, "Invalid", "could not get the UEFI image machine type for the core.");
     return EFI_ABORTED;
   }
 
@@ -1857,7 +1866,7 @@ Arguments:
 
   FvImageBuffer     Pointer to buffer containing FV data
   FvInfo            Info for the parent FV
-  Pe32Section       PE32 section data
+  Pe32Section       UEFI image section data
   CoreEntryAddress  The extracted core entry physical address
 
 Returns:
@@ -1877,18 +1886,19 @@ Returns:
     return EFI_INVALID_PARAMETER;
   }
 
-  Status = GetPe32Info(
+  Status = GetUefiImageInfo(
     (VOID *)((UINTN)Pe32Section.Pe32Section + GetSectionHeaderLength(Pe32Section.CommonHeader)),
+    GetSectionFileLength (Pe32Section.CommonHeader) - GetSectionHeaderLength(Pe32Section.CommonHeader),
     &EntryPoint,
     &MachineType
     );
   if (EFI_ERROR(Status)) {
-    Error(NULL, 0, 3000, "Invalid", "could not get the PE32 entry point for the core.");
+    Error(NULL, 0, 3000, "Invalid", "could not get the UEFI image entry point for the core.");
     return EFI_ABORTED;
   }
 
   //
-  // Physical address is FV base + offset of PE32 + offset of the entry point
+  // Physical address is FV base + offset of UEFI image + offset of the entry point
   //
   EntryPhysicalAddress = FvInfo->BaseAddress;
   EntryPhysicalAddress += (UINTN)Pe32Section.Pe32Section + GetSectionHeaderLength(Pe32Section.CommonHeader) - (UINTN)FvImageBuffer;
@@ -1956,13 +1966,13 @@ Returns:
 
     Status = GetCoreMachineType(SecPe32, &MachineType);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 machine type for SEC Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image machine type for SEC Core.");
       return EFI_ABORTED;
     }
 
     Status = GetCoreEntryPointAddress(FvImage->FileImage, FvInfo, SecPe32, &SecCoreEntryAddress);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 entry point address for SEC Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image entry point address for SEC Core.");
       return EFI_ABORTED;
     }
 
@@ -1978,13 +1988,13 @@ Returns:
 
     Status = GetCoreMachineType(PeiPe32, &PeiMachineType);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 machine type for PEI Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image machine type for PEI Core.");
       return EFI_ABORTED;
     }
 
     Status = GetCoreEntryPointAddress(FvImage->FileImage, FvInfo, PeiPe32, &PeiCoreEntryAddress);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 entry point address for PEI Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image entry point address for PEI Core.");
       return EFI_ABORTED;
     }
 
@@ -2120,7 +2130,7 @@ Returns:
 
   Status = GetCoreMachineType(SecPe32, &MachineType);
   if(EFI_ERROR(Status)) {
-    Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 machine type for SEC core.");
+    Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image machine type for SEC core.");
     return EFI_ABORTED;
   }
 
@@ -2131,7 +2141,7 @@ Returns:
 
   Status = GetCoreEntryPointAddress(FvImage->FileImage, FvInfo, SecPe32, &SecCoreEntryAddress);
   if(EFI_ERROR(Status)) {
-    Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 entry point address for SEC Core.");
+    Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image entry point address for SEC Core.");
     return EFI_ABORTED;
   }
 
@@ -2209,13 +2219,13 @@ Returns:
 
     Status = GetCoreMachineType(SecPe32, &MachineType);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 machine type for SEC Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image machine type for SEC Core.");
       return EFI_ABORTED;
     }
 
     Status = GetCoreEntryPointAddress(FvImage->FileImage, FvInfo, SecPe32, &SecCoreEntryAddress);
     if (EFI_ERROR(Status)) {
-      Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 entry point address for SEC Core.");
+      Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image entry point address for SEC Core.");
       return EFI_ABORTED;
     }
 
@@ -2252,8 +2262,9 @@ Returns:
 }
 
 EFI_STATUS
-GetPe32Info (
-  IN UINT8                  *Pe32,
+GetUefiImageInfo (
+  IN UINT8                  *UefiImage,
+  IN  UINT32                UefiImageSize,
   OUT UINT32                *EntryPoint,
   OUT UINT16                *MachineType
   )
@@ -2261,14 +2272,15 @@ GetPe32Info (
 
 Routine Description:
 
-  Retrieves the PE32 entry point offset and machine type from PE image or TeImage.
+  Retrieves the UEFI image entry point offset and machine type from UEFI image.
   See EfiImage.h for machine types.  The entry point offset is from the beginning
-  of the PE32 buffer passed in.
+  of the UEFI image buffer passed in.
 
 Arguments:
 
-  Pe32          Beginning of the PE32.
-  EntryPoint    Offset from the beginning of the PE32 to the image entry point.
+  UefiImage     Beginning of the UEFI image.
+  UefiImageSize The size, in bytes, of UefiImage.
+  EntryPoint    Offset from the beginning of the UEFI image to the image entry point.
   MachineType   Magic number for the machine type.
 
 Returns:
@@ -2280,46 +2292,23 @@ Returns:
 
 --*/
 {
-  EFI_IMAGE_DOS_HEADER             *DosHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT Context;
 
   //
   // Verify input parameters
   //
-  if (Pe32 == NULL) {
+  if (UefiImage == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
-  //
-  // Check whether
-  // First is the DOS header
-  //
-  DosHeader = (EFI_IMAGE_DOS_HEADER *) Pe32;
-
-  //
-  // Verify DOS header is expected
-  //
-  if (DosHeader->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
-    Error (NULL, 0, 3000, "Invalid", "Unknown magic number in the DOS header, 0x%04X.", DosHeader->e_magic);
-    return EFI_UNSUPPORTED;
+  RETURN_STATUS Status = UefiImageInitializeContext (&Context, UefiImage, UefiImageSize);
+  if (RETURN_ERROR (Status)) {
+    Error (NULL, 0, 3000, "Invalid", "Unrecognized UEFI image file.");
+    return Status;
   }
-  //
-  // Immediately following is the NT header.
-  //
-  ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *) ((UINTN) Pe32 + DosHeader->e_lfanew);
 
-  //
-  // Verify NT header is expected
-  //
-  if (ImgHdr->Pe32.Signature != EFI_IMAGE_NT_SIGNATURE) {
-    Error (NULL, 0, 3000, "Invalid", "Unrecognized image signature 0x%08X.", (unsigned) ImgHdr->Pe32.Signature);
-    return EFI_UNSUPPORTED;
-  }
-  //
-  // Get output
-  //
-  *EntryPoint   = ImgHdr->Pe32.OptionalHeader.AddressOfEntryPoint;
-  *MachineType  = ImgHdr->Pe32.FileHeader.Machine;
+  *EntryPoint  = UefiImageGetEntryPointAddress (&Context);
+  *MachineType = UefiImageGetMachine (&Context);
 
   //
   // Verify machine type is supported
@@ -2327,7 +2316,7 @@ Returns:
   if ((*MachineType != IMAGE_FILE_MACHINE_I386) &&  (*MachineType != IMAGE_FILE_MACHINE_X64) && (*MachineType != IMAGE_FILE_MACHINE_EBC) &&
       (*MachineType != IMAGE_FILE_MACHINE_ARM64) && (*MachineType != IMAGE_FILE_MACHINE_RISCV64) &&
       (*MachineType != IMAGE_FILE_MACHINE_LOONGARCH64)) {
-    Error (NULL, 0, 3000, "Invalid", "Unrecognized machine type in the PE32 file.");
+    Error (NULL, 0, 3000, "Invalid", "Unrecognized machine type in the UEFI image file.");
     return EFI_UNSUPPORTED;
   }
 
@@ -3191,50 +3180,6 @@ Returns:
 }
 
 EFI_STATUS
-EFIAPI
-FfsRebaseImageRead (
-  IN     VOID    *FileHandle,
-  IN     UINTN   FileOffset,
-  IN OUT UINT32  *ReadSize,
-  OUT    VOID    *Buffer
-  )
-/*++
-
-Routine Description:
-
-  Support routine for the PE/COFF Loader that reads a buffer from a PE/COFF file
-
-Arguments:
-
-  FileHandle - The handle to the PE/COFF file
-
-  FileOffset - The offset, in bytes, into the file to read
-
-  ReadSize   - The number of bytes to read from the file starting at FileOffset
-
-  Buffer     - A pointer to the buffer to read the data into.
-
-Returns:
-
-  EFI_SUCCESS - ReadSize bytes of data were read into Buffer from the PE/COFF file starting at FileOffset
-
---*/
-{
-  CHAR8   *Destination8;
-  CHAR8   *Source8;
-  UINT32  Length;
-
-  Destination8  = Buffer;
-  Source8       = (CHAR8 *) ((UINTN) FileHandle + FileOffset);
-  Length        = *ReadSize;
-  while (Length--) {
-    *(Destination8++) = *(Source8++);
-  }
-
-  return EFI_SUCCESS;
-}
-
-EFI_STATUS
 GetChildFvFromFfs (
   IN      FV_INFO               *FvInfo,
   IN      EFI_FFS_FILE_HEADER   *FfsFile,
@@ -3287,7 +3232,7 @@ Returns:
     if (!EFI_ERROR(Status)) {
       Status = GetCoreMachineType(CorePe32, &MachineType);
       if (EFI_ERROR(Status)) {
-        Error(NULL, 0, 3000, "Invalid", "Could not get the PE32 machine type for SEC/PEI Core.");
+        Error(NULL, 0, 3000, "Invalid", "Could not get the UEFI image machine type for SEC/PEI Core.");
         return EFI_ABORTED;
       }
 
@@ -3446,32 +3391,40 @@ Returns:
 --*/
 {
   EFI_STATUS                            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
-  PE_COFF_LOADER_IMAGE_CONTEXT          OrigImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT       ImageContext;
+  UINT16                                Machine;
   EFI_PHYSICAL_ADDRESS                  XipBase;
-  EFI_PHYSICAL_ADDRESS                  NewPe32BaseAddress;
+  EFI_PHYSICAL_ADDRESS                  NewBaseAddress;
   UINTN                                 Index;
   EFI_FILE_SECTION_POINTER              CurrentPe32Section;
   EFI_FFS_FILE_STATE                    SavedState;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION       *ImgHdr;
-  UINT8                                 *MemoryImagePointer;
-  EFI_IMAGE_SECTION_HEADER              *SectionHeader;
-  CHAR8                                 PeFileName [MAX_LONG_FILE_PATH];
+  CHAR8                                 UefiImageFileName [MAX_LONG_FILE_PATH];
   CHAR8                                 *Cptr;
-  FILE                                  *PeFile;
-  UINT8                                 *PeFileBuffer;
-  UINT32                                PeFileSize;
-  CHAR8                                 *PdbPointer;
+  FILE                                  *UefiImageFile;
+  UINT8                                 *UefiImageFileBuffer;
+  UINT32                                UefiImageFileSize;
+  BOOLEAN                               FreeUefiImageFile;
+  CONST CHAR8                           *SymbolsPath;
+  UINT32                                SymbolsPathSize;
+  CHAR8                                 *SymbolsPathCpy;
   UINT32                                FfsHeaderSize;
   UINT32                                CurSecHdrSize;
+  UINT32                                SectPeSize;
+  UINT32                                ImageSize;
+  UINT32                                DestinationPages;
+  UINT32                                DestinationSize;
+  UINT32                                ImageAlignment;
+  VOID                                  *Destination;
+  BOOLEAN                               Strip;
+  UINT8                                 ImageFormat;
+  UINT32                                RebasedImageSize;
+  VOID                                  *RebasedImage;
 
-  Index              = 0;
-  MemoryImagePointer = NULL;
-  ImgHdr             = NULL;
-  SectionHeader      = NULL;
-  Cptr               = NULL;
-  PeFile             = NULL;
-  PeFileBuffer       = NULL;
+  Index               = 0;
+  Cptr                = NULL;
+  UefiImageFile       = NULL;
+  UefiImageFileBuffer = NULL;
+  FreeUefiImageFile   = FALSE;
 
   //
   // Don't need to relocate image when BaseAddress is zero and no ForceRebase Flag specified.
@@ -3488,6 +3441,8 @@ Returns:
   }
 
   XipBase = FvInfo->BaseAddress + XipOffset;
+
+  Strip = FALSE;
 
   //
   // We only process files potentially containing PE32 sections.
@@ -3523,7 +3478,7 @@ Returns:
     //
     // Init Value
     //
-    NewPe32BaseAddress = 0;
+    NewBaseAddress = 0;
 
     //
     // Find Pe Image
@@ -3537,139 +3492,75 @@ Returns:
     //
     // Initialize context
     //
-    memset (&ImageContext, 0, sizeof (ImageContext));
-    ImageContext.Handle     = (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize);
-    ImageContext.ImageRead  = (PE_COFF_LOADER_READ_FILE) FfsRebaseImageRead;
-    Status                  = PeCoffLoaderGetImageInfo (&ImageContext);
+    SectPeSize = GetSectionFileLength (CurrentPe32Section.CommonHeader) - CurSecHdrSize;
+    Status = UefiImageInitializeContext (
+               &ImageContext,
+               (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize),
+               SectPeSize
+               );
     if (EFI_ERROR (Status)) {
-      Error (NULL, 0, 3000, "Invalid PeImage", "The input file is %s and the return status is %x", FileName, (int) Status);
+      Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and the return status is %x", FileName, (int) Status);
       return Status;
     }
 
-    if (ImageContext.Machine == IMAGE_FILE_MACHINE_ARM64) {
+    Machine = UefiImageGetMachine (&ImageContext);
+
+    if (Machine == IMAGE_FILE_MACHINE_AARCH64) {
       mArm = TRUE;
     }
 
-    if (ImageContext.Machine == IMAGE_FILE_MACHINE_RISCV64) {
+    if (Machine == IMAGE_FILE_MACHINE_RISCV64) {
       mRiscV = TRUE;
     }
 
-    if (ImageContext.Machine == IMAGE_FILE_MACHINE_LOONGARCH64) {
+    if (Machine == IMAGE_FILE_MACHINE_LOONGARCH64) {
       mLoongArch = TRUE;
     }
 
+    ImageFormat = UefiImageGetFormat (&ImageContext);
+
+    ImageSize        = UefiImageGetImageSize (&ImageContext);
+    DestinationPages = EFI_SIZE_TO_PAGES (ImageSize);
+    DestinationSize  = EFI_PAGES_TO_SIZE (DestinationPages);
+    ImageAlignment   = UefiImageGetSegmentAlignment (&ImageContext);
+    Destination      = AllocateAlignedCodePages (DestinationPages, ImageAlignment);
+    if (Destination == NULL) {
+      return EFI_OUT_OF_RESOURCES;
+    }
+
+    Status = UefiImageLoadImage (&ImageContext, Destination, DestinationSize);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    SymbolsPathCpy = NULL;
     //
-    // Keep Image Context for PE image in FV
+    // Get File SymbolsPath
     //
-    memcpy (&OrigImageContext, &ImageContext, sizeof (ImageContext));
+    Status = UefiImageGetSymbolsPath (&ImageContext, &SymbolsPath, &SymbolsPathSize);
+    if (!RETURN_ERROR (Status)) {
+      SymbolsPathCpy = malloc (SymbolsPathSize);
+      if (SymbolsPathCpy == NULL) {
+        FreeAlignedPages (Destination, DestinationPages);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      memmove (SymbolsPathCpy, SymbolsPath, SymbolsPathSize);
+    }
+
+    FreeAlignedPages (Destination, DestinationPages);
 
     //
-    // Get File PdbPointer
-    //
-    PdbPointer = PeCoffLoaderGetPdbPointer (ImageContext.Handle);
-
-    //
-    // Get PeHeader pointer
-    //
-    ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize + ImageContext.PeCoffHeaderOffset);
-
-    //
-    // Calculate the PE32 base address, based on file type
+    // Calculate the UEFI image base address, based on file type
     //
     switch ((*FfsFile)->Type) {
       case EFI_FV_FILETYPE_SECURITY_CORE:
       case EFI_FV_FILETYPE_PEI_CORE:
       case EFI_FV_FILETYPE_PEIM:
       case EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER:
-        //
-        // Check if section-alignment and file-alignment match or not
-        //
-        if ((ImgHdr->Pe32.OptionalHeader.SectionAlignment != ImgHdr->Pe32.OptionalHeader.FileAlignment)) {
-          //
-          // Xip module has the same section alignment and file alignment.
-          //
-          Error (NULL, 0, 3000, "Invalid", "PE image Section-Alignment and File-Alignment do not match : %s.", FileName);
-          return EFI_ABORTED;
-        }
-        //
-        // PeImage has no reloc section. It will try to get reloc data from the original EFI image.
-        //
-        if (ImageContext.RelocationsStripped) {
-          //
-          // Construct the original efi file Name
-          //
-          if (strlen (FileName) >= MAX_LONG_FILE_PATH) {
-            Error (NULL, 0, 2000, "Invalid", "The file name %s is too long.", FileName);
-            return EFI_ABORTED;
-          }
-          strncpy (PeFileName, FileName, MAX_LONG_FILE_PATH - 1);
-          PeFileName[MAX_LONG_FILE_PATH - 1] = 0;
-          Cptr = PeFileName + strlen (PeFileName);
-          while (*Cptr != '.') {
-            Cptr --;
-          }
-          if (*Cptr != '.') {
-            Error (NULL, 0, 3000, "Invalid", "The file %s has no .reloc section.", FileName);
-            return EFI_ABORTED;
-          } else {
-            *(Cptr + 1) = 'e';
-            *(Cptr + 2) = 'f';
-            *(Cptr + 3) = 'i';
-            *(Cptr + 4) = '\0';
-          }
-          PeFile = fopen (LongFilePath (PeFileName), "rb");
-          if (PeFile == NULL) {
-            Warning (NULL, 0, 0, "Invalid", "The file %s has no .reloc section.", FileName);
-            //Error (NULL, 0, 3000, "Invalid", "The file %s has no .reloc section.", FileName);
-            //return EFI_ABORTED;
-            break;
-          }
-          //
-          // Get the file size
-          //
-          PeFileSize = _filelength (fileno (PeFile));
-          PeFileBuffer = (UINT8 *) malloc (PeFileSize);
-          if (PeFileBuffer == NULL) {
-            fclose (PeFile);
-            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated on rebase of %s", FileName);
-            return EFI_OUT_OF_RESOURCES;
-          }
-          //
-          // Read Pe File
-          //
-          fread (PeFileBuffer, sizeof (UINT8), PeFileSize, PeFile);
-          //
-          // close file
-          //
-          fclose (PeFile);
-          //
-          // Handle pointer to the original efi image.
-          //
-          ImageContext.Handle = PeFileBuffer;
-          Status              = PeCoffLoaderGetImageInfo (&ImageContext);
-          if (EFI_ERROR (Status)) {
-            Error (NULL, 0, 3000, "Invalid PeImage", "The input file is %s and the return status is %x", FileName, (int) Status);
-            return Status;
-          }
-          ImageContext.RelocationsStripped = FALSE;
-        }
-
-        NewPe32BaseAddress = XipBase + (UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize - (UINTN)(*FfsFile);
-        break;
-
       case EFI_FV_FILETYPE_DRIVER:
       case EFI_FV_FILETYPE_DXE_CORE:
-        //
-        // Check if section-alignment and file-alignment match or not
-        //
-        if ((ImgHdr->Pe32.OptionalHeader.SectionAlignment != ImgHdr->Pe32.OptionalHeader.FileAlignment)) {
-          //
-          // Xip module has the same section alignment and file alignment.
-          //
-          Error (NULL, 0, 3000, "Invalid", "PE image Section-Alignment and File-Alignment do not match : %s.", FileName);
-          return EFI_ABORTED;
-        }
-        NewPe32BaseAddress = XipBase + (UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize - (UINTN)(*FfsFile);
+        NewBaseAddress = XipBase + (UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize - (UINTN)(*FfsFile);
         break;
 
       default:
@@ -3679,96 +3570,121 @@ Returns:
         return EFI_SUCCESS;
     }
 
-    //
-    // Relocation doesn't exist
-    //
-    if (ImageContext.RelocationsStripped) {
-      Warning (NULL, 0, 0, "Invalid", "The file %s has no .reloc section.", FileName);
-      continue;
-    }
+    Strip = UefiImageGetRelocsStripped (&ImageContext);
 
-    //
-    // Relocation exist and rebase
-    //
-    //
-    // Load and Relocate Image Data
-    //
-    MemoryImagePointer = (UINT8 *) calloc (1, (UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
-    if (MemoryImagePointer == NULL) {
-      Error (NULL, 0, 4001, "Resource", "memory cannot be allocated on rebase of %s", FileName);
-      return EFI_OUT_OF_RESOURCES;
-    }
-    ImageContext.ImageAddress = ALIGN_VALUE ((UINTN)MemoryImagePointer, ImageContext.SectionAlignment);
-
-    if (!(IS_ALIGNED (NewPe32BaseAddress, ImageContext.SectionAlignment))) {
-      Status = AddPadSection (&NewPe32BaseAddress, ImageContext.SectionAlignment, FfsFile, FileSize, &CurrentPe32Section);
+    if (!(IS_ALIGNED (NewBaseAddress, ImageAlignment))) {
+      Status = AddPadSection (&NewBaseAddress, ImageAlignment, FfsFile, FileSize, &CurrentPe32Section);
       if (EFI_ERROR (Status)) {
-        free ((VOID *) MemoryImagePointer);
         return Status;
       }
 
-      CurSecHdrSize       = GetSectionHeaderLength (CurrentPe32Section.CommonHeader);
-      ImageContext.Handle = (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize);
-      PdbPointer          = PeCoffLoaderGetPdbPointer (ImageContext.Handle);
+      CurSecHdrSize = GetSectionHeaderLength (CurrentPe32Section.CommonHeader);
 
-      ImgHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize + ImageContext.PeCoffHeaderOffset);
+      SectPeSize = GetSectionFileLength (CurrentPe32Section.CommonHeader) - CurSecHdrSize;
     }
 
-    Status = PeCoffLoaderLoadImage (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      Error (NULL, 0, 3000, "Invalid", "LocateImage() call failed on rebase of %s", FileName);
-      free ((VOID *) MemoryImagePointer);
-      return Status;
-    }
+    UefiImageFileBuffer = (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize);
+    UefiImageFileSize   = SectPeSize;
+    //
+    // UefiImage has no reloc section. It will try to get reloc data from the original UEFI image.
+    //
+    if (Strip) {
+      //
+      // Construct the original efi file Name
+      //
+      if (strlen (FileName) >= MAX_LONG_FILE_PATH) {
+        Error (NULL, 0, 2000, "Invalid", "The file name %s is too long.", FileName);
+        return EFI_ABORTED;
+      }
+      strncpy (UefiImageFileName, FileName, MAX_LONG_FILE_PATH - 1);
+      UefiImageFileName[MAX_LONG_FILE_PATH - 1] = 0;
+      Cptr = UefiImageFileName + strlen (UefiImageFileName);
+      while (*Cptr != '.') {
+        Cptr --;
+      }
+      if (*Cptr != '.') {
+        Error (NULL, 0, 3000, "Invalid", "The file %s has no .reloc section.", FileName);
+        return EFI_ABORTED;
+      } else {
+        *(Cptr + 1) = 'e';
+        *(Cptr + 2) = 'f';
+        *(Cptr + 3) = 'i';
+        *(Cptr + 4) = '\0';
+      }
+      UefiImageFile = fopen (LongFilePath (UefiImageFileName), "rb");
+      if (UefiImageFile == NULL) {
+        Warning (NULL, 0, 0, "Invalid", "The file %s has no .reloc section.", FileName);
+        //Error (NULL, 0, 3000, "Invalid", "The file %s has no .reloc section.", FileName);
+        //return EFI_ABORTED;
+        break;
+      }
+      //
+      // Get the file size
+      //
+      UefiImageFileSize = _filelength (fileno (UefiImageFile));
+      UefiImageFileBuffer = (UINT8 *) malloc (UefiImageFileSize);
+      if (UefiImageFileBuffer == NULL) {
+        fclose (UefiImageFile);
+        Error (NULL, 0, 4001, "Resource", "memory cannot be allocated on rebase of %s", FileName);
+        return EFI_OUT_OF_RESOURCES;
+      }
 
-    ImageContext.DestinationAddress = NewPe32BaseAddress;
-
-    Status = PeCoffLoaderRelocateImage (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      Error (NULL, 0, 3000, "Invalid", "RelocateImage() call failed on rebase of %s Status=%d", FileName, Status);
-      free ((VOID *) MemoryImagePointer);
-      return Status;
+      FreeUefiImageFile = TRUE;
+      //
+      // Read Pe File
+      //
+      fread (UefiImageFileBuffer, sizeof (UINT8), UefiImageFileSize, UefiImageFile);
+      //
+      // close file
+      //
+      fclose (UefiImageFile);
     }
 
     //
-    // Copy Relocated data to raw image file.
+    // Load and Relocate Image Data
     //
-    SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-                       (UINTN) ImgHdr +
-                       sizeof (UINT32) +
-                       sizeof (EFI_IMAGE_FILE_HEADER) +
-                       ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-                       );
+    RebasedImage = ToolImageEmit (
+                     &RebasedImageSize,
+                     UefiImageFileBuffer,
+                     UefiImageFileSize,
+                     ImageFormat,
+                     -1,
+                     NULL,
+                     0,
+                     true,
+                     NewBaseAddress,
+                     NULL,
+                     Strip,
+                     FALSE
+                     );
 
-    for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index ++, SectionHeader ++) {
-      CopyMem (
-        (UINT8 *) CurrentPe32Section.Pe32Section + CurSecHdrSize + SectionHeader->PointerToRawData,
-        (VOID*) (UINTN) (ImageContext.ImageAddress + SectionHeader->VirtualAddress),
-        SectionHeader->SizeOfRawData
-        );
+    if (FreeUefiImageFile) {
+      free (UefiImageFileBuffer);
     }
 
-    free ((VOID *) MemoryImagePointer);
-    MemoryImagePointer = NULL;
-    if (PeFileBuffer != NULL) {
-      free (PeFileBuffer);
-      PeFileBuffer = NULL;
+    if (RebasedImage == NULL) {
+      Error (NULL, 0, 4001, "Invalid", "failed to rebase (%s)", FileName);
+      return EFI_UNSUPPORTED;
     }
 
-    //
-    // Update Image Base Address
-    //
-    if (ImgHdr->Pe32.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-      ImgHdr->Pe32.OptionalHeader.ImageBase = (UINT32) NewPe32BaseAddress;
-    } else if (ImgHdr->Pe32Plus.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-      ImgHdr->Pe32Plus.OptionalHeader.ImageBase = NewPe32BaseAddress;
-    } else {
-      Error (NULL, 0, 3000, "Invalid", "unknown PE magic signature %X in PE32 image %s",
-        ImgHdr->Pe32.OptionalHeader.Magic,
-        FileName
-        );
-      return EFI_ABORTED;
+    UefiImageFileBuffer = NULL;
+    UefiImageFileSize   = 0;
+
+    if (RebasedImageSize > SectPeSize) {
+      Error (NULL, 0, 4001, "Invalid", "rebased file is too large (%s)", FileName);
+      return EFI_UNSUPPORTED;
     }
+
+    memmove (
+      (UINT8 *)CurrentPe32Section.Pe32Section + CurSecHdrSize,
+      RebasedImage,
+      RebasedImageSize
+      );
+    memset (
+      (UINT8 *)CurrentPe32Section.Pe32Section + CurSecHdrSize + RebasedImageSize,
+      0,
+      SectPeSize - RebasedImageSize
+      );
 
     //
     // Now update file checksum
@@ -3788,14 +3704,25 @@ Returns:
     // Get this module function address from ModulePeMapFile and add them into FvMap file
     //
 
+    Status = UefiImageInitializeContext (
+      &ImageContext,
+      (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize),
+      RebasedImageSize
+      );
+    ASSERT_EFI_ERROR (Status);
+
     //
     // Default use FileName as map file path
     //
-    if (PdbPointer == NULL) {
-      PdbPointer = FileName;
-    }
+    WriteMapFile (
+      FvMapFile,
+      SymbolsPathCpy != NULL ? SymbolsPathCpy : FileName,
+      *FfsFile,
+      NewBaseAddress,
+      &ImageContext
+      );
 
-    WriteMapFile (FvMapFile, PdbPointer, *FfsFile, NewPe32BaseAddress, &ImageContext);
+    free (SymbolsPathCpy);
   }
 
   return EFI_SUCCESS;
