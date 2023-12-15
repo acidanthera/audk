@@ -607,7 +607,7 @@ class GenFdsGlobalVariable:
         GenFdsGlobalVariable.CallExternalTool(Cmd, "Failed to generate FV")
 
     @staticmethod
-    def GenerateFirmwareImage(Output, Input, Format="Auto", Strip=False, IsMakefile=False):
+    def GenerateFirmwareImage(Output, Input, Format="Auto", Xip=False, Strip=False, IsMakefile=False):
         if not GenFdsGlobalVariable.NeedsUpdate(Output, Input) and not IsMakefile:
             return
         GenFdsGlobalVariable.DebugLogger(EdkLogger.DEBUG_5, "%s needs update because of newer %s" % (Output, Input))
@@ -615,6 +615,8 @@ class GenFdsGlobalVariable:
         Cmd = ["ImageTool GenImage"]
         if Format != "Auto":
             Cmd += ("-c", Format)
+        if Xip:
+            Cmd.append("-x")
         if Strip:
             Cmd.append("-s")
         Cmd += ("-o", Output, Input)

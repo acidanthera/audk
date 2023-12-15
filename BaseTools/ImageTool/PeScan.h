@@ -8,13 +8,13 @@
 
 #include "ImageTool.h"
 
-bool
+RETURN_STATUS
 ScanPeGetRelocInfo (
   OUT image_tool_reloc_info_t       *RelocInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT  *Context
   );
 
-bool
+RETURN_STATUS
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
