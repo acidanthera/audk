@@ -50,6 +50,11 @@ Ext4ReadInode (
   EXT4_BLOCK_NR          InodeTableStart;
   EFI_STATUS             Status;
 
+  if (!EXT4_IS_VALID_INODE_NR (Partition, InodeNum)) {
+    DEBUG ((DEBUG_ERROR, "[ext4] Error reading inode: inode number %lu isn't valid\n", InodeNum));
+    return EFI_VOLUME_CORRUPTED;
+  }
+
   BlockGroupNumber = (UINT32)DivU64x64Remainder (
                                InodeNum - 1,
                                Partition->SuperBlock.s_inodes_per_group,
@@ -164,14 +169,10 @@ Ext4CalculateBlockGroupDescChecksumGdtCsum (
   )
 {
   UINT16  Csum;
-  UINT16  Dummy;
 
-  Dummy = 0;
-
-  Csum = CalculateCrc16Ansi (Partition->SuperBlock.s_uuid, 16, 0);
+  Csum = CalculateCrc16Ansi (Partition->SuperBlock.s_uuid, sizeof (Partition->SuperBlock.s_uuid), 0xFFFF);
   Csum = CalculateCrc16Ansi (&BlockGroupNum, sizeof (BlockGroupNum), Csum);
   Csum = CalculateCrc16Ansi (BlockGroupDesc, OFFSET_OF (EXT4_BLOCK_GROUP_DESC, bg_checksum), Csum);
-  Csum = CalculateCrc16Ansi (&Dummy, sizeof (Dummy), Csum);
   Csum =
     CalculateCrc16Ansi (
       &BlockGroupDesc->bg_block_bitmap_hi,
