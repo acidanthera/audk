@@ -11,7 +11,6 @@
 LIBNAME = Common
 
 OBJECTS = \
-  BasePeCoff.obj \
   BinderFuncs.obj \
   CommonLib.obj \
   Crc32.obj \
@@ -25,12 +24,25 @@ OBJECTS = \
   OsPath.obj \
   ParseGuidedSectionTools.obj \
   ParseInf.obj \
-  PeCoffLoaderEx.obj \
   SimpleFileParsing.obj \
   StringFuncs.obj \
   TianoCompress.obj
 
 OBJECTS = $(OBJECTS) AutoGen.obj DebugLib.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\ImageToolEmit.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\Image.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\ElfScan32.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\ElfScan64.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\ElfScanCommon.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\UefiImageScan.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\PeScan.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmit32.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmit64.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmitCommon.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\BinEmit.obj \
+  $(EDK2_OBJPATH)\OpenCorePkg\User\Library\UserFile.obj
 
 OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\BaseDebugPrintErrorLevelLib.obj
@@ -90,6 +102,30 @@ OBJECTS = $(OBJECTS) \
 OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLib.obj \
   $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLibInternal.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\BaseAlignment.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\BaseBitOverflow.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\BaseMath.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\BaseNativeOverflow.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\BaseTripleOverflow.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffDebug.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffHash.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffHii.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffInfo.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffInit.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffLoad.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffRelocate.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\CommonSupport.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\PeCoffSupport.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\UefiImageLibPeCoff.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull\UefiImageExtraActionLib.obj
 
 OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\BaseMemoryProfileLibNull.obj

@@ -27,14 +27,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Common/UefiBaseTypes.h>
 #include <Common/PiFirmwareFile.h>
-#include <Common/PeImageEx.h>
 #include <Guid/FfsSectionAlignmentPadding.h>
 
 #include "CommonLib.h"
 #include "ParseInf.h"
 #include "EfiUtilityMsgs.h"
 #include "FvLib.h"
-#include "PeCoffLib.h"
 
 #define UTILITY_NAME            "GenFfs"
 #define UTILITY_MAJOR_VERSION   0
@@ -451,104 +449,6 @@ Returns:
     *BufferLength = Size;
     return EFI_SUCCESS;
   }
-}
-
-EFI_STATUS
-EFIAPI
-FfsRebaseImageRead (
-    IN      VOID    *FileHandle,
-    IN      UINTN   FileOffset,
-    IN OUT  UINT32  *ReadSize,
-    OUT     VOID    *Buffer
-    )
-  /*++
-
-    Routine Description:
-
-    Support routine for the PE/COFF Loader that reads a buffer from a PE/COFF file
-
-    Arguments:
-
-   FileHandle - The handle to the PE/COFF file
-
-   FileOffset - The offset, in bytes, into the file to read
-
-   ReadSize   - The number of bytes to read from the file starting at FileOffset
-
-   Buffer     - A pointer to the buffer to read the data into.
-
-   Returns:
-
-   EFI_SUCCESS - ReadSize bytes of data were read into Buffer from the PE/COFF file starting at FileOffset
-
-   --*/
-{
-  CHAR8   *Destination8;
-  CHAR8   *Source8;
-  UINT32  Length;
-
-  Destination8  = Buffer;
-  Source8       = (CHAR8 *) ((UINTN) FileHandle + FileOffset);
-  Length        = *ReadSize;
-  while (Length--) {
-    *(Destination8++) = *(Source8++);
-  }
-
-  return EFI_SUCCESS;
-}
-
-STATIC
-EFI_STATUS
-GetAlignmentFromFile(char *InFile, UINT32 *Alignment)
-  /*++
-    InFile is input file for getting alignment
-    return the alignment
-    --*/
-{
-  FILE                           *InFileHandle;
-  UINT8                          *PeFileBuffer;
-  UINTN                          PeFileSize;
-  UINT32                         CurSecHdrSize;
-  PE_COFF_LOADER_IMAGE_CONTEXT   ImageContext;
-  EFI_COMMON_SECTION_HEADER      *CommonHeader;
-  EFI_STATUS                     Status;
-
-  InFileHandle        = NULL;
-  PeFileBuffer        = NULL;
-  *Alignment          = 0;
-
-  memset (&ImageContext, 0, sizeof (ImageContext));
-
-  InFileHandle = fopen(LongFilePath(InFile), "rb");
-  if (InFileHandle == NULL){
-    Error (NULL, 0, 0001, "Error opening file", InFile);
-    return EFI_ABORTED;
-  }
-  PeFileSize = _filelength (fileno(InFileHandle));
-  PeFileBuffer = (UINT8 *) malloc (PeFileSize);
-  if (PeFileBuffer == NULL) {
-    fclose (InFileHandle);
-    Error(NULL, 0, 4001, "Resource", "memory cannot be allocated for %s", InFile);
-    return EFI_OUT_OF_RESOURCES;
-  }
-  fread (PeFileBuffer, sizeof (UINT8), PeFileSize, InFileHandle);
-  fclose (InFileHandle);
-  CommonHeader = (EFI_COMMON_SECTION_HEADER *) PeFileBuffer;
-  CurSecHdrSize = GetSectionHeaderLength(CommonHeader);
-  ImageContext.Handle = (VOID *) ((UINTN)PeFileBuffer + CurSecHdrSize);
-  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)FfsRebaseImageRead;
-  Status               = PeCoffLoaderGetImageInfo(&ImageContext);
-  if (EFI_ERROR (Status)) {
-    Error (NULL, 0, 3000, "Invalid PeImage", "The input file is %s and return status is %x", InFile, (int) Status);
-    return Status;
-   }
-  *Alignment = ImageContext.SectionAlignment;
-  // Free the allocated memory resource
-  if (PeFileBuffer != NULL) {
-    free (PeFileBuffer);
-    PeFileBuffer = NULL;
-  }
-  return EFI_SUCCESS;
 }
 
 int
