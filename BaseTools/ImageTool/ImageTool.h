@@ -13,8 +13,11 @@
 #include <errno.h>
 #include <assert.h>
 
+#include <IndustryStandard/UeImage.h>
 #include <IndustryStandard/PeImage2.h>
+#include <Library/UeImageLib.h>
 #include <Library/PeCoffLib2.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/BaseOverflowLib.h>
@@ -135,12 +138,20 @@ ToolImageGetRelocSize (
   uint8_t  Type
   );
 
+void *
+ToolImageEmitUe (
+  image_tool_image_info_t *Image,
+  uint32_t                *FileSize,
+  bool                    Xip,
+  bool                    Strip
+  );
+
 RETURN_STATUS
 ToolContextConstructUefiImage (
   OUT image_tool_image_info_t *Image,
   OUT INT8                    *Format,
   IN  const void              *File,
-  IN  size_t                  FileSize
+  IN  uint32_t                FileSize
   );
 
 bool
