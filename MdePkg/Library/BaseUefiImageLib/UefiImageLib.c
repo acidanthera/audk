@@ -285,12 +285,16 @@ UefiImageRelocateImage (
   )
 {
   RETURN_STATUS  Status;
+  VOID           *FormatContext;
+  UINT32         FormatContextSize;
 
+  FormatContext     = RuntimeContext;
+  FormatContextSize = RuntimeContextSize;
   if (RuntimeContext != NULL) {
     *(UINT64 *)RuntimeContext = Context->FormatIndex;
-    RuntimeContext = (UEFI_IMAGE_LOADER_RUNTIME_CONTEXT *)((UINT64 *)RuntimeContext + 1);
-    ASSERT (RuntimeContextSize >= 8);
-    RuntimeContextSize -= 8;
+    FormatContext = (VOID *)((UINT64 *)RuntimeContext + 1);
+    ASSERT (FormatContextSize >= 8);
+    FormatContextSize -= 8;
   }
 
   UEFI_IMAGE_EXEC (
@@ -299,8 +303,8 @@ UefiImageRelocateImage (
     RelocateImage,
     Context,
     BaseAddress,
-    RuntimeContext,
-    RuntimeContextSize
+    FormatContext,
+    FormatContextSize
     );
 
   if (!RETURN_ERROR (Status)) {

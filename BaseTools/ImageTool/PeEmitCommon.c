@@ -9,6 +9,7 @@ void *
 ToolImageEmitPe (
   image_tool_image_info_t  *Image,
   uint32_t                 *FileSize,
+  bool                     Xip,
   bool                     Strip
   )
 {
@@ -20,13 +21,13 @@ ToolImageEmitPe (
     case IMAGE_FILE_MACHINE_I386:
     case IMAGE_FILE_MACHINE_ARMTHUMB_MIXED:
     {
-      return ToolImageEmitPe32 (Image, FileSize);
+      return ToolImageEmitPe32 (Image, FileSize, Xip);
     }
 
     case IMAGE_FILE_MACHINE_X64:
     case IMAGE_FILE_MACHINE_ARM64:
     {
-      return ToolImageEmitPe64 (Image, FileSize);
+      return ToolImageEmitPe64 (Image, FileSize, Xip);
     }
 
     default:
