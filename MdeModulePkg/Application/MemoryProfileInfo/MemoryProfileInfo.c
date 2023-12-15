@@ -452,6 +452,7 @@ DumpMemoryProfileDriverInfo (
   }
 
   Print (L"    ImageBase               - 0x%016lx\n", DriverInfo->ImageBase);
+  Print (L"    DebugBase               - 0x%016lx\n", DriverInfo->DebugBase);
   Print (L"    ImageSize               - 0x%016lx\n", DriverInfo->ImageSize);
   Print (L"    EntryPoint              - 0x%016lx\n", DriverInfo->EntryPoint);
   Print (L"    ImageSubsystem          - 0x%04x (%a)\n", DriverInfo->ImageSubsystem, mSubsystemString[(DriverInfo->ImageSubsystem < sizeof (mSubsystemString)/sizeof (mSubsystemString[0])) ? DriverInfo->ImageSubsystem : 0]);
@@ -947,7 +948,11 @@ DumpContextSummaryData (
     }
 
     if (DriverInfo->PdbStringOffset != 0) {
-      Print (L" (Pdb - %a)\n", (CHAR8 *)((UINTN)DriverInfo + DriverInfo->PdbStringOffset));
+      Print (
+        L" (DebugBase - 0x%016lx, Pdb - %a)\n",
+        (UINT64)DriverInfo->DebugBase,
+        (CHAR8 *)((UINTN)DriverInfo + DriverInfo->PdbStringOffset)
+        );
     } else {
       Print (L"\n");
     }

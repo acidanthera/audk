@@ -313,18 +313,20 @@ DumpCpuContext (
   DEBUG_CODE_BEGIN ();
   CONST CHAR8  *Pdb, *PrevPdb;
   UINTN        ImageBase;
+  UINTN        DebugBase;
   UINT64       *Fp;
   UINT64       RootFp[2];
   UINTN        Idx;
 
-  PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase);
+  PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase, &DebugBase);
   if (Pdb != NULL) {
     DEBUG ((
       DEBUG_ERROR,
-      "PC 0x%012lx (0x%012lx+0x%08x) [ 0] %a\n",
+      "PC 0x%012lx (0x%012lx+0x%08x) (DebugBase=%012lx) [ 0] %a\n",
       SystemContext.SystemContextAArch64->ELR,
       ImageBase,
       SystemContext.SystemContextAArch64->ELR - ImageBase,
+      DebugBase,
       BaseName (Pdb)
       ));
   } else {
@@ -342,7 +344,7 @@ DumpCpuContext (
     }
 
     for (Fp = RootFp; Fp[0] != 0; Fp = (UINT64 *)Fp[0]) {
-      Pdb = GetImageName (Fp[1], &ImageBase);
+      Pdb = GetImageName (Fp[1], &ImageBase, &DebugBase);
       if (Pdb != NULL) {
         if (Pdb != PrevPdb) {
           Idx++;
@@ -351,10 +353,11 @@ DumpCpuContext (
 
         DEBUG ((
           DEBUG_ERROR,
-          "PC 0x%012lx (0x%012lx+0x%08x) [% 2d] %a\n",
+          "PC 0x%012lx (0x%012lx+0x%08x) (DebugBase=0x%012lx) [% 2d] %a\n",
           Fp[1],
           ImageBase,
           Fp[1] - ImageBase,
+          DebugBase,
           Idx,
           BaseName (Pdb)
           ));
@@ -363,14 +366,14 @@ DumpCpuContext (
       }
     }
 
-    PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase);
+    PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase, &DebugBase);
     if (Pdb != NULL) {
       DEBUG ((DEBUG_ERROR, "\n[ 0] %a\n", Pdb));
     }
 
     Idx = 0;
     for (Fp = RootFp; Fp[0] != 0; Fp = (UINT64 *)Fp[0]) {
-      Pdb = GetImageName (Fp[1], &ImageBase);
+      Pdb = GetImageName (Fp[1], &ImageBase, &DebugBase);
       if ((Pdb != NULL) && (Pdb != PrevPdb)) {
         DEBUG ((DEBUG_ERROR, "[% 2d] %a\n", ++Idx, Pdb));
         PrevPdb = Pdb;
