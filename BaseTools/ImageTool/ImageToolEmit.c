@@ -33,9 +33,11 @@ ToolContextConstruct (
              File,
              FileSize
              );
+#ifndef IMAGE_TOOL_DISABLE_ELF
   if (Status == RETURN_UNSUPPORTED) {
     Status = ScanElf (ImageInfo, File, FileSize, SymbolsPath);
   }
+#endif
 
   return Status;
 }
@@ -61,13 +63,13 @@ ValidateOutputFile (
              NULL
              );
   if (EFI_ERROR (Status)) {
-    assert (false);
+    assert (Status == RETURN_OUT_OF_RESOURCES);
     return Status;
   }
 
   Result = CheckToolImage (&OutputImageInfo);
   if (!Result) {
-    raise ();
+    assert (false);
     ToolImageDestruct (&OutputImageInfo);
     return RETURN_UNSUPPORTED;
   }
@@ -94,6 +96,7 @@ ToolImageEmit (
   IN  bool        Relocate,
   IN  uint64_t    BaseAddress,
   IN  const char  *SymbolsPath OPTIONAL,
+  IN  bool        Xip,
   IN  bool        Strip,
   IN  bool        FixedAddress
   )
@@ -138,12 +141,13 @@ ToolImageEmit (
 
   Success = CheckToolImage (&ImageInfo);
   if (!Success) {
+    DEBUG_RAISE ();
     ToolImageDestruct (&ImageInfo);
     return NULL;
   }
 
   if (Relocate) {
-    Success = ToolImageRelocate (&ImageInfo, BaseAddress);
+    Success = ToolImageRelocate (&ImageInfo, BaseAddress, 0);
     if (!Success) {
       fprintf (stderr, "ImageTool: Failed to relocate input file %s\n", SymbolsPath);
       ToolImageDestruct (&ImageInfo);
@@ -157,9 +161,15 @@ ToolImageEmit (
 
   OutputFile = NULL;
   if (Format == UefiImageFormatPe) {
-    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Strip);
+    OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Xip, Strip);
   } else {
     assert (false);
+  }
+
+  if (OutputFile == NULL) {
+    DEBUG_RAISE ();
+    ToolImageDestruct (&ImageInfo);
+    return NULL;
   }
 
   Status = ValidateOutputFile (OutputFile, *OutputFileSize, &ImageInfo);
@@ -167,7 +177,8 @@ ToolImageEmit (
   ToolImageDestruct (&ImageInfo);
 
   if (EFI_ERROR (Status)) {
-    assert (false);
+    assert (Status == RETURN_OUT_OF_RESOURCES);
+    FreePool (OutputFile);
     return NULL;
   }
 

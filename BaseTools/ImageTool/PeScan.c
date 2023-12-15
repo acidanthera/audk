@@ -6,11 +6,13 @@
 
 #include "ImageTool.h"
 
+#include "PeScan.h"
+
 #define PE_COFF_SECT_NAME_RELOC  ".reloc\0"
 #define PE_COFF_SECT_NAME_RESRC  ".rsrc\0\0"
 #define PE_COFF_SECT_NAME_DEBUG  ".debug\0"
 
-bool
+RETURN_STATUS
 ScanPeGetRelocInfo (
   OUT image_tool_reloc_info_t       *RelocInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT  *Context
@@ -29,9 +31,7 @@ ScanPeGetRelocInfo (
   const char                            *ImageBuffer;
   UINT16                                RelocType;
   UINT16                                RelocOffset;
-
-  assert (RelocInfo != NULL);
-  assert (Context   != NULL);
+  uint32_t                              ToolRelocsSize;
 
   // FIXME: PE/COFF context access
   RelocBlockRva = Context->RelocDirRva;
@@ -40,13 +40,28 @@ ScanPeGetRelocInfo (
   // Verify the Relocation Directory is not empty.
   //
   if (RelocDirSize == 0) {
-    return true;
+    return RETURN_SUCCESS;
   }
 
-  RelocInfo->Relocs = calloc (RelocDirSize / sizeof (UINT16), sizeof (*RelocInfo->Relocs));
+  STATIC_ASSERT (
+    sizeof (*RelocInfo->Relocs) % sizeof (UINT16) == 0,
+    "The division below is inaccurate."
+    );
+
+  Overflow = BaseOverflowMulU32 (
+               RelocDirSize,
+               sizeof (*RelocInfo->Relocs) / sizeof (UINT16),
+               &ToolRelocsSize
+               );
+  if (Overflow) {
+    DEBUG_RAISE ();
+    return RETURN_OUT_OF_RESOURCES;
+  }
+
+  RelocInfo->Relocs = AllocateZeroPool (ToolRelocsSize);
   if (RelocInfo->Relocs == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Relocs[]\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   TopOfRelocDir = RelocBlockRva + RelocDirSize;
@@ -65,7 +80,7 @@ ScanPeGetRelocInfo (
                 );
   if (Overflow) {
     fprintf (stderr, "ImageTool: Overflow during TopOfRelocDir calculation\n");
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
   //
   // Apply all Base Relocations of the Image.
@@ -83,7 +98,7 @@ ScanPeGetRelocInfo (
                  );
     if (Overflow) {
       fprintf (stderr, "ImageTool: Overflow during SizeOfRelocs calculation\n");
-      return false;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // Verify the Base Relocation Block is in bounds of the Relocation
@@ -91,7 +106,7 @@ ScanPeGetRelocInfo (
     //
     if (SizeOfRelocs > RelocBlockRvaMax - RelocBlockRva) {
       fprintf (stderr, "ImageTool:  Base Relocation Block is out of bounds of the Relocation Directory\n");
-      return false;
+      return RETURN_VOLUME_CORRUPTED;
     }
     //
     // This arithmetic cannot overflow because we know
@@ -113,7 +128,6 @@ ScanPeGetRelocInfo (
       RelocType   = IMAGE_RELOC_TYPE (RelocBlock->Relocations[RelocIndex]);
       RelocOffset = IMAGE_RELOC_OFFSET (RelocBlock->Relocations[RelocIndex]);
 
-      // FIXME: Make separate functions for UE
       switch (RelocType) {
         case EFI_IMAGE_REL_BASED_ABSOLUTE:
           continue;
@@ -123,7 +137,7 @@ ScanPeGetRelocInfo (
           break;
         default:
           fprintf (stderr, "ImageTool: Unknown RelocType = 0x%x\n", RelocType);
-          return false;
+          return RETURN_UNSUPPORTED;
       }
 
       RelocInfo->Relocs[RelocInfo->NumRelocs].Target = RelocBlock->VirtualAddress + RelocOffset;
@@ -140,13 +154,13 @@ ScanPeGetRelocInfo (
   //
   if (RelocBlockRva != TopOfRelocDir) {
     fprintf (stderr, "ImageTool: Relocation Directory size does not match the contained data\n");
-    return false;
+    return RETURN_VOLUME_CORRUPTED;
   }
 
-  return true;
+  return RETURN_SUCCESS;
 }
 
-bool
+RETURN_STATUS
 ScanPeGetSegmentInfo (
   OUT image_tool_segment_info_t    *SegmentInfo,
   IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
@@ -158,15 +172,19 @@ ScanPeGetSegmentInfo (
   const char                     *ImageBuffer;
   uint32_t                       Index;
 
-  assert (SegmentInfo != NULL);
-  assert (Context     != NULL);
-
   NumSections = PeCoffGetSectionTable (Context, &Section);
 
-  SegmentInfo->Segments = calloc (NumSections, sizeof (*SegmentInfo->Segments));
+  STATIC_ASSERT (
+    sizeof (*SegmentInfo->Segments) <= sizeof (*Section),
+    "The multiplication below may overflow."
+    );
+
+  SegmentInfo->Segments = AllocateZeroPool (
+                            NumSections * sizeof (*SegmentInfo->Segments)
+                            );
   if (SegmentInfo->Segments == NULL) {
     fprintf (stderr, "ImageTool: Could not allocate memory for Segments[]\n");
-    return false;
+    return RETURN_OUT_OF_RESOURCES;
   }
 
   ImageBuffer = (char *)PeCoffLoaderGetImageAddress (Context);
@@ -184,13 +202,14 @@ ScanPeGetSegmentInfo (
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RELOC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_RESRC, sizeof (Section->Name)) != 0
       && memcmp (Section->Name, PE_COFF_SECT_NAME_DEBUG, sizeof (Section->Name)) != 0) {
-      ImageSegment->Name = calloc (1, sizeof (Section->Name));
+      ImageSegment->Name = AllocateCopyPool (
+                             sizeof (Section->Name),
+                             Section->Name
+                             );
       if (ImageSegment->Name == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Name\n");
-        return false;
+        return RETURN_OUT_OF_RESOURCES;
       }
-
-      memmove (ImageSegment->Name, Section->Name, sizeof (Section->Name));
 
       ImageSegment->ImageAddress = Section->VirtualAddress;
       ImageSegment->ImageSize    = ALIGN_VALUE (Section->VirtualSize, SegmentInfo->SegmentAlignment);
@@ -198,98 +217,20 @@ ScanPeGetSegmentInfo (
       ImageSegment->Write        = (Section->Characteristics & EFI_IMAGE_SCN_MEM_WRITE) != 0;
       ImageSegment->Execute      = (Section->Characteristics & EFI_IMAGE_SCN_MEM_EXECUTE) != 0;
 
-      ImageSegment->Data = malloc (ImageSegment->ImageSize);
+      ImageSegment->Data = AllocateCopyPool (
+                             ImageSegment->ImageSize,
+                             ImageBuffer + Section->VirtualAddress
+                             );
       if (ImageSegment->Data == NULL) {
         fprintf (stderr, "ImageTool: Could not allocate memory for Segment Data\n");
-        free (ImageSegment->Name);
-        return false;
+        FreePool (ImageSegment->Name);
+        return RETURN_OUT_OF_RESOURCES;
       }
-
-      memmove (
-        ImageSegment->Data,
-        ImageBuffer + Section->VirtualAddress,
-        ImageSegment->ImageSize
-        );
 
       ++SegmentInfo->NumSegments;
       ++ImageSegment;
     }
   }
 
-  return true;
-}
-
-bool
-ScanPeGetDebugInfo (
-  OUT image_tool_debug_info_t      *DebugInfo,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
-  )
-{
-  const CHAR8   *PdbPath;
-  UINT32        PdbPathSize;
-  RETURN_STATUS Status;
-
-  assert (DebugInfo != NULL);
-  assert (Context   != NULL);
-
-  Status = PeCoffGetPdbPath (Context, &PdbPath, &PdbPathSize);
-  if (Status == RETURN_NOT_FOUND) {
-    return true;
-  }
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not get PdbPath\n");
-    return false;
-  }
-
-  DebugInfo->SymbolsPath = malloc (PdbPathSize);
-  if (DebugInfo->SymbolsPath == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate memory for SymbolsPath\n");
-    return false;
-  }
-
-  memmove (DebugInfo->SymbolsPath, PdbPath, PdbPathSize);
-
-  assert (PdbPathSize >= 1);
-  assert (DebugInfo->SymbolsPath[PdbPathSize - 1] == '\0');
-
-  DebugInfo->SymbolsPathLen = PdbPathSize - 1;
-
-  return true;
-}
-
-bool
-ScanPeGetHiiInfo (
-  OUT image_tool_hii_info_t        *HiiInfo,
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT *Context
-  )
-{
-  UINT32        HiiRva;
-  UINT32        HiiSize;
-  RETURN_STATUS Status;
-  const char    *ImageBuffer;
-
-  assert (HiiInfo != NULL);
-  assert (Context != NULL);
-
-  Status = PeCoffGetHiiDataRva (Context, &HiiRva, &HiiSize);
-  if (Status == RETURN_NOT_FOUND) {
-    return true;
-  }
-  if (RETURN_ERROR (Status)) {
-    fprintf (stderr, "ImageTool: Could not get HiiRva\n");
-    return false;
-  }
-
-  HiiInfo->Data = calloc (1, HiiSize);
-  if (HiiInfo->Data == NULL) {
-    fprintf (stderr, "ImageTool: Could not allocate memory for HiiInfo Data\n");
-    return false;
-  }
-
-  ImageBuffer = (char *)PeCoffLoaderGetImageAddress (Context);
-
-  memmove (HiiInfo->Data, ImageBuffer + HiiRva, HiiSize);
-  HiiInfo->DataSize = HiiSize;
-
-  return true;
+  return RETURN_SUCCESS;
 }
