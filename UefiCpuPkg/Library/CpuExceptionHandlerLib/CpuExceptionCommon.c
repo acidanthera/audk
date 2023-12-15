@@ -120,9 +120,10 @@ DumpModuleImageInfo (
 {
   BOOLEAN      Result;
   UINTN        ImageBase;
+  UINTN        DebugBase;
   CONST CHAR8  *PdbPath;
 
-  Result = GetImageInfoByIp (&ImageBase, &PdbPath, CurrentEip);
+  Result = GetImageInfoByIp (&ImageBase, &DebugBase, &PdbPath, CurrentEip);
 
   if (!Result) {
     InternalPrintMessage ("!!!! Can't find image information. !!!!\n");
@@ -139,8 +140,9 @@ DumpModuleImageInfo (
     }
 
     InternalPrintMessage (
-      " (ImageBase=%016lp) !!!!\n",
-      (EFI_PHYSICAL_ADDRESS) ImageBase
+      " (ImageBase=%016lp, DebugBase=%016lp) !!!!\n",
+      (EFI_PHYSICAL_ADDRESS) ImageBase,
+      (EFI_PHYSICAL_ADDRESS) DebugBase
       );
   }
 }

@@ -2376,20 +2376,19 @@ CoreUpdateDebugTableCrc32 (
 
 /**
   Adds a new DebugImageInfo structure to the DebugImageInfo Table.  Re-Allocates
-  the table if it's not large enough to accomidate another entry.
+  the table if it's not large enough to accommodate another entry.
 
-  @param  ImageInfoType  type of debug image information
   @param  LoadedImage    pointer to the loaded image protocol for the image being
                          loaded
   @param  ImageHandle    image handle for the image being loaded
+  @param  ImageContext   image context for the image being loaded
 
 **/
 VOID
 CoreNewDebugImageInfoEntry (
-  IN  UINT32                     ImageInfoType,
-  IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN  EFI_HANDLE                 ImageHandle,
-  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN       EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN       EFI_HANDLE                       ImageHandle,
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**

@@ -233,7 +233,7 @@ typedef struct {
   UINT64                      SizeOfHeapCommit;
   UINT32                      LoaderFlags;
   UINT32                      NumberOfRvaAndSizes;
-  EFI_IMAGE_DATA_DIRECTORY  DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
+  EFI_IMAGE_DATA_DIRECTORY    DataDirectory[EFI_IMAGE_NUMBER_OF_DIRECTORY_ENTRIES];
 } EFI_IMAGE_OPTIONAL_HEADER64;
 
 

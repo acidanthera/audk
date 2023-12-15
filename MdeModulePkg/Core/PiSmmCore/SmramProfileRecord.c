@@ -267,7 +267,6 @@ BuildDriverInfo (
   IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
   IN EFI_GUID                     *FileName,
   IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT   *ImageContext,
-  IN EFI_PHYSICAL_ADDRESS           LoadAddress,
   IN EFI_FV_FILETYPE              FileType
   )
 {
@@ -313,7 +312,8 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = LoadAddress;
+  DriverInfo->ImageBase      = UefiImageLoaderGetImageAddress (ImageContext);
+  DriverInfo->DebugBase      = UefiImageLoaderGetDebugAddress (ImageContext);
   DriverInfo->ImageSize      = UefiImageGetImageSize (ImageContext);
   DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
   DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
@@ -505,7 +505,6 @@ RegisterSmmCore (
                      ContextData,
                      &gEfiCallerIdGuid,
                      &gSmmCorePrivate->PiSmmCoreImageContext,
-                     gSmmCorePrivate->PiSmmCoreImageBase,
                      EFI_FV_FILETYPE_SMM_CORE
                      );
   if (DriverInfoData == NULL) {
@@ -668,7 +667,6 @@ RegisterSmramProfileImage (
                      ContextData,
                      FileName,
                      ImageContext,
-                     UefiImageLoaderGetImageAddress (ImageContext),
                      EFI_FV_FILETYPE_SMM
                      );
   if (DriverInfoData == NULL) {
