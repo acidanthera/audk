@@ -22,7 +22,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Common/PiFirmwareVolume.h>
 #include <Guid/FirmwareFileSystem2.h>
 #include <Guid/FirmwareFileSystem3.h>
-#include <Common/PeImageEx.h>
 
 #include "CommonLib.h"
 #include "ParseInf.h"
@@ -304,8 +303,9 @@ Returns:
 ;
 
 EFI_STATUS
-GetPe32Info (
-  IN UINT8                  *Pe32,
+GetUefiImageInfo (
+  IN UINT8                  *UefiImage,
+  IN  UINT32                UefiImageSize,
   OUT UINT32                *EntryPoint,
   OUT UINT16                *MachineType
   );

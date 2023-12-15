@@ -7,6 +7,10 @@
 
 #DEPFILES = $(OBJECTS:%.o=%.d)
 
+{$(EDK2_PATH)\BaseTools\ImageTool\}.c{$(EDK2_OBJPATH)\BaseTools\ImageTool\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
 {$(EDK2_PATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\}.obj :
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
@@ -27,11 +31,31 @@
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
 
+{$(EDK2_PATH)\MdePkg\Library\BaseOverflowLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseOverflowLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BasePeCoffLib2\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BaseUefiImageLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
 {$(EDK2_PATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\}.c{$(EDK2_OBJPATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\}.obj :
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
 
 {$(EDK2_PATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\}.c{$(EDK2_OBJPATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\OpenCorePkg\User\Library\}.c{$(EDK2_OBJPATH)\OpenCorePkg\User\Library\}.obj :
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
 
