@@ -949,15 +949,15 @@ EdbPatchSymbolRVA (
   CandidateImageBase = NULL;
   ImageTable         = mDebuggerPrivate.DebugImageInfoTableHeader->EfiDebugImageInfoTable;
   for (ImageNumber = 0; ImageNumber < mDebuggerPrivate.DebugImageInfoTableHeader->TableSize; ImageNumber++) {
-    if (ImageTable[ImageNumber].NormalImage == NULL) {
+    if (ImageTable[ImageNumber].NormalImage2 == NULL) {
       continue;
     }
 
-    ImageBase = ImageTable[ImageNumber].NormalImage->LoadedImageProtocolInstance->ImageBase;
+    ImageBase = ImageTable[ImageNumber].NormalImage2->LoadedImageProtocolInstance->ImageBase;
     //
     // Get PDB path
     //
-    PdbPath = ImageTable[ImageNumber].NormalImage->PdbPath;
+    PdbPath = ImageTable[ImageNumber].NormalImage2->PdbPath;
     if (PdbPath == NULL) {
       continue;
     }

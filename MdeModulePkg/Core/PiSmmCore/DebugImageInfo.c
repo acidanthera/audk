@@ -48,30 +48,29 @@ SmmInitializeDebugImageInfoTable (
 
 /**
   Adds a new DebugImageInfo structure to the DebugImageInfo Table.  Re-Allocates
-  the table if it's not large enough to accomidate another entry.
+  the table if it's not large enough to accommodate another entry.
 
-  @param  ImageInfoType  type of debug image information
   @param  LoadedImage    pointer to the loaded image protocol for the image being
                          loaded
   @param  ImageHandle    image handle for the image being loaded
+  @param  ImageContext   image context for the image being loaded
 
 **/
 VOID
 SmmNewDebugImageInfoEntry (
-  IN     UINT32                           ImageInfoType,
-  IN     EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
-  IN     EFI_HANDLE                       ImageHandle,
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN       EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN       EFI_HANDLE                       ImageHandle,
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_DEBUG_IMAGE_INFO         *Table;
-  EFI_DEBUG_IMAGE_INFO         *NewTable;
-  UINTN                        Index;
-  UINTN                        TableSize;
-  EFI_DEBUG_IMAGE_INFO_NORMAL  *NormalImage;
-  RETURN_STATUS                Status;
-  CONST CHAR8                  *PdbPath;
-  UINT32                       PdbPathSize;
+  EFI_DEBUG_IMAGE_INFO          *Table;
+  EFI_DEBUG_IMAGE_INFO          *NewTable;
+  UINTN                         Index;
+  UINTN                         TableSize;
+  EFI_DEBUG_IMAGE_INFO_NORMAL2  *NormalImage2;
+  RETURN_STATUS                 Status;
+  CONST CHAR8                   *PdbPath;
+  UINT32                        PdbPathSize;
 
   //
   // Set the flag indicating that we're in the process of updating the table.
@@ -85,7 +84,7 @@ SmmNewDebugImageInfoEntry (
     // We still have empty entires in the Table, find the first empty entry.
     //
     Index = 0;
-    while (Table[Index].NormalImage != NULL) {
+    while (Table[Index].NormalImage2 != NULL) {
       Index++;
     }
 
@@ -130,25 +129,26 @@ SmmNewDebugImageInfoEntry (
   //
   // Allocate data for new entry
   //
-  NormalImage = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL));
-  if (NormalImage != NULL) {
+  NormalImage2 = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL2));
+  if (NormalImage2 != NULL) {
     //
     // Update the entry
     //
-    NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
-    NormalImage->LoadedImageProtocolInstance = LoadedImage;
-    NormalImage->ImageHandle                 = ImageHandle;
+    NormalImage2->ImageInfoType               = EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL2;
+    NormalImage2->LoadedImageProtocolInstance = LoadedImage;
+    NormalImage2->ImageHandle                 = ImageHandle;
 
     Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
     if (!RETURN_ERROR (Status)) {
-      NormalImage->PdbPath = AllocateCopyPool (PdbPathSize, PdbPath);
+      NormalImage2->PdbPath = AllocateCopyPool (PdbPathSize, PdbPath);
     }
 
+    NormalImage2->DebugBase = UefiImageLoaderGetDebugAddress (ImageContext);
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
     //
     mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
-    Table[Index].NormalImage            = NormalImage;
+    Table[Index].NormalImage2           = NormalImage2;
     mDebugInfoTableHeader.TableSize++;
   }
 

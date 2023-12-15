@@ -15,7 +15,8 @@
 CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase
+  OUT UINTN  *ImageBase,
+  OUT UINTN  *DebugBase
   );
 
 VOID
