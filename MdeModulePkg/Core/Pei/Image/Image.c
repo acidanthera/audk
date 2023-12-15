@@ -158,7 +158,8 @@ LoadAndRelocateUefiImage (
   IN  VOID                  *Pe32Data,
   IN  UINT32                                    Pe32DataSize,
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT           *ImageContext,
-  OUT EFI_PHYSICAL_ADDRESS                      *ImageAddress
+  OUT EFI_PHYSICAL_ADDRESS                      *ImageAddress,
+  OUT UINTN                                     *DebugBase
   )
 {
   EFI_STATUS                    Status;
@@ -339,6 +340,7 @@ LoadAndRelocateUefiImage (
   }
 
   *ImageAddress = UefiImageLoaderGetImageAddress (ImageContext);
+  *DebugBase    = UefiImageLoaderGetDebugAddress (ImageContext);
 
   return ReturnStatus;
 }
@@ -457,6 +459,7 @@ PeiLoadImageLoadImage (
   VOID                  *Pe32Data;
   UINT32                      Pe32DataSize;
   EFI_PHYSICAL_ADDRESS  ImageAddress;
+  UINTN                 DebugBase;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   *EntryPoint          = 0;
@@ -491,7 +494,8 @@ PeiLoadImageLoadImage (
              Pe32Data,
     Pe32DataSize,
     &ImageContext,
-    &ImageAddress
+    &ImageAddress,
+    &DebugBase
              );
 
   if (EFI_ERROR (Status)) {
@@ -521,12 +525,12 @@ PeiLoadImageLoadImage (
     // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi
     //
     if (Machine != EFI_IMAGE_MACHINE_IA64) {
-      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)*EntryPoint));
+      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p DebugBase=0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)DebugBase, (VOID *)(UINTN)*EntryPoint));
     } else {
       //
       // For IPF Image, the real entry point should be print.
       //
-      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)(*(UINT64 *)(UINTN)*EntryPoint)));
+      DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p DebugBase=0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)DebugBase, (VOID *)(UINTN)(*(UINT64 *)(UINTN)*EntryPoint)));
     }
 
     //

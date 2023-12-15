@@ -58,6 +58,8 @@ typedef struct {
   UINT64                          PeakUsageByType[EfiMaxMemoryType + 2];
   UINT16                          PdbStringOffset;
   UINT8                           Reserved2[6];
+  // FIXME: Changes struct layout.
+  UINT64                          DebugBase;
   // CHAR8                         PdbString[];
 } MEMORY_PROFILE_DRIVER_INFO;
 
