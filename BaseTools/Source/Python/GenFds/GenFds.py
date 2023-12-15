@@ -733,12 +733,12 @@ class GenFds(object):
                         if not os.path.exists(FfsPath[0]):
                             continue
                         MatchDict = {}
-                        ReFileEnds = compile('\S+(.ui)$|\S+(fv.sec.txt)$|\S+(.pe32.txt)$|\S+(.pic.txt)$|\S+(.raw.txt)$|\S+(.ffs.txt)$')
+                        ReFileEnds = compile('\S+(.ui)$|\S+(fv.sec.txt)$|\S+(.pe32.txt)$|\S+(.ue.txt)$|\S+(.pic.txt)$|\S+(.raw.txt)$|\S+(.ffs.txt)$')
                         FileList = os.listdir(FfsPath[0])
                         for File in FileList:
                             Match = ReFileEnds.search(File)
                             if Match:
-                                for Index in range(1, 7):
+                                for Index in range(1, 8):
                                     if Match.group(Index) and Match.group(Index) in MatchDict:
                                         MatchDict[Match.group(Index)].append(File)
                                     elif Match.group(Index):
@@ -759,6 +759,8 @@ class GenFds(object):
                                 FileList = MatchDict['fv.sec.txt']
                             elif '.pe32.txt' in MatchDict:
                                 FileList = MatchDict['.pe32.txt']
+                            elif '.ue.txt' in MatchDict:
+                                FileList = MatchDict['.ue.txt']
                             elif '.pic.txt' in MatchDict:
                                 FileList = MatchDict['.pic.txt']
                             elif '.raw.txt' in MatchDict:
