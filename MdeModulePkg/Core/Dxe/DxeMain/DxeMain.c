@@ -393,7 +393,6 @@ DxeMain (
   //
   CoreInitializeDebugImageInfoTable ();
   CoreNewDebugImageInfoEntry (
-    EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
     gDxeCoreLoadedImage,
     gImageHandle,
     &ImageContext

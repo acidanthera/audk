@@ -984,6 +984,7 @@ ExecuteSmmCoreFromSmram (
   UINTN                         PageCount;
   EFI_IMAGE_ENTRY_POINT         EntryPoint;
   EFI_PHYSICAL_ADDRESS          LoadAddress;
+  UINTN                         DebugBase;
 
   //
   // Search all Firmware Volumes for a PE/COFF image in a file of type SMM_CORE
@@ -1106,6 +1107,7 @@ ExecuteSmmCoreFromSmram (
   Status = UefiImageLoadImageForExecution (&gSmmCorePrivate->PiSmmCoreImageContext, (VOID *)(UINTN)LoadAddress, DestinationSize, NULL, 0);
   if (!EFI_ERROR (Status)) {
     LoadAddress = UefiImageLoaderGetImageAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
+    DebugBase   = UefiImageLoaderGetDebugAddress (&gSmmCorePrivate->PiSmmCoreImageContext);
     //
     // Print debug message showing SMM Core entry point address.
     //
@@ -1113,6 +1115,7 @@ ExecuteSmmCoreFromSmram (
 
     gSmmCorePrivate->PiSmmCoreImageBase = LoadAddress;
     DEBUG ((DEBUG_INFO, "PiSmmCoreImageBase - 0x%016lx\n", gSmmCorePrivate->PiSmmCoreImageBase));
+    DEBUG ((DEBUG_INFO, "PiSmmCoreDebugBase - 0x%016lx\n", DebugBase));
     DEBUG ((DEBUG_INFO, "PiSmmCoreImageSize - 0x%016lx\n", UefiImageGetImageSize (&gSmmCorePrivate->PiSmmCoreImageContext)));
 
     //
