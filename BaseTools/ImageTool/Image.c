@@ -16,22 +16,18 @@ CheckToolImageSegment (
 {
   bool  Overflow;
 
-  assert (Segment            != NULL);
-  assert (PreviousEndAddress != NULL);
-
   if (!IS_ALIGNED (Segment->ImageSize, SegmentInfo->SegmentAlignment)) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
   if (Segment->Write && Segment->Execute) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  // FIXME: Expand prior segment
   if (Segment->ImageAddress != *PreviousEndAddress) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -41,7 +37,7 @@ CheckToolImageSegment (
                PreviousEndAddress
                );
   if (Overflow) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -58,21 +54,18 @@ CheckToolImageSegmentInfo (
   uint32_t  Index;
   bool      Result;
 
-  assert (SegmentInfo != NULL);
-  assert (ImageSize   != NULL);
-
   if (!IS_POW2 (SegmentInfo->SegmentAlignment)) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
   if (SegmentInfo->NumSegments == 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
   if (!IS_ALIGNED (SegmentInfo->Segments[0].ImageAddress, SegmentInfo->SegmentAlignment)) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -84,7 +77,7 @@ CheckToolImageSegmentInfo (
                ImageSize
                );
     if (!Result) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
@@ -93,6 +86,33 @@ CheckToolImageSegmentInfo (
 }
 
 static
+bool
+CheckToolImageHeaderInfo (
+  const image_tool_header_info_t   *HeaderInfo,
+  const image_tool_segment_info_t  *SegmentInfo,
+  uint32_t                         ImageSize
+  )
+{
+  if ((SegmentInfo->Segments[0].ImageAddress > HeaderInfo->EntryPointAddress) ||
+      (HeaderInfo->EntryPointAddress > ImageSize))
+  {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  if (!IS_ALIGNED (HeaderInfo->BaseAddress, SegmentInfo->SegmentAlignment)) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  if (HeaderInfo->BaseAddress + ImageSize < HeaderInfo->BaseAddress) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  return true;
+}
+
 const image_tool_segment_t *
 ImageGetSegmentByAddress (
   uint32_t                         *Address,
@@ -101,9 +121,6 @@ ImageGetSegmentByAddress (
   )
 {
   uint32_t  Index;
-
-  assert (Address != NULL);
-  assert (SegmentInfo != NULL);
 
   for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
     if (  (SegmentInfo->Segments[Index].ImageAddress <= *Address)
@@ -118,22 +135,52 @@ ImageGetSegmentByAddress (
   return NULL;
 }
 
+uint8_t
+ToolImageGetRelocSize (
+  uint8_t  Type
+  )
+{
+  switch (Type) {
+    case EFI_IMAGE_REL_BASED_HIGHLOW:
+    {
+      return sizeof (UINT32);
+    }
+
+    case EFI_IMAGE_REL_BASED_DIR64:
+    {
+      return sizeof (UINT64);
+    }
+
+ #if 0
+    case EFI_IMAGE_REL_BASED_ARM_MOV32T:
+    {
+      return sizeof (UINT32);
+    }
+ #endif
+
+    default:
+    {
+      return 0;
+    }
+  }
+}
+
 static
 bool
 CheckToolImageReloc (
   const image_tool_image_info_t  *Image,
-  uint32_t                       ImageSize,
-  const image_tool_reloc_t       *Reloc
+  const image_tool_reloc_t       *Reloc,
+  uint8_t                        RelocSize
   )
 {
   uint32_t                    RelocOffset;
   uint32_t                    RemainingSize;
   const image_tool_segment_t  *Segment;
-  uint16_t                    MovHigh;
-  uint16_t                    MovLow;
 
-  assert (Image != NULL);
-  assert (Reloc != NULL);
+ #if 0
+  uint16_t  MovHigh;
+  uint16_t  MovLow;
+ #endif
 
   RelocOffset = Reloc->Target;
   Segment     = ImageGetSegmentByAddress (
@@ -142,65 +189,43 @@ CheckToolImageReloc (
                   &Image->SegmentInfo
                   );
   if (Segment == NULL) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  switch (Reloc->Type) {
-    case EFI_IMAGE_REL_BASED_HIGHLOW:
-    {
-      if (RemainingSize < sizeof (UINT32)) {
-        raise ();
-        return false;
-      }
+  if (RelocSize > RemainingSize) {
+    DEBUG_RAISE ();
+    return false;
+  }
 
-      break;
+ #if 0
+  if (Reloc->Type == EFI_IMAGE_REL_BASED_ARM_MOV32T) {
+    if (!IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16))) {
+      DEBUG_RAISE ();
+      return false;
     }
 
-    case EFI_IMAGE_REL_BASED_DIR64:
+    MovHigh = *(const uint16_t *)&Segment->Data[RelocOffset];
+    MovLow  = *(const uint16_t *)&Segment->Data[RelocOffset + 2];
+    if ((((MovHigh & 0xFBF0U) != 0xF200U) && ((MovHigh & 0xFBF0U) != 0xF2C0U)) ||
+        ((MovLow & 0x8000U) != 0))
     {
-      if (RemainingSize < sizeof (UINT64)) {
-        raise ();
-        return false;
-      }
-
-      break;
-    }
-
-    case EFI_IMAGE_REL_BASED_ARM_MOV32T:
-    {
-      if (RemainingSize < sizeof (UINT32)) {
-        raise ();
-        return false;
-      }
-
-      if (!IS_ALIGNED (Reloc->Target, ALIGNOF (UINT16))) {
-        raise ();
-        return false;
-      }
-
-      MovHigh = *(const uint16_t *)&Segment->Data[RelocOffset];
-      MovLow  = *(const uint16_t *)&Segment->Data[RelocOffset + 2];
-      if ((((MovHigh & 0xFBF0U) != 0xF200U) && ((MovHigh & 0xFBF0U) != 0xF2C0U)) ||
-          ((MovLow & 0x8000U) != 0))
-      {
-        raise ();
-        return false;
-      }
-
-      break;
-    }
-
-    default:
-    {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
 
-  /*if (Segment->Write) {
-    printf("!!! writable reloc at %x !!!\n", Reloc->Target);
-  }*/
+ #endif
+
+  // FIXME: Update drivers?
+  if (((Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) ||
+       (Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)) &&
+      Segment->Write)
+  {
+    printf ("!!! writable reloc at %x !!!\n", Reloc->Target);
+    // DEBUG_RAISE ();
+    // return false;
+  }
 
   return true;
 }
@@ -208,15 +233,14 @@ CheckToolImageReloc (
 static
 bool
 CheckToolImageRelocInfo (
-  const image_tool_image_info_t  *Image,
-  uint32_t                       ImageSize
+  const image_tool_image_info_t  *Image
   )
 {
   const image_tool_reloc_info_t  *RelocInfo;
+  uint8_t                        RelocSize;
+  uint32_t                       MinRelocTarget;
   uint32_t                       Index;
   bool                           Result;
-
-  assert (Image != NULL);
 
   RelocInfo = &Image->RelocInfo;
 
@@ -224,33 +248,37 @@ CheckToolImageRelocInfo (
     return true;
   }
 
-  if (RelocInfo->RelocsStripped && (RelocInfo->NumRelocs > 0)) {
-    raise ();
+  if (RelocInfo->RelocsStripped) {
+    DEBUG_RAISE ();
     return false;
   }
 
   if (RelocInfo->NumRelocs > (MAX_UINT32 / sizeof (UINT16))) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[0]);
-  if (!Result) {
-    raise ();
-    return false;
-  }
+  MinRelocTarget = 0;
 
-  for (Index = 1; Index < RelocInfo->NumRelocs; ++Index) {
-    if (RelocInfo->Relocs[Index].Target < RelocInfo->Relocs[Index - 1].Target) {
-      assert (false);
+  for (Index = 0; Index < RelocInfo->NumRelocs; ++Index) {
+    if (RelocInfo->Relocs[Index].Target < MinRelocTarget) {
+      DEBUG_RAISE ();
       return false;
     }
 
-    Result = CheckToolImageReloc (Image, ImageSize, &RelocInfo->Relocs[Index]);
+    RelocSize = ToolImageGetRelocSize (RelocInfo->Relocs[Index].Type);
+    if (RelocSize == 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
+
+    Result = CheckToolImageReloc (Image, &RelocInfo->Relocs[Index], RelocSize);
     if (!Result) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
+
+    MinRelocTarget = RelocInfo->Relocs[Index].Target + RelocSize;
   }
 
   return true;
@@ -262,14 +290,9 @@ CheckToolImageDebugInfo (
   const image_tool_debug_info_t  *DebugInfo
   )
 {
-  assert (DebugInfo != NULL);
-
-  if (DebugInfo->SymbolsPath != NULL) {
-    // FIXME: UE-only?
-    if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
-      raise ();
-      return false;
-    }
+  if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
+    DEBUG_RAISE ();
+    return false;
   }
 
   return true;
@@ -283,23 +306,31 @@ CheckToolImage (
   bool      Result;
   uint32_t  ImageSize;
 
-  assert (Image != NULL);
-
   Result = CheckToolImageSegmentInfo (&Image->SegmentInfo, &ImageSize);
   if (!Result) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  Result = CheckToolImageRelocInfo (Image, ImageSize);
+  Result = CheckToolImageHeaderInfo (
+             &Image->HeaderInfo,
+             &Image->SegmentInfo,
+             ImageSize
+             );
   if (!Result) {
-    raise ();
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  Result = CheckToolImageRelocInfo (Image);
+  if (!Result) {
+    DEBUG_RAISE ();
     return false;
   }
 
   Result = CheckToolImageDebugInfo (&Image->DebugInfo);
   if (!Result) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -318,10 +349,6 @@ ImageInitUnpaddedSize (
     Segment               = &Image->SegmentInfo.Segments[Index];
     Segment->UnpaddedSize = Segment->ImageSize;
 
-    if (Image->HeaderInfo.IsXip) {
-      continue;
-    }
-
     for ( ; Segment->UnpaddedSize > 0; --Segment->UnpaddedSize) {
       if (Segment->Data[Segment->UnpaddedSize - 1] != 0) {
         break;
@@ -337,20 +364,33 @@ ToolImageDestruct (
 {
   uint8_t  Index;
 
-  assert (Image != NULL);
-
   if (Image->SegmentInfo.Segments != NULL) {
     for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
-      free (Image->SegmentInfo.Segments[Index].Name);
-      free (Image->SegmentInfo.Segments[Index].Data);
+      if (Image->SegmentInfo.Segments[Index].Name != NULL) {
+        FreePool (Image->SegmentInfo.Segments[Index].Name);
+      }
+
+      if (Image->SegmentInfo.Segments[Index].Data != NULL) {
+        FreePool (Image->SegmentInfo.Segments[Index].Data);
+      }
     }
 
-    free (Image->SegmentInfo.Segments);
+    if (Image->SegmentInfo.Segments != NULL) {
+      FreePool (Image->SegmentInfo.Segments);
+    }
   }
 
-  free (Image->HiiInfo.Data);
-  free (Image->RelocInfo.Relocs);
-  free (Image->DebugInfo.SymbolsPath);
+  if (Image->HiiInfo.Data != NULL) {
+    FreePool (Image->HiiInfo.Data);
+  }
+
+  if (Image->RelocInfo.Relocs != NULL) {
+    FreePool (Image->RelocInfo.Relocs);
+  }
+
+  if (Image->DebugInfo.SymbolsPath != NULL) {
+    FreePool (Image->DebugInfo.SymbolsPath);
+  }
 
   memset (Image, 0, sizeof (*Image));
 }
@@ -358,9 +398,12 @@ ToolImageDestruct (
 bool
 ToolImageRelocate (
   image_tool_image_info_t  *Image,
-  uint64_t                 BaseAddress
+  uint64_t                 BaseAddress,
+  uint32_t                 IgnorePrefix
   )
 {
+  const image_tool_segment_t  *LastSegment;
+  uint32_t                    ImageSize;
   uint64_t                    Adjust;
   const image_tool_reloc_t    *Reloc;
   uint32_t                    RelocOffset;
@@ -370,10 +413,28 @@ ToolImageRelocate (
   uint32_t                    RelocTarget32;
   uint64_t                    RelocTarget64;
 
+  if (!IS_ALIGNED (BaseAddress, Image->SegmentInfo.SegmentAlignment)) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
   Adjust = BaseAddress - Image->HeaderInfo.BaseAddress;
 
   if (Adjust == 0) {
-    return TRUE;
+    return true;
+  }
+
+  LastSegment = &Image->SegmentInfo.Segments[Image->SegmentInfo.NumSegments - 1];
+  ImageSize   = LastSegment->ImageAddress + LastSegment->ImageSize;
+
+  //
+  // When removing the image header prefix, BaseAddress + ImageSize may indeed
+  // overflow. The important part is that the address starting from the first
+  // image segment does not.
+  //
+  if (BaseAddress + ImageSize < BaseAddress + IgnorePrefix) {
+    DEBUG_RAISE ();
+    return false;
   }
 
   for (Index = 0; Index < Image->RelocInfo.NumRelocs; ++Index) {
@@ -385,10 +446,7 @@ ToolImageRelocate (
                     &RemainingSize,
                     &Image->SegmentInfo
                     );
-    if (Segment == NULL) {
-      raise ();
-      return false;
-    }
+    assert (Segment != NULL);
 
     switch (Reloc->Type) {
       case EFI_IMAGE_REL_BASED_HIGHLOW:
@@ -411,6 +469,7 @@ ToolImageRelocate (
         break;
       }
 
+ #if 0
       case EFI_IMAGE_REL_BASED_ARM_MOV32T:
       {
         assert (RemainingSize >= sizeof (UINT32));
@@ -419,10 +478,11 @@ ToolImageRelocate (
         PeCoffThumbMovwMovtImmediateFixup (&Segment->Data[RelocOffset], Adjust);
         break;
       }
+ #endif
 
       default:
       {
-        raise ();
+        assert (false);
         return false;
       }
     }
@@ -496,7 +556,7 @@ ToolImageCompare (
                 sizeof (Image1->HeaderInfo)
                 );
   if (CmpResult != 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -512,7 +572,7 @@ ToolImageCompare (
                 OFFSET_OF (image_tool_segment_info_t, Segments)
                 );
   if (CmpResult != 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -523,7 +583,7 @@ ToolImageCompare (
                   OFFSET_OF (image_tool_segment_t, Name)
                   );
     if (CmpResult != 0) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
 
@@ -541,20 +601,22 @@ ToolImageCompare (
            )
       {
         if (Name1[NameIndex] != Name2[NameIndex]) {
-          raise ();
+          DEBUG_RAISE ();
           return false;
         }
       }
     }
 
-    CmpResult = memcmp (
-                  Image1->SegmentInfo.Segments[SegIndex].Data,
-                  Image2->SegmentInfo.Segments[SegIndex].Data,
-                  Image1->SegmentInfo.Segments[SegIndex].ImageSize
-                  );
-    if (CmpResult != 0) {
-      raise ();
-      return false;
+    if (Image1->SegmentInfo.Segments[SegIndex].ImageSize != 0) {
+      CmpResult = memcmp (
+                    Image1->SegmentInfo.Segments[SegIndex].Data,
+                    Image2->SegmentInfo.Segments[SegIndex].Data,
+                    Image1->SegmentInfo.Segments[SegIndex].ImageSize
+                    );
+      if (CmpResult != 0) {
+        DEBUG_RAISE ();
+        return false;
+      }
     }
   }
 
@@ -568,18 +630,20 @@ ToolImageCompare (
                 OFFSET_OF (image_tool_reloc_info_t, Relocs)
                 );
   if (CmpResult != 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  CmpResult = memcmp (
-                Image1->RelocInfo.Relocs,
-                Image2->RelocInfo.Relocs,
-                Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
-                );
-  if (CmpResult != 0) {
-    raise ();
-    return false;
+  if (Image1->RelocInfo.NumRelocs != 0) {
+    CmpResult = memcmp (
+                  Image1->RelocInfo.Relocs,
+                  Image2->RelocInfo.Relocs,
+                  Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
+                  );
+    if (CmpResult != 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
   }
 
   //
@@ -592,18 +656,20 @@ ToolImageCompare (
                 OFFSET_OF (image_tool_hii_info_t, Data)
                 );
   if (CmpResult != 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
-  CmpResult = memcmp (
-                Image1->HiiInfo.Data,
-                Image2->HiiInfo.Data,
-                Image1->HiiInfo.DataSize
-                );
-  if (CmpResult != 0) {
-    raise ();
-    return false;
+  if (Image1->HiiInfo.DataSize != 0) {
+    CmpResult = memcmp (
+                  Image1->HiiInfo.Data,
+                  Image2->HiiInfo.Data,
+                  Image1->HiiInfo.DataSize
+                  );
+    if (CmpResult != 0) {
+      DEBUG_RAISE ();
+      return false;
+    }
   }
 
   //
@@ -616,12 +682,12 @@ ToolImageCompare (
                 OFFSET_OF (image_tool_debug_info_t, SymbolsPath)
                 );
   if (CmpResult != 0) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
   if ((Image1->DebugInfo.SymbolsPath != NULL) != (Image2->DebugInfo.SymbolsPath != NULL)) {
-    raise ();
+    DEBUG_RAISE ();
     return false;
   }
 
@@ -631,7 +697,7 @@ ToolImageCompare (
                   Image2->DebugInfo.SymbolsPath
                   );
     if (CmpResult != 0) {
-      raise ();
+      DEBUG_RAISE ();
       return false;
     }
   }
@@ -645,7 +711,11 @@ ToolImageStripRelocs (
   )
 {
   Image->RelocInfo.NumRelocs = 0;
-  free (Image->RelocInfo.Relocs);
+
+  if (Image->RelocInfo.Relocs != NULL) {
+    FreePool (Image->RelocInfo.Relocs);
+  }
+
   Image->RelocInfo.Relocs = NULL;
 
   Image->RelocInfo.RelocsStripped = TRUE;
