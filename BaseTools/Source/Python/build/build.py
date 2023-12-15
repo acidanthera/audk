@@ -1524,16 +1524,16 @@ class Build():
                 #
                 # Update Image to new BaseAddress by ImageTool tool
                 #
-                LaunchCommand(["ImageTool", "GenImage", "-b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.OutputDir)
-                LaunchCommand(["ImageTool", "GenImage", "-b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.DebugDir)
+                LaunchCommand(["ImageTool", "GenImage", "-x", "-b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.OutputDir)
+                LaunchCommand(["ImageTool", "GenImage", "-x", "-b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.DebugDir)
             ## for SMM module in SMRAM, the SMRAM will be allocated from base to top.
             else:
                 BaseAddress = AlignUp(BaseAddress, ModuleInfo.Image.SectionAlignment)
                 #
                 # Set new address to the section header only for SMM driver.
                 #
-                LaunchCommand(["ImageTool", "GenImage", "-f -b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.OutputDir)
-                LaunchCommand(["ImageTool", "GenImage", "-f -b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.DebugDir)
+                LaunchCommand(["ImageTool", "GenImage", "-x", "-f -b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.OutputDir)
+                LaunchCommand(["ImageTool", "GenImage", "-x", "-f -b", str(BaseAddress), "-o", ModuleOutputImage, ModuleOutputImage], ModuleInfo.DebugDir)
             #
             # Collect function address from Map file
             #

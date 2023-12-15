@@ -42,6 +42,7 @@ OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmit64.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmitCommon.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\BinEmit.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\DynamicBuffer.obj \
   $(EDK2_OBJPATH)\OpenCorePkg\User\Library\UserFile.obj
 
 OBJECTS = $(OBJECTS) \
