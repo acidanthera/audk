@@ -70,16 +70,6 @@ PeCoffGetSizeOfImage (
   return Context->SizeOfImage;
 }
 
-UINT32
-PeCoffGetSizeOfImageInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  )
-{
-  ASSERT (Context != NULL);
-
-  return Context->SizeOfImage;
-}
-
 UINT64
 PeCoffGetImageBase (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context

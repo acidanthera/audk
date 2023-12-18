@@ -49,7 +49,7 @@
   HobLib
   MemoryAllocationLib
   MemLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   ReportStatusCodeLib
   StandaloneMmProtectionLib
   StandaloneMmCoreEntryPoint

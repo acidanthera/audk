@@ -36,7 +36,12 @@ LoadUefiImage (
   UINT32                        BufferSize;
   VOID                          *Buffer;
 
-  Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             UefiImage,
+             UefiImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;

@@ -163,6 +163,20 @@ extern UINT64 _gPcd_SkuId_Array[];
 #define _PCD_GET_MODE_8_PcdDebugRaisePropertyMask  _PCD_VALUE_PcdDebugRaisePropertyMask
 //#define _PCD_SET_MODE_8_PcdDebugRaisePropertyMask  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
 
+#define _PCD_TOKEN_PcdUefiImageFormatSupportNonFv  0U
+#define _PCD_VALUE_PcdUefiImageFormatSupportNonFv 0x00
+#define _PCD_SIZE_PcdUefiImageFormatSupportNonFv 1
+#define _PCD_GET_MODE_SIZE_PcdUefiImageFormatSupportNonFv _PCD_SIZE_PcdUefiImageFormatSupportNonFv
+#define _PCD_GET_MODE_8_PcdUefiImageFormatSupportNonFv  _PCD_VALUE_PcdUefiImageFormatSupportNonFv
+//#define _PCD_SET_MODE_8_PcdUefiImageFormatSupportNonFv  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
+#define _PCD_TOKEN_PcdUefiImageFormatSupportFv  0U
+#define _PCD_VALUE_PcdUefiImageFormatSupportFv 0x01
+#define _PCD_SIZE_PcdUefiImageFormatSupportFv 1
+#define _PCD_GET_MODE_SIZE_PcdUefiImageFormatSupportFv _PCD_SIZE_PcdUefiImageFormatSupportFv
+#define _PCD_GET_MODE_8_PcdUefiImageFormatSupportFv  _PCD_VALUE_PcdUefiImageFormatSupportFv
+//#define _PCD_SET_MODE_8_PcdUefiImageFormatSupportFv  ASSERT(FALSE)  // It is not allowed to set value for a FIXED_AT_BUILD PCD
+
 
 #ifdef __cplusplus
 }
