@@ -214,7 +214,12 @@ GetImageContext (
 
   // Initialize the Image Context
   // FIXME: Common FFS API with size checks
-  Status = UefiImageInitializeContext (ImageContext, EfiImage, SectionLength - sizeof (*Section));
+  Status = UefiImageInitializeContext (
+             ImageContext,
+             EfiImage,
+             SectionLength - sizeof (*Section),
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (!EFI_ERROR(Status)) {
     Status = UefiImageLoadImageInplace( ImageContext);
   }

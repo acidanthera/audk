@@ -172,7 +172,8 @@ FindAndReportEntryPoints (
   Status = UefiImageInitializeContext (
              &ImageContext,
              (VOID*) (UINTN) SecCoreImageBase,
-             SecCoreImageSize
+             SecCoreImageSize,
+             UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
 
@@ -198,7 +199,8 @@ FindAndReportEntryPoints (
   Status = UefiImageInitializeContext (
              &ImageContext,
              (VOID*)(UINTN)PeiCoreImageBase,
-             PeiCoreImageSize
+             PeiCoreImageSize,
+             UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
 
