@@ -40,7 +40,12 @@ LoadUefiImage (
   UINT32                          BufferPages;
   UINT32                          BufferAlignment;
 
-  Status = UefiImageInitializeContext (&ImageContext, UefiImage, UefiImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             UefiImage,
+             UefiImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   ASSERT_EFI_ERROR (Status);
 
   ImageSize       = UefiImageGetImageSize (&ImageContext);

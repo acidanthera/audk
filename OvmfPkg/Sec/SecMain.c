@@ -722,7 +722,12 @@ FindAndReportEntryPoints (
   //
   // Report SEC Core debug information when remote debug is enabled
   //
-  Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) SecCoreImageBase, SecCoreImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             (VOID *) (UINTN) SecCoreImageBase,
+             SecCoreImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   ASSERT_EFI_ERROR (Status);
 
   Status = UefiImageLoadImageInplace (&ImageContext);
@@ -733,7 +738,12 @@ FindAndReportEntryPoints (
   //
   // Find PEI Core entry point
   //
-  Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             (VOID *) (UINTN) PeiCoreImageBase,
+             PeiCoreImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   ASSERT_EFI_ERROR (Status);
 
   Status = UefiImageLoadImageInplace (&ImageContext);

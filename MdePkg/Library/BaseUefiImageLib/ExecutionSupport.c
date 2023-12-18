@@ -30,7 +30,7 @@ UefiImageRelocateImageInplaceForExecution (
   }
 
   ImageAddress = UefiImageLoaderGetImageAddress (Context);
-  ImageSize    = UefiImageGetImageSizeInplace (Context);
+  ImageSize    = UefiImageGetImageSize (Context);
   //
   // Flush the instruction cache so the image data is written before
   // execution.
