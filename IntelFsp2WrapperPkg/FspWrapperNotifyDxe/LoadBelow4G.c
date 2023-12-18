@@ -90,7 +90,12 @@ RelocateImageUnder4GIfNeeded (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             Buffer,
+             (UINT32) BufferSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   ASSERT_EFI_ERROR (Status);
   ImageSize      = UefiImageGetImageSize (&ImageContext);
   ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);

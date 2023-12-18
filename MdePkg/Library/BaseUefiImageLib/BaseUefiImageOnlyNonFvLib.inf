@@ -1,25 +1,25 @@
 ## @file
-#  UEFI Image Loader library implementation for PE/COFF Images.
+#  UEFI Image Loader library implementation for UE non-FV Images.
 #
-#  Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
+#  Copyright (c) 2023, Marvin Häuser. All rights reserved.<BR>
 #
 #  SPDX-License-Identifier: BSD-3-Clause
 ##
 
 [Defines]
   INF_VERSION    = 0x00010005
-  BASE_NAME      = BaseUefiImageLibPeCoff
-  FILE_GUID      = 357AD87E-8D6B-468A-B3FA-0D9CC4C725CD
+  BASE_NAME      = BaseUefiImageLibOnlyNonFv
+  FILE_GUID      = 297b4e3e-2cfa-4350-8fa5-ad11dec48e75
   MODULE_TYPE    = BASE
   VERSION_STRING = 1.0
   LIBRARY_CLASS  = UefiImageLib
+  LIBRARY_CLASS  = UefiImageOnlyNonFvLib
 
 [Sources]
   CommonSupport.c
   ExecutionSupport.c
-  PeCoffSupport.h
-  PeCoffSupport.c
-  UefiImageLibPeCoff.c
+  PeSupport.c
+  UefiImageLib.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -37,5 +37,12 @@
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
-  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
+  gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
+
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv
+
+[BuildOptions]
+  *_*_*_CC_FLAGS = -DUEFI_IMAGE_FORMAT_SUPPORT_SOURCES=0x01
+  MSFT:*_*_*_CC_FLAGS = /wd4204
