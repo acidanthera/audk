@@ -48,7 +48,7 @@
   UefiDriverEntryPoint
   BaseLib
   BaseMemoryLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   CacheMaintenanceLib
   DebugLib
   ReportStatusCodeLib

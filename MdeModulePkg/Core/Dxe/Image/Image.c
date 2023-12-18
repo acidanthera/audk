@@ -239,12 +239,17 @@ CoreInitializeImageServices (
   Status = UefiImageInitializeContext (
              ImageContext,
              (VOID *) (UINTN) DxeCoreImageBaseAddress,
-             (UINT32) DxeCoreImageLength
+             (UINT32) DxeCoreImageLength,
+             UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
 
   // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
-  ImageContext->ImageBuffer = (VOID *) ImageContext->FileBuffer;
+  if (ImageContext->FormatIndex == UefiImageFormatPe) {
+    ImageContext->Ctx.Pe.ImageBuffer = (VOID *) ImageContext->Ctx.Pe.FileBuffer;
+  } else {
+    ASSERT (FALSE);
+  }
 
   ASSERT ((UINTN) DxeCoreEntryPoint == UefiImageLoaderGetImageEntryPoint (ImageContext));
 
@@ -590,7 +595,7 @@ CoreLoadPeImage (
       Status = GetUefiImageFixLoadingAssignedAddress (&BufferAddress, ValueInSectionHeader, DstBufSize);
 
       if (!EFI_ERROR (Status))  {
-        if (BufferAddress != UefiImageGetPreferredAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
+        if (BufferAddress != UefiImageGetBaseAddress (ImageContext) && UefiImageGetRelocsStripped (ImageContext)) {
           Status = EFI_UNSUPPORTED;
           DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
         }
@@ -602,7 +607,7 @@ CoreLoadPeImage (
       }
     }
     if (EFI_ERROR (Status)) {
-      BufferAddress = UefiImageGetPreferredAddress (ImageContext);
+      BufferAddress = UefiImageGetBaseAddress (ImageContext);
       if ((BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
         Status = AllocatePagesEx (
                    AllocateAddress,
@@ -1191,7 +1196,12 @@ CoreLoadImageCommon (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContextPreHash (&ImageContext, FHand.Source, (UINT32) FHand.SourceSize);
+  Status = UefiImageInitializeContextPreHash (
+             &ImageContext,
+             FHand.Source,
+             (UINT32) FHand.SourceSize,
+             ImageIsFromFv
+             );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
     return Status;

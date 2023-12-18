@@ -51,7 +51,7 @@
   IoLib
   BlParseLib
   HobLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   PlatformSupportLib
   CpuLib
   StackCheckLib
