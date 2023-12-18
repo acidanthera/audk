@@ -183,7 +183,12 @@ LoadAndRelocateUefiImage (
 
   ReturnStatus = EFI_SUCCESS;
 
-  Status = UefiImageInitializeContext (ImageContext, Pe32Data, Pe32DataSize);
+  Status = UefiImageInitializeContext (
+             ImageContext,
+             Pe32Data,
+             Pe32DataSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -270,7 +275,7 @@ LoadAndRelocateUefiImage (
       }
 
       if (!EFI_ERROR (Status)){
-        Success = Destination == UefiImageGetPreferredAddress (ImageContext);
+        Success = Destination == UefiImageGetBaseAddress (ImageContext);
 
         if (!Success) {
           DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
@@ -362,7 +367,12 @@ LoadAndRelocateUefiImageInPlace (
 
   CopyMem (ImageAddress, Pe32Data, ImageSize);
 
-  Status = UefiImageInitializeContext (&ImageContext, ImageAddress, ImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             ImageAddress,
+             ImageSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
