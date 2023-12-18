@@ -1117,7 +1117,12 @@ ConvertPeiCorePpiPointers (
     // Find PEI Core EntryPoint in the BFV in temporary memory.
     //
     // FIXME: "Assume" sanity and skip full initialisation?
-    Status = UefiImageInitializeContext (&ImageContext, (VOID *) (UINTN) PeiCoreImageBase, PeiCoreImageSize);
+    Status = UefiImageInitializeContext (
+               &ImageContext,
+               (VOID *) (UINTN) PeiCoreImageBase,
+               PeiCoreImageSize,
+               UEFI_IMAGE_SOURCE_FV
+               );
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;

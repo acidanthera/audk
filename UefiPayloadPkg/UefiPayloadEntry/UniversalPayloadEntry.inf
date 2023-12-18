@@ -46,7 +46,7 @@
   CpuLib
   HobPrintLib
   StackCheckLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   MemoryAllocationLib
 
 [Guids]

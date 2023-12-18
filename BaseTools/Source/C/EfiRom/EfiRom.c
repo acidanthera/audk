@@ -836,7 +836,12 @@ Returns:
   RETURN_STATUS                    Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  Context;
 
-  Status = UefiImageInitializeContext (&Context, FileBuffer, FileSize);
+  Status = UefiImageInitializeContext (
+             &Context,
+             FileBuffer,
+             FileSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (RETURN_ERROR (Status)) {
     Error (NULL, 0, 2000, "Invalid parameter", "Input file does not appear to be an UEFI image - %llu!", Status);
     return STATUS_ERROR;

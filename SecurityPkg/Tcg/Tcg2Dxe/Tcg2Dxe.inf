@@ -63,7 +63,7 @@
   PerformanceLib
   ReportStatusCodeLib
   Tcg2PhysicalPresenceLib
-  UefiImageLib
+  UefiImageAllLib
 
 [Guids]
   ## SOMETIMES_CONSUMES     ## Variable:L"SecureBoot"
