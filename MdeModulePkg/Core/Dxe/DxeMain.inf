@@ -83,7 +83,7 @@
   UefiLib
   DebugLib
   DxeCoreEntryPoint
-  UefiImageLib
+  UefiImageAllLib
   UefiImageExtraActionLib
   ExtractGuidedSectionLib
   MemoryAllocationLib

@@ -51,7 +51,7 @@
   IoLib
   HobLib
   CpuLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   MemoryAllocationLib
 
 [Guids]
