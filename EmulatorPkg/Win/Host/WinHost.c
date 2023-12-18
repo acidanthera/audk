@@ -804,7 +804,12 @@ SecUefiImageGetEntryPoint (
   EFI_STATUS                      Status;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
-  Status = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             Pe32Data,
+             Pe32Size,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }

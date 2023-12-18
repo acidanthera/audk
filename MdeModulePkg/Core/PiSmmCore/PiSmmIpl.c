@@ -1003,7 +1003,12 @@ ExecuteSmmCoreFromSmram (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (&gSmmCorePrivate->PiSmmCoreImageContext, SourceBuffer, (UINT32) SourceSize);
+  Status = UefiImageInitializeContext (
+             &gSmmCorePrivate->PiSmmCoreImageContext,
+             SourceBuffer,
+             (UINT32) SourceSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }
