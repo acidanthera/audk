@@ -19,6 +19,9 @@
   VERSION_STRING                 = 1.0
   PI_SPECIFICATION_VERSION       = 0x0001000A
   LIBRARY_CLASS                  = MemoryAllocationLib|SMM_CORE
+  #
+  # This function is defined in PiSmmCore.
+  #
   CONSTRUCTOR                    = PiSmmCoreMemoryAllocationLibConstructor
 
 #
@@ -28,8 +31,6 @@
 #
 
 [Sources]
-  MemoryAllocationLib.c
-  PiSmmCoreMemoryAllocationServices.h
   PiSmmCoreMemoryProfileLibNull.c
 
 [Packages]

@@ -49,7 +49,6 @@
   DxeServicesTableLib
   HobLib
   MemoryAllocationLib
-  PeCoffGetEntryPointLib
   UefiDriverEntryPoint
   UefiLib
 

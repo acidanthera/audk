@@ -358,8 +358,8 @@ ASM_PFX(GasketSecGetNextProtocol):
 
 // PPIs produced by SEC
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffGetEntryPoint)
-ASM_PFX(GasketSecPeCoffGetEntryPoint):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageGetEntryPoint)
+ASM_PFX(GasketSecUefiImageGetEntryPoint):
   pushq   %rbp            // stack frame is for the debugger
   movq    %rsp, %rbp
 
@@ -368,16 +368,17 @@ ASM_PFX(GasketSecPeCoffGetEntryPoint):
 
   movq    %rcx, %rdi    // Swizzle args
   movq    %rdx, %rsi
+  movq    %r8,  %rdx
 
-  call    ASM_PFX(SecPeCoffGetEntryPoint)
+  call    ASM_PFX(SecUefiImageGetEntryPoint)
 
   popq    %rdi          // restore state
   popq    %rsi
   popq    %rbp
   ret
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffRelocateImageExtraAction)
-ASM_PFX(GasketSecPeCoffRelocateImageExtraAction):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageRelocateImageExtraAction)
+ASM_PFX(GasketSecUefiImageRelocateImageExtraAction):
   pushq   %rbp            // stack frame is for the debugger
   movq    %rsp, %rbp
 
@@ -386,15 +387,15 @@ ASM_PFX(GasketSecPeCoffRelocateImageExtraAction):
 
   movq    %rcx, %rdi    // Swizzle args
 
-  call    ASM_PFX(SecPeCoffRelocateImageExtraAction)
+  call    ASM_PFX(SecUefiImageRelocateImageExtraAction)
 
   popq    %rdi          // restore state
   popq    %rsi
   popq    %rbp
   ret
 
-ASM_GLOBAL ASM_PFX(GasketSecPeCoffUnloadImageExtraAction)
-ASM_PFX(GasketSecPeCoffUnloadImageExtraAction):
+ASM_GLOBAL ASM_PFX(GasketSecUefiImageUnloadImageExtraAction)
+ASM_PFX(GasketSecUefiImageUnloadImageExtraAction):
   pushq   %rbp            // stack frame is for the debugger
   movq    %rsp, %rbp
 
@@ -403,7 +404,7 @@ ASM_PFX(GasketSecPeCoffUnloadImageExtraAction):
 
   movq    %rcx, %rdi    // Swizzle args
 
-  call    ASM_PFX(SecPeCoffUnloadImageExtraAction)
+  call    ASM_PFX(SecUefiImageUnloadImageExtraAction)
 
   popq    %rdi          // restore state
   popq    %rsi

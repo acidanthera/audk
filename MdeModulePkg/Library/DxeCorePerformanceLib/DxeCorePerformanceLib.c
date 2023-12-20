@@ -462,9 +462,9 @@ GetModuleInfoFromHandle (
   EFI_STATUS                         Status;
   EFI_LOADED_IMAGE_PROTOCOL          *LoadedImage;
   EFI_DRIVER_BINDING_PROTOCOL        *DriverBinding;
-  CHAR8                              *PdbFileName;
+  //CHAR8                              *PdbFileName;
   EFI_GUID                           *TempGuid;
-  UINTN                              StartIndex;
+  //UINTN                              StartIndex;
   UINTN                              Index;
   INTN                               Count;
   BOOLEAN                            ModuleGuidIsGet;
@@ -558,7 +558,8 @@ GetModuleInfoFromHandle (
     //
     // Method 1 Get Module Name from PDB string.
     //
-    PdbFileName = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
+    // FIXME:
+    /*PdbFileName = UefiImageLoaderGetPdbPointer (LoadedImage->ImageBase);
     if ((PdbFileName != NULL) && (BufferSize > 0)) {
       StartIndex = 0;
       for (Index = 0; PdbFileName[Index] != 0; Index++) {
@@ -587,7 +588,7 @@ GetModuleInfoFromHandle (
       // Module Name is got.
       //
       goto Done;
-    }
+    }*/
   }
 
   //

@@ -18,8 +18,6 @@
 #include <Library/CpuLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/IoLib.h>
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/LocalApicLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
 #include <IndustryStandard/Tdx.h>

@@ -47,9 +47,8 @@
   CpuLib
   DebugAgentLib
   IoLib
-  PeCoffLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
+  UefiImageLib
+  UefiImageExtraActionLib
   ExtractGuidedSectionLib
   LocalApicLib
   MemEncryptSevLib

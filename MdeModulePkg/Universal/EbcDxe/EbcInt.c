@@ -405,27 +405,6 @@ EbcRegisterImage (
   IN  OUT EFI_IMAGE_ENTRY_POINT                 *EntryPoint
   )
 {
-  DEBUG_CODE_BEGIN ();
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  EFI_STATUS                    Status;
-
-  ZeroMem (&ImageContext, sizeof (ImageContext));
-
-  ImageContext.Handle    = (VOID *)(UINTN)ImageBase;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  ASSERT (ImageContext.Machine == EFI_IMAGE_MACHINE_EBC);
-  ASSERT (
-    ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ||
-    ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER
-    );
-  DEBUG_CODE_END ();
-
   EbcRegisterICacheFlush (
     NULL,
     (EBC_ICACHE_FLUSH)InvalidateInstructionCacheRange
