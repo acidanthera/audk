@@ -1,0 +1,109 @@
+# @file
+# GitHub Workflow for CodeQL Analysis
+#
+# Copyright (c) Microsoft Corporation.
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+name: "CodeQL"
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+    paths-ignore:
+      - '**/*.bat'
+      - '**/*.md'
+      - '**/*.py'
+      - '**/*.rst'
+      - '**/*.sh'
+      - '**/*.txt'
+
+  schedule:
+    # https://crontab.guru/#20_23_*_*_4
+    - cron: '20 23 * * 4'
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: windows-latest
+    env:
+      CC: gcc
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "Ext4Pkg", selfpkg_dir: "Ext4Pkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "FatPkg", selfpkg_dir: "FatPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "IntelFsp2Pkg", selfpkg_dir: "IntelFsp2Pkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "IntelFsp2WrapperPkg", selfpkg_dir: "IntelFsp2WrapperPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "MdeModulePkg", selfpkg_dir: "MdeModulePkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "MdePkg", selfpkg_dir: "MdePkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "UefiCpuPkg", selfpkg_dir: "UefiCpuPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "UnitTestFrameworkPkg", selfpkg_dir: "UnitTestFrameworkPkg", archs: "(IA32 X64)", archs_ext: ""},
+          {name: "OvmfPkgIa32", selfpkg_dir: "OvmfPkg", archs: "(IA32)", archs_ext: ""},
+          {name: "OvmfPkgX64", selfpkg_dir: "OvmfPkg", archs: "(X64)", archs_ext: ""},
+          {name: "OvmfPkgIa32X64", selfpkg_dir: "OvmfPkg", archs: "(X64)", archs_ext: "IA32"},
+          {name: "UefiPayloadPkg", selfpkg_dir: "UefiPayloadPkg", archs: "(X64)", archs_ext: ""},
+          {name: "UefiPayloadPkg", selfpkg_dir: "UefiPayloadPkg", archs: "(X64)", archs_ext: "IA32"},
+          {name: "NetworkPkg", selfpkg_dir: "NetworkPkg", archs: "(IA32 X64)", archs_ext: ""},
+        ]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip iasl --no-progress
+
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      # Initializes the CodeQL tools for scanning.
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: 'cpp'
+          # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
+          # Learn more about CodeQL language support at https://codeql.github.com/docs/codeql-overview/supported-languages-and-frameworks/
+          config-file: ./.github/codeql/codeql-config.yml
+          # Note: Add new queries to codeql-config.yml file as they are enabled.
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          cmd <<< "mklink /D .\\UDK .\\" > /dev/null
+
+      - name: Build package
+        run: export ARCHS=${{ matrix.package.archs }}; . ./efibuild.sh
+        env:
+          TARGETS: DEBUG
+          TOOLCHAINS: VS2019
+          SELFPKG: ${{ matrix.package.name }}
+          SELFPKG_DIR: ${{ matrix.package.selfpkg_dir }}
+          ARCHS_EXT: ${{ matrix.package.archs_ext }}
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
