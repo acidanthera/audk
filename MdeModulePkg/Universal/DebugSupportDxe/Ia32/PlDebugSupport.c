@@ -268,10 +268,10 @@ InterruptDistrubutionHub (
 {
   if (IdtEntryTable[ExceptionType].RegisteredCallback != NULL) {
     if (ExceptionType != SYSTEM_TIMER_VECTOR) {
-      IdtEntryTable[ExceptionType].RegisteredCallback (ExceptionType, ContextRecord);
+      ((EFI_EXCEPTION_CALLBACK)(IdtEntryTable[ExceptionType].RegisteredCallback))(ExceptionType, *(EFI_SYSTEM_CONTEXT *) &ContextRecord);
     } else {
       OrigVector = IdtEntryTable[ExceptionType].OrigVector;
-      IdtEntryTable[ExceptionType].RegisteredCallback (ContextRecord);
+      ((EFI_PERIODIC_CALLBACK)(IdtEntryTable[ExceptionType].RegisteredCallback))(*(EFI_SYSTEM_CONTEXT *) &ContextRecord);
     }
   }
 }
