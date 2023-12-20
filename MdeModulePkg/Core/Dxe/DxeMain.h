@@ -73,11 +73,11 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/ExtractGuidedSectionLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 #include <Library/PcdLib.h>
 #include <Library/MemoryAllocationLib.h>
+#include <Library/MemoryAllocationLibEx.h>
 #include <Library/DevicePathLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/ReportStatusCodeLib.h>
@@ -219,34 +219,14 @@ typedef struct {
   EFI_RUNTIME_IMAGE_ENTRY                 *RuntimeData;
   /// Pointer to Loaded Image Device Path Protocol
   EFI_DEVICE_PATH_PROTOCOL                *LoadedImageDevicePath;
-  /// PeCoffLoader ImageContext
-  PE_COFF_LOADER_IMAGE_CONTEXT            ImageContext;
   /// Status returned by LoadImage() service.
   EFI_STATUS                              LoadImageStatus;
+
+  VOID *HiiData;
 } LOADED_IMAGE_PRIVATE_DATA;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
           CR(a, LOADED_IMAGE_PRIVATE_DATA, Info, LOADED_IMAGE_PRIVATE_DATA_SIGNATURE)
-
-#define IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE  SIGNATURE_32 ('I','P','R','C')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    CodeSegmentBase;
-  UINT64                  CodeSegmentSize;
-} IMAGE_PROPERTIES_RECORD_CODE_SECTION;
-
-#define IMAGE_PROPERTIES_RECORD_SIGNATURE  SIGNATURE_32 ('I','P','R','D')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    ImageBase;
-  UINT64                  ImageSize;
-  UINTN                   CodeSegmentCount;
-  LIST_ENTRY              CodeSegmentList;
-} IMAGE_PROPERTIES_RECORD;
 
 //
 // DXE Core Global Variables
@@ -403,7 +383,8 @@ CoreInitializeEventServices (
 **/
 EFI_STATUS
 CoreInitializeImageServices (
-  IN  VOID  *HobStart
+  IN  VOID                         *HobStart,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2398,7 +2379,8 @@ VOID
 CoreNewDebugImageInfoEntry (
   IN  UINT32                     ImageInfoType,
   IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN  EFI_HANDLE                 ImageHandle
+  IN  EFI_HANDLE                 ImageHandle,
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 /**
@@ -2587,7 +2569,8 @@ VerifyFvHeaderChecksum (
 **/
 VOID
 MemoryProfileInit (
-  IN VOID  *HobStart
+  IN VOID                         *HobStart,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2613,8 +2596,9 @@ MemoryProfileInstallProtocol (
 **/
 EFI_STATUS
 RegisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry,
-  IN EFI_FV_FILETYPE            FileType
+  IN EFI_DEVICE_PATH_PROTOCOL   *FilePath,
+  IN EFI_FV_FILETYPE            FileType,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT      *ImageContext
   );
 
 /**
@@ -2630,7 +2614,8 @@ RegisterMemoryProfileImage (
 **/
 EFI_STATUS
 UnregisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry
+  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
+  IN EFI_PHYSICAL_ADDRESS  ImageAddress
   );
 
 /**
@@ -2717,7 +2702,8 @@ InstallMemoryAttributesTableOnMemoryAllocation (
 **/
 VOID
 InsertImageRecord (
-  IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
+  IN LOADED_IMAGE_PRIVATE_DATA   *Image,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -2738,8 +2724,8 @@ RemoveImageRecord (
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**

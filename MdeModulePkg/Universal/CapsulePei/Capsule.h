@@ -25,13 +25,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/HobLib.h>
 #include <Library/PeiServicesTablePointerLib.h>
 #include <Library/PrintLib.h>
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/PcdLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include "Common/CommonHeader.h"
 
 #ifdef MDE_CPU_IA32

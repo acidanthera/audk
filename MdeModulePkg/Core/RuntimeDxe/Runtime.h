@@ -22,7 +22,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 #include <Library/CacheMaintenanceLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 
 //
 // Function Prototypes

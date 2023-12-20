@@ -11,7 +11,6 @@
 #include <Uefi.h>
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/ArmDisassemblerLib.h>
 #include <Library/SerialPortLib.h>
@@ -54,11 +53,10 @@ STATIC CONST CPSR_CHAR  mCpsrChar[] = {
   { 0,  '?' }
 };
 
-CHAR8 *
+CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase,
-  OUT UINTN  *PeCoffSizeOfHeaders
+  OUT UINTN  *ImageBase
   );
 
 /**
@@ -229,20 +227,19 @@ DefaultExceptionHandler (
   UnicodeSPrintAsciiFormat (UnicodeBuffer, MAX_PRINT_CHARS, Buffer);
 
   DEBUG_CODE_BEGIN ();
-  CHAR8   *Pdb;
-  UINT32  ImageBase;
-  UINT32  PeCoffSizeOfHeader;
-  UINT32  Offset;
-  CHAR8   CpsrStr[CPSR_STRING_SIZE];    // char per bit. Lower 5-bits are mode
-                                        // that is a 3 char string
-  CHAR8   Buffer[80];
-  UINT8   *DisAsm;
-  UINT32  ItBlock;
+  CONST CHAR8   *Pdb;
+  UINT32        ImageBase;
+  UINT32        Offset;
+  CHAR8         CpsrStr[CPSR_STRING_SIZE];  // char per bit. Lower 5-bits are mode
+                                            // that is a 3 char string
+  CHAR8         Buffer[80];
+  UINT8         *DisAsm;
+  UINT32        ItBlock;
 
   CpsrString (SystemContext.SystemContextArm->CPSR, CpsrStr);
   DEBUG ((DEBUG_ERROR, "%a\n", CpsrStr));
 
-  Pdb    = GetImageName (SystemContext.SystemContextArm->PC, &ImageBase, &PeCoffSizeOfHeader);
+  Pdb    = GetImageName (SystemContext.SystemContextArm->PC, &ImageBase);
   Offset = SystemContext.SystemContextArm->PC - ImageBase;
   if (Pdb != NULL) {
     DEBUG ((DEBUG_ERROR, "%a\n", Pdb));
@@ -255,7 +252,9 @@ DefaultExceptionHandler (
     // you need to subtract out the size of the PE/COFF header to get
     // get the offset that matches the link map.
     //
-    DEBUG ((DEBUG_ERROR, "loaded at 0x%08x (PE/COFF offset) 0x%x (ELF or Mach-O offset) 0x%x", ImageBase, Offset, Offset - PeCoffSizeOfHeader));
+    // FIXME: Used to have  (ELF or Mach-O offset) 0x%x
+    //        Substitute with .text address (better + may be needed for GDB symbols?)
+    DEBUG ((EFI_D_ERROR, "loaded at 0x%08x (PE/COFF offset) 0x%x", ImageBase, Offset));
 
     // If we come from an image it is safe to show the instruction. We know it should not fault
     DisAsm  = (UINT8 *)(UINTN)SystemContext.SystemContextArm->PC;

@@ -20,6 +20,7 @@
 #include <Library/HobLib.h>
 #include <Library/SerialPortLib.h>
 #include <Library/ArmPlatformLib.h>
+#include <Library/UefiImageLib.h>
 
 extern UINT64  mSystemMemoryEnd;
 

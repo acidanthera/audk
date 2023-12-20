@@ -15,42 +15,22 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugLib.h>
 #include <Library/PcdLib.h>
 
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Guid/PiSmmMemoryAttributesTable.h>
 
 #include "PiSmmCore.h"
+#include "ProcessorBind.h"
 
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
-
-#define IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE  SIGNATURE_32 ('I','P','R','C')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    CodeSegmentBase;
-  UINT64                  CodeSegmentSize;
-} IMAGE_PROPERTIES_RECORD_CODE_SECTION;
-
-#define IMAGE_PROPERTIES_RECORD_SIGNATURE  SIGNATURE_32 ('I','P','R','D')
-
-typedef struct {
-  UINT32                  Signature;
-  LIST_ENTRY              Link;
-  EFI_PHYSICAL_ADDRESS    ImageBase;
-  UINT64                  ImageSize;
-  UINTN                   CodeSegmentCount;
-  LIST_ENTRY              CodeSegmentList;
-} IMAGE_PROPERTIES_RECORD;
 
 #define IMAGE_PROPERTIES_PRIVATE_DATA_SIGNATURE  SIGNATURE_32 ('I','P','P','D')
 
 typedef struct {
   UINT32        Signature;
   UINTN         ImageRecordCount;
-  UINTN         CodeSegmentCountMax;
+  UINT32                 NumberOfSectionsMax;
   LIST_ENTRY    ImageRecordList;
 } IMAGE_PROPERTIES_PRIVATE_DATA;
 
@@ -263,13 +243,13 @@ EnforceMemoryMapAttribute (
   @return first image record covered by [buffer, length]
 **/
 STATIC
-IMAGE_PROPERTIES_RECORD *
+UEFI_IMAGE_RECORD *
 GetImageRecordByAddress (
   IN EFI_PHYSICAL_ADDRESS  Buffer,
   IN UINT64                Length
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
+  UEFI_IMAGE_RECORD          *ImageRecord;
   LIST_ENTRY               *ImageRecordLink;
   LIST_ENTRY               *ImageRecordList;
 
@@ -281,13 +261,13 @@ GetImageRecordByAddress (
   {
     ImageRecord = CR (
                     ImageRecordLink,
-                    IMAGE_PROPERTIES_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    IMAGE_PROPERTIES_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
-    if ((Buffer <= ImageRecord->ImageBase) &&
-        (Buffer + Length >= ImageRecord->ImageBase + ImageRecord->ImageSize))
+    if ((Buffer <= ImageRecord->StartAddress) &&
+        (Buffer + Length >= ImageRecord->EndAddress))
     {
       return ImageRecord;
     }
@@ -312,103 +292,50 @@ GetImageRecordByAddress (
 STATIC
 UINTN
 SetNewRecord (
-  IN IMAGE_PROPERTIES_RECORD    *ImageRecord,
+  IN UEFI_IMAGE_RECORD             *ImageRecord,
   IN OUT EFI_MEMORY_DESCRIPTOR  *NewRecord,
   IN EFI_MEMORY_DESCRIPTOR      *OldRecord,
   IN UINTN                      DescriptorSize
   )
 {
-  EFI_MEMORY_DESCRIPTOR                 TempRecord;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-  LIST_ENTRY                            *ImageRecordCodeSectionLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionEndLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionList;
-  UINTN                                 NewRecordCount;
-  UINT64                                PhysicalEnd;
-  UINT64                                ImageEnd;
+  UEFI_IMAGE_RECORD_SEGMENT                 *ImageRecordSegment;
+  UINTN                                     SectionAddress;
+  UINT32                                    Index;
+  UINT32                                NewRecordCount;
 
-  CopyMem (&TempRecord, OldRecord, sizeof (EFI_MEMORY_DESCRIPTOR));
-  PhysicalEnd    = TempRecord.PhysicalStart + EfiPagesToSize (TempRecord.NumberOfPages);
   NewRecordCount = 0;
 
   //
   // Always create a new entry for non-PE image record
   //
-  if (ImageRecord->ImageBase > TempRecord.PhysicalStart) {
-    NewRecord->Type          = TempRecord.Type;
-    NewRecord->PhysicalStart = TempRecord.PhysicalStart;
+  if (ImageRecord->StartAddress > OldRecord->PhysicalStart) {
+    NewRecord->Type          = OldRecord->Type;
+    NewRecord->PhysicalStart = OldRecord->PhysicalStart;
     NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->ImageBase - TempRecord.PhysicalStart);
-    NewRecord->Attribute     = TempRecord.Attribute;
+    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - OldRecord->PhysicalStart);
+    NewRecord->Attribute     = OldRecord->Attribute;
     NewRecord                = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
     NewRecordCount++;
-    TempRecord.PhysicalStart = ImageRecord->ImageBase;
-    TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - TempRecord.PhysicalStart);
   }
 
-  ImageRecordCodeSectionList = &ImageRecord->CodeSegmentList;
-
-  ImageRecordCodeSectionLink    = ImageRecordCodeSectionList->ForwardLink;
-  ImageRecordCodeSectionEndLink = ImageRecordCodeSectionList;
-  while (ImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-    ImageRecordCodeSection = CR (
-                               ImageRecordCodeSectionLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    ImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-
-    if (TempRecord.PhysicalStart <= ImageRecordCodeSection->CodeSegmentBase) {
-      //
-      // DATA
-      //
-      NewRecord->Type          = EfiRuntimeServicesData;
-      NewRecord->PhysicalStart = TempRecord.PhysicalStart;
-      NewRecord->VirtualStart  = 0;
-      NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordCodeSection->CodeSegmentBase - NewRecord->PhysicalStart);
-      NewRecord->Attribute     = TempRecord.Attribute | EFI_MEMORY_XP;
-      if (NewRecord->NumberOfPages != 0) {
-        NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
-        NewRecordCount++;
-      }
-
-      //
-      // CODE
-      //
-      NewRecord->Type          = EfiRuntimeServicesCode;
-      NewRecord->PhysicalStart = ImageRecordCodeSection->CodeSegmentBase;
-      NewRecord->VirtualStart  = 0;
-      NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordCodeSection->CodeSegmentSize);
-      NewRecord->Attribute     = (TempRecord.Attribute & (~EFI_MEMORY_XP)) | EFI_MEMORY_RO;
-      if (NewRecord->NumberOfPages != 0) {
-        NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
-        NewRecordCount++;
-      }
-
-      TempRecord.PhysicalStart = ImageRecordCodeSection->CodeSegmentBase + EfiPagesToSize (EfiSizeToPages (ImageRecordCodeSection->CodeSegmentSize));
-      TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - TempRecord.PhysicalStart);
-      if (TempRecord.NumberOfPages == 0) {
-        break;
-      }
+  SectionAddress = ImageRecord->StartAddress;
+  for (Index = 0; Index < ImageRecord->NumSegments; ++Index) {
+    ImageRecordSegment = &ImageRecord->Segments[Index];
+    if ((ImageRecordSegment->Attributes & EFI_MEMORY_XP) == 0) {
+      NewRecord->Type        = EfiRuntimeServicesCode;
+    } else {
+      NewRecord->Type        = EfiRuntimeServicesData;
     }
-  }
-
-  ImageEnd = ImageRecord->ImageBase + ImageRecord->ImageSize;
-
-  //
-  // Final DATA
-  //
-  if (TempRecord.PhysicalStart < ImageEnd) {
-    NewRecord->Type          = EfiRuntimeServicesData;
-    NewRecord->PhysicalStart = TempRecord.PhysicalStart;
+    NewRecord->PhysicalStart = SectionAddress;
     NewRecord->VirtualStart  = 0;
-    NewRecord->NumberOfPages = EfiSizeToPages (ImageEnd - TempRecord.PhysicalStart);
-    NewRecord->Attribute     = TempRecord.Attribute | EFI_MEMORY_XP;
-    NewRecordCount++;
+    NewRecord->NumberOfPages = EfiSizeToPages (ImageRecordSegment->Size);
+    NewRecord->Attribute     = (OldRecord->Attribute & ~(UINT64) EFI_MEMORY_ACCESS_MASK) | ImageRecordSegment->Attributes;
+
+    SectionAddress += ImageRecordSegment->Size;
+    NewRecord = NEXT_MEMORY_DESCRIPTOR (NewRecord, DescriptorSize);
   }
 
-  return NewRecordCount;
+  return NewRecordCount + ImageRecord->NumSegments;
 }
 
 /**
@@ -426,7 +353,7 @@ GetMaxSplitRecordCount (
   IN EFI_MEMORY_DESCRIPTOR  *OldRecord
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
+  UEFI_IMAGE_RECORD       *ImageRecord;
   UINTN                    SplitRecordCount;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
@@ -436,16 +363,23 @@ GetMaxSplitRecordCount (
   PhysicalEnd      = OldRecord->PhysicalStart + EfiPagesToSize (OldRecord->NumberOfPages);
 
   do {
+    // FIXME: Inline iteration to not always start anew?
     ImageRecord = GetImageRecordByAddress (PhysicalStart, PhysicalEnd - PhysicalStart);
     if (ImageRecord == NULL) {
       break;
     }
 
-    SplitRecordCount += (2 * ImageRecord->CodeSegmentCount + 2);
-    PhysicalStart     = ImageRecord->ImageBase + ImageRecord->ImageSize;
+    //
+    // Per image, they may be one trailer.
+    //
+    SplitRecordCount += ImageRecord->NumSegments + 1;
+    PhysicalStart = ImageRecord->EndAddress;
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
 
-  return SplitRecordCount;
+  //
+  // There may be additional prefix data.
+  //
+  return SplitRecordCount + 1;
 }
 
 /**
@@ -473,8 +407,8 @@ SplitRecord (
   )
 {
   EFI_MEMORY_DESCRIPTOR    TempRecord;
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  IMAGE_PROPERTIES_RECORD  *NewImageRecord;
+  UEFI_IMAGE_RECORD       *ImageRecord;
+  UEFI_IMAGE_RECORD       *NewImageRecord;
   UINT64                   PhysicalStart;
   UINT64                   PhysicalEnd;
   UINTN                    NewRecordCount;
@@ -528,7 +462,7 @@ SplitRecord (
     //
     // Update PhysicalStart, in order to exclude the image buffer already splitted.
     //
-    PhysicalStart            = ImageRecord->ImageBase + ImageRecord->ImageSize;
+    PhysicalStart = ImageRecord->EndAddress;
     TempRecord.PhysicalStart = PhysicalStart;
     TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
   } while ((ImageRecord != NULL) && (PhysicalStart < PhysicalEnd));
@@ -603,7 +537,10 @@ SplitTable (
   UINTN  TotalSplitRecordCount;
   UINTN  AdditionalRecordCount;
 
-  AdditionalRecordCount = (2 * mImagePropertiesPrivateData.CodeSegmentCountMax + 2) * mImagePropertiesPrivateData.ImageRecordCount;
+  //
+  // Per image, they may be one trailer. There may be prefixed data.
+  //
+  AdditionalRecordCount = (mImagePropertiesPrivateData.NumberOfSectionsMax + 1) * mImagePropertiesPrivateData.ImageRecordCount + 1;
 
   TotalSplitRecordCount = 0;
   //
@@ -729,7 +666,10 @@ SmmCoreGetMemoryMapMemoryAttributesTable (
     return EFI_INVALID_PARAMETER;
   }
 
-  AdditionalRecordCount = (2 * mImagePropertiesPrivateData.CodeSegmentCountMax + 2) * mImagePropertiesPrivateData.ImageRecordCount;
+  //
+  // Per image, they may be one trailer. There may be prefixed data.
+  //
+  AdditionalRecordCount = (mImagePropertiesPrivateData.NumberOfSectionsMax + 1) * mImagePropertiesPrivateData.ImageRecordCount + 1;
 
   OldMemoryMapSize = *MemoryMapSize;
   Status           = SmmCoreGetMemoryMap (MemoryMapSize, MemoryMap, MapKey, DescriptorSize, DescriptorVersion);
@@ -778,216 +718,45 @@ SetMemoryAttributesTableSectionAlignment (
 }
 
 /**
-  Swap two code sections in image record.
-
-  @param[in]  FirstImageRecordCodeSection    first code section in image record
-  @param[in]  SecondImageRecordCodeSection   second code section in image record
-**/
-STATIC
-VOID
-SwapImageRecordCodeSection (
-  IN IMAGE_PROPERTIES_RECORD_CODE_SECTION  *FirstImageRecordCodeSection,
-  IN IMAGE_PROPERTIES_RECORD_CODE_SECTION  *SecondImageRecordCodeSection
-  )
-{
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  TempImageRecordCodeSection;
-
-  TempImageRecordCodeSection.CodeSegmentBase = FirstImageRecordCodeSection->CodeSegmentBase;
-  TempImageRecordCodeSection.CodeSegmentSize = FirstImageRecordCodeSection->CodeSegmentSize;
-
-  FirstImageRecordCodeSection->CodeSegmentBase = SecondImageRecordCodeSection->CodeSegmentBase;
-  FirstImageRecordCodeSection->CodeSegmentSize = SecondImageRecordCodeSection->CodeSegmentSize;
-
-  SecondImageRecordCodeSection->CodeSegmentBase = TempImageRecordCodeSection.CodeSegmentBase;
-  SecondImageRecordCodeSection->CodeSegmentSize = TempImageRecordCodeSection.CodeSegmentSize;
-}
-
-/**
-  Sort code section in image record, based upon CodeSegmentBase from low to high.
-
-  @param[in]  ImageRecord    image record to be sorted
-**/
-STATIC
-VOID
-SortImageRecordCodeSection (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
-  )
-{
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *NextImageRecordCodeSection;
-  LIST_ENTRY                            *ImageRecordCodeSectionLink;
-  LIST_ENTRY                            *NextImageRecordCodeSectionLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionEndLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionList;
-
-  ImageRecordCodeSectionList = &ImageRecord->CodeSegmentList;
-
-  ImageRecordCodeSectionLink     = ImageRecordCodeSectionList->ForwardLink;
-  NextImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-  ImageRecordCodeSectionEndLink  = ImageRecordCodeSectionList;
-  while (ImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-    ImageRecordCodeSection = CR (
-                               ImageRecordCodeSectionLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    while (NextImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-      NextImageRecordCodeSection = CR (
-                                     NextImageRecordCodeSectionLink,
-                                     IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                                     Link,
-                                     IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                                     );
-      if (ImageRecordCodeSection->CodeSegmentBase > NextImageRecordCodeSection->CodeSegmentBase) {
-        SwapImageRecordCodeSection (ImageRecordCodeSection, NextImageRecordCodeSection);
-      }
-
-      NextImageRecordCodeSectionLink = NextImageRecordCodeSectionLink->ForwardLink;
-    }
-
-    ImageRecordCodeSectionLink     = ImageRecordCodeSectionLink->ForwardLink;
-    NextImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-  }
-}
-
-/**
-  Check if code section in image record is valid.
-
-  @param[in]  ImageRecord    image record to be checked
-
-  @retval TRUE  image record is valid
-  @retval FALSE image record is invalid
-**/
-STATIC
-BOOLEAN
-IsImageRecordCodeSectionValid (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
-  )
-{
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *LastImageRecordCodeSection;
-  LIST_ENTRY                            *ImageRecordCodeSectionLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionEndLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionList;
-
-  DEBUG ((DEBUG_VERBOSE, "SMM ImageCode SegmentCount - 0x%x\n", ImageRecord->CodeSegmentCount));
-
-  ImageRecordCodeSectionList = &ImageRecord->CodeSegmentList;
-
-  ImageRecordCodeSectionLink    = ImageRecordCodeSectionList->ForwardLink;
-  ImageRecordCodeSectionEndLink = ImageRecordCodeSectionList;
-  LastImageRecordCodeSection    = NULL;
-  while (ImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-    ImageRecordCodeSection = CR (
-                               ImageRecordCodeSectionLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    if (ImageRecordCodeSection->CodeSegmentSize == 0) {
-      return FALSE;
-    }
-
-    if (ImageRecordCodeSection->CodeSegmentBase < ImageRecord->ImageBase) {
-      return FALSE;
-    }
-
-    if (ImageRecordCodeSection->CodeSegmentBase >= MAX_ADDRESS - ImageRecordCodeSection->CodeSegmentSize) {
-      return FALSE;
-    }
-
-    if ((ImageRecordCodeSection->CodeSegmentBase + ImageRecordCodeSection->CodeSegmentSize) > (ImageRecord->ImageBase + ImageRecord->ImageSize)) {
-      return FALSE;
-    }
-
-    if (LastImageRecordCodeSection != NULL) {
-      if ((LastImageRecordCodeSection->CodeSegmentBase + LastImageRecordCodeSection->CodeSegmentSize) > ImageRecordCodeSection->CodeSegmentBase) {
-        return FALSE;
-      }
-    }
-
-    LastImageRecordCodeSection = ImageRecordCodeSection;
-    ImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-  }
-
-  return TRUE;
-}
-
-/**
-  Swap two image records.
-
-  @param[in]  FirstImageRecord   first image record.
-  @param[in]  SecondImageRecord  second image record.
-**/
-STATIC
-VOID
-SwapImageRecord (
-  IN IMAGE_PROPERTIES_RECORD  *FirstImageRecord,
-  IN IMAGE_PROPERTIES_RECORD  *SecondImageRecord
-  )
-{
-  IMAGE_PROPERTIES_RECORD  TempImageRecord;
-
-  TempImageRecord.ImageBase        = FirstImageRecord->ImageBase;
-  TempImageRecord.ImageSize        = FirstImageRecord->ImageSize;
-  TempImageRecord.CodeSegmentCount = FirstImageRecord->CodeSegmentCount;
-
-  FirstImageRecord->ImageBase        = SecondImageRecord->ImageBase;
-  FirstImageRecord->ImageSize        = SecondImageRecord->ImageSize;
-  FirstImageRecord->CodeSegmentCount = SecondImageRecord->CodeSegmentCount;
-
-  SecondImageRecord->ImageBase        = TempImageRecord.ImageBase;
-  SecondImageRecord->ImageSize        = TempImageRecord.ImageSize;
-  SecondImageRecord->CodeSegmentCount = TempImageRecord.CodeSegmentCount;
-
-  SwapListEntries (&FirstImageRecord->CodeSegmentList, &SecondImageRecord->CodeSegmentList);
-}
-
-/**
   Sort image record based upon the ImageBase from low to high.
 **/
 STATIC
 VOID
-SortImageRecord (
-  VOID
+InsertSortImageRecord (
+  IN UEFI_IMAGE_RECORD        *NewImageRecord
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  IMAGE_PROPERTIES_RECORD  *NextImageRecord;
-  LIST_ENTRY               *ImageRecordLink;
-  LIST_ENTRY               *NextImageRecordLink;
-  LIST_ENTRY               *ImageRecordEndLink;
-  LIST_ENTRY               *ImageRecordList;
+  UEFI_IMAGE_RECORD            *ImageRecord;
+  LIST_ENTRY                   *PrevImageRecordLink;
+  LIST_ENTRY                   *ImageRecordLink;
+  LIST_ENTRY                   *ImageRecordList;
 
   ImageRecordList = &mImagePropertiesPrivateData.ImageRecordList;
 
-  ImageRecordLink     = ImageRecordList->ForwardLink;
-  NextImageRecordLink = ImageRecordLink->ForwardLink;
-  ImageRecordEndLink  = ImageRecordList;
-  while (ImageRecordLink != ImageRecordEndLink) {
+  PrevImageRecordLink = ImageRecordList;
+  for (
+    ImageRecordLink = GetFirstNode (ImageRecordList);
+    !IsNull (ImageRecordLink, ImageRecordList);
+    ImageRecordLink = GetNextNode (ImageRecordList, PrevImageRecordLink)
+    ) {
     ImageRecord = CR (
                     ImageRecordLink,
-                    IMAGE_PROPERTIES_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    IMAGE_PROPERTIES_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
-    while (NextImageRecordLink != ImageRecordEndLink) {
-      NextImageRecord = CR (
-                          NextImageRecordLink,
-                          IMAGE_PROPERTIES_RECORD,
-                          Link,
-                          IMAGE_PROPERTIES_RECORD_SIGNATURE
-                          );
-      if (ImageRecord->ImageBase > NextImageRecord->ImageBase) {
-        SwapImageRecord (ImageRecord, NextImageRecord);
-      }
-
-      NextImageRecordLink = NextImageRecordLink->ForwardLink;
+    if (NewImageRecord->StartAddress < ImageRecord->StartAddress) {
+      break;
     }
 
-    ImageRecordLink     = ImageRecordLink->ForwardLink;
-    NextImageRecordLink = ImageRecordLink->ForwardLink;
+    PrevImageRecordLink = ImageRecordLink;
+  }
+
+  InsertHeadList (PrevImageRecordLink, &NewImageRecord->Link);
+  mImagePropertiesPrivateData.ImageRecordCount++;
+
+  if (mImagePropertiesPrivateData.NumberOfSectionsMax < NewImageRecord->NumSegments) {
+    mImagePropertiesPrivateData.NumberOfSectionsMax = NewImageRecord->NumSegments;
   }
 }
 
@@ -1000,7 +769,7 @@ DumpImageRecord (
   VOID
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
+  UEFI_IMAGE_RECORD            *ImageRecord;
   LIST_ENTRY               *ImageRecordLink;
   LIST_ENTRY               *ImageRecordList;
   UINTN                    Index;
@@ -1013,11 +782,11 @@ DumpImageRecord (
   {
     ImageRecord = CR (
                     ImageRecordLink,
-                    IMAGE_PROPERTIES_RECORD,
+                    UEFI_IMAGE_RECORD,
                     Link,
-                    IMAGE_PROPERTIES_RECORD_SIGNATURE
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
-    DEBUG ((DEBUG_VERBOSE, "SMM  Image[%d]: 0x%016lx - 0x%016lx\n", Index, ImageRecord->ImageBase, ImageRecord->ImageSize));
+    DEBUG ((DEBUG_VERBOSE, "SMM  Image[%d]: 0x%016lx - 0x%016lx\n", Index, ImageRecord->StartAddress, ImageRecord->EndAddress - ImageRecord->StartAddress));
   }
 }
 
@@ -1028,172 +797,60 @@ DumpImageRecord (
 **/
 VOID
 SmmInsertImageRecord (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  VOID                                  *ImageAddress;
-  EFI_IMAGE_DOS_HEADER                  *DosHdr;
-  UINT32                                PeCoffHeaderOffset;
+  RETURN_STATUS                        PdbStatus;
+  PHYSICAL_ADDRESS                     ImageBuffer;
+  UINTN                                NumberOfPage;
   UINT32                                SectionAlignment;
-  EFI_IMAGE_SECTION_HEADER              *Section;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION   Hdr;
-  UINT8                                 *Name;
-  UINTN                                 Index;
-  IMAGE_PROPERTIES_RECORD               *ImageRecord;
-  CHAR8                                 *PdbPointer;
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
+  UEFI_IMAGE_RECORD                    *ImageRecord;
+  CONST CHAR8                          *PdbPointer;
+  UINT32                               PdbSize;
 
-  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%x\n", DriverEntry));
-  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", DriverEntry->ImageBuffer, DriverEntry->NumberOfPage));
+  ImageBuffer  = (UINTN)LoadedImage->ImageBase;
+  NumberOfPage = EFI_SIZE_TO_PAGES((UINTN)LoadedImage->ImageSize);
 
-  ImageRecord = AllocatePool (sizeof (*ImageRecord));
-  if (ImageRecord == NULL) {
-    return;
-  }
-
-  ImageRecord->Signature = IMAGE_PROPERTIES_RECORD_SIGNATURE;
+  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", ImageBuffer, NumberOfPage));
 
   DEBUG ((DEBUG_VERBOSE, "SMM ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
-  //
-  // Step 1: record whole region
-  //
-  ImageRecord->ImageBase = DriverEntry->ImageBuffer;
-  ImageRecord->ImageSize = EfiPagesToSize (DriverEntry->NumberOfPage);
-
-  ImageAddress = (VOID *)(UINTN)DriverEntry->ImageBuffer;
-
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-  if (PdbPointer != NULL) {
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!RETURN_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
-  }
-
-  //
-  // Check PE/COFF image
-  //
-  DosHdr             = (EFI_IMAGE_DOS_HEADER *)(UINTN)ImageAddress;
-  PeCoffHeaderOffset = 0;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    PeCoffHeaderOffset = DosHdr->e_lfanew;
-  }
-
-  Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINT8 *)(UINTN)ImageAddress + PeCoffHeaderOffset);
-  if (Hdr.Pe32->Signature != EFI_IMAGE_NT_SIGNATURE) {
-    DEBUG ((DEBUG_VERBOSE, "SMM Hdr.Pe32->Signature invalid - 0x%x\n", Hdr.Pe32->Signature));
-    goto Finish;
   }
 
   //
   // Get SectionAlignment
   //
-  if (Hdr.Pe32->OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    SectionAlignment = Hdr.Pe32->OptionalHeader.SectionAlignment;
-  } else {
-    SectionAlignment = Hdr.Pe32Plus->OptionalHeader.SectionAlignment;
-  }
+  SectionAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
   SetMemoryAttributesTableSectionAlignment (SectionAlignment);
   if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
     DEBUG ((
       DEBUG_WARN,
       "SMM !!!!!!!!  InsertImageRecord - Section Alignment(0x%x) is not %dK  !!!!!!!!\n",
-      SectionAlignment,
-      RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10
-      ));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
+      SectionAlignment, RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10));
+    if (!RETURN_ERROR (PdbStatus)) {
       DEBUG ((DEBUG_WARN, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
     }
 
     goto Finish;
   }
 
-  Section = (EFI_IMAGE_SECTION_HEADER *)(
-                                         (UINT8 *)(UINTN)ImageAddress +
-                                         PeCoffHeaderOffset +
-                                         sizeof (UINT32) +
-                                         sizeof (EFI_IMAGE_FILE_HEADER) +
-                                         Hdr.Pe32->FileHeader.SizeOfOptionalHeader
-                                         );
-  ImageRecord->CodeSegmentCount = 0;
-  InitializeListHead (&ImageRecord->CodeSegmentList);
-  for (Index = 0; Index < Hdr.Pe32->FileHeader.NumberOfSections; Index++) {
-    Name = Section[Index].Name;
-    DEBUG ((
-      DEBUG_VERBOSE,
-      "SMM   Section - '%c%c%c%c%c%c%c%c'\n",
-      Name[0],
-      Name[1],
-      Name[2],
-      Name[3],
-      Name[4],
-      Name[5],
-      Name[6],
-      Name[7]
-      ));
-
-    if ((Section[Index].Characteristics & EFI_IMAGE_SCN_CNT_CODE) != 0) {
-      DEBUG ((DEBUG_VERBOSE, "SMM   VirtualSize          - 0x%08x\n", Section[Index].Misc.VirtualSize));
-      DEBUG ((DEBUG_VERBOSE, "SMM   VirtualAddress       - 0x%08x\n", Section[Index].VirtualAddress));
-      DEBUG ((DEBUG_VERBOSE, "SMM   SizeOfRawData        - 0x%08x\n", Section[Index].SizeOfRawData));
-      DEBUG ((DEBUG_VERBOSE, "SMM   PointerToRawData     - 0x%08x\n", Section[Index].PointerToRawData));
-      DEBUG ((DEBUG_VERBOSE, "SMM   PointerToRelocations - 0x%08x\n", Section[Index].PointerToRelocations));
-      DEBUG ((DEBUG_VERBOSE, "SMM   PointerToLinenumbers - 0x%08x\n", Section[Index].PointerToLinenumbers));
-      DEBUG ((DEBUG_VERBOSE, "SMM   NumberOfRelocations  - 0x%08x\n", Section[Index].NumberOfRelocations));
-      DEBUG ((DEBUG_VERBOSE, "SMM   NumberOfLinenumbers  - 0x%08x\n", Section[Index].NumberOfLinenumbers));
-      DEBUG ((DEBUG_VERBOSE, "SMM   Characteristics      - 0x%08x\n", Section[Index].Characteristics));
-
-      //
-      // Step 2: record code section
-      //
-      ImageRecordCodeSection = AllocatePool (sizeof (*ImageRecordCodeSection));
-      if (ImageRecordCodeSection == NULL) {
-        return;
-      }
-
-      ImageRecordCodeSection->Signature = IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE;
-
-      ImageRecordCodeSection->CodeSegmentBase = (UINTN)ImageAddress + Section[Index].VirtualAddress;
-      ImageRecordCodeSection->CodeSegmentSize = Section[Index].SizeOfRawData;
-
-      DEBUG ((DEBUG_VERBOSE, "SMM ImageCode: 0x%016lx - 0x%016lx\n", ImageRecordCodeSection->CodeSegmentBase, ImageRecordCodeSection->CodeSegmentSize));
-
-      InsertTailList (&ImageRecord->CodeSegmentList, &ImageRecordCodeSection->Link);
-      ImageRecord->CodeSegmentCount++;
-    }
+  //
+  // The image headers are not recorded among the sections, allocate one more.
+  //
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
+  if (ImageRecord == NULL) {
+    return ;
   }
 
-  if (ImageRecord->CodeSegmentCount == 0) {
-    SetMemoryAttributesTableSectionAlignment (1);
-    DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageAddress);
-    if (PdbPointer != NULL) {
-      DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
+  UefiImageDebugPrintSegments (ImageContext);
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
-    goto Finish;
-  }
-
-  //
-  // Final
-  //
-  SortImageRecordCodeSection (ImageRecord);
-  //
-  // Check overlap all section in ImageBase/Size
-  //
-  if (!IsImageRecordCodeSectionValid (ImageRecord)) {
-    DEBUG ((DEBUG_ERROR, "SMM IsImageRecordCodeSectionValid - FAIL\n"));
-    goto Finish;
-  }
-
-  InsertTailList (&mImagePropertiesPrivateData.ImageRecordList, &ImageRecord->Link);
-  mImagePropertiesPrivateData.ImageRecordCount++;
-
-  if (mImagePropertiesPrivateData.CodeSegmentCountMax < ImageRecord->CodeSegmentCount) {
-    mImagePropertiesPrivateData.CodeSegmentCountMax = ImageRecord->CodeSegmentCount;
-  }
-
-  SortImageRecord ();
+  InsertSortImageRecord (ImageRecord);
 
 Finish:
   return;
@@ -1282,60 +939,6 @@ PublishMemoryAttributesTable (
 }
 
 /**
-  This function installs all SMM image record information.
-**/
-VOID
-SmmInstallImageRecord (
-  VOID
-  )
-{
-  EFI_STATUS                 Status;
-  UINTN                      NoHandles;
-  EFI_HANDLE                 *HandleBuffer;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  UINTN                      Index;
-  EFI_SMM_DRIVER_ENTRY       DriverEntry;
-
-  Status = SmmLocateHandleBuffer (
-             ByProtocol,
-             &gEfiLoadedImageProtocolGuid,
-             NULL,
-             &NoHandles,
-             &HandleBuffer
-             );
-  if (EFI_ERROR (Status)) {
-    return;
-  }
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gSmst->SmmHandleProtocol (
-                      HandleBuffer[Index],
-                      &gEfiLoadedImageProtocolGuid,
-                      (VOID **)&LoadedImage
-                      );
-    if (EFI_ERROR (Status)) {
-      continue;
-    }
-
-    DEBUG ((DEBUG_VERBOSE, "LoadedImage - 0x%x 0x%x ", LoadedImage->ImageBase, LoadedImage->ImageSize));
-    {
-      VOID  *PdbPointer;
-      PdbPointer = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
-      if (PdbPointer != NULL) {
-        DEBUG ((DEBUG_VERBOSE, "(%a) ", PdbPointer));
-      }
-    }
-    DEBUG ((DEBUG_VERBOSE, "\n"));
-    ZeroMem (&DriverEntry, sizeof (DriverEntry));
-    DriverEntry.ImageBuffer  = (UINTN)LoadedImage->ImageBase;
-    DriverEntry.NumberOfPage = EFI_SIZE_TO_PAGES ((UINTN)LoadedImage->ImageSize);
-    SmmInsertImageRecord (&DriverEntry);
-  }
-
-  FreePool (HandleBuffer);
-}
-
-/**
   Install MemoryAttributesTable.
 
   @param[in] Protocol   Points to the protocol's unique identifier.
@@ -1352,8 +955,6 @@ SmmInstallMemoryAttributesTable (
   IN EFI_HANDLE      Handle
   )
 {
-  SmmInstallImageRecord ();
-
   DEBUG ((DEBUG_VERBOSE, "SMM MemoryProtectionAttribute - 0x%016lx\n", mMemoryProtectionAttribute));
   if ((mMemoryProtectionAttribute & EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA) == 0) {
     return EFI_SUCCESS;

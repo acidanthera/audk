@@ -183,6 +183,64 @@ InitializeSmmIdt (
   SetInterruptState (InterruptState);
 }
 
+#include <Library/SmmServicesTableLib.h>
+#include <Guid/DebugImageInfoTable.h>
+#include <Library/DebugLib.h>
+
+EFI_STATUS
+EFIAPI
+SmmGetSystemConfigurationTable (
+  IN  EFI_GUID  *TableGuid,
+  OUT VOID      **Table
+  );
+
+CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTableHeader = NULL;
+
+// FIXME:
+CONST EFI_DEBUG_IMAGE_INFO_NORMAL *
+InternalLocateImage (
+  IN  UINTN              CurrentEip
+  )
+{
+  EFI_STATUS                        Status;
+  UINT32                            Index;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+
+  if (mDebugImageInfoTableHeader == NULL) {
+    Status = SmmGetSystemConfigurationTable (
+               &gEfiDebugImageInfoTableGuid,
+               (VOID **) &mDebugImageInfoTableHeader
+               );
+    if (EFI_ERROR (Status)) {
+      mDebugImageInfoTableHeader = NULL;
+      return NULL;
+    }
+  }
+
+  ASSERT (mDebugImageInfoTableHeader != NULL);
+
+  for (Index = 0; Index < mDebugImageInfoTableHeader->TableSize; ++Index) {
+    if (mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType == NULL) {
+      continue;
+    }
+
+    if (*mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+      continue;
+    }
+
+    NormalImage = mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].NormalImage;
+
+    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+
+    if (CurrentEip >= (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase &&
+        CurrentEip < (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize) {
+      return NormalImage;
+    }
+  }
+
+  return NULL;
+}
+
 /**
   Search module name by input IP address and output it.
 
@@ -194,18 +252,17 @@ DumpModuleInfoByIp (
   IN  UINTN  CallerIpAddress
   )
 {
-  UINTN  Pe32Data;
-  VOID   *PdbPointer;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+
+  NormalImage = InternalLocateImage (CallerIpAddress);
 
   //
   // Find Image Base
   //
-  Pe32Data = PeCoffSearchImageBase (CallerIpAddress);
-  if (Pe32Data != 0) {
+  if (NormalImage != NULL) {
     DEBUG ((DEBUG_ERROR, "It is invoked from the instruction before IP(0x%p)", (VOID *)CallerIpAddress));
-    PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)Pe32Data);
-    if (PdbPointer != NULL) {
-      DEBUG ((DEBUG_ERROR, " in module (%a)\n", PdbPointer));
+    if (NormalImage->PdbPath!= NULL) {
+      DEBUG ((DEBUG_ERROR, " in module (%a)\n", NormalImage->PdbPath));
     }
   }
 }

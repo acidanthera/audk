@@ -71,6 +71,7 @@ EFI_STATUS
   @param  FileHeader            A pointer to the file header that contains the set of sections to
                                 be searched.
   @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionSize           A pointer to the size of the discovered section, if successful.
 
   @retval EFI_SUCCESS           The section was found.
   @retval EFI_NOT_FOUND         The section was not found.
@@ -82,7 +83,8 @@ FfsFindSectionDataWithHook (
   IN EFI_SECTION_TYPE        SectionType,
   IN FFS_CHECK_SECTION_HOOK  SectionCheckHook,
   IN EFI_PEI_FILE_HANDLE     FileHandle,
-  OUT VOID                   **SectionData
+  OUT VOID                   **SectionData,
+  OUT UINT32                 *SectionSize
   );
 
 /**
@@ -92,6 +94,7 @@ FfsFindSectionDataWithHook (
   @param  FileHandle            A pointer to the file header that contains the set of sections to
                                 be searched.
   @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionSize           A pointer to the size of the discovered section, if successful.
 
   @retval EFI_SUCCESS           The section was found.
   @retval EFI_NOT_FOUND         The section was not found.
@@ -102,7 +105,8 @@ EFIAPI
 FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT VOID                **SectionData
+  OUT VOID                **SectionData,
+  OUT UINT32              *SectionSize
   );
 
 /**
@@ -675,7 +679,7 @@ BuildExtractSectionHob (
 
 VOID
 EFIAPI
-BuildPeCoffLoaderHob (
+BuildUefiLoaderHob (
   VOID
   );
 
@@ -760,10 +764,11 @@ AllocateAlignedPages (
 
 EFI_STATUS
 EFIAPI
-LoadPeCoffImage (
-  IN  VOID                  *PeCoffImage,
+LoadUefiImage (
+  IN  VOID                                      *UefiImage,
+  IN  UINT32                                    UefiImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *ImageAddress,
-  OUT UINT64                *ImageSize,
+  OUT UINT32                *ImageSize,
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   );
 

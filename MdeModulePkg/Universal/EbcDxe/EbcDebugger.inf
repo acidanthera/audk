@@ -85,7 +85,6 @@
   DebugLib
   BaseLib
   CacheMaintenanceLib
-  PeCoffLib
 
 [Protocols]
   gEfiDebugSupportProtocolGuid                  ## PRODUCES
