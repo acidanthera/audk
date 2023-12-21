@@ -77,7 +77,7 @@ jobs:
 
       - name: CI Bootstrap
         run: |
-          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202305/ci-bootstrap.sh) && eval "$src" || exit 1
           touch UDK.ready
 
       # Initializes the CodeQL tools for scanning.
@@ -92,7 +92,7 @@ jobs:
 
       - name: Prepare efibuild.sh
         run: |
-          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202305/efibuild.sh || exit 1
           chmod +x ./efibuild.sh
           cmd <<< "mklink /D .\\UDK .\\" > /dev/null
 
