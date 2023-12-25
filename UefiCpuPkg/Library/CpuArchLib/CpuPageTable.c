@@ -467,6 +467,27 @@ ConvertPageEntryAttribute (
     }
   }
 
+  if ((Attributes & EFI_MEMORY_USER) != 0) {
+    switch (PageAction) {
+      case PageActionAssign:
+      case PageActionSet:
+        NewPageEntry |= IA32_PG_U;
+        break;
+      case PageActionClear:
+        NewPageEntry &= ~(UINT64)IA32_PG_U;
+        break;
+    }
+  } else {
+    switch (PageAction) {
+      case PageActionAssign:
+        NewPageEntry &= ~(UINT64)IA32_PG_U;
+        break;
+      case PageActionSet:
+      case PageActionClear:
+        break;
+    }
+  }
+
   GetPagingDetails (&PagingContext->ContextData, NULL, &PageAttributes);
 
   if ((*PageAttributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_XD_ACTIVATED) != 0) {

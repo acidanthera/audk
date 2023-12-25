@@ -828,7 +828,7 @@ Done:
   if (DstBufAlocated) {
     ZeroMem ((VOID *)(UINTN)BufferAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
     FreeAlignedPages ((VOID *)(UINTN)BufferAddress, Image->NumberOfPages);
-    Image->ImageBasePage             = 0;
+    Image->ImageBasePage = 0;
   }
 
   if (RelocationData != NULL) {
