@@ -159,6 +159,9 @@ typedef struct {
   DATA_SEGMENT_32    LinearData64;
   CODE_SEGMENT_64    LinearCode64;
   SEGMENT_DESCRIPTOR Spare5;
+  DATA_SEGMENT_32    Ring3Data64;
+  CODE_SEGMENT_64    Ring3Code64;
+  // CALL_GATE_64       FromRing3ToRing0;
 } GDT_ENTRIES;
 
 #pragma pack ()
@@ -172,6 +175,8 @@ typedef struct {
 #define LINEAR_DATA64_SEL  OFFSET_OF (GDT_ENTRIES, LinearData64)
 #define LINEAR_CODE64_SEL  OFFSET_OF (GDT_ENTRIES, LinearCode64)
 #define SPARE5_SEL         OFFSET_OF (GDT_ENTRIES, Spare5)
+#define RING3_DATA64_SEL   OFFSET_OF (GDT_ENTRIES, Ring3Data64)
+#define RING3_CODE64_SEL   OFFSET_OF (GDT_ENTRIES, Ring3Code64)
 
 #if defined (MDE_CPU_IA32)
 #define CPU_CODE_SEL  LINEAR_CODE_SEL
