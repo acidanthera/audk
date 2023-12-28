@@ -35,43 +35,31 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - Package: "ArmPkg"
-            ArchList: "IA32,X64"
-          - Package: "CryptoPkg"
-            ArchList: "IA32"
-          - Package: "CryptoPkg"
-            ArchList: "X64"
-          - Package: "DynamicTablesPkg"
+          - Package: "Ext4Pkg"
             ArchList: "IA32,X64"
           - Package: "FatPkg"
-            ArchList: "IA32,X64"
-          - Package: "FmpDevicePkg"
             ArchList: "IA32,X64"
           - Package: "IntelFsp2Pkg"
             ArchList: "IA32,X64"
           - Package: "IntelFsp2WrapperPkg"
             ArchList: "IA32,X64"
           - Package: "MdeModulePkg"
-            ArchList: "IA32"
-          - Package: "MdeModulePkg"
-            ArchList: "X64"
+            ArchList: "IA32,X64"
           - Package: "MdePkg"
-            ArchList: "IA32,X64"
-          - Package: "PcAtChipsetPkg"
-            ArchList: "IA32,X64"
-          - Package: "PrmPkg"
-            ArchList: "IA32,X64"
-          - Package: "SecurityPkg"
-            ArchList: "IA32,X64"
-          - Package: "ShellPkg"
-            ArchList: "IA32,X64"
-          - Package: "SourceLevelDebugPkg"
-            ArchList: "IA32,X64"
-          - Package: "StandaloneMmPkg"
             ArchList: "IA32,X64"
           - Package: "UefiCpuPkg"
             ArchList: "IA32,X64"
           - Package: "UnitTestFrameworkPkg"
+            ArchList: "IA32,X64"
+          - Package: "OvmfPkgIa32"
+            ArchList: "IA32"
+          - Package: "OvmfPkgX64"
+            ArchList: "X64"
+          - Package: "OvmfPkgIa32X64"
+            ArchList: "IA32,X64"
+          - Package: "UefiPayloadPkg"
+            ArchList: "IA32,X64"
+          - Package: "NetworkPkg"
             ArchList: "IA32,X64"
 
     steps:
@@ -258,7 +246,7 @@ jobs:
     - name: CI Build
       env:
         STUART_CODEQL_PATH: ${{ steps.cache_key_gen.outputs.codeql_cli_ext_dep_dir }}
-      run: stuart_ci_build -c .pytool/CISettings.py -t DEBUG -p ${{ matrix.Package }} -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2019 --codeql
+      run: stuart_ci_build -c .pytool/CISettings.py -t DEBUG -p ${{ matrix.Package }} -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2019 --codeql --npt
 
     - name: Build Cleanup
       id: build_cleanup
