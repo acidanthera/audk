@@ -38,7 +38,7 @@
 #define IA32_PG_NX      BIT63
 
 #define PAGE_ATTRIBUTE_BITS             (IA32_PG_D | IA32_PG_A | IA32_PG_U | IA32_PG_RW | IA32_PG_P)
-#define PAGE_ATTRIBUTE_BITS_POST_SPLIT  (IA32_PG_RW | IA32_PG_P)
+#define PAGE_ATTRIBUTE_BITS_POST_SPLIT  (IA32_PG_RW | IA32_PG_P | IA32_PG_U)
 
 //
 // Bits 1, 2, 5, 6 are reserved in the IA32 PAE PDPTE
@@ -396,6 +396,10 @@ GetAttributesFromPageEntry (
 
   if ((*PageEntry & IA32_PG_NX) != 0) {
     Attributes |= EFI_MEMORY_XP;
+  }
+
+  if ((*PageEntry & IA32_PG_U) != 0) {
+    Attributes |= EFI_MEMORY_USER;
   }
 
   return Attributes;
@@ -1013,9 +1017,9 @@ RefreshGcdMemoryAttributesFromPaging (
   PageLength    = 0;
 
   if (IsExecuteDisableEnabled ()) {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_USER;
   } else {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_USER;
   }
 
   for (Index = 0; Index < NumberOfDescriptors; Index++) {
