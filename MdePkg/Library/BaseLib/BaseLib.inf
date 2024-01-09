@@ -294,6 +294,7 @@
   X64/ReadCr2.nasm| MSFT
   X64/ReadCr0.nasm| MSFT
   X64/ReadEflags.nasm| MSFT
+  X64/WriteEflags.nasm
 
   X64/TdCall.nasm
   X64/TdVmcall.nasm

@@ -6603,6 +6603,24 @@ AsmReadCr4 (
   );
 
 /**
+  Writes a value to the EFLAGS register.
+
+  Writes and returns a new value to the EFLAGS register. This function is
+  only available on IA-32 and x64. This writes a 32-bit value on IA-32 and
+  a 64-bit value on x64.
+
+  @param  EFLAGS The value to write to EFLAGS.
+
+  @return The value written to EFLAGS.
+
+**/
+UINTN
+EFIAPI
+AsmWriteEflags (
+  UINTN  Eflags
+  );
+
+/**
   Writes a value to Control Register 0 (CR0).
 
   Writes and returns a new value to CR0. This function is only available on

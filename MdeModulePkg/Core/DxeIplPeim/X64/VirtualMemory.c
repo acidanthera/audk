@@ -704,6 +704,10 @@ CreateIdentityMappingPageTables (
   PAGE_TABLE_1G_ENTRY                          *PageDirectory1GEntry;
   UINT64                                       AddressEncMask;
   IA32_CR4                                     Cr4;
+  IA32_EFLAGS32                                Eflags;
+  UINT32                                       Ebx;
+
+  Ebx = 0;
 
   //
   // Set PageMapLevel5Entry to suppress incorrect compiler/analyzer warnings
@@ -971,6 +975,22 @@ CreateIdentityMappingPageTables (
   //
   if (IsEnableNonExecNeeded ()) {
     EnableExecuteDisableBit ();
+  }
+
+  //
+  // Forbid supervisor-mode accesses to any user-mode pages.
+  // SMEP and SMAP must be supported.
+  //
+  AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
+  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0)) {
+    Cr4.UintN     = AsmReadCr4 ();
+    Cr4.Bits.SMAP = 1;
+    Cr4.Bits.SMEP = 1;
+    AsmWriteCr4 (Cr4.UintN);
+
+    Eflags.UintN   = AsmReadEflags ();
+    Eflags.Bits.AC = 0;
+    AsmWriteEflags (Eflags.UintN);
   }
 
   return (UINTN)PageMap;
