@@ -377,7 +377,7 @@ Split2MPageTo4K (
   //
   // Fill in 2M page entry.
   //
-  *PageEntry2M = (UINT64)(UINTN)PageTableEntry | AddressEncMask | IA32_PG_P | IA32_PG_RW;
+  *PageEntry2M = (UINT64)(UINTN)PageTableEntry | AddressEncMask | IA32_PG_P | IA32_PG_RW | IA32_PG_U;
 
   PhysicalAddress4K = PhysicalAddress;
   for (IndexOfPageTableEntries = 0; IndexOfPageTableEntries < 512; IndexOfPageTableEntries++, PageTableEntry++, PhysicalAddress4K += SIZE_4KB) {
@@ -459,7 +459,7 @@ Split1GPageTo2M (
   //
   // Fill in 1G page entry.
   //
-  *PageEntry1G = (UINT64)(UINTN)PageDirectoryEntry | AddressEncMask | IA32_PG_P | IA32_PG_RW;
+  *PageEntry1G = (UINT64)(UINTN)PageDirectoryEntry | AddressEncMask | IA32_PG_P | IA32_PG_RW | IA32_PG_U;
 
   PhysicalAddress2M = PhysicalAddress;
   for (IndexOfPageDirectoryEntries = 0; IndexOfPageDirectoryEntries < 512; IndexOfPageDirectoryEntries++, PageDirectoryEntry++, PhysicalAddress2M += SIZE_2MB) {
@@ -594,6 +594,8 @@ SetPageTablePoolReadOnly (
                                    IA32_PG_P | IA32_PG_RW;
         if (Level > 2) {
           NewPageTable[EntryIndex] |= IA32_PG_PS;
+        } else {
+          NewPageTable[EntryIndex] |= IA32_PG_U;
         }
 
         PhysicalAddress += LevelSize[Level - 1];
@@ -864,9 +866,10 @@ CreateIdentityMappingPageTables (
       //
       // Make a PML5 Entry
       //
-      PageMapLevel5Entry->Uint64         = (UINT64)(UINTN)PageMapLevel4Entry | AddressEncMask;
-      PageMapLevel5Entry->Bits.ReadWrite = 1;
-      PageMapLevel5Entry->Bits.Present   = 1;
+      PageMapLevel5Entry->Uint64              = (UINT64)(UINTN)PageMapLevel4Entry | AddressEncMask;
+      PageMapLevel5Entry->Bits.ReadWrite      = 1;
+      PageMapLevel5Entry->Bits.UserSupervisor = 1;
+      PageMapLevel5Entry->Bits.Present        = 1;
       PageMapLevel5Entry++;
     }
 
@@ -884,9 +887,10 @@ CreateIdentityMappingPageTables (
       //
       // Make a PML4 Entry
       //
-      PageMapLevel4Entry->Uint64         = (UINT64)(UINTN)PageDirectoryPointerEntry | AddressEncMask;
-      PageMapLevel4Entry->Bits.ReadWrite = 1;
-      PageMapLevel4Entry->Bits.Present   = 1;
+      PageMapLevel4Entry->Uint64              = (UINT64)(UINTN)PageDirectoryPointerEntry | AddressEncMask;
+      PageMapLevel4Entry->Bits.ReadWrite      = 1;
+      PageMapLevel4Entry->Bits.UserSupervisor = 1;
+      PageMapLevel4Entry->Bits.Present        = 1;
 
       if (Page1GSupport) {
         PageDirectory1GEntry = (VOID *)PageDirectoryPointerEntry;
@@ -919,9 +923,10 @@ CreateIdentityMappingPageTables (
           //
           // Fill in a Page Directory Pointer Entries
           //
-          PageDirectoryPointerEntry->Uint64         = (UINT64)(UINTN)PageDirectoryEntry | AddressEncMask;
-          PageDirectoryPointerEntry->Bits.ReadWrite = 1;
-          PageDirectoryPointerEntry->Bits.Present   = 1;
+          PageDirectoryPointerEntry->Uint64              = (UINT64)(UINTN)PageDirectoryEntry | AddressEncMask;
+          PageDirectoryPointerEntry->Bits.ReadWrite      = 1;
+          PageDirectoryPointerEntry->Bits.UserSupervisor = 1;
+          PageDirectoryPointerEntry->Bits.Present        = 1;
 
           for (IndexOfPageDirectoryEntries = 0; IndexOfPageDirectoryEntries < 512; IndexOfPageDirectoryEntries++, PageDirectoryEntry++, PageAddress += SIZE_2MB) {
             if (ToSplitPageTable (PageAddress, SIZE_2MB, StackBase, StackSize, GhcbBase, GhcbSize)) {
