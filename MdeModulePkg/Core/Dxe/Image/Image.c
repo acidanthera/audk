@@ -64,7 +64,10 @@ LOADED_IMAGE_PRIVATE_DATA  mCorePrivateImage = {
   0,                          // Machine
   NULL,                       // PeCoffEmu
   NULL,                       // RuntimeData
-  NULL                        // LoadedImageDevicePath
+  NULL,                       // LoadedImageDevicePath
+  EFI_SUCCESS,                // LoadImageStatus
+  NULL,                       // HiiData
+  FALSE                       // IsUserImage
 };
 //
 // The field is define for Loading modules at fixed address feature to tracker the PEI code
@@ -1435,7 +1438,7 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext);
+  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, &Image->IsUserImage);
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,

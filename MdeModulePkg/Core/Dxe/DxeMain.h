@@ -224,7 +224,8 @@ typedef struct {
   /// Status returned by LoadImage() service.
   EFI_STATUS                              LoadImageStatus;
 
-  VOID *HiiData;
+  VOID                                    *HiiData;
+  BOOLEAN                                 IsUserImage;
 } LOADED_IMAGE_PRIVATE_DATA;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
@@ -2728,12 +2729,14 @@ RemoveImageRecord (
   @param[in]  LoadedImage              The loaded image protocol
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[out] IsUserImage              Whether the loaded image is in user space.
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
-  IN UINT8                         ImageOrigin,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN  EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN  UINT8                            ImageOrigin,
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  OUT BOOLEAN                          *IsUserImage
   );
 
 /**
