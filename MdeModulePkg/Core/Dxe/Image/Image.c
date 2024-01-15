@@ -1595,6 +1595,7 @@ CoreStartImage (
   UINT64                     HandleDatabaseKey;
   UINTN                      SetJumpFlag;
   EFI_HANDLE                 Handle;
+  UINT64                     Attributes;
 
   Handle = ImageHandle;
 
@@ -1686,7 +1687,15 @@ CoreStartImage (
     // Call the image's entry point
     //
     Image->Started = TRUE;
-    Image->Status  = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+
+    if (!Image->IsUserImage) {
+      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+    } else {
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+    }
 
     //
     // Add some debug information if the image returned with error.

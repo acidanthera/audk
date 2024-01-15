@@ -244,10 +244,18 @@ EFI_STATUS
 typedef
 EFI_STATUS
 (EFIAPI *EFI_CPU_SET_MEMORY_ATTRIBUTES)(
-  IN EFI_CPU_ARCH_PROTOCOL              *This,
+  IN  EFI_CPU_ARCH_PROTOCOL             *This,
   IN  EFI_PHYSICAL_ADDRESS              BaseAddress,
   IN  UINT64                            Length,
   IN  UINT64                            Attributes
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *EFI_CPU_GET_MEMORY_ATTRIBUTES)(
+  IN  EFI_CPU_ARCH_PROTOCOL             *This,
+  IN  EFI_PHYSICAL_ADDRESS              Address,
+  OUT UINT64                            *Attributes
   );
 
 ///
@@ -279,6 +287,7 @@ struct _EFI_CPU_ARCH_PROTOCOL {
   /// a read-only field.
   ///
   UINT32                                DmaBufferAlignment;
+  EFI_CPU_GET_MEMORY_ATTRIBUTES         GetMemoryAttributes;
 };
 
 extern EFI_GUID  gEfiCpuArchProtocolGuid;

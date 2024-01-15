@@ -31,7 +31,8 @@ EFI_CPU_ARCH_PROTOCOL  gCpuImpl = {
   CpuGetTimerValue,
   CpuSetMemoryAttributes,
   1,                          // NumberOfTimers
-  4                           // DmaBufferAlignment
+  4,                          // DmaBufferAlignment
+  CpuGetMemoryAttributes
 };
 
 EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob2 = NULL;

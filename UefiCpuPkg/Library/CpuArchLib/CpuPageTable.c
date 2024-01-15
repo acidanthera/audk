@@ -405,6 +405,30 @@ GetAttributesFromPageEntry (
   return Attributes;
 }
 
+EFI_STATUS
+EFIAPI
+CpuGetMemoryAttributes (
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  EFI_PHYSICAL_ADDRESS   Address,
+  OUT UINT64                 *Attributes
+  )
+{
+  PAGE_TABLE_LIB_PAGING_CONTEXT  PagingContext;
+  PAGE_ATTRIBUTE                 PageAttribute;
+  UINT64                         *PageEntry;
+
+  GetCurrentPagingContext (&PagingContext);
+
+  PageEntry = GetPageTableEntry (&PagingContext, Address, &PageAttribute);
+  if (PageEntry == NULL) {
+    return EFI_NOT_FOUND;
+  }
+
+  *Attributes = GetAttributesFromPageEntry (PageEntry);
+
+  return EFI_SUCCESS;
+}
+
 /**
   Modify memory attributes of page entry.
 
