@@ -1,0 +1,34 @@
+## @file
+# Ring 3 wrapper for UEFI Boot Services Table Library implementation.
+#
+# Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ring3UefiBootServicesTableLib
+  MODULE_UNI_FILE                = Ring3UefiBootServicesTableLib.uni
+  FILE_GUID                      = b503b4b4-6dc1-412b-965f-a0f330b1d453
+  MODULE_TYPE                    = UEFI_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = UefiBootServicesTableLib|DXE_DRIVER DXE_RUNTIME_DRIVER UEFI_APPLICATION UEFI_DRIVER
+
+  CONSTRUCTOR                    = UefiBootServicesTableLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 EBC
+#
+
+[Sources]
+  Ring3.h
+  Ring3UefiBootServicesTableLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+
+[LibraryClasses]
+  BaseMemoryLib
