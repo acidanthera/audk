@@ -13,7 +13,7 @@
 //
 // Global descriptor table (GDT) Template
 //
-STATIC GDT_ENTRIES  mGdtTemplate = {
+STATIC GDT  mGdtTemplate = {
   .Null = {
     .SegmentLimit_15_0  = 0x0,
     .BaseAddress_15_0   = 0x0,
@@ -249,7 +249,7 @@ InitGlobalDescriptorTable (
   )
 {
   EFI_STATUS            Status;
-  GDT_ENTRIES           *Gdt;
+  GDT                   *Gdt;
   IA32_DESCRIPTOR       Gdtr;
   EFI_PHYSICAL_ADDRESS  Memory;
 
@@ -267,7 +267,7 @@ InitGlobalDescriptorTable (
                   );
   ASSERT_EFI_ERROR (Status);
   ASSERT ((Memory != 0) && (Memory < SIZE_4GB));
-  Gdt = (GDT_ENTRIES *)(UINTN)Memory;
+  Gdt = (GDT *)(UINTN)Memory;
 
   //
   // Initialize all GDT entries

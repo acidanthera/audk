@@ -1596,6 +1596,9 @@ CoreStartImage (
   UINTN                      SetJumpFlag;
   EFI_HANDLE                 Handle;
   UINT64                     Attributes;
+  VOID                       *BaseOfStack;
+  VOID                       *TopOfStack;
+  UINTN                      SizeOfStack;
 
   Handle = ImageHandle;
 
@@ -1694,7 +1697,32 @@ CoreStartImage (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+      //
+      // Allocate 128KB for the User Stack.
+      //
+      BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+      ASSERT (BaseOfStack != NULL);
+
+      SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
+
+      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
+
+      //
+      // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+      //
+      TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+      TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
+      // DEBUG ((DEBUG_ERROR, "RING3_CODE64_SEL = 0x%x   RING3_DATA64_SEL = 0x%x\n", (UINT16)RING3_CODE64_SEL, (UINT16)RING3_DATA64_SEL));
+
+      EnterUserImage (
+        (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,
+        ImageHandle,
+        Image->Info.SystemTable,
+        TopOfStack,
+        (UINT16)RING3_CODE64_SEL,
+        (UINT16)RING3_DATA64_SEL
+        );
+      Image->Status = EFI_SUCCESS;
     }
 
     //

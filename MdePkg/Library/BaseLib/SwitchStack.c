@@ -68,3 +68,25 @@ SwitchStack (
   //
   ASSERT (FALSE);
 }
+
+VOID
+EFIAPI
+EnterUserImage (
+  IN SWITCH_STACK_ENTRY_POINT  EntryPoint,
+  IN VOID                      *Context1   OPTIONAL,
+  IN VOID                      *Context2   OPTIONAL,
+  IN VOID                      *NewStack,
+  IN UINT16                    CodeSelector,
+  IN UINT16                    DataSelector
+  )
+{
+  ASSERT (EntryPoint != NULL);
+  ASSERT (NewStack != NULL);
+
+  //
+  // New stack must be aligned with CPU_STACK_ALIGNMENT
+  //
+  ASSERT (((UINTN)NewStack & (CPU_STACK_ALIGNMENT - 1)) == 0);
+
+  InternalEnterUserImage (EntryPoint, Context1, Context2, NewStack, CodeSelector, DataSelector);
+}
