@@ -1,0 +1,12 @@
+// /** @file
+// Ring 3 wrapper for UEFI Boot Services Table Library implementation.
+//
+// Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+// SPDX-License-Identifier: BSD-3-Clause
+//
+// **/
+
+
+#string STR_MODULE_ABSTRACT             #language en-US "Ring 3 wrapper for UEFI Boot Services Table Library implementation."
+
+#string STR_MODULE_DESCRIPTION          #language en-US "Ring 3 wrapper for UEFI Boot Services Table Library implementation."
