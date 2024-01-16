@@ -116,6 +116,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 ///
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
 
+#define USER_STACK_SIZE             0x20000
+
 typedef struct {
   EFI_GUID     *ProtocolGuid;
   VOID         **Protocol;
@@ -2911,4 +2913,18 @@ MergeMemoryMap (
 EFI_STATUS
 CoreInitializeHandleServices (
   VOID
+  );
+
+/**
+  Set UEFI image memory attributes.
+
+  @param[in]  BaseAddress            Specified start address
+  @param[in]  Length                 Specified length
+  @param[in]  Attributes             Specified attributes
+**/
+VOID
+SetUefiImageMemoryAttributes (
+  IN UINT64  BaseAddress,
+  IN UINT64  Length,
+  IN UINT64  Attributes
   );
