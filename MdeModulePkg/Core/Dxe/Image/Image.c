@@ -1714,6 +1714,15 @@ CoreStartImage (
       TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
       // DEBUG ((DEBUG_ERROR, "RING3_CODE64_SEL = 0x%x   RING3_DATA64_SEL = 0x%x\n", (UINT16)RING3_CODE64_SEL, (UINT16)RING3_DATA64_SEL));
 
+      //
+      // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
+      //
+      SetUefiImageMemoryAttributes (
+        FixedPcdGet32 (PcdOvmfWorkAreaBase),
+        FixedPcdGet32 (PcdOvmfWorkAreaSize),
+        EFI_MEMORY_XP | EFI_MEMORY_USER
+        );
+
       EnterUserImage (
         (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,
         ImageHandle,

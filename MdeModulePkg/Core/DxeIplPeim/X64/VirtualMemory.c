@@ -995,6 +995,10 @@ CreateIdentityMappingPageTables (
 
     Eflags.UintN   = AsmReadEflags ();
     Eflags.Bits.AC = 0;
+    //
+    // Allow user image to access ports.
+    //
+    Eflags.Bits.IOPL = 3;
     AsmWriteEflags (Eflags.UintN);
   }
 

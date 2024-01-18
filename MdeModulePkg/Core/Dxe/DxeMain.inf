@@ -194,6 +194,8 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageLargeAddressLoad                   ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask                        ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
+  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
+  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES
