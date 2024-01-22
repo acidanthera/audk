@@ -91,3 +91,49 @@ o16 mov     gs, ax
 
     ; Pass control to user image
     retfq
+
+;------------------------------------------------------------------------------
+; UINTN
+; EFIAPI
+; CoreBootServices (
+;   IN  UINTN  FunctionAddress,
+;   ...
+;   );
+;
+;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
+;   (rdx) Argument 1 of the called function.
+;   (r8)  Argument 2 of the called function.
+;   (r9)  Argument 3 of the called function.
+;   (r10) FunctionAddress.
+;   (r11) RFLAGS saved by SYSCALL in SysCall().
+;On stack Argument 4, 5, ...
+;------------------------------------------------------------------------------
+global ASM_PFX(CoreBootServices)
+ASM_PFX(CoreBootServices):
+    cmp     r10, 0
+    je      readMemory
+
+    ; Save return address and RFLAGS for SYSRET.
+    mov     [rsp], rcx
+    mov     [rsp + 8], r11
+
+    ; Replace argument according to UEFI calling convention.
+    mov     rcx, rdx
+    mov     rdx, r8
+    mov     r8, r9
+    mov     r9, [rsp + 8*3]
+
+    ; Call Boot Service by FunctionAddress.
+    call    r10
+
+    ; Prepare SYSRET arguments.
+    mov     rcx, [rsp]
+    mov     r11, [rsp + 8]
+
+    ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
+o64 sysret
+    ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
+
+readMemory:
+    mov    rax, [rdx]
+o64 sysret

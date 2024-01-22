@@ -129,6 +129,25 @@ STATIC GDT  mGdtTemplate = {
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
   },
+  .LinearCode64 = {
+    .Reserved1                = 0x0,
+    .Reserved2                = 0x0,
+
+    .Accessed                 = 0,
+    .Readable                 = 1,
+    .Conforming               = 0,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .Reserved3                = 0x0,
+    .Available                = 0,
+    .LongMode                 = 1,
+    .Is32Bit                  = 0,
+    .Granularity              = 1,
+    .Reserved4                = 0x0
+  },
   .LinearData64 = {
     .SegmentLimit_15_0        = 0xFFFF,
     .BaseAddress_15_0         = 0x0,
@@ -148,25 +167,6 @@ STATIC GDT  mGdtTemplate = {
     .UpperBound               = 1,
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
-  },
-  .LinearCode64 = {
-    .Reserved1                = 0x0,
-    .Reserved2                = 0x0,
-
-    .Accessed                 = 0,
-    .Readable                 = 1,
-    .Conforming               = 0,
-    .IsCode                   = 1,
-    .IsNotSystemSegment       = 1,
-    .DescriptorPrivilegeLevel = 0,
-    .SegmentPresent           = 1,
-
-    .Reserved3                = 0x0,
-    .Available                = 0,
-    .LongMode                 = 1,
-    .Is32Bit                  = 0,
-    .Granularity              = 1,
-    .Reserved4                = 0x0
   },
   .Spare5 = {
     .SegmentLimit_15_0  = 0x0,
@@ -203,7 +203,7 @@ STATIC GDT  mGdtTemplate = {
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
   },
-  .Ring3Code64 = { // SetCodeSelector () | 5.8.6 Returning from a Called Procedure
+  .Ring3Code64 = {
     .Reserved1                = 0x0,
     .Reserved2                = 0x0,
 
@@ -222,21 +222,6 @@ STATIC GDT  mGdtTemplate = {
     .Granularity              = 1,
     .Reserved4                = 0x0
   },
-  // .FromRing3ToRing0 = {
-  //   .Common.OffsetInSegment_15_0     = 0x?,
-  //   .Common.SegmentSelector          = (UINT16)LINEAR_CODE64_SEL,
-  //
-  //   .Common.ParameterCount           = 0,
-  //   .Common.Reserved                 = 0,
-  //
-  //   .Common.Type                     = 0xC,
-  //   .Common.IsNotSystemSegment       = 0,
-  //   .Common.DescriptorPrivilegeLevel = 3,
-  //   .Common.SegmentPresent           = 1,
-  //   .Common.OffsetInSegment_31_16    = 0x?,
-  //   .OffsetInSegment_63_31           = 0x?,
-  //   .Reserved                        = 0x0
-  // },
 };
 
 /**

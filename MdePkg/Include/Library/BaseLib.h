@@ -5796,16 +5796,17 @@ typedef struct {
   DATA_SEGMENT_32    SysData;
   CODE_SEGMENT_32    SysCode;
   CODE_SEGMENT_32    SysCode16;
-  DATA_SEGMENT_32    LinearData64;
   CODE_SEGMENT_64    LinearCode64;
+  DATA_SEGMENT_32    LinearData64;
   SEGMENT_DESCRIPTOR Spare5;
   DATA_SEGMENT_32    Ring3Data64;
   CODE_SEGMENT_64    Ring3Code64;
-  // CALL_GATE_64       FromRing3ToRing0;
 } GDT;
 
 #pragma pack ()
 
+#define RING0_DATA64_SEL   OFFSET_OF (GDT, LinearData64)
+#define RING0_CODE64_SEL   OFFSET_OF (GDT, LinearCode64)
 #define RING3_DATA64_SEL   OFFSET_OF (GDT, Ring3Data64)
 #define RING3_CODE64_SEL   OFFSET_OF (GDT, Ring3Code64)
 
@@ -6815,6 +6816,13 @@ UINTN
 EFIAPI
 AsmReadEflags (
   VOID
+  );
+
+UINTN
+EFIAPI
+CoreBootServices (
+  IN  UINTN  FunctionAddress,
+  ...
   );
 
 /**
