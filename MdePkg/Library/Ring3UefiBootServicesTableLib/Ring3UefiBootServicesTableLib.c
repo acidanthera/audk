@@ -9,6 +9,7 @@
 #include <Uefi.h>
 
 #include <Library/BaseMemoryLib.h>
+#include <Library/DebugLib.h>
 
 #include "Ring3.h"
 
@@ -66,9 +67,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CREATE_EVENT_EX)Ring3CreateEventEx                                                  // CreateEventEx
 };
 
-// EFI_HANDLE         gImageHandle = NULL;
-// EFI_SYSTEM_TABLE   *gST         = NULL;
-EFI_BOOT_SERVICES  *gBS         = &mBootServices;
+EFI_BOOT_SERVICES  *gBS     = &mBootServices;
+EFI_BOOT_SERVICES  *mCoreBS = NULL;
 
 /**
   The function constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
@@ -87,22 +87,14 @@ UefiBootServicesTableLibConstructor (
   )
 {
   //
-  // Cache the Image Handle
-  //
-  // gImageHandle = ImageHandle;
-  // ASSERT (gImageHandle != NULL);
-
-  //
-  // Cache pointer to the EFI System Table
-  //
-  // gST = SystemTable;
-  // ASSERT (gST != NULL);
-
-  //
   // Cache pointer to the EFI Boot Services Table
   //
-  // gBS = SystemTable->BootServices;
-  // ASSERT (gBS != NULL);
+  mCoreBS = (EFI_BOOT_SERVICES *)SysCall (
+                                   0,
+                                   (UINTN)SystemTable + OFFSET_OF (EFI_SYSTEM_TABLE, BootServices)
+                                   );
+  ASSERT (mCoreBS != NULL);
+  // DEBUG ((DEBUG_ERROR, "User: BootServices = %p\n", mCoreBS));
 
   return EFI_SUCCESS;
 }
@@ -512,7 +504,16 @@ Ring3LocateProtocol (
   OUT VOID      **Interface
   )
 {
-  return EFI_SUCCESS;
+  EFI_STATUS Status;
+
+  Status = (EFI_STATUS)SysCall (
+                         (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, LocateProtocol),
+                         Protocol,
+                         Registration,
+                         Interface
+                         );
+
+  return Status;
 }
 
 EFI_STATUS

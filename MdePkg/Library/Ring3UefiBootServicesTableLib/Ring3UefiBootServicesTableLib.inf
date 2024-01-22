@@ -26,9 +26,12 @@
   Ring3.h
   Ring3UefiBootServicesTableLib.c
 
+[Sources.X64]
+  X64/SysCall.nasm
+
 [Packages]
   MdePkg/MdePkg.dec
 
-
 [LibraryClasses]
   BaseMemoryLib
+  DebugLib

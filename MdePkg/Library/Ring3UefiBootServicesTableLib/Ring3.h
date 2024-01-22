@@ -1,3 +1,18 @@
+/** @file
+
+  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  SPDX-License-Identifier: BSD-3-Clause
+
+**/
+
+UINTN
+EFIAPI
+SysCall (
+  IN  UINTN  FunctionAddress,
+  ...
+  );
+
+
 /**
   Raise the task priority level to the new level.
   High level is implemented by disabling processor interrupts.

@@ -22,7 +22,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
+#include <Register/Intel/ArchitecturalMsr.h>
 #include <Register/Intel/Cpuid.h>
+
 #include "DxeIpl.h"
 #include "VirtualMemory.h"
 
@@ -708,8 +710,11 @@ CreateIdentityMappingPageTables (
   IA32_CR4                                     Cr4;
   IA32_EFLAGS32                                Eflags;
   UINT32                                       Ebx;
+  UINT32                                       Edx;
+  MSR_IA32_EFER_REGISTER                       MsrEfer;
 
   Ebx = 0;
+  Edx = 0;
 
   //
   // Set PageMapLevel5Entry to suppress incorrect compiler/analyzer warnings
@@ -987,7 +992,11 @@ CreateIdentityMappingPageTables (
   // SMEP and SMAP must be supported.
   //
   AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
-  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0)) {
+  //
+  // SYSCALL and SYSRET must be also supported.
+  //
+  AsmCpuidEx (0x80000001, 0x0, NULL, NULL, NULL, &Edx);
+  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0) && ((Edx & BIT11) != 0)) {
     Cr4.UintN     = AsmReadCr4 ();
     Cr4.Bits.SMAP = 1;
     Cr4.Bits.SMEP = 1;
@@ -1000,6 +1009,12 @@ CreateIdentityMappingPageTables (
     //
     Eflags.Bits.IOPL = 3;
     AsmWriteEflags (Eflags.UintN);
+    //
+    // Enable SYSCALL and SYSRET
+    //
+    MsrEfer.Uint64   = AsmReadMsr64 (MSR_IA32_EFER);
+    MsrEfer.Bits.SCE = 1;
+    AsmWriteMsr64 (MSR_IA32_EFER, MsrEfer.Uint64);
   }
 
   return (UINTN)PageMap;

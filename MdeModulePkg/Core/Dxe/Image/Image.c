@@ -9,6 +9,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "DxeMain.h"
 #include "Image.h"
 
+#include <Register/Intel/ArchitecturalMsr.h>
+
 //
 // Module Globals
 //
@@ -1599,6 +1601,7 @@ CoreStartImage (
   VOID                       *BaseOfStack;
   VOID                       *TopOfStack;
   UINTN                      SizeOfStack;
+  UINT64                     Msr;
 
   Handle = ImageHandle;
 
@@ -1713,6 +1716,7 @@ CoreStartImage (
       TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
       TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
       // DEBUG ((DEBUG_ERROR, "RING3_CODE64_SEL = 0x%x   RING3_DATA64_SEL = 0x%x\n", (UINT16)RING3_CODE64_SEL, (UINT16)RING3_DATA64_SEL));
+      // DEBUG ((DEBUG_ERROR, "Core: BootServices = %p\n", Image->Info.SystemTable->BootServices));
 
       //
       // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
@@ -1722,6 +1726,19 @@ CoreStartImage (
         FixedPcdGet32 (PcdOvmfWorkAreaSize),
         EFI_MEMORY_XP | EFI_MEMORY_USER
         );
+
+      //
+      // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
+      //
+      Msr = ((((UINT64)RING3_CODE64_SEL - 16) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
+      AsmWriteMsr64 (MSR_IA32_STAR, Msr);
+
+      Msr = (UINT64)(UINTN)CoreBootServices;
+      AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
+
+      // protection keys
+      // Software can access the old stack, if necessary, by referencing the old
+      // stack-segment selector and stack pointer saved on the new process stack.
 
       EnterUserImage (
         (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,

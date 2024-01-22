@@ -249,8 +249,6 @@ ArchSetupExceptionStack (
     IdtTable[Vector].Bits.Reserved_0 = (UINT8)(Index + 1);
   }
 
-  // Tss->RSP0 = %rsp
-
   //
   // Publish GDT
   //
