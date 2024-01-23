@@ -113,22 +113,45 @@ ASM_PFX(CoreBootServices):
     cmp     r10, 0
     je      readMemory
 
+    mov     ax, ss
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+
+    ; Save User Stack pointer and switch to Core SysCall Stack.
+    mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
+    sub     rax, 8
+    mov     [rax], rsp
+    mov     rsp, rax
+
+    push    rbp
+    mov     rbp, rsp
+
     ; Save return address and RFLAGS for SYSRET.
-    mov     [rsp], rcx
-    mov     [rsp + 8], r11
+    push    rcx
+    push    r11
 
     ; Replace argument according to UEFI calling convention.
     mov     rcx, rdx
     mov     rdx, r8
     mov     r8, r9
-    mov     r9, [rsp + 8*3]
+    ; mov     r9, [rax + 8*3]
+    ; mov   r11, [rax + 8*4]
+    ; push  r11
+    ; ...
 
     ; Call Boot Service by FunctionAddress.
     call    r10
 
     ; Prepare SYSRET arguments.
-    mov     rcx, [rsp]
-    mov     r11, [rsp + 8]
+    pop     r11
+    pop     rcx
+
+    ; Switch to User Stack.
+    pop     rbp
+    pop     rdx
+    mov     rsp, rdx
 
     ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
 o64 sysret
@@ -137,3 +160,10 @@ o64 sysret
 readMemory:
     mov    rax, [rdx]
 o64 sysret
+
+
+SECTION .data
+
+global ASM_PFX(gCoreSysCallStackTop)
+ASM_PFX(gCoreSysCallStackTop):
+    resq 1

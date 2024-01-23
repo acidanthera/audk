@@ -27,6 +27,7 @@ STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
 
 extern BOOLEAN     gBdsStarted;
+extern VOID        *gCoreSysCallStackTop;
 
 //
 // This code is needed to build the Image handle for the DXE Core
@@ -1700,23 +1701,41 @@ CoreStartImage (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
+      SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
+
       //
-      // Allocate 128KB for the User Stack.
+      // Allocate 128KB for the Core SysCall Stack.
       //
       BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
       ASSERT (BaseOfStack != NULL);
-
-      SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
-
-      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
 
       //
       // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
       //
       TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
       TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
-      // DEBUG ((DEBUG_ERROR, "RING3_CODE64_SEL = 0x%x   RING3_DATA64_SEL = 0x%x\n", (UINT16)RING3_CODE64_SEL, (UINT16)RING3_DATA64_SEL));
-      // DEBUG ((DEBUG_ERROR, "Core: BootServices = %p\n", Image->Info.SystemTable->BootServices));
+
+      gCoreSysCallStackTop = TopOfStack;
+      DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
+
+      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP);
+
+      //
+      // Allocate 128KB for the User Stack.
+      //
+      BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+      ASSERT (BaseOfStack != NULL);
+
+      //
+      // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+      //
+      TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+      TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
+
+      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
+      DEBUG ((DEBUG_ERROR, "Core: UserTopOfStack = %p\n", TopOfStack));
+
+      DEBUG ((DEBUG_ERROR, "Core: BootServices = %p\n", Image->Info.SystemTable->BootServices));
 
       //
       // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
@@ -1735,10 +1754,6 @@ CoreStartImage (
 
       Msr = (UINT64)(UINTN)CoreBootServices;
       AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
-
-      // protection keys
-      // Software can access the old stack, if necessary, by referencing the old
-      // stack-segment selector and stack pointer saved on the new process stack.
 
       EnterUserImage (
         (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,
