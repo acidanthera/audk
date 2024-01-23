@@ -94,7 +94,7 @@ UefiBootServicesTableLibConstructor (
                                    (UINTN)SystemTable + OFFSET_OF (EFI_SYSTEM_TABLE, BootServices)
                                    );
   ASSERT (mCoreBS != NULL);
-  // DEBUG ((DEBUG_ERROR, "User: BootServices = %p\n", mCoreBS));
+  DEBUG ((DEBUG_ERROR, "User: BootServices = %p\n", mCoreBS));
 
   return EFI_SUCCESS;
 }
