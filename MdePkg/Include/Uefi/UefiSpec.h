@@ -222,6 +222,13 @@ EFI_STATUS
   IN OUT EFI_PHYSICAL_ADDRESS         *Memory
   );
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_ALLOCATE_RING3_PAGES)(
+  IN     UINTN                        Pages,
+  IN OUT VOID                         **Memory
+  );
+
 /**
   Frees memory pages.
 
@@ -2023,6 +2030,7 @@ typedef struct {
   EFI_COPY_MEM                                  CopyMem;
   EFI_SET_MEM                                   SetMem;
   EFI_CREATE_EVENT_EX                           CreateEventEx;
+  EFI_ALLOCATE_RING3_PAGES                      AllocateRing3Pages;
 } EFI_BOOT_SERVICES;
 
 ///

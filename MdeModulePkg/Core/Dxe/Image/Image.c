@@ -1565,6 +1565,27 @@ CoreLoadImage (
   return Status;
 }
 
+EFI_STATUS
+EFIAPI
+AllocateRing3Pages (
+  IN UINTN     NumberOfPages,
+  IN OUT VOID  **Memory
+  )
+{
+  if (Memory == NULL) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  *Memory = AllocatePages (NumberOfPages);
+  if (*Memory == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  SetUefiImageMemoryAttributes ((UINTN)*Memory, EFI_PAGES_TO_SIZE (NumberOfPages), EFI_MEMORY_USER);
+
+  return EFI_SUCCESS;
+}
+
 /**
   Transfer control to a loaded image's entry point.
 
@@ -1974,7 +1995,7 @@ Done:
   @retval EFI_SUCCESS             The image has been unloaded.
   @retval EFI_UNSUPPORTED         The image has been started, and does not support
                                   unload.
-  @retval EFI_INVALID_PARAMPETER  ImageHandle is not a valid image handle.
+  @retval EFI_INVALID_PARAMETER   ImageHandle is not a valid image handle.
 
 **/
 EFI_STATUS
