@@ -11,6 +11,8 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 
+#include <Protocol/DevicePathUtilities.h>
+
 #include "Ring3.h"
 
 EFI_BOOT_SERVICES  mBootServices = {
@@ -64,11 +66,13 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CALCULATE_CRC32)Ring3CalculateCrc32,                                                // CalculateCrc32
   (EFI_COPY_MEM)CopyMem,                                                                   // CopyMem
   (EFI_SET_MEM)SetMem,                                                                     // SetMem
-  (EFI_CREATE_EVENT_EX)Ring3CreateEventEx                                                  // CreateEventEx
+  (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
 };
 
 EFI_BOOT_SERVICES  *gBS     = &mBootServices;
 EFI_BOOT_SERVICES  *mCoreBS = NULL;
+
+EFI_DEVICE_PATH_UTILITIES_PROTOCOL *mCoreDevicePathUtilitiesProtocol = NULL;
 
 /**
   The function constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
@@ -126,7 +130,7 @@ Ring3AllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -136,7 +140,7 @@ Ring3FreePages (
   IN UINTN                 NumberOfPages
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -149,7 +153,7 @@ Ring3GetMemoryMap (
   OUT UINT32                    *DescriptorVersion
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -160,7 +164,7 @@ Ring3AllocatePool (
   OUT VOID            **Buffer
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -169,7 +173,7 @@ Ring3FreePool (
   IN VOID  *Buffer
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -182,7 +186,7 @@ Ring3CreateEvent (
   OUT EFI_EVENT        *Event
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -193,7 +197,7 @@ Ring3SetTimer (
   IN UINT64           TriggerTime
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -204,7 +208,7 @@ Ring3WaitForEvent (
   OUT UINTN     *UserIndex
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -213,7 +217,7 @@ Ring3SignalEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -222,7 +226,7 @@ Ring3CloseEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -231,7 +235,7 @@ Ring3CheckEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -243,7 +247,7 @@ Ring3InstallProtocolInterface (
   IN VOID                *Interface
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -255,7 +259,7 @@ Ring3ReinstallProtocolInterface (
   IN VOID        *NewInterface
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -266,7 +270,7 @@ Ring3UninstallProtocolInterface (
   IN VOID        *Interface
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -277,7 +281,7 @@ Ring3HandleProtocol (
   OUT VOID       **Interface
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -288,7 +292,7 @@ Ring3RegisterProtocolNotify (
   OUT  VOID     **Registration
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -301,7 +305,7 @@ Ring3LocateHandle (
   OUT EFI_HANDLE             *Buffer
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -312,7 +316,7 @@ Ring3LocateDevicePath (
   OUT EFI_HANDLE                   *Device
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -322,7 +326,7 @@ Ring3InstallConfigurationTable (
   IN VOID      *Table
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -336,7 +340,7 @@ Ring3LoadImage (
   OUT EFI_HANDLE               *ImageHandle
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -347,7 +351,7 @@ Ring3StartImage (
   OUT CHAR16     **ExitData  OPTIONAL
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -359,7 +363,7 @@ Ring3Exit (
   IN CHAR16      *ExitData  OPTIONAL
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -368,7 +372,7 @@ Ring3UnloadImage (
   IN EFI_HANDLE  ImageHandle
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -378,7 +382,7 @@ Ring3ExitBootServices (
   IN UINTN       MapKey
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -387,7 +391,7 @@ Ring3GetNextMonotonicCount (
   OUT UINT64  *Count
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -396,7 +400,7 @@ Ring3Stall (
   IN UINTN  Microseconds
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -408,7 +412,7 @@ Ring3SetWatchdogTimer (
   IN CHAR16  *WatchdogData OPTIONAL
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -420,7 +424,7 @@ Ring3ConnectController (
   IN  BOOLEAN                   Recursive
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -431,7 +435,7 @@ Ring3DisconnectController (
   IN  EFI_HANDLE  ChildHandle        OPTIONAL
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -445,7 +449,7 @@ Ring3OpenProtocol (
   IN  UINT32      Attributes
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -457,7 +461,7 @@ Ring3CloseProtocol (
   IN  EFI_HANDLE  ControllerHandle
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -469,7 +473,7 @@ Ring3OpenProtocolInformation (
   OUT UINTN                                *EntryCount
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -480,7 +484,7 @@ Ring3ProtocolsPerHandle (
   OUT UINTN      *ProtocolBufferCount
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -493,7 +497,7 @@ Ring3LocateHandleBuffer (
   OUT EFI_HANDLE             **Buffer
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -512,6 +516,39 @@ Ring3LocateProtocol (
                          Registration,
                          Interface
                          );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to loacate protocol %g\n", Protocol));
+    return Status;
+  }
+
+  if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
+    EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
+
+    mCoreDevicePathUtilitiesProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
+
+    Status = (EFI_STATUS)SysCall (
+                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateRing3Pages),
+                           EFI_SIZE_TO_PAGES (sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL)),
+                           (VOID **)&UserProtocol
+                           );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3\n"));
+      return Status;
+    }
+
+    UserProtocol->GetDevicePathSize = NULL;
+    UserProtocol->DuplicateDevicePath = NULL;
+    UserProtocol->AppendDevicePath = NULL;
+    UserProtocol->AppendDeviceNode = NULL;
+    UserProtocol->AppendDevicePathInstance = NULL;
+    UserProtocol->GetNextDevicePathInstance = NULL;
+    UserProtocol->IsDevicePathMultiInstance = NULL;
+    UserProtocol->CreateDeviceNode = NULL;
+
+    *Interface = UserProtocol;
+
+    return Status;
+  }
 
   return Status;
 }
@@ -523,7 +560,7 @@ Ring3InstallMultipleProtocolInterfaces (
   ...
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -533,7 +570,7 @@ Ring3UninstallMultipleProtocolInterfaces (
   ...
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -544,7 +581,7 @@ Ring3CalculateCrc32 (
   OUT UINT32                            *Crc32
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
@@ -558,5 +595,5 @@ Ring3CreateEventEx (
   OUT EFI_EVENT        *Event
   )
 {
-  return EFI_SUCCESS;
+  return EFI_UNSUPPORTED;
 }

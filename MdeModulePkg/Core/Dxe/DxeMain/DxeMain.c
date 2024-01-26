@@ -90,7 +90,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CALCULATE_CRC32)CoreEfiNotAvailableYetCalculateCrc32,                              // CalculateCrc32
   (EFI_COPY_MEM)EfiCopyMem,                                                               // CopyMem
   (EFI_SET_MEM)EfiSetMem,                                                                 // SetMem
-  (EFI_CREATE_EVENT_EX)CoreCreateEventEx                                                  // CreateEventEx
+  (EFI_CREATE_EVENT_EX)CoreCreateEventEx,                                                 // CreateEventEx
+  (EFI_ALLOCATE_RING3_PAGES)AllocateRing3Pages
 };
 
 EFI_DXE_SERVICES  mDxeServices = {

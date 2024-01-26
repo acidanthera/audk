@@ -1175,6 +1175,13 @@ CoreAllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   );
 
+EFI_STATUS
+EFIAPI
+AllocateRing3Pages (
+  IN UINTN     NumberOfPages,
+  IN OUT VOID  **Memory
+  );
+
 /**
   Frees previous allocated pages.
 
@@ -1361,7 +1368,7 @@ CoreLoadImage (
   @retval EFI_SUCCESS             The image has been unloaded.
   @retval EFI_UNSUPPORTED         The image has been started, and does not support
                                   unload.
-  @retval EFI_INVALID_PARAMPETER  ImageHandle is not a valid image handle.
+  @retval EFI_INVALID_PARAMETER   ImageHandle is not a valid image handle.
 
 **/
 EFI_STATUS
