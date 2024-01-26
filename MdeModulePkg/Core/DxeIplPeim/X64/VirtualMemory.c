@@ -998,7 +998,7 @@ CreateIdentityMappingPageTables (
   AsmCpuidEx (0x80000001, 0x0, NULL, NULL, NULL, &Edx);
   if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0) && ((Edx & BIT11) != 0)) {
     Cr4.UintN     = AsmReadCr4 ();
-    // Cr4.Bits.SMAP = 1;
+    Cr4.Bits.SMAP = 1;
     Cr4.Bits.SMEP = 1;
     AsmWriteCr4 (Cr4.UintN);
 

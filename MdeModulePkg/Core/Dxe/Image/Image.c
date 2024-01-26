@@ -1716,9 +1716,9 @@ CoreStartImage (
       TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
 
       gCoreSysCallStackTop = TopOfStack;
-      DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
 
       SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP);
+      DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
 
       //
       // Allocate 128KB for the User Stack.
@@ -1735,8 +1735,6 @@ CoreStartImage (
       SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
       DEBUG ((DEBUG_ERROR, "Core: UserTopOfStack = %p\n", TopOfStack));
 
-      DEBUG ((DEBUG_ERROR, "Core: BootServices = %p\n", Image->Info.SystemTable->BootServices));
-
       //
       // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
       //
@@ -1745,6 +1743,8 @@ CoreStartImage (
         FixedPcdGet32 (PcdOvmfWorkAreaSize),
         EFI_MEMORY_XP | EFI_MEMORY_USER
         );
+
+      DEBUG ((DEBUG_ERROR, "Core: BootServices = 0x%lx\n", (UINTN)Image->Info.SystemTable->BootServices));
 
       //
       // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
