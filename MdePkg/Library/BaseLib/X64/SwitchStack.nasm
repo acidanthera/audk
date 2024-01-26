@@ -70,10 +70,10 @@ ASM_PFX(InternalEnterUserImage):
     mov     rax, [rsp + 8*6]
     or      rax, 3H ; RPL = 3
 
-o16 mov     ds, ax
-o16 mov     es, ax
-o16 mov     fs, ax
-o16 mov     gs, ax
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
 
     ; Save Code selector
     mov     r10, [rsp + 8*5]
@@ -108,10 +108,30 @@ o16 mov     gs, ax
 ;   (r11) RFLAGS saved by SYSCALL in SysCall().
 ;On stack Argument 4, 5, ...
 ;------------------------------------------------------------------------------
+%macro CallSysRet 0
+o16 mov     ds, r11
+o16 mov     es, r11
+o16 mov     fs, r11
+o16 mov     gs, r11
+
+    ; Restore RFLAGS in R11 for SYSRET.
+    pushfq
+    pop     r11
+
+    ; Switch to User Stack.
+    pop     rbp
+    pop     rdx
+    mov     rsp, rdx
+
+    ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
+o64 sysret
+    ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
+%endmacro
+
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
-    cmp     r10, 0
-    je      readMemory
+    ; Save User data segment selector.
+    mov     r11, ds
 
     mov     ax, ss
     mov     ds, ax
@@ -119,7 +139,7 @@ ASM_PFX(CoreBootServices):
     mov     fs, ax
     mov     gs, ax
 
-    ; Save User Stack pointer and switch to Core SysCall Stack.
+    ; Save User Stack pointers and switch to Core SysCall Stack.
     mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
     sub     rax, 8
     mov     [rax], rsp
@@ -128,9 +148,11 @@ ASM_PFX(CoreBootServices):
     push    rbp
     mov     rbp, rsp
 
-    ; Save return address and RFLAGS for SYSRET.
+    cmp     r10, 0
+    je      readMemory
+
+    ; Save return address for SYSRET.
     push    rcx
-    push    r11
 
     ; Replace argument according to UEFI calling convention.
     mov     rcx, rdx
@@ -142,24 +164,17 @@ ASM_PFX(CoreBootServices):
     ; ...
 
     ; Call Boot Service by FunctionAddress.
-    call    r10
+    call    [r10]
 
     ; Prepare SYSRET arguments.
-    pop     r11
     pop     rcx
 
-    ; Switch to User Stack.
-    pop     rbp
-    pop     rdx
-    mov     rsp, rdx
-
-    ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
-o64 sysret
-    ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
+    CallSysRet
 
 readMemory:
     mov    rax, [rdx]
-o64 sysret
+
+    CallSysRet
 
 
 SECTION .data
