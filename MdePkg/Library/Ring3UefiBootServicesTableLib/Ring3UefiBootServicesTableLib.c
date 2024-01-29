@@ -94,7 +94,7 @@ UefiBootServicesTableLibConstructor (
   // Cache pointer to the EFI Boot Services Table
   //
   mCoreBS = (EFI_BOOT_SERVICES *)SysCall (
-                                   0,
+                                   SysCallReadMemory,
                                    (UINTN)SystemTable + OFFSET_OF (EFI_SYSTEM_TABLE, BootServices)
                                    );
   ASSERT (mCoreBS != NULL);
@@ -504,16 +504,31 @@ EFI_STATUS
 EFIAPI
 Ring3LocateProtocol (
   IN  EFI_GUID  *Protocol,
-  IN  VOID      *Registration OPTIONAL,
+  IN  VOID      *CoreRegistration OPTIONAL,
   OUT VOID      **Interface
   )
 {
-  EFI_STATUS Status;
+  EFI_STATUS  Status;
+  EFI_GUID    *CoreProtocol;
+
+  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
+
+  CoreProtocol = (VOID *)SysCall (
+                           SysCallAllocateCoreCopy,
+                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateCoreCopy),
+                           sizeof (EFI_GUID),
+                           Protocol
+                           );
+  if (CoreProtocol == NULL) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate core copy of the Protocol variable.\n"));
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Status = (EFI_STATUS)SysCall (
+                         SysCallLocateProtocol,
                          (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, LocateProtocol),
-                         Protocol,
-                         Registration,
+                         CoreProtocol,
+                         CoreRegistration,
                          Interface
                          );
   if (EFI_ERROR (Status)) {
@@ -522,11 +537,10 @@ Ring3LocateProtocol (
   }
 
   if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
-    EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
-
     mCoreDevicePathUtilitiesProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
     Status = (EFI_STATUS)SysCall (
+                           SysCallAllocateRing3Pages,
                            (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateRing3Pages),
                            EFI_SIZE_TO_PAGES (sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL)),
                            (VOID **)&UserProtocol

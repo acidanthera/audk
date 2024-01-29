@@ -10,13 +10,14 @@
 ; UINTN
 ; EFIAPI
 ; SysCall (
+;   IN  UINT8  Type,
 ;   IN  UINTN  FunctionAddress,
 ;   ...
 ;   );
 ;------------------------------------------------------------------------------
 global ASM_PFX(SysCall)
 ASM_PFX(SysCall):
-  ; Save FunctionAddress for CoreBootServices().
+  ; Save Type for CoreBootServices().
   mov     r10, rcx
 
   ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
