@@ -12,6 +12,7 @@
 #include <Library/DebugLib.h>
 
 #include <Protocol/DevicePathUtilities.h>
+#include <Protocol/LoadedImage.h>
 
 #include "Ring3.h"
 
@@ -73,6 +74,7 @@ EFI_BOOT_SERVICES  *gBS     = &mBootServices;
 EFI_BOOT_SERVICES  *mCoreBS = NULL;
 
 EFI_DEVICE_PATH_UTILITIES_PROTOCOL *mCoreDevicePathUtilitiesProtocol = NULL;
+EFI_LOADED_IMAGE_PROTOCOL          *mCoreLoadedImageProtocol         = NULL;
 
 /**
   The function constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
@@ -441,14 +443,82 @@ Ring3DisconnectController (
 EFI_STATUS
 EFIAPI
 Ring3OpenProtocol (
-  IN  EFI_HANDLE  UserHandle,
+  IN  EFI_HANDLE  CoreUserHandle,
   IN  EFI_GUID    *Protocol,
   OUT VOID        **Interface OPTIONAL,
-  IN  EFI_HANDLE  ImageHandle,
-  IN  EFI_HANDLE  ControllerHandle,
+  IN  EFI_HANDLE  CoreImageHandle,
+  IN  EFI_HANDLE  CoreControllerHandle,
   IN  UINT32      Attributes
   )
 {
+  EFI_STATUS  Status;
+  EFI_GUID    *CoreProtocol;
+
+  EFI_LOADED_IMAGE_PROTOCOL *UserProtocol;
+
+  CoreProtocol = (VOID *)SysCall (
+                           SysCallAllocateCoreCopy,
+                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateCoreCopy),
+                           sizeof (EFI_GUID),
+                           Protocol
+                           );
+  if (CoreProtocol == NULL) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate core copy of the Protocol variable.\n"));
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  Status = (EFI_STATUS)SysCall (
+                         SysCallOpenProtocol,
+                         (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, OpenProtocol),
+                         CoreUserHandle,
+                         CoreProtocol,
+                         Interface,
+                         CoreImageHandle,
+                         CoreControllerHandle,
+                         Attributes
+                         );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to open protocol %g\n", Protocol));
+    return Status;
+  }
+
+  // TODO: FreePool (CoreProtocol);
+
+  if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
+    mCoreLoadedImageProtocol = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
+
+    Status = (EFI_STATUS)SysCall (
+                           SysCallAllocateRing3Pages,
+                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateRing3Pages),
+                           EFI_SIZE_TO_PAGES (sizeof (EFI_LOADED_IMAGE_PROTOCOL)),
+                           (VOID **)&UserProtocol
+                           );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3 EFI_LOADED_IMAGE_PROTOCOL structure.\n"));
+      return Status;
+    }
+
+    // TODO: Copy Core Interface fields with AllocateRing3Pages().
+
+    UserProtocol->Revision = 0;
+    UserProtocol->ParentHandle = NULL;
+    UserProtocol->SystemTable = NULL;
+    UserProtocol->DeviceHandle = NULL;
+    UserProtocol->FilePath = NULL;
+    UserProtocol->Reserved = 0;
+    UserProtocol->LoadOptionsSize = 0;
+    UserProtocol->LoadOptions = NULL;
+    UserProtocol->ImageBase = NULL;
+    UserProtocol->ImageSize = 0;
+    UserProtocol->ImageCodeType = 0;
+    UserProtocol->ImageDataType = 0;
+    UserProtocol->Unload = NULL;
+
+    *Interface = UserProtocol;
+
+    return Status;
+  }
+
   return EFI_UNSUPPORTED;
 }
 
@@ -536,6 +606,8 @@ Ring3LocateProtocol (
     return Status;
   }
 
+  // TODO: FreePool (CoreProtocol);
+
   if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
     mCoreDevicePathUtilitiesProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
@@ -546,7 +618,7 @@ Ring3LocateProtocol (
                            (VOID **)&UserProtocol
                            );
     if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3\n"));
+      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3 EFI_DEVICE_PATH_UTILITIES_PROTOCOL structure.\n"));
       return Status;
     }
 
@@ -564,7 +636,7 @@ Ring3LocateProtocol (
     return Status;
   }
 
-  return Status;
+  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
