@@ -228,6 +228,13 @@ EFI_STATUS
   IN OUT VOID                         **Memory
   );
 
+typedef
+VOID *
+(EFIAPI *EFI_ALLOCATE_CORE_COPY)(
+  IN UINTN       AllocationSize,
+  IN CONST VOID  *Buffer
+  );
+
 /**
   Frees memory pages.
 
@@ -2030,6 +2037,7 @@ typedef struct {
   EFI_SET_MEM                                   SetMem;
   EFI_CREATE_EVENT_EX                           CreateEventEx;
   EFI_ALLOCATE_RING3_PAGES                      AllocateRing3Pages;
+  EFI_ALLOCATE_CORE_COPY                        AllocateCoreCopy;
 } EFI_BOOT_SERVICES;
 
 ///

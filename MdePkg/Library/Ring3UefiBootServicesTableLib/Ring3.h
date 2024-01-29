@@ -5,13 +5,21 @@
 
 **/
 
+typedef enum {
+  SysCallReadMemory         = 0,
+  SysCallAllocateRing3Pages = 1,
+  SysCallAllocateCoreCopy   = 2,
+  SysCallLocateProtocol     = 3,
+  SysCallMax
+} SYS_CALL_TYPE;
+
 UINTN
 EFIAPI
 SysCall (
+  IN  UINT8  Type,
   IN  UINTN  FunctionAddress,
   ...
   );
-
 
 /**
   Raise the task priority level to the new level.

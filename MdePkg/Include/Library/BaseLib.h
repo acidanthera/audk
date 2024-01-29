@@ -6821,6 +6821,7 @@ AsmReadEflags (
 UINTN
 EFIAPI
 CoreBootServices (
+  IN  UINT8  Type,
   IN  UINTN  FunctionAddress,
   ...
   );

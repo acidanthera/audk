@@ -93,22 +93,27 @@ ASM_PFX(InternalEnterUserImage):
     retfq
 
 ;------------------------------------------------------------------------------
-; UINTN
-; EFIAPI
-; CoreBootServices (
-;   IN  UINTN  FunctionAddress,
-;   ...
-;   );
-;
-;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
-;   (rdx) Argument 1 of the called function.
-;   (r8)  Argument 2 of the called function.
-;   (r9)  Argument 3 of the called function.
-;   (r10) FunctionAddress.
-;   (r11) RFLAGS saved by SYSCALL in SysCall().
-;On stack Argument 4, 5, ...
+; typedef enum {
+;   SysCallReadMemory         = 0,
+;   SysCallAllocateRing3Pages = 1,
+;   SysCallAllocateCoreCopy   = 2,
+;   SysCallLocateProtocol     = 3,
+;   SysCallMax
+; } SYS_CALL_TYPE;
 ;------------------------------------------------------------------------------
+
+%define READ_MEMORY           0
+%define ALLOCATE_RING3_PAGES  1
+%define ALLOCATE_CORE_COPY    2
+%define LOCATE_PROTOCOL       3
+
 %macro CallSysRet 0
+    ; Prepare SYSRET arguments.
+    pop     rcx
+
+    ; Switch from Core to User data segment selectors.
+    pop     r11
+
 o16 mov     ds, r11
 o16 mov     es, r11
 o16 mov     fs, r11
@@ -128,11 +133,45 @@ o64 sysret
     ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
 %endmacro
 
+%macro DisableSMAP 0
+    pushfq
+    pop     rcx
+    or      rcx, 0x40000 ; Set AC (bit 18)
+    push    rcx
+    popfq
+%endmacro
+
+%macro EnableSMAP 0
+    pushfq
+    pop     rcx
+    and     rcx, ~0x40000 ; Clear AC (bit 18)
+    push    rcx
+    popfq
+%endmacro
+
+;------------------------------------------------------------------------------
+; UINTN
+; EFIAPI
+; CoreBootServices (
+;   IN  UINT8  Type,
+;   IN  UINTN  FunctionAddress,
+;   ...
+;   );
+;
+;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
+;   (rdx) FunctionAddress.
+;   (r8)  Argument 1 of the called function.
+;   (r9)  Argument 2 of the called function.
+;   (r10) Type.
+;   (r11) RFLAGS saved by SYSCALL in SysCall().
+;On stack Argument 3, 4, ...
+;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
-    ; Save User data segment selector.
+    ; Save User data segment selector temporarily in R11.
     mov     r11, ds
 
+    ; Switch from User to Core data segment selectors.
     mov     ax, ss
     mov     ds, ax
     mov     es, ax
@@ -148,34 +187,115 @@ ASM_PFX(CoreBootServices):
     push    rbp
     mov     rbp, rsp
 
-    cmp     r10, 0
-    je      readMemory
+    ; Save User data segment selector on Core SysCall Stack.
+    push    r11
+
+    ; Save FunctionAddress in R11 as it will be called later.
+    mov     r11, rdx
 
     ; Save return address for SYSRET.
     push    rcx
 
-    ; Replace argument according to UEFI calling convention.
-    mov     rcx, rdx
-    mov     rdx, r8
-    mov     r8, r9
-    ; mov     r9, [rax + 8*3]
-    ; mov   r11, [rax + 8*4]
-    ; push  r11
-    ; ...
+    cmp     r10, READ_MEMORY
+    je      readMemory
 
-    ; Call Boot Service by FunctionAddress.
-    call    [r10]
+    cmp     r10, ALLOCATE_RING3_PAGES
+    je      allocateRing3Pages
 
-    ; Prepare SYSRET arguments.
-    pop     rcx
+    cmp     r10, ALLOCATE_CORE_COPY
+    je      allocateCoreCopy
 
-    CallSysRet
+    cmp     r10, LOCATE_PROTOCOL
+    je      locateProtocol
 
+;------------------------------------------------------------------------------
+; UINTN
+; ReadMemory (
+;   IN UINTN Address
+;   );
 readMemory:
     mov    rax, [rdx]
 
     CallSysRet
 
+;------------------------------------------------------------------------------
+; EFI_STATUS
+; AllocateRing3Pages (
+;   IN UINTN     NumberOfPages,
+;   IN OUT VOID  **Memory
+;   );
+allocateRing3Pages:
+    ; Save User (VOID **)Memory on Core SysCall Stack.
+    push    r9
+
+    ; Replace argument according to UEFI calling convention.
+    mov     rcx, r8
+    ; Allocate space for (VOID *)Memory on Core SysCall Stack.
+    sub     rsp, 8
+    mov     rdx, rsp
+
+    ; Call Boot Service by FunctionAddress.
+    call    [r11]
+
+    DisableSMAP
+
+    ; Copy (VOID *)Memory from Core SysCall Stack to User Stack.
+    pop     rdx
+    pop     r9
+    mov     [r9], rdx
+
+    EnableSMAP
+
+    CallSysRet
+
+;------------------------------------------------------------------------------
+; VOID *
+; AllocateCoreCopy (
+;   IN UINTN       AllocationSize,
+;   IN CONST VOID  *Buffer
+;   );
+allocateCoreCopy:
+    DisableSMAP
+
+    ; Replace argument according to UEFI calling convention.
+    mov     rcx, r8
+    mov     rdx, r9
+
+    ; Call Boot Service by FunctionAddress.
+    call    [r11]
+
+    EnableSMAP
+
+    CallSysRet
+
+;------------------------------------------------------------------------------
+; EFI_STATUS
+; LocateProtocol (
+;   IN  EFI_GUID  *Protocol,
+;   IN  VOID      *Registration  OPTIONAL,
+;   OUT VOID      **Interface
+;   );
+locateProtocol:
+    ; Replace argument according to UEFI calling convention.
+    mov     rcx, r8
+    mov     rdx, r9
+    ; Allocate space for (VOID *)Interface on Core SysCall Stack.
+    sub     rsp, 8
+    mov     r8, rsp
+
+    ; Call Boot Service by FunctionAddress.
+    call    [r11]
+
+    DisableSMAP
+
+    ; Copy (VOID *)Interface from Core SysCall Stack to User Stack.
+    pop     rcx
+    mov     rdx, [rbp + 8]   ; rdx = User rsp
+    mov     [rdx + 8*4], rcx ; 5th argument of SysCall (SysCallLocateProtocol)
+
+    EnableSMAP
+
+    CallSysRet
 
 SECTION .data
 
