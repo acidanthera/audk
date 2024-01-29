@@ -98,6 +98,7 @@ ASM_PFX(InternalEnterUserImage):
 ;   SysCallAllocateRing3Pages = 1,
 ;   SysCallAllocateCoreCopy   = 2,
 ;   SysCallLocateProtocol     = 3,
+;   SysCallOpenProtocol       = 4,
 ;   SysCallMax
 ; } SYS_CALL_TYPE;
 ;------------------------------------------------------------------------------
@@ -106,6 +107,7 @@ ASM_PFX(InternalEnterUserImage):
 %define ALLOCATE_RING3_PAGES  1
 %define ALLOCATE_CORE_COPY    2
 %define LOCATE_PROTOCOL       3
+%define OPEN_PROTOCOL         4
 
 %macro CallSysRet 0
     ; Prepare SYSRET arguments.
@@ -135,17 +137,17 @@ o64 sysret
 
 %macro DisableSMAP 0
     pushfq
-    pop     rcx
-    or      rcx, 0x40000 ; Set AC (bit 18)
-    push    rcx
+    pop     r10
+    or      r10, 0x40000 ; Set AC (bit 18)
+    push    r10
     popfq
 %endmacro
 
 %macro EnableSMAP 0
     pushfq
-    pop     rcx
-    and     rcx, ~0x40000 ; Clear AC (bit 18)
-    push    rcx
+    pop     r10
+    and     r10, ~0x40000 ; Clear AC (bit 18)
+    push    r10
     popfq
 %endmacro
 
@@ -208,6 +210,9 @@ ASM_PFX(CoreBootServices):
     cmp     r10, LOCATE_PROTOCOL
     je      locateProtocol
 
+    cmp     r10, OPEN_PROTOCOL
+    je      openProtocol
+
 ;------------------------------------------------------------------------------
 ; UINTN
 ; ReadMemory (
@@ -228,7 +233,7 @@ allocateRing3Pages:
     ; Save User (VOID **)Memory on Core SysCall Stack.
     push    r9
 
-    ; Replace argument according to UEFI calling convention.
+    ; Replace arguments according to UEFI calling convention.
     mov     rcx, r8
     ; Allocate space for (VOID *)Memory on Core SysCall Stack.
     sub     rsp, 8
@@ -257,7 +262,7 @@ allocateRing3Pages:
 allocateCoreCopy:
     DisableSMAP
 
-    ; Replace argument according to UEFI calling convention.
+    ; Replace arguments according to UEFI calling convention.
     mov     rcx, r8
     mov     rdx, r9
 
@@ -276,7 +281,7 @@ allocateCoreCopy:
 ;   OUT VOID      **Interface
 ;   );
 locateProtocol:
-    ; Replace argument according to UEFI calling convention.
+    ; Replace arguments according to UEFI calling convention.
     mov     rcx, r8
     mov     rdx, r9
     ; Allocate space for (VOID *)Interface on Core SysCall Stack.
@@ -291,7 +296,55 @@ locateProtocol:
     ; Copy (VOID *)Interface from Core SysCall Stack to User Stack.
     pop     rcx
     mov     rdx, [rbp + 8]   ; rdx = User rsp
-    mov     [rdx + 8*4], rcx ; 5th argument of SysCall (SysCallLocateProtocol)
+    mov     [rdx + 8*5], rcx ; 5th argument of SysCall (SysCallLocateProtocol)
+
+    EnableSMAP
+
+    CallSysRet
+
+;------------------------------------------------------------------------------
+; EFI_STATUS
+; OpenProtocol (
+;   IN  EFI_HANDLE  UserHandle,
+;   IN  EFI_GUID    *Protocol,
+;   OUT VOID        **Interface  OPTIONAL,
+;   IN  EFI_HANDLE  ImageHandle,
+;   IN  EFI_HANDLE  ControllerHandle,
+;   IN  UINT32      Attributes
+;   );
+openProtocol:
+    ; Replace arguments according to UEFI calling convention.
+    mov     rcx, r8          ; UserHandle
+    mov     rdx, r9          ; Protocol
+    ; Allocate space for (VOID *)Interface on Core SysCall Stack.
+    sub     rsp, 8
+    mov     r8, rsp          ; Interface
+
+    DisableSMAP
+
+    ; Copy ImageHandle, ControllerHandle, Attributes from User Stack to Core SysCall Stack.
+    mov     rax, [rbp + 8]   ; rax = User rsp
+    mov     r9, [rax + 8*8]  ; Attributes - 8th argument of SysCall (SysCallOpenProtocol)
+    push    r9
+    mov     r9, [rax + 8*7]  ; ControllerHandle - 7th argument of SysCall (SysCallOpenProtocol)
+    push    r9
+    mov     r9, [rax + 8*6]  ; ImageHandle - 6th argument of SysCall (SysCallOpenProtocol)
+
+    EnableSMAP
+
+    ; Step over first 4 arguments, which are passed through registers.
+    sub     rsp, 8*4
+
+    ; Call Boot Service by FunctionAddress.
+    call    [r11]
+
+    DisableSMAP
+
+    ; Copy (VOID *)Interface from Core SysCall Stack to User Stack.
+    add     rsp, 8*6
+    pop     rcx
+    mov     rdx, [rbp + 8]   ; rdx = User rsp
+    mov     [rdx + 8*5], rcx ; 5th argument of SysCall (SysCallOpenProtocol)
 
     EnableSMAP
 

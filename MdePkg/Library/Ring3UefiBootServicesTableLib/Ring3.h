@@ -10,6 +10,7 @@ typedef enum {
   SysCallAllocateRing3Pages = 1,
   SysCallAllocateCoreCopy   = 2,
   SysCallLocateProtocol     = 3,
+  SysCallOpenProtocol       = 4,
   SysCallMax
 } SYS_CALL_TYPE;
 
