@@ -343,6 +343,60 @@ InternalEnterUserImage (
   IN UINT16                    DataSelector
   );
 
+VOID
+EFIAPI
+DisableSMAP (
+  VOID
+  );
+
+VOID
+EFIAPI
+EnableSMAP (
+  VOID
+  );
+
+typedef enum {
+  SysCallReadMemory         = 0,
+  SysCallAllocateRing3Pages = 1,
+  SysCallAllocateCoreCopy   = 2,
+  SysCallLocateProtocol     = 3,
+  SysCallOpenProtocol       = 4,
+  SysCallMax
+} SYS_CALL_TYPE;
+
+typedef
+UINTN
+(EFIAPI *EFI_ALLOCATE_RING3_PAGES)(
+  IN     UINTN                        Pages,
+  IN OUT VOID                         **Memory
+  );
+
+typedef
+VOID *
+(EFIAPI *EFI_ALLOCATE_CORE_COPY)(
+  IN UINTN       AllocationSize,
+  IN CONST VOID  *Buffer
+  );
+
+typedef
+UINTN
+(EFIAPI *EFI_LOCATE_PROTOCOL)(
+  IN  VOID  *Protocol,
+  IN  VOID      *Registration  OPTIONAL,
+  OUT VOID      **Interface
+  );
+
+typedef
+UINTN
+(EFIAPI *EFI_OPEN_PROTOCOL)(
+  IN  VOID *                Handle,
+  IN  VOID                  *Protocol,
+  OUT VOID                      **Interface  OPTIONAL,
+  IN  VOID *                AgentHandle,
+  IN  VOID *                ControllerHandle,
+  IN  UINT32                    Attributes
+  );
+
 /**
   Worker function that returns a bit field from Operand.
 
