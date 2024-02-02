@@ -1174,11 +1174,11 @@ CoreAllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   );
 
-EFI_STATUS
+VOID *
 EFIAPI
-AllocateRing3Pages (
-  IN UINTN     NumberOfPages,
-  IN OUT VOID  **Memory
+AllocateRing3CopyPages (
+  IN VOID    *MemoryCore,
+  IN UINT32  MemoryCoreSize
   );
 
 /**

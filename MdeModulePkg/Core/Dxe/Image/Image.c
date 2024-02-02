@@ -1565,25 +1565,25 @@ CoreLoadImage (
   return Status;
 }
 
-EFI_STATUS
+VOID *
 EFIAPI
-AllocateRing3Pages (
-  IN UINTN     NumberOfPages,
-  IN OUT VOID  **Memory
+AllocateRing3CopyPages (
+  IN VOID    *MemoryCore,
+  IN UINT32  MemoryCoreSize
   )
 {
-  if (Memory == NULL) {
-    return EFI_INVALID_PARAMETER;
+  VOID  *MemoryRing3;
+
+  MemoryRing3 = AllocatePages (EFI_SIZE_TO_PAGES (MemoryCoreSize));
+  if (MemoryRing3 == NULL) {
+    return NULL;
   }
 
-  *Memory = AllocatePages (NumberOfPages);
-  if (*Memory == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
+  CopyMem (MemoryRing3, MemoryCore, MemoryCoreSize);
 
-  SetUefiImageMemoryAttributes ((UINTN)*Memory, EFI_PAGES_TO_SIZE (NumberOfPages), EFI_MEMORY_USER);
+  SetUefiImageMemoryAttributes ((UINTN)MemoryRing3, EFI_PAGES_TO_SIZE (EFI_SIZE_TO_PAGES (MemoryCoreSize)), EFI_MEMORY_USER);
 
-  return EFI_SUCCESS;
+  return MemoryRing3;
 }
 
 /**
