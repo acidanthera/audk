@@ -5,11 +5,9 @@
 
 **/
 
-#include <Uefi.h>
+#include "DxeMain.h"
 
-#include <Library/DebugLib.h>
-#include <Library/MemoryAllocationLib.h>
-#include <Library/UefiBootServicesTableLib.h>
+#include <Protocol/DevicePathUtilities.h>
 
 VOID
 EFIAPI
@@ -50,6 +48,7 @@ CallBootService (
   UINT32     Arg6;
 
   EFI_GUID    *CoreProtocol;
+  UINT32       MemoryCoreSize;
 
   // Stack:
   //  rcx - Rip for SYSCALL
@@ -59,13 +58,6 @@ CallBootService (
   //  r11 - User data segment selector  <- CoreRbp
   //  rsp - User Rsp
   switch (Type) {
-    case SysCallAllocateRing3Pages:
-      Status = gBS->AllocateRing3Pages (*((UINTN *)CoreRbp + 3), &Pointer);
-      DisableSMAP ();
-      *(UINTN *)(*((UINTN *)CoreRbp + 1)) = (UINTN)Pointer;
-      EnableSMAP ();
-      return (UINTN)Status;
-
     case SysCallLocateProtocol:
       DisableSMAP ();
       CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)*((UINTN *)CoreRbp + 3));
@@ -81,10 +73,25 @@ CallBootService (
                  &Pointer
                  );
 
-      FreePool (CoreProtocol);
+      if (CompareGuid (CoreProtocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
+        MemoryCoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
+      } else {
+        MemoryCoreSize = 0;
+      }
+
+      Pointer = AllocateRing3CopyPages (Pointer, MemoryCoreSize);
+      if (Pointer == NULL) {
+        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
+        FreePool (CoreProtocol);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
       DisableSMAP ();
-      *((UINTN *)UserRsp + 5) = (UINTN)Pointer;
+      *(UINTN *)(*((UINTN *)UserRsp + 5)) = (UINTN)Pointer;
       EnableSMAP ();
+
+      FreePool (CoreProtocol);
+
       return (UINTN)Status;
 
     case SysCallOpenProtocol:
@@ -108,11 +115,27 @@ CallBootService (
                   Arg6
                   );
 
-      FreePool (CoreProtocol);
+      if (CompareGuid (CoreProtocol, &gEfiLoadedImageProtocolGuid)) {
+        MemoryCoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
+      } else {
+        MemoryCoreSize = 0;
+      }
+
+      Pointer = AllocateRing3CopyPages (Pointer, MemoryCoreSize);
+      if (Pointer == NULL) {
+        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
+        FreePool (CoreProtocol);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
       DisableSMAP ();
-      *((UINTN *)UserRsp + 5) = (UINTN)Pointer;
+      *(UINTN *)(*((UINTN *)UserRsp + 5)) = (UINTN)Pointer;
       EnableSMAP ();
+
+      FreePool (CoreProtocol);
+
       return (UINTN)Status;
+
     default:
       break;
   }

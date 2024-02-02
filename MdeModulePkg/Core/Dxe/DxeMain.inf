@@ -165,6 +165,7 @@
   gEfiSmmBase2ProtocolGuid                      ## SOMETIMES_CONSUMES
   gEdkiiPeCoffImageEmulatorProtocolGuid         ## SOMETIMES_CONSUMES
   gEfiMemoryAttributeProtocolGuid               ## CONSUMES
+  gEfiDevicePathUtilitiesProtocolGuid           ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES

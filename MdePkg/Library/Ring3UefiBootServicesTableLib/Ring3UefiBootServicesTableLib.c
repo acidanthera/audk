@@ -70,10 +70,7 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
 };
 
-EFI_BOOT_SERVICES  *gBS     = &mBootServices;
-
-EFI_DEVICE_PATH_UTILITIES_PROTOCOL *mCoreDevicePathUtilitiesProtocol = NULL;
-EFI_LOADED_IMAGE_PROTOCOL          *mCoreLoadedImageProtocol         = NULL;
+EFI_BOOT_SERVICES  *gBS = &mBootServices;
 
 /**
   The function constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
@@ -460,36 +457,11 @@ Ring3OpenProtocol (
   }
 
   if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
-    mCoreLoadedImageProtocol = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
+    UserProtocol = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
 
-    Status = (EFI_STATUS)SysCall (
-                           SysCallAllocateRing3Pages,
-                           0,
-                           EFI_SIZE_TO_PAGES (sizeof (EFI_LOADED_IMAGE_PROTOCOL)),
-                           (VOID **)&UserProtocol
-                           );
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3 EFI_LOADED_IMAGE_PROTOCOL structure.\n"));
-      return Status;
-    }
+    // TODO: Copy User changes to Core? Resembles InstallMultipleProtocolInterfaces().
 
-    // TODO: Copy Core Interface fields with AllocateRing3Pages().
-
-    UserProtocol->Revision = 0;
-    UserProtocol->ParentHandle = NULL;
-    UserProtocol->SystemTable = NULL;
-    UserProtocol->DeviceHandle = NULL;
-    UserProtocol->FilePath = NULL;
-    UserProtocol->Reserved = 0;
-    UserProtocol->LoadOptionsSize = 0;
-    UserProtocol->LoadOptions = NULL;
-    UserProtocol->ImageBase = NULL;
-    UserProtocol->ImageSize = 0;
-    UserProtocol->ImageCodeType = 0;
-    UserProtocol->ImageDataType = 0;
     UserProtocol->Unload = NULL;
-
-    *Interface = UserProtocol;
 
     return Status;
   }
@@ -570,18 +542,7 @@ Ring3LocateProtocol (
   }
 
   if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
-    mCoreDevicePathUtilitiesProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
-
-    Status = (EFI_STATUS)SysCall (
-                           SysCallAllocateRing3Pages,
-                           0,
-                           EFI_SIZE_TO_PAGES (sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL)),
-                           (VOID **)&UserProtocol
-                           );
-    if (EFI_ERROR (Status)) {
-      DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate pages for Ring3 EFI_DEVICE_PATH_UTILITIES_PROTOCOL structure.\n"));
-      return Status;
-    }
+    UserProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
     UserProtocol->GetDevicePathSize = NULL;
     UserProtocol->DuplicateDevicePath = NULL;
@@ -591,8 +552,6 @@ Ring3LocateProtocol (
     UserProtocol->GetNextDevicePathInstance = NULL;
     UserProtocol->IsDevicePathMultiInstance = NULL;
     UserProtocol->CreateDeviceNode = NULL;
-
-    *Interface = UserProtocol;
 
     return Status;
   }
