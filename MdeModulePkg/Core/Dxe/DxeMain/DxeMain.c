@@ -91,8 +91,7 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_COPY_MEM)EfiCopyMem,                                                               // CopyMem
   (EFI_SET_MEM)EfiSetMem,                                                                 // SetMem
   (EFI_CREATE_EVENT_EX)CoreCreateEventEx,                                                 // CreateEventEx
-  (EFI_ALLOCATE_RING3_PAGES)AllocateRing3Pages,
-  (EFI_ALLOCATE_CORE_COPY)AllocateCopyPool
+  (EFI_ALLOCATE_RING3_PAGES)AllocateRing3Pages
 };
 
 EFI_DXE_SERVICES  mDxeServices = {

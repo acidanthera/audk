@@ -71,7 +71,6 @@ EFI_BOOT_SERVICES  mBootServices = {
 };
 
 EFI_BOOT_SERVICES  *gBS     = &mBootServices;
-EFI_BOOT_SERVICES  *mCoreBS = NULL;
 
 EFI_DEVICE_PATH_UTILITIES_PROTOCOL *mCoreDevicePathUtilitiesProtocol = NULL;
 EFI_LOADED_IMAGE_PROTOCOL          *mCoreLoadedImageProtocol         = NULL;
@@ -92,16 +91,6 @@ UefiBootServicesTableLibConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  //
-  // Cache pointer to the EFI Boot Services Table
-  //
-  mCoreBS = (EFI_BOOT_SERVICES *)SysCall (
-                                   SysCallReadMemory,
-                                   (UINTN)SystemTable + OFFSET_OF (EFI_SYSTEM_TABLE, BootServices)
-                                   );
-  ASSERT (mCoreBS != NULL);
-  DEBUG ((DEBUG_ERROR, "User: BootServices = 0x%lx\n", (UINTN)mCoreBS));
-
   return EFI_SUCCESS;
 }
 
@@ -452,26 +441,14 @@ Ring3OpenProtocol (
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    *CoreProtocol;
 
   EFI_LOADED_IMAGE_PROTOCOL *UserProtocol;
 
-  CoreProtocol = (VOID *)SysCall (
-                           SysCallAllocateCoreCopy,
-                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateCoreCopy),
-                           sizeof (EFI_GUID),
-                           Protocol
-                           );
-  if (CoreProtocol == NULL) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate core copy of the Protocol variable.\n"));
-    return EFI_OUT_OF_RESOURCES;
-  }
-
   Status = (EFI_STATUS)SysCall (
                          SysCallOpenProtocol,
-                         (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, OpenProtocol),
+                         0,
                          CoreUserHandle,
-                         CoreProtocol,
+                         Protocol,
                          Interface,
                          CoreImageHandle,
                          CoreControllerHandle,
@@ -482,14 +459,12 @@ Ring3OpenProtocol (
     return Status;
   }
 
-  // TODO: FreePool (CoreProtocol);
-
   if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
     mCoreLoadedImageProtocol = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
 
     Status = (EFI_STATUS)SysCall (
                            SysCallAllocateRing3Pages,
-                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateRing3Pages),
+                           0,
                            EFI_SIZE_TO_PAGES (sizeof (EFI_LOADED_IMAGE_PROTOCOL)),
                            (VOID **)&UserProtocol
                            );
@@ -579,25 +554,13 @@ Ring3LocateProtocol (
   )
 {
   EFI_STATUS  Status;
-  EFI_GUID    *CoreProtocol;
 
   EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
 
-  CoreProtocol = (VOID *)SysCall (
-                           SysCallAllocateCoreCopy,
-                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateCoreCopy),
-                           sizeof (EFI_GUID),
-                           Protocol
-                           );
-  if (CoreProtocol == NULL) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate core copy of the Protocol variable.\n"));
-    return EFI_OUT_OF_RESOURCES;
-  }
-
   Status = (EFI_STATUS)SysCall (
                          SysCallLocateProtocol,
-                         (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, LocateProtocol),
-                         CoreProtocol,
+                         0,
+                         Protocol,
                          CoreRegistration,
                          Interface
                          );
@@ -606,14 +569,12 @@ Ring3LocateProtocol (
     return Status;
   }
 
-  // TODO: FreePool (CoreProtocol);
-
   if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
     mCoreDevicePathUtilitiesProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
     Status = (EFI_STATUS)SysCall (
                            SysCallAllocateRing3Pages,
-                           (UINTN)mCoreBS + OFFSET_OF (EFI_BOOT_SERVICES, AllocateRing3Pages),
+                           0,
                            EFI_SIZE_TO_PAGES (sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL)),
                            (VOID **)&UserProtocol
                            );
