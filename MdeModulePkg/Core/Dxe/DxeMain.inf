@@ -67,6 +67,10 @@
   Dispatcher/Dispatcher.c
   DxeMain/DxeProtocolNotify.c
   DxeMain/DxeMain.c
+  SysCall/BootServices.c
+
+[Sources.X64]
+  SysCall/X64/CoreBootServices.nasm
 
 [Packages]
   MdePkg/MdePkg.dec

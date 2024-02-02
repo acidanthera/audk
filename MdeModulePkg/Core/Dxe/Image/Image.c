@@ -27,7 +27,7 @@ STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
 
 extern BOOLEAN     gBdsStarted;
-extern VOID        *gCoreSysCallStackTop;
+VOID               *gCoreSysCallStackTop;
 
 //
 // This code is needed to build the Image handle for the DXE Core
