@@ -5,11 +5,11 @@
 
 **/
 
-#include <Base.h>
-#include <Library/BaseLib.h>
-#include <Library/BaseMemoryLib.h>
+#include <Uefi.h>
+
 #include <Library/DebugLib.h>
-#include <Library/PcdLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/UefiBootServicesTableLib.h>
 
 VOID
 EFIAPI
@@ -34,15 +34,6 @@ InternalEnterUserImage (
   IN UINT16                    DataSelector
   );
 
-typedef enum {
-  SysCallReadMemory         = 0,
-  SysCallAllocateRing3Pages = 1,
-  SysCallAllocateCoreCopy   = 2,
-  SysCallLocateProtocol     = 3,
-  SysCallOpenProtocol       = 4,
-  SysCallMax
-} SYS_CALL_TYPE;
-
 UINTN
 EFIAPI
 CallBootService (
@@ -57,10 +48,9 @@ CallBootService (
   VOID * Arg4;
   VOID * Arg5;
   UINT32     Arg6;
-  EFI_ALLOCATE_RING3_PAGES Func1;
-  EFI_ALLOCATE_CORE_COPY Func2;
-  EFI_LOCATE_PROTOCOL Func3;
-  EFI_OPEN_PROTOCOL Func4;
+
+  EFI_GUID    *CoreProtocol;
+
   // Stack:
   //  rcx - Rip for SYSCALL
   //  r8  - Argument 1
@@ -69,37 +59,29 @@ CallBootService (
   //  r11 - User data segment selector  <- CoreRbp
   //  rsp - User Rsp
   switch (Type) {
-    case SysCallReadMemory:
-      return *(UINTN *)FunctionAddress;
-
     case SysCallAllocateRing3Pages:
-      Func1 = (EFI_ALLOCATE_RING3_PAGES)*FunctionAddress;
-      Status = Func1 (
-                 *((UINTN *)CoreRbp + 3),
-                 &Pointer
-                 );
+      Status = gBS->AllocateRing3Pages (*((UINTN *)CoreRbp + 3), &Pointer);
       DisableSMAP ();
       *(UINTN *)(*((UINTN *)CoreRbp + 1)) = (UINTN)Pointer;
       EnableSMAP ();
       return (UINTN)Status;
 
-    case SysCallAllocateCoreCopy:
-      DisableSMAP ();
-      Func2 = (EFI_ALLOCATE_CORE_COPY)*FunctionAddress;
-      Status = (UINTN)Func2 (
-                 *((UINTN *)CoreRbp + 3),
-                 (VOID *)*((UINTN *)CoreRbp + 1)
-                 );
-      EnableSMAP ();
-      return (UINTN)Status;
-
     case SysCallLocateProtocol:
-      Func3 = (EFI_LOCATE_PROTOCOL)*FunctionAddress;
-      Status = Func3 (
-                 (VOID *)*((UINTN *)CoreRbp + 3),
+      DisableSMAP ();
+      CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)*((UINTN *)CoreRbp + 3));
+      EnableSMAP ();
+      if (CoreProtocol == NULL) {
+        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate core copy of the Protocol variable.\n"));
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = gBS->LocateProtocol (
+                 CoreProtocol,
                  (VOID *)*((UINTN *)CoreRbp + 1),
                  &Pointer
                  );
+
+      FreePool (CoreProtocol);
       DisableSMAP ();
       *((UINTN *)UserRsp + 5) = (UINTN)Pointer;
       EnableSMAP ();
@@ -107,19 +89,26 @@ CallBootService (
 
     case SysCallOpenProtocol:
       DisableSMAP ();
+      CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)*((UINTN *)CoreRbp + 1));
       Arg4 = (VOID *)*((UINTN *)UserRsp + 6);
       Arg5 = (VOID *)*((UINTN *)UserRsp + 7);
       Arg6 = (UINT32)*((UINTN *)UserRsp + 8);
       EnableSMAP ();
-      Func4 = (EFI_OPEN_PROTOCOL)*FunctionAddress;
-      Status = Func4 (
+      if (CoreProtocol == NULL) {
+        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate core copy of the Protocol variable.\n"));
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = gBS->OpenProtocol (
                   (VOID *)*((UINTN *)CoreRbp + 3),
-                  (VOID *)*((UINTN *)CoreRbp + 1),
+                  CoreProtocol,
                   &Pointer,
                   Arg4,
                   Arg5,
                   Arg6
                   );
+
+      FreePool (CoreProtocol);
       DisableSMAP ();
       *((UINTN *)UserRsp + 5) = (UINTN)Pointer;
       EnableSMAP ();

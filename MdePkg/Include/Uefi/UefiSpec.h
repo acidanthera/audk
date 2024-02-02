@@ -229,13 +229,6 @@ EFI_STATUS
   IN OUT VOID                         **Memory
   );
 
-typedef
-VOID *
-(EFIAPI *EFI_ALLOCATE_CORE_COPY)(
-  IN UINTN       AllocationSize,
-  IN CONST VOID  *Buffer
-  );
-
 /**
   Frees memory pages.
 
@@ -2038,8 +2031,14 @@ typedef struct {
   EFI_SET_MEM                                   SetMem;
   EFI_CREATE_EVENT_EX                           CreateEventEx;
   EFI_ALLOCATE_RING3_PAGES                      AllocateRing3Pages;
-  EFI_ALLOCATE_CORE_COPY                        AllocateCoreCopy;
 } EFI_BOOT_SERVICES;
+
+typedef enum {
+  SysCallLocateProtocol     = 1,
+  SysCallOpenProtocol       = 2,
+  SysCallAllocateRing3Pages = 3,
+  SysCallMax
+} SYS_CALL_TYPE;
 
 ///
 /// Contains a set of GUID/pointer pairs comprised of the ConfigurationTable field in the
