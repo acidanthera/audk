@@ -2935,3 +2935,22 @@ SetUefiImageMemoryAttributes (
   IN UINT64  Length,
   IN UINT64  Attributes
   );
+
+UINTN
+EFIAPI
+CoreBootServices (
+  IN  UINT8  Type,
+  IN  UINTN  FunctionAddress,
+  ...
+  );
+
+VOID
+EFIAPI
+EnterUserImage (
+  IN SWITCH_STACK_ENTRY_POINT  EntryPoint,
+  IN VOID                      *Context1   OPTIONAL,
+  IN VOID                      *Context2   OPTIONAL,
+  IN VOID                      *NewStack,
+  IN UINT16                    CodeSelector,
+  IN UINT16                    DataSelector
+  );
