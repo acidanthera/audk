@@ -36,7 +36,6 @@ UINTN
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN VOID   **FunctionAddress,
   IN UINTN  CoreRbp,
   IN UINTN  UserRsp
   )
@@ -52,11 +51,12 @@ CallBootService (
 
   // Stack:
   //  rcx - Rip for SYSCALL
-  //  r8  - Argument 1
+  //  rdx - Argument 1
   //  rbp - User Rbp
-  //  r9  - Argument 2
+  //  r8  - Argument 2
   //  r11 - User data segment selector  <- CoreRbp
   //  rsp - User Rsp
+  //  r9  - Argument 3
   switch (Type) {
     case SysCallLocateProtocol:
       DisableSMAP ();
@@ -87,7 +87,7 @@ CallBootService (
       }
 
       DisableSMAP ();
-      *(UINTN *)(*((UINTN *)UserRsp + 5)) = (UINTN)Pointer;
+      *(UINTN *)(*((UINTN *)CoreRbp - 2)) = (UINTN)Pointer;
       EnableSMAP ();
 
       FreePool (CoreProtocol);
@@ -97,9 +97,9 @@ CallBootService (
     case SysCallOpenProtocol:
       DisableSMAP ();
       CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)*((UINTN *)CoreRbp + 1));
-      Arg4 = (VOID *)*((UINTN *)UserRsp + 6);
-      Arg5 = (VOID *)*((UINTN *)UserRsp + 7);
-      Arg6 = (UINT32)*((UINTN *)UserRsp + 8);
+      Arg4 = (VOID *)*((UINTN *)UserRsp + 5);
+      Arg5 = (VOID *)*((UINTN *)UserRsp + 6);
+      Arg6 = (UINT32)*((UINTN *)UserRsp + 7);
       EnableSMAP ();
       if (CoreProtocol == NULL) {
         DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate core copy of the Protocol variable.\n"));
@@ -129,7 +129,7 @@ CallBootService (
       }
 
       DisableSMAP ();
-      *(UINTN *)(*((UINTN *)UserRsp + 5)) = (UINTN)Pointer;
+      *(UINTN *)(*((UINTN *)CoreRbp - 2)) = (UINTN)Pointer;
       EnableSMAP ();
 
       FreePool (CoreProtocol);

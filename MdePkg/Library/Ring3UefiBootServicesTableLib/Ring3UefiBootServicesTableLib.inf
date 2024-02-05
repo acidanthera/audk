@@ -35,3 +35,7 @@
 [LibraryClasses]
   BaseMemoryLib
   DebugLib
+
+[Protocols]
+  gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
+  gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES

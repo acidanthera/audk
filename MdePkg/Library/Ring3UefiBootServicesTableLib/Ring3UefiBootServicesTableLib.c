@@ -443,7 +443,6 @@ Ring3OpenProtocol (
 
   Status = (EFI_STATUS)SysCall (
                          SysCallOpenProtocol,
-                         0,
                          CoreUserHandle,
                          Protocol,
                          Interface,
@@ -531,7 +530,6 @@ Ring3LocateProtocol (
 
   Status = (EFI_STATUS)SysCall (
                          SysCallLocateProtocol,
-                         0,
                          Protocol,
                          CoreRegistration,
                          Interface
