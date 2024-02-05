@@ -69,6 +69,8 @@
   DxeMain/DxeProtocolNotify.c
   DxeMain/DxeMain.c
   SysCall/BootServices.c
+  SysCall/SupportedProtocols.h
+  SysCall/DriverBindingProtocol.c
 
 [Sources.X64]
   SysCall/X64/CoreBootServices.nasm
@@ -166,6 +168,7 @@
   gEdkiiPeCoffImageEmulatorProtocolGuid         ## SOMETIMES_CONSUMES
   gEfiMemoryAttributeProtocolGuid               ## CONSUMES
   gEfiDevicePathUtilitiesProtocolGuid           ## SOMETIMES_CONSUMES
+  gEfiComponentNameProtocolGuid                 ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES

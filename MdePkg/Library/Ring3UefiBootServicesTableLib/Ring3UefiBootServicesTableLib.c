@@ -564,7 +564,10 @@ Ring3InstallMultipleProtocolInterfaces (
   ...
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallInstallMultipleProtocolInterfaces,
+           Handle
+           );
 }
 
 EFI_STATUS

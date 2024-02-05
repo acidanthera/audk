@@ -6,8 +6,12 @@
 **/
 
 #include "DxeMain.h"
+#include "SupportedProtocols.h"
 
+#include <Protocol/ComponentName.h>
 #include <Protocol/DevicePathUtilities.h>
+
+#define MAX_LIST 32
 
 VOID
 EFIAPI
@@ -68,6 +72,10 @@ CallBootService (
   EFI_HANDLE Argument4;
   EFI_HANDLE Argument5;
   UINT32     Argument6;
+  UINT32     Index;
+  UINTN      *ArgList[MAX_LIST];
+
+  EFI_DRIVER_BINDING_PROTOCOL *CoreDriverBinding;
 
   gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -80,12 +88,14 @@ CallBootService (
       // Argument 3: VOID      **Interface
       //
       DisableSMAP ();
-      CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)CoreRbp->Argument1);
-      EnableSMAP ();
-      if (CoreProtocol == NULL) {
-        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate core copy of the Protocol variable.\n"));
-        return EFI_OUT_OF_RESOURCES;
+      if (CompareGuid ((EFI_GUID *)CoreRbp->Argument1, &gEfiDevicePathUtilitiesProtocolGuid)) {
+        CoreProtocol   = &gEfiDevicePathUtilitiesProtocolGuid;
+        MemoryCoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
+      } else {
+        CoreProtocol   = NULL;
+        MemoryCoreSize = 0;
       }
+      EnableSMAP ();
 
       Status = gBS->LocateProtocol (
                       CoreProtocol,
@@ -93,24 +103,15 @@ CallBootService (
                       &Interface
                       );
 
-      if (CompareGuid (CoreProtocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
-        MemoryCoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
-      } else {
-        MemoryCoreSize = 0;
-      }
-
       Interface = AllocateRing3CopyPages (Interface, MemoryCoreSize);
       if (Interface == NULL) {
         DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
-        FreePool (CoreProtocol);
         return EFI_OUT_OF_RESOURCES;
       }
 
       DisableSMAP ();
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
-
-      FreePool (CoreProtocol);
 
       return Status;
 
@@ -124,15 +125,18 @@ CallBootService (
       // Argument 6: UINT32      Attributes
       //
       DisableSMAP ();
-      CoreProtocol = AllocateCopyPool (sizeof (EFI_GUID), (VOID *)CoreRbp->Argument2);
+      if (CompareGuid ((EFI_GUID *)CoreRbp->Argument2, &gEfiLoadedImageProtocolGuid)) {
+        CoreProtocol   = &gEfiLoadedImageProtocolGuid;
+        MemoryCoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
+      } else {
+        CoreProtocol   = NULL;
+        MemoryCoreSize = 0;
+      }
+
       Argument4    = (EFI_HANDLE)UserRsp->Arguments[4];
       Argument5    = (EFI_HANDLE)UserRsp->Arguments[5];
       Argument6    = (UINT32)UserRsp->Arguments[6];
       EnableSMAP ();
-      if (CoreProtocol == NULL) {
-        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate core copy of the Protocol variable.\n"));
-        return EFI_OUT_OF_RESOURCES;
-      }
 
       Status = gBS->OpenProtocol (
                       (EFI_HANDLE)CoreRbp->Argument1,
@@ -143,16 +147,9 @@ CallBootService (
                       Argument6
                       );
 
-      if (CompareGuid (CoreProtocol, &gEfiLoadedImageProtocolGuid)) {
-        MemoryCoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
-      } else {
-        MemoryCoreSize = 0;
-      }
-
       Interface = AllocateRing3CopyPages (Interface, MemoryCoreSize);
       if (Interface == NULL) {
         DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
-        FreePool (CoreProtocol);
         return EFI_OUT_OF_RESOURCES;
       }
 
@@ -160,7 +157,47 @@ CallBootService (
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
 
-      FreePool (CoreProtocol);
+      return Status;
+
+    case SysCallInstallMultipleProtocolInterfaces:
+      //
+      // Argument 1: EFI_HANDLE  *Handle
+      // ...
+      //
+      DisableSMAP ();
+      for (Index = 0; ((VOID *)UserRsp->Arguments[Index] != NULL) && (Index < MAX_LIST); Index += 2) {
+        if (CompareGuid ((EFI_GUID *)UserRsp->Arguments[Index], &gEfiDriverBindingProtocolGuid)) {
+          ArgList[Index] = (UINTN *)&gEfiDriverBindingProtocolGuid;
+          MemoryCoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
+        } else if (CompareGuid ((EFI_GUID *)UserRsp->Arguments[Index], &gEfiComponentNameProtocolGuid)) {
+          ArgList[Index] = (UINTN *)&gEfiComponentNameProtocolGuid;
+          MemoryCoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
+        } else {
+          DEBUG ((DEBUG_INFO, "Ring0: Argument %d is not a GUID.\n", Index));
+        }
+
+        ArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserRsp->Arguments[Index + 1]);
+      }
+      EnableSMAP ();
+
+      if ((Index == MAX_LIST) && ((VOID *)UserRsp->Arguments[Index] != NULL)) {
+        DEBUG ((DEBUG_ERROR, "Ring0: Too many protocols!\n"));
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      ArgList[Index] = NULL;
+
+      for (Index = 0; ArgList[Index] != NULL; Index += 2) {
+        if (CompareGuid ((EFI_GUID *)ArgList[Index], &gEfiDriverBindingProtocolGuid)) {
+          CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)ArgList[Index + 1];
+
+          CoreDriverBinding->Supported = CoreDriverBindingSupported;
+          CoreDriverBinding->Start     = CoreDriverBindingStart;
+          CoreDriverBinding->Stop      = CoreDriverBindingStop;
+        }
+      }
+
+      Status = gBS->InstallMultipleProtocolInterfaces ((EFI_HANDLE *)ArgList);
 
       return Status;
 
