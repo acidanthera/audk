@@ -9,7 +9,6 @@ UINTN
 EFIAPI
 SysCall (
   IN  UINT8  Type,
-  IN  UINTN  FunctionAddress,
   ...
   );
 

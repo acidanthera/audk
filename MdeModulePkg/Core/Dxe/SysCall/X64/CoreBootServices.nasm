@@ -15,6 +15,7 @@ extern ASM_PFX(gCoreSysCallStackTop)
     ; Prepare SYSRET arguments.
     mov     rcx, [rbp + 8*4]
     pop     rdx
+    pop     rdx
 
     ; Switch from Core to User data segment selectors.
     pop     r11
@@ -61,17 +62,16 @@ ASM_PFX(EnableSMAP):
 ; EFIAPI
 ; CoreBootServices (
 ;   IN  UINT8  Type,
-;   IN  UINTN  FunctionAddress,
 ;   ...
 ;   );
 ;
 ;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
-;   (rdx) FunctionAddress.
-;   (r8)  Argument 1 of the called function.
-;   (r9)  Argument 2 of the called function.
+;   (rdx) Argument 1 of the called function.
+;   (r8)  Argument 2 of the called function.
+;   (r9)  Argument 3 of the called function.
 ;   (r10) Type.
 ;   (r11) RFLAGS saved by SYSCALL in SysCall().
-;On stack Argument 3, 4, ...
+;On stack Argument 4, 5, ...
 ;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
@@ -92,21 +92,22 @@ ASM_PFX(CoreBootServices):
     mov     [rax], rcx
     mov     rcx, r10
     sub     rax, 8
-    mov     [rax], r8
+    mov     [rax], rdx
     sub     rax, 8
     mov     [rax], rbp
     sub     rax, 8
-    mov     [rax], r9
+    mov     [rax], r8
     ; Save User data segment selector on Core SysCall Stack.
     sub     rax, 8
     mov     [rax], r11
 
-    mov     r9, rsp
+    mov     r8, rsp
 
     mov     rsp, rax
 
     mov     rbp, rsp
-    mov     r8, rbp
+    mov     rdx, rbp
+    push    r8
     push    r9
 
     call ASM_PFX(CallBootService)
