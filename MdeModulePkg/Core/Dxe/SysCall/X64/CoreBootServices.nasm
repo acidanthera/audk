@@ -11,34 +11,6 @@ SECTION .text
 extern ASM_PFX(CallBootService)
 extern ASM_PFX(gCoreSysCallStackTop)
 
-%macro CallSysRet 0
-    ; Prepare SYSRET arguments.
-    mov     rcx, [rbp + 8*4]
-    pop     rdx
-    pop     rdx
-
-    ; Switch from Core to User data segment selectors.
-    pop     r11
-
-o16 mov     ds, r11
-o16 mov     es, r11
-o16 mov     fs, r11
-o16 mov     gs, r11
-
-    ; Restore RFLAGS in R11 for SYSRET.
-    pushfq
-    pop     r11
-
-    ; Switch to User Stack.
-    pop     rbp
-    pop     rbp
-    mov     rsp, rdx
-
-    ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
-o64 sysret
-    ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
-%endmacro
-
 global ASM_PFX(DisableSMAP)
 ASM_PFX(DisableSMAP):
     pushfq
@@ -58,7 +30,7 @@ ASM_PFX(EnableSMAP):
     ret
 
 ;------------------------------------------------------------------------------
-; UINTN
+; EFI_STATUS
 ; EFIAPI
 ; CoreBootServices (
 ;   IN  UINT8  Type,
@@ -71,7 +43,8 @@ ASM_PFX(EnableSMAP):
 ;   (r9)  Argument 3 of the called function.
 ;   (r10) Type.
 ;   (r11) RFLAGS saved by SYSCALL in SysCall().
-;On stack Argument 4, 5, ...
+;
+;   (On User Stack) Argument 4, 5, ...
 ;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
@@ -87,32 +60,50 @@ ASM_PFX(CoreBootServices):
 
     ; Save User Stack pointers and switch to Core SysCall Stack.
     mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
-    ; Save return address for SYSRET.
     sub     rax, 8
-    mov     [rax], rcx
-    mov     rcx, r10
-    sub     rax, 8
-    mov     [rax], rdx
-    sub     rax, 8
-    mov     [rax], rbp
-    sub     rax, 8
-    mov     [rax], r8
-    ; Save User data segment selector on Core SysCall Stack.
-    sub     rax, 8
-    mov     [rax], r11
-
-    mov     r8, rsp
-
+    mov     [rax], rsp
     mov     rsp, rax
-
-    mov     rbp, rsp
-    mov     rdx, rbp
-    push    r8
+    push    rbp
+    ; Save return address for SYSRET.
+    push    rcx
+    ; Save User data segment selector.
+    push    r11
+    ; Save User Arguments [1..3].
     push    r9
+    push    r8
+    push    rdx
+    mov     rbp, rsp
+
+    ; Prepare CallBootService arguments.
+    mov     rcx, r10
+    mov     rdx, rbp
+    mov     r8, [rbp + 8*6]
 
     call ASM_PFX(CallBootService)
 
-    CallSysRet
+    ; Step over Arguments [1..3].
+    add     rsp, 8*3
+
+    ; Switch from Core to User data segment selectors.
+    pop     r11
+
+o16 mov     ds, r11
+o16 mov     es, r11
+o16 mov     fs, r11
+o16 mov     gs, r11
+
+    ; Prepare SYSRET arguments.
+    pop     rcx
+    pushfq
+    pop     r11
+
+    ; Switch to User Stack.
+    pop     rbp
+    pop     rsp
+
+    ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
+o64 sysret
+    ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
 
 ;------------------------------------------------------------------------------
 ; Routine Description:

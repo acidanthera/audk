@@ -441,15 +441,15 @@ Ring3OpenProtocol (
 
   EFI_LOADED_IMAGE_PROTOCOL *UserProtocol;
 
-  Status = (EFI_STATUS)SysCall (
-                         SysCallOpenProtocol,
-                         CoreUserHandle,
-                         Protocol,
-                         Interface,
-                         CoreImageHandle,
-                         CoreControllerHandle,
-                         Attributes
-                         );
+  Status = SysCall (
+             SysCallOpenProtocol,
+             CoreUserHandle,
+             Protocol,
+             Interface,
+             CoreImageHandle,
+             CoreControllerHandle,
+             Attributes
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Ring3: Failed to open protocol %g\n", Protocol));
     return Status;
@@ -528,12 +528,12 @@ Ring3LocateProtocol (
 
   EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
 
-  Status = (EFI_STATUS)SysCall (
-                         SysCallLocateProtocol,
-                         Protocol,
-                         CoreRegistration,
-                         Interface
-                         );
+  Status = SysCall (
+             SysCallLocateProtocol,
+             Protocol,
+             CoreRegistration,
+             Interface
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Ring3: Failed to loacate protocol %g\n", Protocol));
     return Status;
