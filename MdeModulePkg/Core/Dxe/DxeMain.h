@@ -2835,7 +2835,7 @@ SetUefiImageMemoryAttributes (
   IN UINT64  Attributes
   );
 
-UINTN
+EFI_STATUS
 EFIAPI
 CoreBootServices (
   IN  UINT8  Type,

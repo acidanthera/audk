@@ -7,7 +7,7 @@
     SECTION .text
 
 ;------------------------------------------------------------------------------
-; UINTN
+; EFI_STATUS
 ; EFIAPI
 ; SysCall (
 ;   IN  UINT8  Type,
