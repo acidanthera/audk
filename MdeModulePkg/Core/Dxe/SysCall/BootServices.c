@@ -191,6 +191,10 @@ CallBootService (
         if (CompareGuid ((EFI_GUID *)ArgList[Index], &gEfiDriverBindingProtocolGuid)) {
           CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)ArgList[Index + 1];
 
+          mUserDriverBindingSupported = CoreDriverBinding->Supported;
+          mUserDriverBindingStart     = CoreDriverBinding->Start;
+          mUserDriverBindingStop      = CoreDriverBinding->Stop;
+
           CoreDriverBinding->Supported = CoreDriverBindingSupported;
           CoreDriverBinding->Start     = CoreDriverBindingStart;
           CoreDriverBinding->Stop      = CoreDriverBindingStop;
