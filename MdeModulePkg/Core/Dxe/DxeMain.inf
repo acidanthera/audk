@@ -69,7 +69,7 @@
   DxeMain/DxeMain.c
   SysCall/BootServices.c
   SysCall/SupportedProtocols.h
-  SysCall/DriverBindingProtocol.c
+  SysCall/SupportedProtocols.c
 
 [Sources.X64]
   SysCall/X64/CoreBootServices.nasm

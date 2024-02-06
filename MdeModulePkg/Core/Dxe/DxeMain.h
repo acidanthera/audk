@@ -228,6 +228,7 @@ typedef struct {
 
   VOID                                    *HiiData;
   BOOLEAN                                 IsUserImage;
+  BOOLEAN                                 IsRing3EntryPoint;
 } LOADED_IMAGE_PRIVATE_DATA;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
@@ -2739,13 +2740,15 @@ RemoveImageRecord (
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
   @param[out] IsUserImage              Whether the loaded image is in user space.
+  @param[out] IsRing3EntryPoint        Whether the loaded image is a wrapper for Ring3 calls.
 **/
 VOID
 ProtectUefiImage (
   IN  EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
   IN  UINT8                            ImageOrigin,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT BOOLEAN                          *IsUserImage
+  OUT BOOLEAN                          *IsUserImage,
+  OUT BOOLEAN                          *IsRing3EntryPoint
   );
 
 /**

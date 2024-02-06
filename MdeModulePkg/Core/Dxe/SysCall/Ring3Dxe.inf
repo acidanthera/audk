@@ -1,0 +1,42 @@
+## @file
+#
+#  Ring3 driver for SysCalls.
+#
+#  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+#  SPDX-License-Identifier: BSD-3-Clause
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = Ring3Dxe
+  FILE_GUID                      = 88EA50C2-0DEA-4F13-B691-B506554E632B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = Ring3EntryPoint
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  Ring3Dxe.c
+
+[Sources.X64]
+  X64/Ring3Dxe.nasm
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+
+[Protocols]
+
+[Guids]
+
+[Depex]
+  TRUE

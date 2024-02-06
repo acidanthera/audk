@@ -170,13 +170,15 @@ IsMemoryProtectionSectionAligned (
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
   @param[out] IsUserImage              Whether the loaded image is in user space.
+  @param[out] IsRing3EntryPoint        Whether the loaded image is a wrapper for Ring3 calls.
 **/
 VOID
 ProtectUefiImage (
   IN  EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
   IN  UINT8                            ImageOrigin,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT BOOLEAN                          *IsUserImage
+  OUT BOOLEAN                          *IsUserImage,
+  OUT BOOLEAN                          *IsRing3EntryPoint
   )
 {
   RETURN_STATUS      PdbStatus;
@@ -231,6 +233,8 @@ ProtectUefiImage (
   //
   InsertTailList (&mProtectedImageRecordList, &ImageRecord->Link);
 
+  *IsRing3EntryPoint = FALSE;
+
   if (gCpu != NULL) {
     //
     // CPU ARCH present. Update memory attribute directly.
@@ -238,7 +242,11 @@ ProtectUefiImage (
     if (AsciiStrStr (PdbPointer, "Ntfs") != NULL) {
       SetUefiImageProtectionAttributes (ImageRecord, TRUE);
       *IsUserImage = TRUE;
-    } else {
+    } else if (AsciiStrStr (PdbPointer, "Ring3") != NULL) {
+      SetUefiImageProtectionAttributes (ImageRecord, TRUE);
+      *IsUserImage       = TRUE;
+      *IsRing3EntryPoint = TRUE;
+  } else {
       SetUefiImageProtectionAttributes (ImageRecord, FALSE);
       *IsUserImage = FALSE;
     }

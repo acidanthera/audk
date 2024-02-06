@@ -28,6 +28,8 @@ STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
 
 extern BOOLEAN     gBdsStarted;
 VOID               *gCoreSysCallStackTop;
+VOID               *gRing3CallStackTop;
+VOID               *gRing3EntryPoint;
 
 //
 // This code is needed to build the Image handle for the DXE Core
@@ -70,7 +72,8 @@ LOADED_IMAGE_PRIVATE_DATA  mCorePrivateImage = {
   NULL,                       // LoadedImageDevicePath
   EFI_SUCCESS,                // LoadImageStatus
   NULL,                       // HiiData
-  FALSE                       // IsUserImage
+  FALSE,                      // IsUserImage
+  FALSE                       // IsRing3EntryPoint
 };
 //
 // The field is define for Loading modules at fixed address feature to tracker the PEI code
@@ -1441,7 +1444,7 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, &Image->IsUserImage);
+  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, &Image->IsUserImage, &Image->IsRing3EntryPoint);
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
@@ -1718,6 +1721,13 @@ CoreStartImage (
 
     if (!Image->IsUserImage) {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+    } else if (Image->IsRing3EntryPoint) {
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      gRing3EntryPoint = (VOID *)Image->EntryPoint;
+
+      Image->Status = EFI_SUCCESS;
     } else {
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1753,8 +1763,10 @@ CoreStartImage (
       TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
       TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
 
+      gRing3CallStackTop = TopOfStack;
+
       SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
-      DEBUG ((DEBUG_ERROR, "Core: UserTopOfStack = %p\n", TopOfStack));
+      DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
 
       //
       // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
@@ -1780,7 +1792,7 @@ CoreStartImage (
         (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,
         ImageHandle,
         Image->Info.SystemTable,
-        TopOfStack,
+        gRing3CallStackTop,
         (UINT16)RING3_CODE64_SEL,
         (UINT16)RING3_DATA64_SEL
         );

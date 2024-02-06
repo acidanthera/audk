@@ -10,6 +10,8 @@ SECTION .text
 
 extern ASM_PFX(CallBootService)
 extern ASM_PFX(gCoreSysCallStackTop)
+extern ASM_PFX(gRing3CallStackTop)
+extern ASM_PFX(gRing3EntryPoint)
 
 global ASM_PFX(DisableSMAP)
 ASM_PFX(DisableSMAP):
@@ -151,3 +153,47 @@ ASM_PFX(InternalEnterUserImage):
 
     ; Pass control to user image
     retfq
+
+;------------------------------------------------------------------------------
+; EFI_STATUS
+; EFIAPI
+; CallRing3 (
+;   IN UINT8  Type,
+;   IN UINT16 CodeSelector,
+;   IN UINT16 DataSelector,
+;   IN VOID   *FunctionAddress,
+;   ...
+;   );
+;
+;   (rcx) Type.
+;   (rdx) CodeSelector  - Segment selector for code.
+;   (r8)  DataSelector  - Segment selector for data.
+;   (r9)  FunctionAddress
+;
+;   (On User Stack) Argument 1, 2, 3, ...
+;------------------------------------------------------------------------------
+global ASM_PFX(CallRing3)
+ASM_PFX(CallRing3):
+    ; Set Data selectors
+    or      r8, 3H ; RPL = 3
+
+o16 mov     ds, r8
+o16 mov     es, r8
+o16 mov     fs, r8
+o16 mov     gs, r8
+
+    ; Save Code selector
+    or      rdx, 3H ; RPL = 3
+
+    ; Prepare stack before swithcing
+    push    r8                      ;  ss
+    push qword [gRing3CallStackTop] ;  rsp
+    push    rdx                     ;  cs
+    push qword [gRing3EntryPoint]   ;  rip
+
+    ; Copy Arguments from Core Stack to User Stack + return address
+
+    ; Pass control to User driver function.
+    retfq
+coreReturnAddress:
+    ret

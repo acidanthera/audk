@@ -5,6 +5,10 @@
 
 **/
 
+extern EFI_DRIVER_BINDING_SUPPORTED mUserDriverBindingSupported;
+extern EFI_DRIVER_BINDING_START     mUserDriverBindingStart;
+extern EFI_DRIVER_BINDING_STOP      mUserDriverBindingStop;
+
 EFI_STATUS
 EFIAPI
 CoreDriverBindingSupported (
@@ -12,7 +16,7 @@ CoreDriverBindingSupported (
   IN EFI_HANDLE                             ControllerHandle,
   IN EFI_DEVICE_PATH_PROTOCOL               *RemainingDevicePath OPTIONAL
   );
-  
+
 EFI_STATUS
 EFIAPI
 CoreDriverBindingStart (
