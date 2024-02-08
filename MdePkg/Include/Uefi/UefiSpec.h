@@ -2032,6 +2032,8 @@ typedef enum {
   SysCallMax
 } SYS_CALL_TYPE;
 
+#define MAX_LIST 32
+
 ///
 /// Contains a set of GUID/pointer pairs comprised of the ConfigurationTable field in the
 /// EFI System Table.

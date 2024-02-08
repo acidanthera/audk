@@ -11,8 +11,6 @@
 #include <Protocol/ComponentName.h>
 #include <Protocol/DevicePathUtilities.h>
 
-#define MAX_LIST 32
-
 VOID
 EFIAPI
 DisableSMAP (
@@ -23,6 +21,15 @@ VOID
 EFIAPI
 EnableSMAP (
   VOID
+  );
+
+EFI_STATUS
+EFIAPI
+CallInstallMultipleProtocolInterfaces (
+  IN EFI_HANDLE  *Handle,
+  IN VOID        **ArgList,
+  IN UINT32      ArgListSize,
+  IN VOID        *Function
   );
 
 VOID
@@ -73,7 +80,9 @@ CallBootService (
   EFI_HANDLE Argument5;
   UINT32     Argument6;
   UINT32     Index;
-  UINTN      *ArgList[MAX_LIST];
+  VOID       **UserArgList;
+  VOID       *CoreArgList[MAX_LIST];
+  EFI_HANDLE CoreHandle;
 
   EFI_DRIVER_BINDING_PROTOCOL *CoreDriverBinding;
 
@@ -92,8 +101,9 @@ CallBootService (
         CoreProtocol   = &gEfiDevicePathUtilitiesProtocolGuid;
         MemoryCoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
       } else {
-        CoreProtocol   = NULL;
-        MemoryCoreSize = 0;
+        DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+        EnableSMAP ();
+        return EFI_INVALID_PARAMETER;
       }
       EnableSMAP ();
 
@@ -129,8 +139,9 @@ CallBootService (
         CoreProtocol   = &gEfiLoadedImageProtocolGuid;
         MemoryCoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
       } else {
-        CoreProtocol   = NULL;
-        MemoryCoreSize = 0;
+        DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+        EnableSMAP ();
+        return EFI_INVALID_PARAMETER;
       }
 
       Argument4    = (EFI_HANDLE)UserRsp->Arguments[4];
@@ -165,31 +176,34 @@ CallBootService (
       // ...
       //
       DisableSMAP ();
-      for (Index = 0; ((VOID *)UserRsp->Arguments[Index] != NULL) && (Index < MAX_LIST); Index += 2) {
-        if (CompareGuid ((EFI_GUID *)UserRsp->Arguments[Index], &gEfiDriverBindingProtocolGuid)) {
-          ArgList[Index] = (UINTN *)&gEfiDriverBindingProtocolGuid;
+      CoreHandle  = *(EFI_HANDLE *)CoreRbp->Argument1;
+      UserArgList = (VOID **)CoreRbp->Argument2;
+
+      for (Index = 0; UserArgList[Index] != NULL; ++Index) {
+        if (CompareGuid ((EFI_GUID *)UserArgList[Index], &gEfiDriverBindingProtocolGuid)) {
+          CoreArgList[Index] = (VOID *)&gEfiDriverBindingProtocolGuid;
           MemoryCoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
-        } else if (CompareGuid ((EFI_GUID *)UserRsp->Arguments[Index], &gEfiComponentNameProtocolGuid)) {
-          ArgList[Index] = (UINTN *)&gEfiComponentNameProtocolGuid;
+          continue;
+        } else if (CompareGuid ((EFI_GUID *)UserArgList[Index], &gEfiComponentNameProtocolGuid)) {
+          CoreArgList[Index] = (VOID *)&gEfiComponentNameProtocolGuid;
           MemoryCoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
-        } else {
-          DEBUG ((DEBUG_INFO, "Ring0: Argument %d is not a GUID.\n", Index));
+          continue;
+        } else if ((Index % 2) == 0) {
+          DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+          EnableSMAP ();
+          return EFI_INVALID_PARAMETER;
         }
 
-        ArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserRsp->Arguments[Index + 1]);
+        CoreArgList[Index] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index]);
       }
       EnableSMAP ();
 
-      if ((Index == MAX_LIST) && ((VOID *)UserRsp->Arguments[Index] != NULL)) {
-        DEBUG ((DEBUG_ERROR, "Ring0: Too many protocols!\n"));
-        return EFI_OUT_OF_RESOURCES;
-      }
+      ASSERT (Index < MAX_LIST);
+      CoreArgList[Index] = NULL;
 
-      ArgList[Index] = NULL;
-
-      for (Index = 0; ArgList[Index] != NULL; Index += 2) {
-        if (CompareGuid ((EFI_GUID *)ArgList[Index], &gEfiDriverBindingProtocolGuid)) {
-          CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)ArgList[Index + 1];
+      for (Index = 0; CoreArgList[Index] != NULL; Index += 2) {
+        if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiDriverBindingProtocolGuid)) {
+          CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)CoreArgList[Index + 1];
 
           mUserDriverBindingSupported = CoreDriverBinding->Supported;
           mUserDriverBindingStart     = CoreDriverBinding->Start;
@@ -201,7 +215,12 @@ CallBootService (
         }
       }
 
-      Status = gBS->InstallMultipleProtocolInterfaces ((EFI_HANDLE *)ArgList);
+      Status = CallInstallMultipleProtocolInterfaces (
+                 &CoreHandle,
+                 CoreArgList,
+                 Index + 1,
+                 (VOID *)gBS->InstallMultipleProtocolInterfaces
+                 );
 
       return Status;
 

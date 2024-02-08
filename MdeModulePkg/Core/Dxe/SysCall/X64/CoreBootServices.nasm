@@ -13,6 +13,13 @@ extern ASM_PFX(gCoreSysCallStackTop)
 extern ASM_PFX(gRing3CallStackTop)
 extern ASM_PFX(gRing3EntryPoint)
 
+;------------------------------------------------------------------------------
+; VOID
+; EFIAPI
+; DisableSMAP (
+;   VOID
+;   );
+;------------------------------------------------------------------------------
 global ASM_PFX(DisableSMAP)
 ASM_PFX(DisableSMAP):
     pushfq
@@ -22,6 +29,13 @@ ASM_PFX(DisableSMAP):
     popfq
     ret
 
+;------------------------------------------------------------------------------
+; VOID
+; EFIAPI
+; EnableSMAP (
+;   VOID
+;   );
+;------------------------------------------------------------------------------
 global ASM_PFX(EnableSMAP)
 ASM_PFX(EnableSMAP):
     pushfq
@@ -29,6 +43,51 @@ ASM_PFX(EnableSMAP):
     and     r10, ~0x40000 ; Clear AC (bit 18)
     push    r10
     popfq
+    ret
+
+;------------------------------------------------------------------------------
+; EFI_STATUS
+; EFIAPI
+; CallInstallMultipleProtocolInterfaces (
+;   IN EFI_HANDLE  *Handle,
+;   IN VOID        **ArgList,
+;   IN UINT32      ArgListSize,
+;   IN VOID        *Function
+;   );
+;------------------------------------------------------------------------------
+global ASM_PFX(CallInstallMultipleProtocolInterfaces)
+ASM_PFX(CallInstallMultipleProtocolInterfaces):
+    push    r12
+
+    ; Save funtion input.
+    mov     rax, rdx
+    mov     r10, r8
+    mov     r11, r9
+
+    ; Prepare registers for call.
+    mov     rdx, [rax]
+    mov     r8, [rax + 8]
+    mov     r9, [rax + 8*2]
+
+    ; Prepare stack for call.
+    lea     rax, [rax + r10 * 8]
+    mov     r12, r10
+copy:
+    sub     rax, 8
+    push qword [rax]
+    cmp     r10, 0
+    sub     r10, 1
+    jne     copy
+    push    rcx
+
+    call    r11
+
+    ; Step over Function arguments.
+    pop     rcx
+    lea     rsp, [rsp + r12 * 8]
+
+    pop     r12
+
     ret
 
 ;------------------------------------------------------------------------------
