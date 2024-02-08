@@ -564,9 +564,31 @@ Ring3InstallMultipleProtocolInterfaces (
   ...
   )
 {
+  VA_LIST Marker;
+  VOID    *Argument;
+  VOID    *ArgList[MAX_LIST];
+  UINTN   Index;
+
+  VA_START (Marker, Handle);
+  for (Index = 0; Index < MAX_LIST; ++Index) {
+    Argument       = VA_ARG (Marker, VOID *);
+    ArgList[Index] = Argument;
+
+    if (Argument == NULL) {
+      break;
+    }
+  }
+  VA_END (Marker);
+
+  if (Index == MAX_LIST) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Too many arguments\n"));
+    return EFI_INVALID_PARAMETER;
+  }
+
   return SysCall (
            SysCallInstallMultipleProtocolInterfaces,
-           Handle
+           Handle,
+           ArgList
            );
 }
 
