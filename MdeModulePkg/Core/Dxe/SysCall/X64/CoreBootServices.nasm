@@ -123,6 +123,10 @@ ASM_PFX(CoreBootServices):
     mov     fs, ax
     mov     gs, ax
 
+    ; Special case for SysCallReturnToCore.
+    cmp     r10, 0
+    je      coreReturnAddress
+
     ; Save User Stack pointers and switch to Core SysCall Stack.
     mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
     sub     rax, 8
@@ -229,6 +233,8 @@ ASM_PFX(CallRing3):
 o64 sysret
 
 coreReturnAddress:
+    mov     rsp, [ASM_PFX(CoreRsp)]
+    mov     rbp, [ASM_PFX(CoreRbp)]
     ret
 
 SECTION .data
