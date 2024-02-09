@@ -15,7 +15,18 @@ SECTION .text
 ;   IN EFI_HANDLE        ImageHandle,
 ;   IN EFI_SYSTEM_TABLE  *SystemTable
 ;   )
+;
+;   (rcx) _ModuleEntryPoint  - Used by SYSRET.
+;   (rdx) EntryPoint         - Function address in User address space.
+;   (r8)  Context1           - Parameter1 for entry point.
+;   (r9)  Context2           - Parameter2 for entry point.
 ;------------------------------------------------------------------------------
 global ASM_PFX(_ModuleEntryPoint)
 ASM_PFX(_ModuleEntryPoint):
-  ret
+    mov rcx, r8
+    mov r8, rdx
+    mov rdx, r9
+
+    call r8
+    
+    ret

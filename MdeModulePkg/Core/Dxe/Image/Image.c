@@ -1788,15 +1788,11 @@ CoreStartImage (
       Msr = (UINT64)(UINTN)CoreBootServices;
       AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
 
-      EnterUserImage (
-        (SWITCH_STACK_ENTRY_POINT)(UINTN)Image->EntryPoint,
-        ImageHandle,
-        Image->Info.SystemTable,
-        gRing3CallStackTop,
-        (UINT16)RING3_CODE64_SEL,
-        (UINT16)RING3_DATA64_SEL
-        );
-      Image->Status = EFI_SUCCESS;
+      Image->Status = CallRing3 (
+                        (VOID *)Image->EntryPoint,
+                        ImageHandle,
+                        Image->Info.SystemTable
+                        );
     }
 
     //
