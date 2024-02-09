@@ -28,5 +28,7 @@ ASM_PFX(_ModuleEntryPoint):
     mov rdx, r9
 
     call r8
-    
-    ret
+
+    mov     r10, 0
+
+    syscall

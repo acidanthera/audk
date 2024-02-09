@@ -2026,6 +2026,7 @@ typedef struct {
 } EFI_BOOT_SERVICES;
 
 typedef enum {
+  SysCallReturnToCore                      = 0,
   SysCallLocateProtocol                    = 1,
   SysCallOpenProtocol                      = 2,
   SysCallInstallMultipleProtocolInterfaces = 3,
