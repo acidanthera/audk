@@ -32,17 +32,6 @@ CallInstallMultipleProtocolInterfaces (
   IN VOID        *Function
   );
 
-VOID
-EFIAPI
-InternalEnterUserImage (
-  IN SWITCH_STACK_ENTRY_POINT  EntryPoint,
-  IN VOID                      *Context1   OPTIONAL,
-  IN VOID                      *Context2   OPTIONAL,
-  IN VOID                      *NewStack,
-  IN UINT16                    CodeSelector,
-  IN UINT16                    DataSelector
-  );
-
 typedef struct {
   UINTN  Argument1;
   UINTN  Argument2;
@@ -85,7 +74,9 @@ CallBootService (
   EFI_HANDLE CoreHandle;
 
   EFI_DRIVER_BINDING_PROTOCOL *CoreDriverBinding;
-
+  //
+  // TODO: Check User variables.
+  //
   gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -229,26 +220,4 @@ CallBootService (
   }
 
   return EFI_UNSUPPORTED;
-}
-
-VOID
-EFIAPI
-EnterUserImage (
-  IN SWITCH_STACK_ENTRY_POINT  EntryPoint,
-  IN VOID                      *Context1   OPTIONAL,
-  IN VOID                      *Context2   OPTIONAL,
-  IN VOID                      *NewStack,
-  IN UINT16                    CodeSelector,
-  IN UINT16                    DataSelector
-  )
-{
-  ASSERT (EntryPoint != NULL);
-  ASSERT (NewStack != NULL);
-
-  //
-  // New stack must be aligned with CPU_STACK_ALIGNMENT
-  //
-  ASSERT (((UINTN)NewStack & (CPU_STACK_ALIGNMENT - 1)) == 0);
-
-  InternalEnterUserImage (EntryPoint, Context1, Context2, NewStack, CodeSelector, DataSelector);
 }

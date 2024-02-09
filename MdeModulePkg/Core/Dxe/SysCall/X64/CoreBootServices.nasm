@@ -5,13 +5,17 @@
 ;
 ;------------------------------------------------------------------------------
 
-DEFAULT REL
-SECTION .text
+#include <Register/Intel/ArchitecturalMsr.h>
 
 extern ASM_PFX(CallBootService)
 extern ASM_PFX(gCoreSysCallStackTop)
 extern ASM_PFX(gRing3CallStackTop)
 extern ASM_PFX(gRing3EntryPoint)
+
+extern ASM_PFX(AsmReadMsr64)
+
+DEFAULT REL
+SECTION .text
 
 ;------------------------------------------------------------------------------
 ; VOID
@@ -167,92 +171,69 @@ o64 sysret
     ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
 
 ;------------------------------------------------------------------------------
-; Routine Description:
+; EFI_STATUS
+; EFIAPI
+; CallRing3 (
+;   IN VOID  *EntryPoint,
+;   ...
+;   );
 ;
-;   Routine for transfering control to user image with 2 parameters
-;
-; Arguments:
-;
-;   (rcx) EntryPoint    - Entry point with new stack.
+;   (rcx) EntryPoint    - Entry point in User address space.
 ;   (rdx) Context1      - Parameter1 for entry point.
 ;   (r8)  Context2      - Parameter2 for entry point.
-;   (r9)  NewStack      - The pointer to new stack.
-;On stack CodeSelector  - Segment selector for code.
-;On stack DataSelector  - Segment selector for data.
-;
-; Returns:
-;
-;   None
-;
 ;------------------------------------------------------------------------------
-global ASM_PFX(InternalEnterUserImage)
-ASM_PFX(InternalEnterUserImage):
-    ; Set Data selectors
-    mov     rax, [rsp + 8*6]
-    or      rax, 3H ; RPL = 3
+global ASM_PFX(CallRing3)
+ASM_PFX(CallRing3):
+    ; Save input Arguments.
+    push    r12
+    push    r13
+    push    r14
+    mov     r12, rcx
+    mov     r13, rdx
+    mov     r14, r8
 
+    ; Extract User Data selector.
+    mov     rcx, MSR_IA32_STAR
+    call ASM_PFX(AsmReadMsr64)
+    ; rax = ((RING3_CODE64_SEL - 16) << 16 | RING0_CODE64_SEL) << 32
+    shr     rax, 48
+    add     rax, 8
+
+    ; Set Data selectors
+    or      rax, 3H ; RPL = 3
     mov     ds, ax
     mov     es, ax
     mov     fs, ax
     mov     gs, ax
 
-    ; Save Code selector
-    mov     r10, [rsp + 8*5]
-    or      r10, 3H ; RPL = 3
+    ; Prepare SYSRET arguments.
+    mov     rcx, [gRing3EntryPoint]
+    mov     rdx, r12
+    mov     r8, r13
+    mov     r9, r14
+    pushfq
+    pop     r11
 
-    ; Prepare stack before swithcing
-    push    rax     ;  ss
-    push    r9      ;  rsp
-    push    r10     ;  cs
-    push    rcx     ;  rip
+    ; Restore stack and registers.
+    pop     r14
+    pop     r13
+    pop     r12
 
-    ; Save 2 parameters
-    mov     rcx, rdx
-    mov     rdx, r8
+    ; Save Core Stack pointers and switch to User Stack.
+    mov     [ASM_PFX(CoreRsp)], rsp
+    mov     [ASM_PFX(CoreRbp)], rbp
+    mov     rsp, [ASM_PFX(gRing3CallStackTop)]
+    mov     rbp, rsp
 
     ; Pass control to user image
-    retfq
+o64 sysret
 
-;------------------------------------------------------------------------------
-; EFI_STATUS
-; EFIAPI
-; CallRing3 (
-;   IN UINT8  Type,
-;   IN UINT16 CodeSelector,
-;   IN UINT16 DataSelector,
-;   IN VOID   *FunctionAddress,
-;   ...
-;   );
-;
-;   (rcx) Type.
-;   (rdx) CodeSelector  - Segment selector for code.
-;   (r8)  DataSelector  - Segment selector for data.
-;   (r9)  FunctionAddress
-;
-;   (On User Stack) Argument 1, 2, 3, ...
-;------------------------------------------------------------------------------
-global ASM_PFX(CallRing3)
-ASM_PFX(CallRing3):
-    ; Set Data selectors
-    or      r8, 3H ; RPL = 3
-
-o16 mov     ds, r8
-o16 mov     es, r8
-o16 mov     fs, r8
-o16 mov     gs, r8
-
-    ; Save Code selector
-    or      rdx, 3H ; RPL = 3
-
-    ; Prepare stack before swithcing
-    push    r8                      ;  ss
-    push qword [gRing3CallStackTop] ;  rsp
-    push    rdx                     ;  cs
-    push qword [gRing3EntryPoint]   ;  rip
-
-    ; Copy Arguments from Core Stack to User Stack + return address
-
-    ; Pass control to User driver function.
-    retfq
 coreReturnAddress:
     ret
+
+SECTION .data
+ASM_PFX(CoreRsp):
+  resq 1
+
+ASM_PFX(CoreRbp):
+  resq 1
