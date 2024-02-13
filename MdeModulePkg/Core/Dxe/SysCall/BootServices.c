@@ -13,15 +13,31 @@
 
 VOID
 EFIAPI
-DisableSMAP (
+DisableSMEP (
   VOID
-  );
+  )
+{
+  IA32_CR4  Cr4;
+
+  Cr4.UintN     = AsmReadCr4 ();
+  Cr4.Bits.SMEP = 0;
+
+  AsmWriteCr4 (Cr4.UintN);
+}
 
 VOID
 EFIAPI
-EnableSMAP (
+EnableSMEP (
   VOID
-  );
+  )
+{
+  IA32_CR4  Cr4;
+
+  Cr4.UintN     = AsmReadCr4 ();
+  Cr4.Bits.SMEP = 1;
+
+  AsmWriteCr4 (Cr4.UintN);
+}
 
 EFI_STATUS
 EFIAPI

@@ -30,6 +30,7 @@ extern BOOLEAN     gBdsStarted;
 VOID               *gCoreSysCallStackTop;
 VOID               *gRing3CallStackTop;
 VOID               *gRing3EntryPoint;
+RING3_DATA         *mRing3Data;
 
 //
 // This code is needed to build the Image handle for the DXE Core
@@ -1725,9 +1726,17 @@ CoreStartImage (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      gRing3EntryPoint = (VOID *)Image->EntryPoint;
+      mRing3Data = AllocateRing3CopyPages ((VOID *)Image->Info.SystemTable, sizeof (RING3_DATA));
 
-      Image->Status = EFI_SUCCESS;
+      DisableSMAP ();
+      DisableSMEP ();
+      Image->Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)mRing3Data);
+
+      gRing3EntryPoint = mRing3Data->EntryPoint;
+
+      mRing3Data->SystemTable.BootServices = mRing3Data->BootServices;
+      EnableSMEP ();
+      EnableSMAP ();
     } else {
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1791,7 +1800,7 @@ CoreStartImage (
       Image->Status = CallRing3 (
                         (VOID *)Image->EntryPoint,
                         ImageHandle,
-                        Image->Info.SystemTable
+                        (EFI_SYSTEM_TABLE *)mRing3Data
                         );
     }
 

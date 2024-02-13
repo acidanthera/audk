@@ -2120,6 +2120,12 @@ typedef struct {
   EFI_CONFIGURATION_TABLE            *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
 
+typedef struct {
+  EFI_SYSTEM_TABLE   SystemTable;
+  VOID               *EntryPoint;
+  EFI_BOOT_SERVICES  *BootServices;
+} RING3_DATA;
+
 /**
   This is the declaration of an EFI image entry point. This entry point is
   the same for UEFI Applications, UEFI OS Loaders, and UEFI Drivers including

@@ -2852,4 +2852,28 @@ CallRing3 (
   ...
   );
 
+VOID
+EFIAPI
+DisableSMAP (
+  VOID
+  );
+
+VOID
+EFIAPI
+EnableSMAP (
+  VOID
+  );
+
+VOID
+EFIAPI
+DisableSMEP (
+  VOID
+  );
+
+VOID
+EFIAPI
+EnableSMEP (
+  VOID
+  );
+
 #endif
