@@ -1590,6 +1590,113 @@ AllocateRing3CopyPages (
   return MemoryRing3;
 }
 
+VOID
+EFIAPI
+InitializeRing3 (
+  IN EFI_HANDLE                 ImageHandle,
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  )
+{
+  VOID                    *BaseOfStack;
+  VOID                    *TopOfStack;
+  UINTN                   SizeOfStack;
+  UINT64                  Msr;
+  IA32_CR4                Cr4;
+  IA32_EFLAGS32           Eflags;
+  UINT32                  Ebx;
+  UINT32                  Edx;
+  MSR_IA32_EFER_REGISTER  MsrEfer;
+
+  Ebx = 0;
+  Edx = 0;
+
+  //
+  // Set Ring3 EntryPoint and BootServices.
+  //
+  mRing3Data = AllocateRing3CopyPages ((VOID *)Image->Info.SystemTable, sizeof (RING3_DATA));
+
+  Image->Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)mRing3Data);
+
+  gRing3EntryPoint = mRing3Data->EntryPoint;
+
+  mRing3Data->SystemTable.BootServices = mRing3Data->BootServices;
+
+  //
+  // Forbid supervisor-mode accesses to any user-mode pages.
+  // SMEP and SMAP must be supported.
+  //
+  AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
+  //
+  // SYSCALL and SYSRET must be also supported.
+  //
+  AsmCpuidEx (0x80000001, 0x0, NULL, NULL, NULL, &Edx);
+  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0) && ((Edx & BIT11) != 0)) {
+    Cr4.UintN     = AsmReadCr4 ();
+    Cr4.Bits.SMAP = 1;
+    Cr4.Bits.SMEP = 1;
+    AsmWriteCr4 (Cr4.UintN);
+
+    Eflags.UintN   = AsmReadEflags ();
+    Eflags.Bits.AC = 0;
+    //
+    // Allow user image to access ports.
+    //
+    Eflags.Bits.IOPL = 3;
+    AsmWriteEflags (Eflags.UintN);
+    //
+    // Enable SYSCALL and SYSRET.
+    //
+    MsrEfer.Uint64   = AsmReadMsr64 (MSR_IA32_EFER);
+    MsrEfer.Bits.SCE = 1;
+    AsmWriteMsr64 (MSR_IA32_EFER, MsrEfer.Uint64);
+  }
+
+  SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
+
+  //
+  // Allocate 128KB for the Core SysCall Stack.
+  //
+  BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+  ASSERT (BaseOfStack != NULL);
+
+  //
+  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+  //
+  TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+  TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
+
+  gCoreSysCallStackTop = TopOfStack;
+
+  SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP);
+  DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
+
+  //
+  // Allocate 128KB for the User Stack.
+  //
+  BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+  ASSERT (BaseOfStack != NULL);
+
+  //
+  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+  //
+  TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+  TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
+
+  gRing3CallStackTop = TopOfStack;
+
+  SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
+  DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
+
+  //
+  // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
+  //
+  Msr = ((((UINT64)RING3_CODE64_SEL - 16) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
+  AsmWriteMsr64 (MSR_IA32_STAR, Msr);
+
+  Msr = (UINT64)(UINTN)CoreBootServices;
+  AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
+}
+
 /**
   Transfer control to a loaded image's entry point.
 
@@ -1624,10 +1731,6 @@ CoreStartImage (
   UINTN                      SetJumpFlag;
   EFI_HANDLE                 Handle;
   UINT64                     Attributes;
-  VOID                       *BaseOfStack;
-  VOID                       *TopOfStack;
-  UINTN                      SizeOfStack;
-  UINT64                     Msr;
 
   Handle = ImageHandle;
 
@@ -1720,62 +1823,11 @@ CoreStartImage (
     //
     Image->Started = TRUE;
 
-    if (!Image->IsUserImage) {
-      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
-    } else if (Image->IsRing3EntryPoint) {
+    if (Image->IsRing3EntryPoint) {
+      InitializeRing3 (ImageHandle, Image);
+    } else if (Image->IsUserImage) {
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      mRing3Data = AllocateRing3CopyPages ((VOID *)Image->Info.SystemTable, sizeof (RING3_DATA));
-
-      DisableSMAP ();
-      DisableSMEP ();
-      Image->Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)mRing3Data);
-
-      gRing3EntryPoint = mRing3Data->EntryPoint;
-
-      mRing3Data->SystemTable.BootServices = mRing3Data->BootServices;
-      EnableSMEP ();
-      EnableSMAP ();
-    } else {
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
-
-      //
-      // Allocate 128KB for the Core SysCall Stack.
-      //
-      BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-      ASSERT (BaseOfStack != NULL);
-
-      //
-      // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-      //
-      TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
-      TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
-
-      gCoreSysCallStackTop = TopOfStack;
-
-      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP);
-      DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
-
-      //
-      // Allocate 128KB for the User Stack.
-      //
-      BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-      ASSERT (BaseOfStack != NULL);
-
-      //
-      // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-      //
-      TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
-      TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
-
-      gRing3CallStackTop = TopOfStack;
-
-      SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
-      DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
 
       //
       // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
@@ -1786,22 +1838,13 @@ CoreStartImage (
         EFI_MEMORY_XP | EFI_MEMORY_USER
         );
 
-      DEBUG ((DEBUG_ERROR, "Core: BootServices = 0x%lx\n", (UINTN)Image->Info.SystemTable->BootServices));
-
-      //
-      // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
-      //
-      Msr = ((((UINT64)RING3_CODE64_SEL - 16) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
-      AsmWriteMsr64 (MSR_IA32_STAR, Msr);
-
-      Msr = (UINT64)(UINTN)CoreBootServices;
-      AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
-
       Image->Status = CallRing3 (
                         (VOID *)Image->EntryPoint,
                         ImageHandle,
                         (EFI_SYSTEM_TABLE *)mRing3Data
                         );
+    } else {
+      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
     }
 
     //

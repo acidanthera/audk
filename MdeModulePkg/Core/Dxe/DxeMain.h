@@ -2864,16 +2864,4 @@ EnableSMAP (
   VOID
   );
 
-VOID
-EFIAPI
-DisableSMEP (
-  VOID
-  );
-
-VOID
-EFIAPI
-EnableSMEP (
-  VOID
-  );
-
 #endif
