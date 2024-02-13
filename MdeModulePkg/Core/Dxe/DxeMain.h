@@ -2952,3 +2952,27 @@ CallRing3 (
   IN VOID  *EntryPoint,
   ...
   );
+
+VOID
+EFIAPI
+DisableSMAP (
+  VOID
+  );
+
+VOID
+EFIAPI
+EnableSMAP (
+  VOID
+  );
+
+VOID
+EFIAPI
+DisableSMEP (
+  VOID
+  );
+
+VOID
+EFIAPI
+EnableSMEP (
+  VOID
+  );

@@ -24,19 +24,13 @@
 [Sources]
   Ring3Dxe.c
 
-[Sources.X64]
-  X64/Ring3Dxe.nasm
-
 [Packages]
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
   BaseLib
-  DebugLib
-
-[Protocols]
-
-[Guids]
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
 
 [Depex]
   TRUE
