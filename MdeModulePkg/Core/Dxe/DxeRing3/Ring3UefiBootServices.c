@@ -1,5 +1,5 @@
 /** @file
-  This library constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
+  This driver constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
 
   Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
@@ -15,81 +15,6 @@
 #include <Protocol/LoadedImage.h>
 
 #include "Ring3.h"
-
-EFI_BOOT_SERVICES  mBootServices = {
-  {
-    EFI_BOOT_SERVICES_SIGNATURE,                                                          // Signature
-    EFI_BOOT_SERVICES_REVISION,                                                           // Revision
-    sizeof (EFI_BOOT_SERVICES),                                                           // HeaderSize
-    0,                                                                                    // CRC32
-    0                                                                                     // Reserved
-  },
-  (EFI_RAISE_TPL)Ring3RaiseTpl,                                                            // RaiseTPL
-  (EFI_RESTORE_TPL)Ring3RestoreTpl,                                                        // RestoreTPL
-  (EFI_ALLOCATE_PAGES)Ring3AllocatePages,                                                  // AllocatePages
-  (EFI_FREE_PAGES)Ring3FreePages,                                                          // FreePages
-  (EFI_GET_MEMORY_MAP)Ring3GetMemoryMap,                                                   // GetMemoryMap
-  (EFI_ALLOCATE_POOL)Ring3AllocatePool,                                                    // AllocatePool
-  (EFI_FREE_POOL)Ring3FreePool,                                                            // FreePool
-  (EFI_CREATE_EVENT)Ring3CreateEvent,                                                      // CreateEvent
-  (EFI_SET_TIMER)Ring3SetTimer,                                                            // SetTimer
-  (EFI_WAIT_FOR_EVENT)Ring3WaitForEvent,                                                   // WaitForEvent
-  (EFI_SIGNAL_EVENT)Ring3SignalEvent,                                                      // SignalEvent
-  (EFI_CLOSE_EVENT)Ring3CloseEvent,                                                        // CloseEvent
-  (EFI_CHECK_EVENT)Ring3CheckEvent,                                                        // CheckEvent
-  (EFI_INSTALL_PROTOCOL_INTERFACE)Ring3InstallProtocolInterface,                           // InstallProtocolInterface
-  (EFI_REINSTALL_PROTOCOL_INTERFACE)Ring3ReinstallProtocolInterface,                       // ReinstallProtocolInterface
-  (EFI_UNINSTALL_PROTOCOL_INTERFACE)Ring3UninstallProtocolInterface,                       // UninstallProtocolInterface
-  (EFI_HANDLE_PROTOCOL)Ring3HandleProtocol,                                                // HandleProtocol
-  (VOID *)NULL,                                                                            // Reserved
-  (EFI_REGISTER_PROTOCOL_NOTIFY)Ring3RegisterProtocolNotify,                               // RegisterProtocolNotify
-  (EFI_LOCATE_HANDLE)Ring3LocateHandle,                                                    // LocateHandle
-  (EFI_LOCATE_DEVICE_PATH)Ring3LocateDevicePath,                                           // LocateDevicePath
-  (EFI_INSTALL_CONFIGURATION_TABLE)Ring3InstallConfigurationTable,                         // InstallConfigurationTable
-  (EFI_IMAGE_LOAD)Ring3LoadImage,                                                          // LoadImage
-  (EFI_IMAGE_START)Ring3StartImage,                                                        // StartImage
-  (EFI_EXIT)Ring3Exit,                                                                     // Exit
-  (EFI_IMAGE_UNLOAD)Ring3UnloadImage,                                                      // UnloadImage
-  (EFI_EXIT_BOOT_SERVICES)Ring3ExitBootServices,                                           // ExitBootServices
-  (EFI_GET_NEXT_MONOTONIC_COUNT)Ring3GetNextMonotonicCount,                                // GetNextMonotonicCount
-  (EFI_STALL)Ring3Stall,                                                                   // Stall
-  (EFI_SET_WATCHDOG_TIMER)Ring3SetWatchdogTimer,                                           // SetWatchdogTimer
-  (EFI_CONNECT_CONTROLLER)Ring3ConnectController,                                          // ConnectController
-  (EFI_DISCONNECT_CONTROLLER)Ring3DisconnectController,                                    // DisconnectController
-  (EFI_OPEN_PROTOCOL)Ring3OpenProtocol,                                                    // OpenProtocol
-  (EFI_CLOSE_PROTOCOL)Ring3CloseProtocol,                                                  // CloseProtocol
-  (EFI_OPEN_PROTOCOL_INFORMATION)Ring3OpenProtocolInformation,                             // OpenProtocolInformation
-  (EFI_PROTOCOLS_PER_HANDLE)Ring3ProtocolsPerHandle,                                       // ProtocolsPerHandle
-  (EFI_LOCATE_HANDLE_BUFFER)Ring3LocateHandleBuffer,                                       // LocateHandleBuffer
-  (EFI_LOCATE_PROTOCOL)Ring3LocateProtocol,                                                // LocateProtocol
-  (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)Ring3InstallMultipleProtocolInterfaces,        // InstallMultipleProtocolInterfaces
-  (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)Ring3UninstallMultipleProtocolInterfaces,    // UninstallMultipleProtocolInterfaces
-  (EFI_CALCULATE_CRC32)Ring3CalculateCrc32,                                                // CalculateCrc32
-  (EFI_COPY_MEM)CopyMem,                                                                   // CopyMem
-  (EFI_SET_MEM)SetMem,                                                                     // SetMem
-  (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
-};
-
-EFI_BOOT_SERVICES  *gBS = &mBootServices;
-
-/**
-  The function constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
-
-  @param  ImageHandle   The firmware allocated handle for the EFI image.
-  @param  SystemTable   A pointer to the EFI System Table.
-
-  @retval EFI_SUCCESS   The constructor always returns EFI_SUCCESS.
-
-**/
-EFI_STATUS
-EFIAPI
-UefiBootServicesTableLibConstructor (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
-  )
-{
-  return EFI_SUCCESS;
-}
 
 EFI_TPL
 EFIAPI
