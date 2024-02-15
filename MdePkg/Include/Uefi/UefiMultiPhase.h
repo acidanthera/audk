@@ -110,6 +110,10 @@ typedef enum {
   /// by a corresponding call to the underlying isolation architecture.
   ///
   EfiUnacceptedMemoryType,
+  ///
+  /// Memory allocated for (by) Ring3 Images.
+  ///
+  EfiRing3MemoryType,
   EfiMaxMemoryType,
   //
   // +---------------------------------------------------+
