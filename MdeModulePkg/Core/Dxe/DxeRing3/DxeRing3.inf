@@ -9,7 +9,7 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = Ring3Dxe
+  BASE_NAME                      = DxeRing3
   FILE_GUID                      = 88EA50C2-0DEA-4F13-B691-B506554E632B
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
@@ -22,15 +22,25 @@
 #
 
 [Sources]
-  Ring3Dxe.c
+  Ring3.h
+  DxeRing3.c
+  Ring3UefiBootServices.c
+
+[Sources.X64]
+  X64/SysCall.nasm
 
 [Packages]
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
   BaseLib
-  UefiBootServicesTableLib
+  BaseMemoryLib
+  DebugLib
   UefiDriverEntryPoint
+
+[Protocols]
+  gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
+  gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES
 
 [Depex]
   TRUE
