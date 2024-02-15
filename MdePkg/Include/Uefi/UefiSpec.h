@@ -2026,10 +2026,11 @@ typedef struct {
 } EFI_BOOT_SERVICES;
 
 typedef enum {
-  SysCallReturnToCore                      = 0,
-  SysCallLocateProtocol                    = 1,
-  SysCallOpenProtocol                      = 2,
-  SysCallInstallMultipleProtocolInterfaces = 3,
+  SysCallReturnToCore,     // Must always be zero for CoreBootServices.nasm.
+  SysCallLocateProtocol,
+  SysCallOpenProtocol,
+  SysCallInstallMultipleProtocolInterfaces,
+  SysCallAllocatePool,
   SysCallMax
 } SYS_CALL_TYPE;
 

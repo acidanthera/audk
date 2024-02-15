@@ -203,6 +203,21 @@ CallBootService (
 
       return Status;
 
+    case SysCallAllocatePool:
+      //
+      // Argument 1: EFI_MEMORY_TYPE  PoolType
+      // Argument 2: UINTN            Size
+      // Argument 3: VOID            **Buffer
+      //
+      DisableSMAP ();
+      Status = gBS->AllocatePool (
+                      EfiRing3MemoryType,
+                      CoreRbp->Argument2,
+                      (VOID **)CoreRbp->Argument3
+                      );
+      EnableSMAP ();
+
+      return Status;
     default:
       break;
   }

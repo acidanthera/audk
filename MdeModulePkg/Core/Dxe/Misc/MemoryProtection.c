@@ -310,6 +310,9 @@ GetPermissionAttributeForMemoryType (
   )
 {
   UINT64  TestBit;
+  UINT64  Attributes;
+
+  Attributes = 0;
 
   if ((UINT32)MemoryType >= MEMORY_TYPE_OS_RESERVED_MIN) {
     TestBit = BIT63;
@@ -320,10 +323,14 @@ GetPermissionAttributeForMemoryType (
   }
 
   if ((PcdGet64 (PcdDxeNxMemoryProtectionPolicy) & TestBit) != 0) {
-    return EFI_MEMORY_XP;
-  } else {
-    return 0;
+    Attributes |= EFI_MEMORY_XP;
   }
+
+  if (MemoryType == EfiRing3MemoryType) {
+    Attributes |= EFI_MEMORY_USER;
+  }
+
+  return Attributes;
 }
 
 /**

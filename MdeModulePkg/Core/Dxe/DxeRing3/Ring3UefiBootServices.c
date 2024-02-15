@@ -77,7 +77,19 @@ Ring3AllocatePool (
   OUT VOID            **Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS  Status;
+
+  Status = SysCall (
+             SysCallAllocatePool,
+             PoolType,
+             Size,
+             Buffer
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate %d bytes.\n", Size));
+  }
+
+  return Status;
 }
 
 EFI_STATUS
