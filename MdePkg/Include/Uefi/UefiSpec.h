@@ -2127,6 +2127,12 @@ typedef struct {
   EFI_BOOT_SERVICES  *BootServices;
 } RING3_DATA;
 
+typedef struct {
+  UINT8  NumberOfArguments;
+  VOID   *EntryPoint;
+  UINTN  Arguments[];
+} RING3_CALL_DATA;
+
 /**
   This is the declaration of an EFI image entry point. This entry point is
   the same for UEFI Applications, UEFI OS Loaders, and UEFI Drivers including

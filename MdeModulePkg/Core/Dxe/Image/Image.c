@@ -1838,10 +1838,11 @@ CoreStartImage (
         EFI_MEMORY_XP | EFI_MEMORY_USER
         );
 
-      Image->Status = CallRing3 (
+      Image->Status = GoToRing3 (
+                        2,
                         (VOID *)Image->EntryPoint,
                         ImageHandle,
-                        (EFI_SYSTEM_TABLE *)mRing3Data
+                        mRing3Data
                         );
     } else {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);

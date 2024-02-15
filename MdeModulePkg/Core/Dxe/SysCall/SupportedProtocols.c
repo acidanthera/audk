@@ -11,12 +11,43 @@ EFI_DRIVER_BINDING_SUPPORTED mUserDriverBindingSupported;
 EFI_DRIVER_BINDING_START     mUserDriverBindingStart;
 EFI_DRIVER_BINDING_STOP      mUserDriverBindingStop;
 
-typedef enum {
-  UserDriverBindingSupported = 1,
-  UserDriverBindingStart     = 2,
-  UserDriverBindingStop      = 3,
-  UserCallMax
-} USER_CALL_TYPE;
+EFI_STATUS
+EFIAPI
+GoToRing3 (
+  IN UINT8 Number,
+  IN VOID  *EntryPoint,
+  ...
+  )
+{
+  EFI_STATUS       Status;
+  RING3_CALL_DATA  *Input;
+  VA_LIST          Marker;
+  UINTN            Index;
+
+  DisableSMAP ();
+  Status = gBS->AllocatePool (
+                  EfiRing3MemoryType,
+                  sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN),
+                  (VOID **)&Input
+                  );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate memory for Input data.\n"));
+    EnableSMAP ();
+    return Status;
+  }
+
+  Input->NumberOfArguments = Number;
+  Input->EntryPoint        = EntryPoint;
+
+  VA_START (Marker, EntryPoint);
+  for (Index = 0; Index < Number; ++Index) {
+    Input->Arguments[Index] = VA_ARG (Marker, UINTN);
+  }
+  VA_END (Marker);
+  EnableSMAP ();
+
+  return CallRing3 (Input);
+}
 
 EFI_STATUS
 EFIAPI
@@ -26,7 +57,8 @@ CoreDriverBindingSupported (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  return CallRing3 (
+  return GoToRing3 (
+           3,
            (VOID *)mUserDriverBindingSupported,
            This,
            ControllerHandle,
@@ -42,7 +74,8 @@ CoreDriverBindingStart (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  return CallRing3 (
+  return GoToRing3 (
+           3,
            (VOID *)mUserDriverBindingStart,
            This,
            ControllerHandle,
@@ -59,7 +92,8 @@ CoreDriverBindingStop (
   IN EFI_HANDLE                  *ChildHandleBuffer OPTIONAL
   )
 {
-  return CallRing3 (
+  return GoToRing3 (
+           4,
            (VOID *)mUserDriverBindingStop,
            This,
            ControllerHandle,

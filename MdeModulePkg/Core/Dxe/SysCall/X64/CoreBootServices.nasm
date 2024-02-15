@@ -178,23 +178,16 @@ o64 sysret
 ; EFI_STATUS
 ; EFIAPI
 ; CallRing3 (
-;   IN VOID  *EntryPoint,
-;   ...
+;   IN RING3_CALL_DATA *Data
 ;   );
 ;
-;   (rcx) EntryPoint    - Entry point in User address space.
-;   (rdx) Context1      - Parameter1 for entry point.
-;   (r8)  Context2      - Parameter2 for entry point.
+;   (rcx) Data
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
     ; Save input Arguments.
     push    r12
-    push    r13
-    push    r14
     mov     r12, rcx
-    mov     r13, rdx
-    mov     r14, r8
 
     ; Extract User Data selector.
     mov     rcx, MSR_IA32_STAR
@@ -213,14 +206,10 @@ ASM_PFX(CallRing3):
     ; Prepare SYSRET arguments.
     mov     rcx, [gRing3EntryPoint]
     mov     rdx, r12
-    mov     r8, r13
-    mov     r9, r14
     pushfq
     pop     r11
 
     ; Restore stack and registers.
-    pop     r14
-    pop     r13
     pop     r12
 
     ; Save Core Stack pointers and switch to User Stack.
