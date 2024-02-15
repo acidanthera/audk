@@ -308,6 +308,7 @@
   MdeModulePkg/Bus/Spi/SpiHc/SpiHcDxe.inf
   MdeModulePkg/Bus/Spi/SpiHc/SpiHcSmm.inf
 
+  MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
   MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
   MdeModulePkg/Core/Pei/PeiMain.inf
   MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf

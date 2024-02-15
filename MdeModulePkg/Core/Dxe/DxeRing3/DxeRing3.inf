@@ -13,7 +13,7 @@
   FILE_GUID                      = 88EA50C2-0DEA-4F13-B691-B506554E632B
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
-  ENTRY_POINT                    = Ring3EntryPoint
+  ENTRY_POINT                    = Ring3Initialization
 
 #
 # The following information is for reference only and not required by the build tools.

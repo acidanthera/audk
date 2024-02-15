@@ -3,8 +3,10 @@
 ; SPDX-License-Identifier: BSD-3-Clause
 ;------------------------------------------------------------------------------
 
-    DEFAULT REL
-    SECTION .text
+extern ASM_PFX(Ring3Call)
+
+DEFAULT REL
+SECTION .text
 
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
@@ -24,3 +26,19 @@ ASM_PFX(SysCall):
   ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
 
   ret
+
+;------------------------------------------------------------------------------
+; VOID
+; EFIAPI
+; Ring3EntryPoint (
+;   IN RING3_CALL_DATA *Data
+;   );
+;
+;   (rcx) RIP of Ring3EntryPoint saved for SYSRET in CallRing3().
+;   (rdx) Data
+;------------------------------------------------------------------------------
+global ASM_PFX(Ring3EntryPoint)
+ASM_PFX(Ring3EntryPoint):
+    mov     rcx, rdx
+
+    call ASM_PFX(Ring3Call)

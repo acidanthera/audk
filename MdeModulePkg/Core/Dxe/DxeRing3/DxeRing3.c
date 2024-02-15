@@ -64,29 +64,106 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
 };
 
+VOID
+EFIAPI
+Ring3EntryPoint (
+ IN RING3_CALL_DATA *Data
+ );
+
+typedef
 EFI_STATUS
+(EFIAPI *FUNCTION_0)(
+  VOID
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_1)(
+  IN UINTN Argument1
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_2)(
+  IN UINTN Argument1,
+  IN UINTN Argument2
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_3)(
+  IN UINTN Argument1,
+  IN UINTN Argument2,
+  IN UINTN Argument3
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_4)(
+  IN UINTN Argument1,
+  IN UINTN Argument2,
+  IN UINTN Argument3,
+  IN UINTN Argument4
+  );
+
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_5)(
+  IN UINTN Argument1,
+  IN UINTN Argument2,
+  IN UINTN Argument3,
+  IN UINTN Argument4,
+  IN UINTN Argument5
+  );
+
+VOID
 EFIAPI
 Ring3Call (
-  IN VOID  *Dummy,
-  IN VOID  *EntryPoint,
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+  IN RING3_CALL_DATA *Data
   )
 {
-  EFI_IMAGE_ENTRY_POINT  Function;
+  FUNCTION_0  Function0;
+  FUNCTION_1  Function1;
+  FUNCTION_2  Function2;
+  FUNCTION_3  Function3;
+  FUNCTION_4  Function4;
+  FUNCTION_5  Function5;
 
-  Function = (EFI_IMAGE_ENTRY_POINT)EntryPoint;
-
-  Function (ImageHandle, SystemTable);
+  switch (Data->NumberOfArguments) {
+    case 0:
+      Function0 = (FUNCTION_0)Data->EntryPoint;
+      Function0 ();
+      break;
+    case 1:
+      Function1 = (FUNCTION_1)Data->EntryPoint;
+      Function1 (Data->Arguments[0]);
+      break;
+    case 2:
+      Function2 = (FUNCTION_2)Data->EntryPoint;
+      Function2 (Data->Arguments[0], Data->Arguments[1]);
+      break;
+    case 3:
+      Function3 = (FUNCTION_3)Data->EntryPoint;
+      Function3 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2]);
+      break;
+    case 4:
+      Function4 = (FUNCTION_4)Data->EntryPoint;
+      Function4 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3]);
+      break;
+    case 5:
+      Function5 = (FUNCTION_5)Data->EntryPoint;
+      Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
+      break;
+    default:
+      break;
+  }
 
   SysCall (SysCallReturnToCore);
-
-  return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3EntryPoint (
+Ring3Initialization (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
@@ -95,7 +172,7 @@ Ring3EntryPoint (
 
   Ring3Data = (RING3_DATA *)SystemTable;
 
-  Ring3Data->EntryPoint   = (VOID *)Ring3Call;
+  Ring3Data->EntryPoint   = (VOID *)Ring3EntryPoint;
   Ring3Data->BootServices = &mBootServices;
 
   return EFI_SUCCESS;

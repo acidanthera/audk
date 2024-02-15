@@ -2949,8 +2949,7 @@ CoreBootServices (
 EFI_STATUS
 EFIAPI
 CallRing3 (
-  IN VOID  *EntryPoint,
-  ...
+  IN RING3_CALL_DATA *Data
   );
 
 VOID
@@ -2963,4 +2962,12 @@ VOID
 EFIAPI
 EnableSMAP (
   VOID
+  );
+
+EFI_STATUS
+EFIAPI
+GoToRing3 (
+  IN UINT8 Number,
+  IN VOID  *EntryPoint,
+  ...
   );
