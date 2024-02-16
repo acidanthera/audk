@@ -2031,6 +2031,7 @@ typedef enum {
   SysCallOpenProtocol,
   SysCallInstallMultipleProtocolInterfaces,
   SysCallAllocatePool,
+  SysCallFreePool,
   SysCallMax
 } SYS_CALL_TYPE;
 
