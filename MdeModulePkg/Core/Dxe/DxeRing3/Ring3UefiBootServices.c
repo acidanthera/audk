@@ -98,7 +98,17 @@ Ring3FreePool (
   IN VOID  *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS  Status;
+
+  Status = SysCall (
+             SysCallFreePool,
+             Buffer
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to free buffer.\n"));
+  }
+
+  return Status;
 }
 
 EFI_STATUS

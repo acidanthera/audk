@@ -55,13 +55,33 @@ CoreDriverBindingSupported (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  return GoToRing3 (
-           3,
-           (VOID *)mRing3DriverBindingProtocol.Supported,
+  EFI_STATUS  Status;
+
+  DisableSMAP ();
+  This = AllocateRing3Copy (
            This,
-           ControllerHandle,
-           RemainingDevicePath
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
            );
+  if (This == NULL) {
+    EnableSMAP ();
+    return EFI_OUT_OF_RESOURCES;
+  }
+  EnableSMAP ();
+
+  Status = GoToRing3 (
+             3,
+             (VOID *)mRing3DriverBindingProtocol.Supported,
+             This,
+             ControllerHandle,
+             RemainingDevicePath
+             );
+
+  DisableSMAP ();
+  FreePool (This);
+  EnableSMAP ();
+
+  return Status;
 }
 
 EFI_STATUS
@@ -72,13 +92,33 @@ CoreDriverBindingStart (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  return GoToRing3 (
-           3,
-           (VOID *)mRing3DriverBindingProtocol.Start,
+  EFI_STATUS  Status;
+
+  DisableSMAP ();
+  This = AllocateRing3Copy (
            This,
-           ControllerHandle,
-           RemainingDevicePath
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
            );
+  if (This == NULL) {
+    EnableSMAP ();
+    return EFI_OUT_OF_RESOURCES;
+  }
+  EnableSMAP ();
+
+  Status = GoToRing3 (
+             3,
+             (VOID *)mRing3DriverBindingProtocol.Start,
+             This,
+             ControllerHandle,
+             RemainingDevicePath
+             );
+
+  DisableSMAP ();
+  FreePool (This);
+  EnableSMAP ();
+
+  return Status;
 }
 
 EFI_STATUS
@@ -90,12 +130,32 @@ CoreDriverBindingStop (
   IN EFI_HANDLE                  *ChildHandleBuffer OPTIONAL
   )
 {
-  return GoToRing3 (
-           4,
-           (VOID *)mRing3DriverBindingProtocol.Stop,
+  EFI_STATUS  Status;
+
+  DisableSMAP ();
+  This = AllocateRing3Copy (
            This,
-           ControllerHandle,
-           NumberOfChildren,
-           ChildHandleBuffer
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
+           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
            );
+  if (This == NULL) {
+    EnableSMAP ();
+    return EFI_OUT_OF_RESOURCES;
+  }
+  EnableSMAP ();
+
+  Status = GoToRing3 (
+             4,
+             (VOID *)mRing3DriverBindingProtocol.Stop,
+             This,
+             ControllerHandle,
+             NumberOfChildren,
+             ChildHandleBuffer
+             );
+
+  DisableSMAP ();
+  FreePool (This);
+  EnableSMAP ();
+
+  return Status;
 }

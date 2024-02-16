@@ -95,7 +95,6 @@ CallBootService (
       DisableSMAP ();
       Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
       if (Interface == NULL) {
-        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
         EnableSMAP ();
         return EFI_OUT_OF_RESOURCES;
       }
@@ -141,7 +140,6 @@ CallBootService (
       DisableSMAP ();
       Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
       if (Interface == NULL) {
-        DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
         EnableSMAP ();
         return EFI_OUT_OF_RESOURCES;
       }
@@ -216,6 +214,18 @@ CallBootService (
                       EfiRing3MemoryType,
                       CoreRbp->Argument2,
                       (VOID **)CoreRbp->Argument3
+                      );
+      EnableSMAP ();
+
+      return Status;
+
+    case SysCallFreePool:
+      //
+      // Argument 1: IN VOID  *Buffer
+      //
+      DisableSMAP ();
+      Status = gBS->FreePool (
+                      (VOID *)CoreRbp->Argument1
                       );
       EnableSMAP ();
 
