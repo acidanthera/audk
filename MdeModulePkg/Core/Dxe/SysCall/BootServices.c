@@ -8,9 +8,6 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-#include <Protocol/ComponentName.h>
-#include <Protocol/DevicePathUtilities.h>
-
 EFI_STATUS
 EFIAPI
 CallInstallMultipleProtocolInterfaces (
@@ -19,6 +16,43 @@ CallInstallMultipleProtocolInterfaces (
   IN UINT32      ArgListSize,
   IN VOID        *Function
   );
+
+EFI_STATUS
+EFIAPI
+FindGuid (
+  IN  EFI_GUID  *Ring3,
+  OUT EFI_GUID  **Core,
+  OUT UINT32    *CoreSize
+  )
+{
+  ASSERT (Core != NULL);
+  ASSERT (CoreSize != NULL);
+
+  if (CompareGuid (Ring3, &gEfiDevicePathUtilitiesProtocolGuid)) {
+    *Core     = &gEfiDevicePathUtilitiesProtocolGuid;
+    *CoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
+  } else if (CompareGuid (Ring3, &gEfiLoadedImageProtocolGuid)) {
+    *Core     = &gEfiLoadedImageProtocolGuid;
+    *CoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
+  } else if (CompareGuid (Ring3, &gEfiBlockIoProtocolGuid)) {
+    *Core     = &gEfiBlockIoProtocolGuid;
+    *CoreSize = sizeof (EFI_BLOCK_IO_PROTOCOL);
+  } else if (CompareGuid (Ring3, &gEfiDiskIoProtocolGuid)) {
+    *Core     = &gEfiDiskIoProtocolGuid;
+    *CoreSize = sizeof (EFI_DISK_IO_PROTOCOL);
+  } else if (CompareGuid (Ring3, &gEfiDriverBindingProtocolGuid)) {
+    *Core     = &gEfiDriverBindingProtocolGuid;
+    *CoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
+  } else if (CompareGuid (Ring3, &gEfiComponentNameProtocolGuid)) {
+    *Core     = &gEfiComponentNameProtocolGuid;
+    *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
+  } else {
+    DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+    return EFI_NOT_FOUND;
+  }
+
+  return EFI_SUCCESS;
+}
 
 typedef struct {
   UINTN  Argument1;
@@ -76,15 +110,11 @@ CallBootService (
       // Argument 3: VOID      **Interface
       //
       DisableSMAP ();
-      if (CompareGuid ((EFI_GUID *)CoreRbp->Argument1, &gEfiDevicePathUtilitiesProtocolGuid)) {
-        CoreProtocol   = &gEfiDevicePathUtilitiesProtocolGuid;
-        MemoryCoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
-      } else {
-        DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
-        EnableSMAP ();
-        return EFI_INVALID_PARAMETER;
-      }
+      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument1, &CoreProtocol, &MemoryCoreSize);
       EnableSMAP ();
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
 
       Status = gBS->LocateProtocol (
                       CoreProtocol,
@@ -114,13 +144,10 @@ CallBootService (
       // Argument 6: UINT32      Attributes
       //
       DisableSMAP ();
-      if (CompareGuid ((EFI_GUID *)CoreRbp->Argument2, &gEfiLoadedImageProtocolGuid)) {
-        CoreProtocol   = &gEfiLoadedImageProtocolGuid;
-        MemoryCoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
-      } else {
-        DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      if (EFI_ERROR (Status)) {
         EnableSMAP ();
-        return EFI_INVALID_PARAMETER;
+        return Status;
       }
 
       Argument4    = (EFI_HANDLE)UserRsp->Arguments[4];
@@ -158,22 +185,14 @@ CallBootService (
       CoreHandle  = *(EFI_HANDLE *)CoreRbp->Argument1;
       UserArgList = (VOID **)CoreRbp->Argument2;
 
-      for (Index = 0; UserArgList[Index] != NULL; ++Index) {
-        if (CompareGuid ((EFI_GUID *)UserArgList[Index], &gEfiDriverBindingProtocolGuid)) {
-          CoreArgList[Index] = (VOID *)&gEfiDriverBindingProtocolGuid;
-          MemoryCoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
-          continue;
-        } else if (CompareGuid ((EFI_GUID *)UserArgList[Index], &gEfiComponentNameProtocolGuid)) {
-          CoreArgList[Index] = (VOID *)&gEfiComponentNameProtocolGuid;
-          MemoryCoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
-          continue;
-        } else if ((Index % 2) == 0) {
-          DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+      for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
+        Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
+        if (EFI_ERROR (Status)) {
           EnableSMAP ();
-          return EFI_INVALID_PARAMETER;
+          return Status;
         }
 
-        CoreArgList[Index] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index]);
+        CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
       }
       EnableSMAP ();
 

@@ -41,6 +41,8 @@
 [Protocols]
   gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
   gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES
+  gEfiDiskIoProtocolGuid               ## SOMETIMES_CONSUMES
+  gEfiBlockIoProtocolGuid              ## SOMETIMES_CONSUMES
 
 [Depex]
   TRUE

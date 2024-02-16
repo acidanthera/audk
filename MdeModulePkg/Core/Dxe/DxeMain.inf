@@ -167,6 +167,8 @@
   gEdkiiPeCoffImageEmulatorProtocolGuid         ## SOMETIMES_CONSUMES
   gEfiDevicePathUtilitiesProtocolGuid           ## SOMETIMES_CONSUMES
   gEfiComponentNameProtocolGuid                 ## SOMETIMES_CONSUMES
+  gEfiDiskIoProtocolGuid                        ## SOMETIMES_CONSUMES
+  gEfiBlockIoProtocolGuid                       ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES

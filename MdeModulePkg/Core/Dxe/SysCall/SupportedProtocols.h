@@ -5,6 +5,11 @@
 
 **/
 
+#include <Protocol/BlockIo.h>
+#include <Protocol/ComponentName.h>
+#include <Protocol/DevicePathUtilities.h>
+#include <Protocol/DiskIo.h>
+
 extern EFI_DRIVER_BINDING_PROTOCOL  mRing3DriverBindingProtocol;
 
 EFI_STATUS
