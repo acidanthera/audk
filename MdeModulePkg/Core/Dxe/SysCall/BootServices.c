@@ -92,13 +92,14 @@ CallBootService (
                       &Interface
                       );
 
-      Interface = AllocateRing3CopyPages (Interface, MemoryCoreSize);
+      DisableSMAP ();
+      Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
       if (Interface == NULL) {
         DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
+        EnableSMAP ();
         return EFI_OUT_OF_RESOURCES;
       }
 
-      DisableSMAP ();
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
 
@@ -137,13 +138,14 @@ CallBootService (
                       Argument6
                       );
 
-      Interface = AllocateRing3CopyPages (Interface, MemoryCoreSize);
+      DisableSMAP ();
+      Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
       if (Interface == NULL) {
         DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate pages for Ring3 PROTOCOL structure.\n"));
+        EnableSMAP ();
         return EFI_OUT_OF_RESOURCES;
       }
 
-      DisableSMAP ();
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
 
@@ -184,9 +186,9 @@ CallBootService (
         if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiDriverBindingProtocolGuid)) {
           CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)CoreArgList[Index + 1];
 
-          mUserDriverBindingSupported = CoreDriverBinding->Supported;
-          mUserDriverBindingStart     = CoreDriverBinding->Start;
-          mUserDriverBindingStop      = CoreDriverBinding->Stop;
+          mRing3DriverBindingProtocol.Supported = CoreDriverBinding->Supported;
+          mRing3DriverBindingProtocol.Start     = CoreDriverBinding->Start;
+          mRing3DriverBindingProtocol.Stop      = CoreDriverBinding->Stop;
 
           CoreDriverBinding->Supported = CoreDriverBindingSupported;
           CoreDriverBinding->Start     = CoreDriverBindingStart;

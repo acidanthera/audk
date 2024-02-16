@@ -1177,9 +1177,10 @@ CoreAllocatePages (
 
 VOID *
 EFIAPI
-AllocateRing3CopyPages (
-  IN VOID    *MemoryCore,
-  IN UINT32  MemoryCoreSize
+AllocateRing3Copy (
+  IN VOID    *Source,
+  IN UINT32  AllocationSize,
+  IN UINT32  CopySize
   );
 
 /**

@@ -1571,21 +1571,24 @@ CoreLoadImage (
 
 VOID *
 EFIAPI
-AllocateRing3CopyPages (
-  IN VOID    *MemoryCore,
-  IN UINT32  MemoryCoreSize
+AllocateRing3Copy (
+  IN VOID    *Source,
+  IN UINT32  AllocationSize,
+  IN UINT32  CopySize
   )
 {
-  VOID  *MemoryRing3;
+  EFI_STATUS Status;
+  VOID       *MemoryRing3;
 
-  MemoryRing3 = AllocatePages (EFI_SIZE_TO_PAGES (MemoryCoreSize));
-  if (MemoryRing3 == NULL) {
+  Status = CoreAllocatePool (EfiRing3MemoryType, AllocationSize, &MemoryRing3);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate %d bytes for Ring3.\n", AllocationSize));
     return NULL;
   }
 
-  CopyMem (MemoryRing3, MemoryCore, MemoryCoreSize);
+  ASSERT (CopySize <= AllocationSize);
 
-  SetUefiImageMemoryAttributes ((UINTN)MemoryRing3, EFI_PAGES_TO_SIZE (EFI_SIZE_TO_PAGES (MemoryCoreSize)), EFI_MEMORY_USER);
+  CopyMem (MemoryRing3, Source, CopySize);
 
   return MemoryRing3;
 }
@@ -1613,8 +1616,13 @@ InitializeRing3 (
   //
   // Set Ring3 EntryPoint and BootServices.
   //
-  mRing3Data = AllocateRing3CopyPages ((VOID *)Image->Info.SystemTable, sizeof (RING3_DATA));
-
+  mRing3Data = AllocateRing3Copy (
+                 (VOID *)Image->Info.SystemTable,
+                 sizeof (RING3_DATA),
+                 sizeof (EFI_SYSTEM_TABLE)
+                 );
+  ASSERT (mRing3Data != NULL);
+  
   Image->Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)mRing3Data);
 
   gRing3EntryPoint = mRing3Data->EntryPoint;
