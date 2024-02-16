@@ -7,9 +7,7 @@
 
 #include "DxeMain.h"
 
-EFI_DRIVER_BINDING_SUPPORTED mUserDriverBindingSupported;
-EFI_DRIVER_BINDING_START     mUserDriverBindingStart;
-EFI_DRIVER_BINDING_STOP      mUserDriverBindingStop;
+EFI_DRIVER_BINDING_PROTOCOL  mRing3DriverBindingProtocol;
 
 EFI_STATUS
 EFIAPI
@@ -59,7 +57,7 @@ CoreDriverBindingSupported (
 {
   return GoToRing3 (
            3,
-           (VOID *)mUserDriverBindingSupported,
+           (VOID *)mRing3DriverBindingProtocol.Supported,
            This,
            ControllerHandle,
            RemainingDevicePath
@@ -76,7 +74,7 @@ CoreDriverBindingStart (
 {
   return GoToRing3 (
            3,
-           (VOID *)mUserDriverBindingStart,
+           (VOID *)mRing3DriverBindingProtocol.Start,
            This,
            ControllerHandle,
            RemainingDevicePath
@@ -94,7 +92,7 @@ CoreDriverBindingStop (
 {
   return GoToRing3 (
            4,
-           (VOID *)mUserDriverBindingStop,
+           (VOID *)mRing3DriverBindingProtocol.Stop,
            This,
            ControllerHandle,
            NumberOfChildren,

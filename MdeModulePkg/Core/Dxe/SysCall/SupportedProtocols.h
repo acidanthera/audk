@@ -5,9 +5,7 @@
 
 **/
 
-extern EFI_DRIVER_BINDING_SUPPORTED mUserDriverBindingSupported;
-extern EFI_DRIVER_BINDING_START     mUserDriverBindingStart;
-extern EFI_DRIVER_BINDING_STOP      mUserDriverBindingStop;
+extern EFI_DRIVER_BINDING_PROTOCOL  mRing3DriverBindingProtocol;
 
 EFI_STATUS
 EFIAPI
