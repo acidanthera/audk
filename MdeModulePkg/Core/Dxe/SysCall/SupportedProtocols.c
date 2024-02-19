@@ -44,7 +44,24 @@ GoToRing3 (
   VA_END (Marker);
   EnableSMAP ();
 
-  return CallRing3 (Input);
+  //
+  // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
+  //
+  SetUefiImageMemoryAttributes (
+    FixedPcdGet32 (PcdOvmfWorkAreaBase),
+    FixedPcdGet32 (PcdOvmfWorkAreaSize),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
+  Status = CallRing3 (Input);
+
+  SetUefiImageMemoryAttributes (
+    FixedPcdGet32 (PcdOvmfWorkAreaBase),
+    FixedPcdGet32 (PcdOvmfWorkAreaSize),
+    EFI_MEMORY_XP
+    );
+
+  return Status;
 }
 
 EFI_STATUS

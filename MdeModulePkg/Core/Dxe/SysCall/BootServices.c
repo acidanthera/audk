@@ -155,10 +155,12 @@ CallBootService (
                       );
 
       DisableSMAP ();
-      Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
-      if (Interface == NULL) {
-        EnableSMAP ();
-        return EFI_OUT_OF_RESOURCES;
+      if (Interface != NULL) {
+        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
+        if (Interface == NULL) {
+          EnableSMAP ();
+          return EFI_OUT_OF_RESOURCES;
+        }      
       }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
@@ -197,13 +199,15 @@ CallBootService (
                       );
 
       DisableSMAP ();
-      Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
-      if (Interface == NULL) {
-        EnableSMAP ();
-        return EFI_OUT_OF_RESOURCES;
-      }
+      if (Interface != NULL) {
+        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
+        if (Interface == NULL) {
+          EnableSMAP ();
+          return EFI_OUT_OF_RESOURCES;
+        }
 
-      FixInterface (CoreProtocol, Interface);
+        FixInterface (CoreProtocol, Interface);
+      }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
@@ -285,6 +289,7 @@ CallBootService (
 
       return Status;
     default:
+      DEBUG ((DEBUG_ERROR, "Ring0: Unknown syscall type.\n"));
       break;
   }
 

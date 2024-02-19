@@ -197,7 +197,6 @@ ASM_PFX(CallRing3):
     add     rax, 8
 
     ; Set Data selectors
-    or      rax, 3H ; RPL = 3
     mov     ds, ax
     mov     es, ax
     mov     fs, ax
