@@ -397,7 +397,7 @@ Ring3OpenProtocol (
              Attributes
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to open protocol %g - %r\n", Protocol, Status));
+    // DEBUG ((DEBUG_ERROR, "Ring3: Failed to open protocol %g - %r\n", Protocol, Status));
     return Status;
   }
 

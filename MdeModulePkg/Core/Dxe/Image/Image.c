@@ -1698,7 +1698,7 @@ InitializeRing3 (
   //
   // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
   //
-  Msr = ((((UINT64)RING3_CODE64_SEL - 16) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
+  Msr = (((((UINT64)RING3_CODE64_SEL - 16) | 3) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
   AsmWriteMsr64 (MSR_IA32_STAR, Msr);
 
   Msr = (UINT64)(UINTN)CoreBootServices;
@@ -1836,15 +1836,6 @@ CoreStartImage (
     } else if (Image->IsUserImage) {
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      //
-      // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
-      //
-      SetUefiImageMemoryAttributes (
-        FixedPcdGet32 (PcdOvmfWorkAreaBase),
-        FixedPcdGet32 (PcdOvmfWorkAreaSize),
-        EFI_MEMORY_XP | EFI_MEMORY_USER
-        );
 
       Image->Status = GoToRing3 (
                         2,
