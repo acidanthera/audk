@@ -29,29 +29,61 @@ FindGuid (
   ASSERT (CoreSize != NULL);
 
   if (CompareGuid (Ring3, &gEfiDevicePathUtilitiesProtocolGuid)) {
+
     *Core     = &gEfiDevicePathUtilitiesProtocolGuid;
     *CoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiLoadedImageProtocolGuid)) {
+
     *Core     = &gEfiLoadedImageProtocolGuid;
     *CoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiBlockIoProtocolGuid)) {
+
     *Core     = &gEfiBlockIoProtocolGuid;
     *CoreSize = sizeof (EFI_BLOCK_IO_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiDiskIoProtocolGuid)) {
+
     *Core     = &gEfiDiskIoProtocolGuid;
     *CoreSize = sizeof (EFI_DISK_IO_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiDriverBindingProtocolGuid)) {
+
     *Core     = &gEfiDriverBindingProtocolGuid;
     *CoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiComponentNameProtocolGuid)) {
+
     *Core     = &gEfiComponentNameProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
+
   } else {
     DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
     return EFI_NOT_FOUND;
   }
 
   return EFI_SUCCESS;
+}
+
+VOID
+EFIAPI
+FixInterface (
+  IN     EFI_GUID  *Guid,
+  IN OUT VOID      *Interface
+  )
+{
+  EFI_BLOCK_IO_PROTOCOL  *BlockIo;
+
+  if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
+    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)Interface;
+
+    BlockIo->Media = AllocateRing3Copy (
+                       BlockIo->Media,
+                       sizeof (EFI_BLOCK_IO_MEDIA),
+                       sizeof (EFI_BLOCK_IO_MEDIA)
+                       );
+  }
 }
 
 typedef struct {
@@ -171,6 +203,8 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
+      FixInterface (CoreProtocol, Interface);
+
       *(VOID **)CoreRbp->Argument3 = Interface;
       EnableSMAP ();
 
@@ -189,6 +223,7 @@ CallBootService (
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
         if (EFI_ERROR (Status)) {
           EnableSMAP ();
+          //TODO: Free CoreArgList.
           return Status;
         }
 

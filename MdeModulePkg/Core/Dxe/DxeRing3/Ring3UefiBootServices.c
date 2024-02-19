@@ -11,9 +11,6 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 
-#include <Protocol/DevicePathUtilities.h>
-#include <Protocol/LoadedImage.h>
-
 #include "Ring3.h"
 
 EFI_TPL
@@ -386,7 +383,9 @@ Ring3OpenProtocol (
 {
   EFI_STATUS  Status;
 
-  EFI_LOADED_IMAGE_PROTOCOL *UserProtocol;
+  EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
+  EFI_BLOCK_IO_PROTOCOL     *BlockIo;
+  EFI_DISK_IO_PROTOCOL      *DiskIo;
 
   Status = SysCall (
              SysCallOpenProtocol,
@@ -403,16 +402,42 @@ Ring3OpenProtocol (
   }
 
   if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
-    UserProtocol = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
+
+    LoadedImage = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
 
     // TODO: Copy User changes to Core? Resembles InstallMultipleProtocolInterfaces().
 
-    UserProtocol->Unload = NULL;
+    LoadedImage->Unload = NULL;
 
-    return Status;
+  } else if (CompareGuid (Protocol, &gEfiBlockIoProtocolGuid)) {
+
+    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
+
+    mCoreBlockIo.Reset       = BlockIo->Reset;
+    mCoreBlockIo.ReadBlocks  = BlockIo->ReadBlocks;
+    mCoreBlockIo.WriteBlocks = BlockIo->WriteBlocks;
+    mCoreBlockIo.FlushBlocks = BlockIo->FlushBlocks;
+
+    BlockIo->Reset       = Ring3BlockIoReset;
+    BlockIo->ReadBlocks  = Ring3BlockIoRead;
+    BlockIo->WriteBlocks = Ring3BlockIoWrite;
+    BlockIo->FlushBlocks = Ring3BlockIoFlush;
+
+  } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
+
+    DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
+
+    mCoreDiskIo.ReadDisk  = DiskIo->ReadDisk;
+    mCoreDiskIo.WriteDisk = DiskIo->WriteDisk;
+
+    DiskIo->ReadDisk  = Ring3DiskIoRead;
+    DiskIo->WriteDisk = Ring3DiskIoWrite;
+
+  } else {
+    Status = EFI_UNSUPPORTED;
   }
 
-  return EFI_UNSUPPORTED;
+  return Status;
 }
 
 EFI_STATUS
@@ -473,7 +498,7 @@ Ring3LocateProtocol (
 {
   EFI_STATUS  Status;
 
-  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *UserProtocol;
+  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DevicePath;
 
   Status = SysCall (
              SysCallLocateProtocol,
@@ -487,16 +512,16 @@ Ring3LocateProtocol (
   }
 
   if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
-    UserProtocol = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
+    DevicePath = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
-    UserProtocol->GetDevicePathSize = NULL;
-    UserProtocol->DuplicateDevicePath = NULL;
-    UserProtocol->AppendDevicePath = NULL;
-    UserProtocol->AppendDeviceNode = NULL;
-    UserProtocol->AppendDevicePathInstance = NULL;
-    UserProtocol->GetNextDevicePathInstance = NULL;
-    UserProtocol->IsDevicePathMultiInstance = NULL;
-    UserProtocol->CreateDeviceNode = NULL;
+    DevicePath->GetDevicePathSize = NULL;
+    DevicePath->DuplicateDevicePath = NULL;
+    DevicePath->AppendDevicePath = NULL;
+    DevicePath->AppendDeviceNode = NULL;
+    DevicePath->AppendDevicePathInstance = NULL;
+    DevicePath->GetNextDevicePathInstance = NULL;
+    DevicePath->IsDevicePathMultiInstance = NULL;
+    DevicePath->CreateDeviceNode = NULL;
 
     return Status;
   }
