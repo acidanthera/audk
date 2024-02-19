@@ -25,6 +25,7 @@
   Ring3.h
   DxeRing3.c
   Ring3UefiBootServices.c
+  Ring3Protocols.c
 
 [Sources.X64]
   X64/SysCall.nasm
