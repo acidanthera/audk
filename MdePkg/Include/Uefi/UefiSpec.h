@@ -2032,6 +2032,15 @@ typedef enum {
   SysCallInstallMultipleProtocolInterfaces,
   SysCallAllocatePool,
   SysCallFreePool,
+  //
+  // Protocols
+  //
+  SysCallBlockIoReset,
+  SysCallBlockIoRead,
+  SysCallBlockIoWrite,
+  SysCallBlockIoFlush,
+  SysCallDiskIoRead,
+  SysCallDiskIoWrite,
   SysCallMax
 } SYS_CALL_TYPE;
 

@@ -413,11 +413,6 @@ Ring3OpenProtocol (
 
     BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
 
-    mCoreBlockIo.Reset       = BlockIo->Reset;
-    mCoreBlockIo.ReadBlocks  = BlockIo->ReadBlocks;
-    mCoreBlockIo.WriteBlocks = BlockIo->WriteBlocks;
-    mCoreBlockIo.FlushBlocks = BlockIo->FlushBlocks;
-
     BlockIo->Reset       = Ring3BlockIoReset;
     BlockIo->ReadBlocks  = Ring3BlockIoRead;
     BlockIo->WriteBlocks = Ring3BlockIoWrite;
@@ -426,9 +421,6 @@ Ring3OpenProtocol (
   } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
 
     DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
-
-    mCoreDiskIo.ReadDisk  = DiskIo->ReadDisk;
-    mCoreDiskIo.WriteDisk = DiskIo->WriteDisk;
 
     DiskIo->ReadDisk  = Ring3DiskIoRead;
     DiskIo->WriteDisk = Ring3DiskIoWrite;
