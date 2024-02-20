@@ -8,6 +8,9 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
+EFI_DISK_IO_PROTOCOL  *mCoreDiskIoProtocol;
+EFI_BLOCK_IO_PROTOCOL *mCoreBlockIoProtocol;
+
 EFI_STATUS
 EFIAPI
 CallInstallMultipleProtocolInterfaces (
@@ -119,9 +122,9 @@ CallBootService (
   VOID       *Interface;
   EFI_GUID   *CoreProtocol;
   UINT32     MemoryCoreSize;
-  EFI_HANDLE Argument4;
-  EFI_HANDLE Argument5;
-  UINT32     Argument6;
+  UINTN      Argument4;
+  UINTN      Argument5;
+  UINTN      Argument6;
   UINT32     Index;
   VOID       **UserArgList;
   VOID       *CoreArgList[MAX_LIST];
@@ -160,7 +163,7 @@ CallBootService (
         if (Interface == NULL) {
           EnableSMAP ();
           return EFI_OUT_OF_RESOURCES;
-        }      
+        }
       }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
@@ -184,22 +187,28 @@ CallBootService (
         return Status;
       }
 
-      Argument4    = (EFI_HANDLE)UserRsp->Arguments[4];
-      Argument5    = (EFI_HANDLE)UserRsp->Arguments[5];
-      Argument6    = (UINT32)UserRsp->Arguments[6];
+      Argument4 = UserRsp->Arguments[4];
+      Argument5 = UserRsp->Arguments[5];
+      Argument6 = UserRsp->Arguments[6];
       EnableSMAP ();
 
       Status = gBS->OpenProtocol (
                       (EFI_HANDLE)CoreRbp->Argument1,
                       CoreProtocol,
                       &Interface,
-                      Argument4,
-                      Argument5,
-                      Argument6
+                      (EFI_HANDLE)Argument4,
+                      (EFI_HANDLE)Argument5,
+                      (UINT32)Argument6
                       );
 
       DisableSMAP ();
       if (Interface != NULL) {
+        if (CompareGuid (CoreProtocol, &gEfiDiskIoProtocolGuid)) {
+          mCoreDiskIoProtocol = (EFI_DISK_IO_PROTOCOL *)Interface;
+        } else if (CompareGuid (CoreProtocol, &gEfiBlockIoProtocolGuid)) {
+          mCoreBlockIoProtocol = (EFI_BLOCK_IO_PROTOCOL *)Interface;
+        }
+
         Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
         if (Interface == NULL) {
           EnableSMAP ();
@@ -286,6 +295,152 @@ CallBootService (
                       (VOID *)CoreRbp->Argument1
                       );
       EnableSMAP ();
+
+      return Status;
+
+    case SysCallBlockIoReset:
+      //
+      // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
+      // Argument 2: BOOLEAN                ExtendedVerification
+      //
+      return mCoreBlockIoProtocol->Reset (
+                                     mCoreBlockIoProtocol,
+                                     (BOOLEAN)CoreRbp->Argument2
+                                     );
+
+    case SysCallBlockIoRead:
+      //
+      // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
+      // Argument 2: UINT32                MediaId
+      // Argument 3: EFI_LBA               Lba
+      // Argument 4: UINTN                 BufferSize
+      // Argument 5: VOID                 *Buffer
+      //
+      DisableSMAP ();
+      Argument4 = UserRsp->Arguments[4];
+      EnableSMAP ();
+
+      Argument5 = (UINTN)AllocatePool (Argument4);
+      if ((VOID *)Argument5 == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = mCoreBlockIoProtocol->ReadBlocks (
+                                       mCoreBlockIoProtocol,
+                                       (UINT32)CoreRbp->Argument2,
+                                       (EFI_LBA)CoreRbp->Argument3,
+                                       Argument4,
+                                       (VOID *)Argument5
+                                       );
+      DisableSMAP ();
+      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      EnableSMAP ();
+
+      FreePool ((VOID *)Argument5);
+
+      return Status;
+
+    case SysCallBlockIoWrite:
+      //
+      // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
+      // Argument 2: UINT32                MediaId
+      // Argument 3: EFI_LBA               Lba
+      // Argument 4: UINTN                 BufferSize
+      // Argument 5: VOID                 *Buffer
+      //
+      DisableSMAP ();
+      Argument4 = UserRsp->Arguments[4];
+      EnableSMAP ();
+
+      Argument5 = (UINTN)AllocatePool (Argument4);
+      if ((VOID *)Argument5 == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = mCoreBlockIoProtocol->WriteBlocks (
+                                       mCoreBlockIoProtocol,
+                                       (UINT32)CoreRbp->Argument2,
+                                       (EFI_LBA)CoreRbp->Argument3,
+                                       Argument4,
+                                       (VOID *)Argument5
+                                       );
+      DisableSMAP ();
+      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      EnableSMAP ();
+
+      FreePool ((VOID *)Argument5);
+
+      return Status;
+
+    case SysCallBlockIoFlush:
+      //
+      // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
+      //
+      return mCoreBlockIoProtocol->FlushBlocks (
+                                     mCoreBlockIoProtocol
+                                     );
+
+    case SysCallDiskIoRead:
+      //
+      // Argument 1: EFI_DISK_IO_PROTOCOL  *This
+      // Argument 2: UINT32                MediaId
+      // Argument 3: UINT64                Offset
+      // Argument 4: UINTN                 BufferSize
+      // Argument 5: VOID                 *Buffer
+      //
+      DisableSMAP ();
+      Argument4 = UserRsp->Arguments[4];
+      EnableSMAP ();
+
+      Argument5 = (UINTN)AllocatePool (Argument4);
+      if ((VOID *)Argument5 == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = mCoreDiskIoProtocol->ReadDisk (
+                                      mCoreDiskIoProtocol,
+                                      (UINT32)CoreRbp->Argument2,
+                                      (UINT64)CoreRbp->Argument3,
+                                      Argument4,
+                                      (VOID *)Argument5
+                                      );
+      DisableSMAP ();
+      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      EnableSMAP ();
+
+      FreePool ((VOID *)Argument5);
+
+      return Status;
+
+    case SysCallDiskIoWrite:
+      //
+      // Argument 1: EFI_DISK_IO_PROTOCOL  *This
+      // Argument 2: UINT32                MediaId
+      // Argument 3: UINT64                Offset
+      // Argument 4: UINTN                 BufferSize
+      // Argument 5: VOID                 *Buffer
+      //
+      DisableSMAP ();
+      Argument4 = UserRsp->Arguments[4];
+      EnableSMAP ();
+
+      Argument5 = (UINTN)AllocatePool (Argument4);
+      if ((VOID *)Argument5 == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = mCoreDiskIoProtocol->WriteDisk (
+                                      mCoreDiskIoProtocol,
+                                      (UINT32)CoreRbp->Argument2,
+                                      (UINT64)CoreRbp->Argument3,
+                                      Argument4,
+                                      (VOID *)Argument5
+                                      );
+      DisableSMAP ();
+      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      EnableSMAP ();
+
+      FreePool ((VOID *)Argument5);
 
       return Status;
     default:

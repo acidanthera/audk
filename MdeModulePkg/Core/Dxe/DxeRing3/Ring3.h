@@ -10,9 +10,6 @@
 #include <Protocol/DiskIo.h>
 #include <Protocol/LoadedImage.h>
 
-extern EFI_BLOCK_IO_PROTOCOL  mCoreBlockIo;
-extern EFI_DISK_IO_PROTOCOL   mCoreDiskIo;
-
 EFI_STATUS
 EFIAPI
 SysCall (

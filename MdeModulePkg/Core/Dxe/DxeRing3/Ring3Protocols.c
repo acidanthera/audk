@@ -17,7 +17,11 @@ Ring3BlockIoReset (
   IN BOOLEAN                ExtendedVerification
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallBlockIoReset,
+           This,
+           ExtendedVerification
+           );
 }
 
 EFI_STATUS
@@ -30,7 +34,14 @@ Ring3BlockIoRead (
   OUT VOID                  *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallBlockIoRead,
+           This,
+           MediaId,
+           Lba,
+           BufferSize,
+           Buffer
+           );
 }
 
 EFI_STATUS
@@ -43,7 +54,14 @@ Ring3BlockIoWrite (
   IN VOID                   *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallBlockIoWrite,
+           This,
+           MediaId,
+           Lba,
+           BufferSize,
+           Buffer
+           );
 }
 
 EFI_STATUS
@@ -52,7 +70,10 @@ Ring3BlockIoFlush (
   IN EFI_BLOCK_IO_PROTOCOL  *This
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallBlockIoFlush,
+           This
+           );
 }
 
 EFI_STATUS
@@ -65,7 +86,14 @@ Ring3DiskIoRead (
   OUT VOID                 *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallDiskIoRead,
+           This,
+           MediaId,
+           Offset,
+           BufferSize,
+           Buffer
+           );
 }
 
 EFI_STATUS
@@ -78,5 +106,12 @@ Ring3DiskIoWrite (
   IN VOID                  *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallDiskIoWrite,
+           This,
+           MediaId,
+           Offset,
+           BufferSize,
+           Buffer
+           );
 }
