@@ -2031,6 +2031,7 @@ typedef enum {
   SysCallInstallMultipleProtocolInterfaces,
   SysCallAllocatePool,
   SysCallFreePool,
+  SysCallCloseProtocol,
   //
   // Protocols
   //

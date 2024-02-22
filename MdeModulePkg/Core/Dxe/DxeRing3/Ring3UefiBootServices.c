@@ -441,7 +441,13 @@ Ring3CloseProtocol (
   IN  EFI_HANDLE  ControllerHandle
   )
 {
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallCloseProtocol,
+           UserHandle,
+           Protocol,
+           AgentHandle,
+           ControllerHandle
+           );
 }
 
 EFI_STATUS
