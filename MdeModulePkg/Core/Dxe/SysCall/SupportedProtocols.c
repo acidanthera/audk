@@ -44,22 +44,26 @@ GoToRing3 (
   VA_END (Marker);
   EnableSMAP ();
 
-  //
-  // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
-  //
-  SetUefiImageMemoryAttributes (
-    FixedPcdGet32 (PcdOvmfWorkAreaBase),
-    FixedPcdGet32 (PcdOvmfWorkAreaSize),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+  if (Number == 2) {
+    //
+    // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
+    //
+    SetUefiImageMemoryAttributes (
+      FixedPcdGet32 (PcdOvmfWorkAreaBase),
+      FixedPcdGet32 (PcdOvmfWorkAreaSize),
+      EFI_MEMORY_XP | EFI_MEMORY_USER
+      );
+  }
 
   Status = CallRing3 (Input);
 
-  SetUefiImageMemoryAttributes (
-    FixedPcdGet32 (PcdOvmfWorkAreaBase),
-    FixedPcdGet32 (PcdOvmfWorkAreaSize),
-    EFI_MEMORY_XP
-    );
+  if (Number == 2) {
+    SetUefiImageMemoryAttributes (
+      FixedPcdGet32 (PcdOvmfWorkAreaBase),
+      FixedPcdGet32 (PcdOvmfWorkAreaSize),
+      EFI_MEMORY_XP
+      );
+  }
 
   return Status;
 }
