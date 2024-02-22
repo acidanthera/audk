@@ -288,13 +288,39 @@ CallBootService (
 
     case SysCallFreePool:
       //
-      // Argument 1: IN VOID  *Buffer
+      // Argument 1: VOID  *Buffer
       //
       DisableSMAP ();
       Status = gBS->FreePool (
                       (VOID *)CoreRbp->Argument1
                       );
       EnableSMAP ();
+
+      return Status;
+
+    case SysCallCloseProtocol:
+      //
+      // Argument 1: EFI_HANDLE  CoreUserHandle
+      // Argument 2: EFI_GUID    *Protocol
+      // Argument 3: EFI_HANDLE  CoreAgentHandle
+      // Argument 4: EFI_HANDLE  CoreControllerHandle
+      //
+      DisableSMAP ();
+      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      if (EFI_ERROR (Status)) {
+        EnableSMAP ();
+        return Status;
+      }
+
+      Argument4 = UserRsp->Arguments[4];
+      EnableSMAP ();
+
+      Status = gBS->CloseProtocol (
+                      (EFI_HANDLE)CoreRbp->Argument1,
+                      CoreProtocol,
+                      (EFI_HANDLE)CoreRbp->Argument3,
+                      (EFI_HANDLE)Argument4
+                      );
 
       return Status;
 
