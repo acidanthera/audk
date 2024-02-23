@@ -12,7 +12,11 @@ EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mRing3SimpleFileSystemProtocol;
 EFI_FILE_PROTOCOL                mRing3FileProtocol;
 
 EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
-EFI_FILE_PROTOCOL                *mRing3FilePointer;
+
+typedef struct {
+  EFI_FILE_PROTOCOL  Protocol;
+  EFI_FILE_PROTOCOL  *Ring3File;
+} RING3_EFI_FILE_PROTOCOL;
 
 EFI_STATUS
 EFIAPI
@@ -186,28 +190,30 @@ CoreDriverBindingStop (
   return Status;
 }
 
-EFI_STATUS
-EFIAPI
-CoreFileOpen (
-  IN EFI_FILE_PROTOCOL        *This,
-  OUT EFI_FILE_PROTOCOL       **NewHandle,
-  IN CHAR16                   *FileName,
-  IN UINT64                   OpenMode,
-  IN UINT64                   Attributes
-  )
-{
-  return EFI_UNSUPPORTED;
-}
-
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileClose (
   IN EFI_FILE_PROTOCOL  *This
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS              Status;
+  RING3_EFI_FILE_PROTOCOL *File;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+
+  Status = GoToRing3 (
+             1,
+             (VOID *)mRing3FileProtocol.Close,
+             File->Ring3File
+             );
+
+  FreePool (This);
+
+  return Status;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileDelete (
@@ -217,6 +223,7 @@ CoreFileDelete (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileRead (
@@ -225,9 +232,56 @@ CoreFileRead (
   OUT VOID                    *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS              Status;
+  RING3_EFI_FILE_PROTOCOL *File;
+  UINTN                   *Ring3BufferSize;
+  VOID                    *Ring3Buffer;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+  DEBUG ((DEBUG_INFO, "Ring3 Read: check 1\n"));
+
+  DisableSMAP ();
+  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
+  if (EFI_ERROR (Status)) {
+    EnableSMAP ();
+    return Status;
+  }
+
+  Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
+  if (EFI_ERROR (Status)) {
+    FreePool (Ring3BufferSize);
+    EnableSMAP ();
+    return Status;
+  }
+  EnableSMAP ();
+  DEBUG ((DEBUG_INFO, "Ring3 Read: check 2\n"));
+
+  Status = GoToRing3 (
+             3,
+             (VOID *)mRing3FileProtocol.Read,
+             File->Ring3File,
+             Ring3BufferSize,
+             Ring3Buffer
+             );
+  DEBUG ((DEBUG_INFO, "Ring3 Read: check 3\n"));
+
+  DisableSMAP ();
+  if ((!EFI_ERROR (Status)) && (Ring3Buffer != NULL) && (Buffer != NULL)) {
+    CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+    FreePool (Ring3Buffer);
+  }
+
+  *BufferSize = *Ring3BufferSize;
+
+  DEBUG ((DEBUG_INFO, "Ring3 Read: check 3.5\n"));
+  FreePool (Ring3BufferSize);
+  EnableSMAP ();
+  DEBUG ((DEBUG_INFO, "Ring3 Read: check 4\n"));
+
+  return Status;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileWrite (
@@ -239,6 +293,7 @@ CoreFileWrite (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileSetPosition (
@@ -246,9 +301,19 @@ CoreFileSetPosition (
   IN UINT64                   Position
   )
 {
-  return EFI_UNSUPPORTED;
+  RING3_EFI_FILE_PROTOCOL *File;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+
+  return GoToRing3 (
+           2,
+           (VOID *)mRing3FileProtocol.SetPosition,
+           File->Ring3File,
+           Position
+           );
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileGetPosition (
@@ -256,9 +321,36 @@ CoreFileGetPosition (
   OUT UINT64                  *Position
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS              Status;
+  RING3_EFI_FILE_PROTOCOL *File;
+  UINT64                  *Ring3Position;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+
+  DisableSMAP ();
+  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINT64), (VOID **)&Ring3Position);
+  EnableSMAP ();
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  Status = GoToRing3 (
+             2,
+             (VOID *)mRing3FileProtocol.GetPosition,
+             File->Ring3File,
+             Ring3Position
+             );
+
+  DisableSMAP ();
+  *Position = *Ring3Position;
+
+  FreePool (Ring3Position);
+  EnableSMAP ();
+
+  return Status;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileGetInfo (
@@ -268,9 +360,62 @@ CoreFileGetInfo (
   OUT VOID                    *Buffer
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS              Status;
+  RING3_EFI_FILE_PROTOCOL *File;
+  EFI_GUID                *Ring3InformationType;
+  UINTN                   *Ring3BufferSize;
+  VOID                    *Ring3Buffer;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+
+  DisableSMAP ();
+  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
+  if (EFI_ERROR (Status)) {
+    EnableSMAP ();
+    return Status;
+  }
+
+  Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
+  if (EFI_ERROR (Status)) {
+    FreePool (Ring3BufferSize);
+    EnableSMAP ();
+    return Status;
+  }
+
+  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (EFI_GUID), (VOID **)&Ring3InformationType);
+  if (EFI_ERROR (Status)) {
+    FreePool (Ring3BufferSize);
+    FreePool (Ring3Buffer);
+    EnableSMAP ();
+    return Status;
+  }
+
+  CopyGuid (Ring3InformationType, InformationType);
+  EnableSMAP ();
+
+  Status = GoToRing3 (
+             4,
+             (VOID *)mRing3FileProtocol.GetInfo,
+             File->Ring3File,
+             Ring3InformationType,
+             Ring3BufferSize,
+             Ring3Buffer
+             );
+
+  DisableSMAP ();
+  *BufferSize = *Ring3BufferSize;
+
+  CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+
+  FreePool (Ring3BufferSize);
+  FreePool (Ring3Buffer);
+  FreePool (Ring3InformationType);
+  EnableSMAP ();
+
+  return Status;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileSetInfo (
@@ -283,6 +428,7 @@ CoreFileSetInfo (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileFlush (
@@ -292,6 +438,7 @@ CoreFileFlush (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileOpenEx (
@@ -306,6 +453,7 @@ CoreFileOpenEx (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileReadEx (
@@ -316,6 +464,7 @@ CoreFileReadEx (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileWriteEx (
@@ -326,6 +475,7 @@ CoreFileWriteEx (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
 EFI_STATUS
 EFIAPI
 CoreFileFlushEx (
@@ -336,6 +486,104 @@ CoreFileFlushEx (
   return EFI_UNSUPPORTED;
 }
 
+STATIC
+EFI_STATUS
+EFIAPI
+CoreFileOpen (
+  IN EFI_FILE_PROTOCOL        *This,
+  OUT EFI_FILE_PROTOCOL       **NewHandle,
+  IN CHAR16                   *FileName,
+  IN UINT64                   OpenMode,
+  IN UINT64                   Attributes
+  )
+{
+  EFI_STATUS              Status;
+  RING3_EFI_FILE_PROTOCOL *File;
+  RING3_EFI_FILE_PROTOCOL *NewFile;
+  EFI_FILE_PROTOCOL       **Ring3NewHandle;
+  CHAR16                  *Ring3FileName;
+
+  File = (RING3_EFI_FILE_PROTOCOL *)This;
+
+  DisableSMAP ();
+  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (EFI_FILE_PROTOCOL *), (VOID **)&Ring3NewHandle);
+  if (EFI_ERROR (Status)) {
+    EnableSMAP ();
+    return Status;
+  }
+
+  Status = CoreAllocatePool (EfiRing3MemoryType, StrSize (FileName), (VOID **)&Ring3FileName);
+  if (EFI_ERROR (Status)) {
+    FreePool (Ring3NewHandle);
+    EnableSMAP ();
+    return Status;
+  }
+
+  Status = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
+  if (EFI_ERROR (Status)) {
+    FreePool (Ring3NewHandle);
+    FreePool (Ring3FileName);
+    EnableSMAP ();
+    return Status;
+  }
+  EnableSMAP ();
+
+  Status = GoToRing3 (
+             5,
+             (VOID *)mRing3FileProtocol.Open,
+             File->Ring3File,
+             Ring3NewHandle,
+             Ring3FileName,
+             OpenMode,
+             Attributes
+             );
+  if (EFI_ERROR (Status)) {
+    *NewHandle = NULL;
+    DisableSMAP ();
+    FreePool (Ring3NewHandle);
+    FreePool (Ring3FileName);
+    EnableSMAP ();
+    return Status;
+  }
+
+  NewFile = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
+  if (NewFile == NULL) {
+    *NewHandle = NULL;
+    DisableSMAP ();
+    FreePool (Ring3NewHandle);
+    FreePool (Ring3FileName);
+    EnableSMAP ();
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  NewFile->Protocol.Revision    = mRing3FileProtocol.Revision;
+  NewFile->Protocol.Open        = CoreFileOpen;
+  NewFile->Protocol.Close       = CoreFileClose;
+  NewFile->Protocol.Delete      = CoreFileDelete;
+  NewFile->Protocol.Read        = CoreFileRead;
+  NewFile->Protocol.Write       = CoreFileWrite;
+  NewFile->Protocol.GetPosition = CoreFileGetPosition;
+  NewFile->Protocol.SetPosition = CoreFileSetPosition;
+  NewFile->Protocol.GetInfo     = CoreFileGetInfo;
+  NewFile->Protocol.SetInfo     = CoreFileSetInfo;
+  NewFile->Protocol.Flush       = CoreFileFlush;
+  NewFile->Protocol.OpenEx      = CoreFileOpenEx;
+  NewFile->Protocol.ReadEx      = CoreFileReadEx;
+  NewFile->Protocol.WriteEx     = CoreFileWriteEx;
+  NewFile->Protocol.FlushEx     = CoreFileFlushEx;
+
+  DisableSMAP ();
+  NewFile->Ring3File = *Ring3NewHandle;
+
+  FreePool (Ring3NewHandle);
+  FreePool (Ring3FileName);
+  EnableSMAP ();
+
+  *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
+
+  return Status;
+}
+
 EFI_STATUS
 EFIAPI
 CoreOpenVolume (
@@ -343,14 +591,15 @@ CoreOpenVolume (
   OUT EFI_FILE_PROTOCOL               **Root
   )
 {
-  EFI_STATUS         Status;
-  EFI_FILE_PROTOCOL  **Ring3Root;
+  EFI_STATUS              Status;
+  EFI_FILE_PROTOCOL       **Ring3Root;
+  RING3_EFI_FILE_PROTOCOL *File;
 
   DisableSMAP ();
   Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (EFI_FILE_PROTOCOL *), (VOID **)&Ring3Root);
   EnableSMAP ();
   if (EFI_ERROR (Status)) {
-    return EFI_OUT_OF_RESOURCES;
+    return Status;
   }
 
   Status = GoToRing3 (
@@ -367,7 +616,14 @@ CoreOpenVolume (
     return Status;
   }
 
-  *Root = AllocatePool (sizeof (EFI_FILE_PROTOCOL));
+  File = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
+  if (File == NULL) {
+    *Root = NULL;
+    DisableSMAP ();
+    FreePool (Ring3Root);
+    EnableSMAP ();
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   DisableSMAP ();
   mRing3FileProtocol.Revision    = (*Ring3Root)->Revision;
@@ -386,26 +642,28 @@ CoreOpenVolume (
   mRing3FileProtocol.WriteEx     = (*Ring3Root)->WriteEx;
   mRing3FileProtocol.FlushEx     = (*Ring3Root)->FlushEx;
 
-  mRing3FilePointer = *Ring3Root;
+  File->Ring3File = *Ring3Root;
 
   FreePool (Ring3Root);
   EnableSMAP ();
 
-  (*Root)->Revision    = mRing3FileProtocol.Revision;
-  (*Root)->Open        = CoreFileOpen;
-  (*Root)->Close       = CoreFileClose;
-  (*Root)->Delete      = CoreFileDelete;
-  (*Root)->Read        = CoreFileRead;
-  (*Root)->Write       = CoreFileWrite;
-  (*Root)->GetPosition = CoreFileGetPosition;
-  (*Root)->SetPosition = CoreFileSetPosition;
-  (*Root)->GetInfo     = CoreFileGetInfo;
-  (*Root)->SetInfo     = CoreFileSetInfo;
-  (*Root)->Flush       = CoreFileFlush;
-  (*Root)->OpenEx      = CoreFileOpenEx;
-  (*Root)->ReadEx      = CoreFileReadEx;
-  (*Root)->WriteEx     = CoreFileWriteEx;
-  (*Root)->FlushEx     = CoreFileFlushEx;
+  File->Protocol.Revision    = mRing3FileProtocol.Revision;
+  File->Protocol.Open        = CoreFileOpen;
+  File->Protocol.Close       = CoreFileClose;
+  File->Protocol.Delete      = CoreFileDelete;
+  File->Protocol.Read        = CoreFileRead;
+  File->Protocol.Write       = CoreFileWrite;
+  File->Protocol.GetPosition = CoreFileGetPosition;
+  File->Protocol.SetPosition = CoreFileSetPosition;
+  File->Protocol.GetInfo     = CoreFileGetInfo;
+  File->Protocol.SetInfo     = CoreFileSetInfo;
+  File->Protocol.Flush       = CoreFileFlush;
+  File->Protocol.OpenEx      = CoreFileOpenEx;
+  File->Protocol.ReadEx      = CoreFileReadEx;
+  File->Protocol.WriteEx     = CoreFileWriteEx;
+  File->Protocol.FlushEx     = CoreFileFlushEx;
+
+  *Root = (EFI_FILE_PROTOCOL *)File;
 
   return Status;
 }
