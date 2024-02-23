@@ -10,7 +10,9 @@
 #include <Protocol/DevicePathUtilities.h>
 #include <Protocol/DiskIo.h>
 
-extern EFI_DRIVER_BINDING_PROTOCOL  mRing3DriverBindingProtocol;
+extern EFI_DRIVER_BINDING_PROTOCOL      mRing3DriverBindingProtocol;
+extern EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mRing3SimpleFileSystemProtocol;
+extern EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
 
 EFI_STATUS
 EFIAPI
@@ -35,4 +37,11 @@ CoreDriverBindingStop (
   IN  EFI_HANDLE                            ControllerHandle,
   IN  UINTN                                 NumberOfChildren,
   IN  EFI_HANDLE                            *ChildHandleBuffer OPTIONAL
+  );
+
+EFI_STATUS
+EFIAPI
+CoreOpenVolume (
+  IN EFI_SIMPLE_FILE_SYSTEM_PROTOCOL        *This,
+  OUT EFI_FILE_PROTOCOL                     **Root
   );

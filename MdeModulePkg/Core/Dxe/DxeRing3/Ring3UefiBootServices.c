@@ -208,12 +208,31 @@ Ring3UninstallProtocolInterface (
 EFI_STATUS
 EFIAPI
 Ring3HandleProtocol (
-  IN EFI_HANDLE  UserHandle,
+  IN EFI_HANDLE  CoreUserHandle,
   IN EFI_GUID    *Protocol,
   OUT VOID       **Interface
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS  Status;
+
+  Status = SysCall (
+             SysCallHandleProtocol,
+             CoreUserHandle,
+             Protocol,
+             Interface
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to get handle of protocol %g - %r\n", Protocol, Status));
+    return Status;
+  }
+
+  if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid)) {
+    Status = EFI_SUCCESS;
+  } else {
+    Status = EFI_UNSUPPORTED;
+  }
+
+  return Status;
 }
 
 EFI_STATUS
@@ -397,7 +416,6 @@ Ring3OpenProtocol (
              Attributes
              );
   if (EFI_ERROR (Status)) {
-    // DEBUG ((DEBUG_ERROR, "Ring3: Failed to open protocol %g - %r\n", Protocol, Status));
     return Status;
   }
 
