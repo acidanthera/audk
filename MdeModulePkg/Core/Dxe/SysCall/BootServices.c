@@ -61,6 +61,16 @@ FindGuid (
     *Core     = &gEfiComponentNameProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
 
+  } else if (CompareGuid (Ring3, &gEfiDevicePathProtocolGuid)) {
+
+    *Core     = &gEfiDevicePathProtocolGuid;
+    *CoreSize = sizeof (EFI_DEVICE_PATH_PROTOCOL);
+
+  } else if (CompareGuid (Ring3, &gEfiSimpleFileSystemProtocolGuid)) {
+
+    *Core     = &gEfiSimpleFileSystemProtocolGuid;
+    *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
+
   } else {
     DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
     return EFI_NOT_FOUND;
@@ -130,7 +140,8 @@ CallBootService (
   VOID       *CoreArgList[MAX_LIST];
   EFI_HANDLE CoreHandle;
 
-  EFI_DRIVER_BINDING_PROTOCOL *CoreDriverBinding;
+  EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
+  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
   //
   // TODO: Check User variables.
   //
@@ -258,6 +269,16 @@ CallBootService (
           CoreDriverBinding->Supported = CoreDriverBindingSupported;
           CoreDriverBinding->Start     = CoreDriverBindingStart;
           CoreDriverBinding->Stop      = CoreDriverBindingStop;
+        } else if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiSimpleFileSystemProtocolGuid)) {
+          CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
+
+          mRing3SimpleFileSystemProtocol.OpenVolume = CoreSimpleFileSystem->OpenVolume;
+
+          CoreSimpleFileSystem->OpenVolume = CoreOpenVolume;
+
+          DisableSMAP ();
+          mRing3SimpleFileSystemPointer = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)UserArgList[Index + 1];
+          EnableSMAP ();
         }
       }
 
@@ -321,6 +342,40 @@ CallBootService (
                       (EFI_HANDLE)CoreRbp->Argument3,
                       (EFI_HANDLE)Argument4
                       );
+
+      return Status;
+
+    case SysCallHandleProtocol:
+      //
+      // Argument 1: EFI_HANDLE  CoreUserHandle
+      // Argument 2: EFI_GUID    *Protocol
+      // Argument 3: VOID        **Interface
+      //
+      DisableSMAP ();
+      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      EnableSMAP ();
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
+
+      Status = gBS->HandleProtocol (
+                      (EFI_HANDLE)CoreRbp->Argument1,
+                      CoreProtocol,
+                      &Interface
+                      );
+
+      DisableSMAP ();
+      if (Interface != NULL) {
+
+        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
+        if (Interface == NULL) {
+          EnableSMAP ();
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      *(VOID **)CoreRbp->Argument3 = Interface;
+      EnableSMAP ();
 
       return Status;
 
