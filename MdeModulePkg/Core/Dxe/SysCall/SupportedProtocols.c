@@ -237,24 +237,32 @@ CoreFileRead (
   UINTN                   *Ring3BufferSize;
   VOID                    *Ring3Buffer;
 
-  File = (RING3_EFI_FILE_PROTOCOL *)This;
-  DEBUG ((DEBUG_INFO, "Ring3 Read: check 1\n"));
+  File            = (RING3_EFI_FILE_PROTOCOL *)This;
+  Ring3Buffer     = NULL;
+  Ring3BufferSize = NULL;
 
   DisableSMAP ();
-  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
-  if (EFI_ERROR (Status)) {
-    EnableSMAP ();
-    return Status;
+  if (BufferSize != NULL) {
+    Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
+    if (EFI_ERROR (Status)) {
+      EnableSMAP ();
+      return Status;
+    }
+
+    *Ring3BufferSize = *BufferSize;
   }
 
-  Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
-  if (EFI_ERROR (Status)) {
-    FreePool (Ring3BufferSize);
-    EnableSMAP ();
-    return Status;
+  if (Buffer != NULL) {
+    Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
+    if (EFI_ERROR (Status)) {
+      if (Ring3BufferSize != NULL) {
+        FreePool (Ring3BufferSize);
+      }
+      EnableSMAP ();
+      return Status;
+    }
   }
   EnableSMAP ();
-  DEBUG ((DEBUG_INFO, "Ring3 Read: check 2\n"));
 
   Status = GoToRing3 (
              3,
@@ -263,20 +271,22 @@ CoreFileRead (
              Ring3BufferSize,
              Ring3Buffer
              );
-  DEBUG ((DEBUG_INFO, "Ring3 Read: check 3\n"));
 
   DisableSMAP ();
-  if ((!EFI_ERROR (Status)) && (Ring3Buffer != NULL) && (Buffer != NULL)) {
+  if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
     CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+  }
+
+  if (Ring3Buffer != NULL) {
     FreePool (Ring3Buffer);
   }
 
-  *BufferSize = *Ring3BufferSize;
+  if (Ring3BufferSize != NULL) {
+    *BufferSize = *Ring3BufferSize;
 
-  DEBUG ((DEBUG_INFO, "Ring3 Read: check 3.5\n"));
-  FreePool (Ring3BufferSize);
+    FreePool (Ring3BufferSize);
+  }
   EnableSMAP ();
-  DEBUG ((DEBUG_INFO, "Ring3 Read: check 4\n"));
 
   return Status;
 }
@@ -325,13 +335,19 @@ CoreFileGetPosition (
   RING3_EFI_FILE_PROTOCOL *File;
   UINT64                  *Ring3Position;
 
-  File = (RING3_EFI_FILE_PROTOCOL *)This;
+  File          = (RING3_EFI_FILE_PROTOCOL *)This;
+  Ring3Position = NULL;
 
-  DisableSMAP ();
-  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINT64), (VOID **)&Ring3Position);
-  EnableSMAP ();
-  if (EFI_ERROR (Status)) {
-    return Status;
+  if (Position != NULL) {
+    DisableSMAP ();
+    Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINT64), (VOID **)&Ring3Position);
+    if (EFI_ERROR (Status)) {
+      EnableSMAP ();
+      return Status;
+    }
+
+    *Ring3Position = *Position;
+    EnableSMAP ();
   }
 
   Status = GoToRing3 (
@@ -341,11 +357,13 @@ CoreFileGetPosition (
              Ring3Position
              );
 
-  DisableSMAP ();
-  *Position = *Ring3Position;
+  if (Ring3Position != NULL) {
+    DisableSMAP ();
+    *Position = *Ring3Position;
 
-  FreePool (Ring3Position);
-  EnableSMAP ();
+    FreePool (Ring3Position);
+    EnableSMAP ();
+  }
 
   return Status;
 }
@@ -366,31 +384,48 @@ CoreFileGetInfo (
   UINTN                   *Ring3BufferSize;
   VOID                    *Ring3Buffer;
 
-  File = (RING3_EFI_FILE_PROTOCOL *)This;
+  File                 = (RING3_EFI_FILE_PROTOCOL *)This;
+  Ring3Buffer          = NULL;
+  Ring3BufferSize      = NULL;
+  Ring3InformationType = NULL;
 
   DisableSMAP ();
-  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
-  if (EFI_ERROR (Status)) {
-    EnableSMAP ();
-    return Status;
+  if (BufferSize != NULL) {
+    Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (UINTN *), (VOID **)&Ring3BufferSize);
+    if (EFI_ERROR (Status)) {
+      EnableSMAP ();
+      return Status;
+    }
+
+    *Ring3BufferSize = *BufferSize;
   }
 
-  Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
-  if (EFI_ERROR (Status)) {
-    FreePool (Ring3BufferSize);
-    EnableSMAP ();
-    return Status;
+  if (Buffer != NULL) {
+    Status = CoreAllocatePool (EfiRing3MemoryType, *BufferSize, (VOID **)&Ring3Buffer);
+    if (EFI_ERROR (Status)) {
+      if (Ring3BufferSize != NULL) {
+        FreePool (Ring3BufferSize);
+      }
+      EnableSMAP ();
+      return Status;
+    }
   }
 
-  Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (EFI_GUID), (VOID **)&Ring3InformationType);
-  if (EFI_ERROR (Status)) {
-    FreePool (Ring3BufferSize);
-    FreePool (Ring3Buffer);
-    EnableSMAP ();
-    return Status;
-  }
+  if (InformationType != NULL) {
+    Status = CoreAllocatePool (EfiRing3MemoryType, sizeof (EFI_GUID), (VOID **)&Ring3InformationType);
+    if (EFI_ERROR (Status)) {
+      if (Ring3BufferSize != NULL) {
+        FreePool (Ring3BufferSize);
+      }
+      if (Ring3Buffer != NULL) {
+        FreePool (Ring3Buffer);
+      }
+      EnableSMAP ();
+      return Status;
+    }
 
-  CopyGuid (Ring3InformationType, InformationType);
+    CopyGuid (Ring3InformationType, InformationType);
+  }
   EnableSMAP ();
 
   Status = GoToRing3 (
@@ -403,13 +438,23 @@ CoreFileGetInfo (
              );
 
   DisableSMAP ();
-  *BufferSize = *Ring3BufferSize;
+  if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
+    CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+  }
 
-  CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+  if (Ring3BufferSize != NULL) {
+    *BufferSize = *Ring3BufferSize;
 
-  FreePool (Ring3BufferSize);
-  FreePool (Ring3Buffer);
-  FreePool (Ring3InformationType);
+    FreePool (Ring3BufferSize);
+  }
+
+  if (Ring3Buffer != NULL) {
+    FreePool (Ring3Buffer);
+  }
+
+  if (Ring3InformationType != NULL) {
+    FreePool (Ring3InformationType);
+  }
   EnableSMAP ();
 
   return Status;
