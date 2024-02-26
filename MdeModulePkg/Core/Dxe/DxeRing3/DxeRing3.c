@@ -122,6 +122,7 @@ Ring3Call (
   IN RING3_CALL_DATA *Data
   )
 {
+  EFI_STATUS  Status;
   FUNCTION_0  Function0;
   FUNCTION_1  Function1;
   FUNCTION_2  Function2;
@@ -132,33 +133,33 @@ Ring3Call (
   switch (Data->NumberOfArguments) {
     case 0:
       Function0 = (FUNCTION_0)Data->EntryPoint;
-      Function0 ();
+      Status = Function0 ();
       break;
     case 1:
       Function1 = (FUNCTION_1)Data->EntryPoint;
-      Function1 (Data->Arguments[0]);
+      Status = Function1 (Data->Arguments[0]);
       break;
     case 2:
       Function2 = (FUNCTION_2)Data->EntryPoint;
-      Function2 (Data->Arguments[0], Data->Arguments[1]);
+      Status = Function2 (Data->Arguments[0], Data->Arguments[1]);
       break;
     case 3:
       Function3 = (FUNCTION_3)Data->EntryPoint;
-      Function3 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2]);
+      Status = Function3 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2]);
       break;
     case 4:
       Function4 = (FUNCTION_4)Data->EntryPoint;
-      Function4 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3]);
+      Status = Function4 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3]);
       break;
     case 5:
       Function5 = (FUNCTION_5)Data->EntryPoint;
-      Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
+      Status = Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
       break;
     default:
       break;
   }
 
-  SysCall (SysCallReturnToCore);
+  SysCall (SysCallReturnToCore, Status);
 }
 
 EFI_STATUS
