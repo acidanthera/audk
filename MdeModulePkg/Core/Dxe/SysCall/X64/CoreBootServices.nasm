@@ -223,6 +223,7 @@ o64 sysret
 coreReturnAddress:
     mov     rsp, [ASM_PFX(CoreRsp)]
     mov     rbp, [ASM_PFX(CoreRbp)]
+    mov     rax, rdx
     ret
 
 SECTION .data
