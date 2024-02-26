@@ -156,6 +156,7 @@ Ring3Call (
       Status = Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
       break;
     default:
+      Status = EFI_UNSUPPORTED;
       break;
   }
 
