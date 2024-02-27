@@ -44,7 +44,6 @@
   Hand/Handle.h
   Gcd/Gcd.c
   Gcd/Gcd.h
-  Mem/Pool.c
   Mem/Page.c
   Mem/MemData.c
   Mem/Imem.h
@@ -104,6 +103,7 @@
   ImagePropertiesRecordLib
   OrderedCollectionLib
   CpuArchLib
+  MemoryPoolLib
 
 [Guids]
   gEfiEventMemoryMapChangeGuid                  ## PRODUCES             ## Event

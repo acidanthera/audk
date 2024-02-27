@@ -46,9 +46,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "ProcessorBind.h"
 #include "Uefi/UefiMultiPhase.h"
 
-#define MEMORY_TYPE_OS_RESERVED_MIN   0x80000000
-#define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
-
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
 
