@@ -9,6 +9,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef _MEMORY_POOL_LIB_H_
 #define _MEMORY_POOL_LIB_H_
 
+#include <Library/UefiLib.h>
+
 //
 // +---------------------------------------------------+
 // | 0..(EfiMaxMemoryType - 1)    - Normal memory type |
@@ -165,6 +167,20 @@ IsHeapGuardEnabled (
   );
 
 /**
+  Check to see if the pool at the given address should be guarded or not.
+
+  @param[in]  MemoryType      Pool type to check.
+
+
+  @return TRUE  The given type of pool should be guarded.
+  @return FALSE The given type of pool should not be guarded.
+**/
+BOOLEAN
+IsPoolTypeToGuard (
+  IN EFI_MEMORY_TYPE  MemoryType
+  );
+
+/**
   Check to see if the memory at the given address should be guarded or not.
 
   @param[in]  MemoryType      Memory type to check.
@@ -180,6 +196,52 @@ IsMemoryTypeToGuard (
   IN EFI_MEMORY_TYPE    MemoryType,
   IN EFI_ALLOCATE_TYPE  AllocateType,
   IN UINT8              PageOrPool
+  );
+
+/**
+  Raising to the task priority level of the mutual exclusion
+  lock, and then acquires ownership of the lock.
+
+  @param  Lock               The lock to acquire
+
+  @return Lock owned
+
+**/
+VOID
+CoreAcquireLock (
+  IN EFI_LOCK  *Lock
+  );
+
+/**
+  Initialize a basic mutual exclusion lock.   Each lock
+  provides mutual exclusion access at it's task priority
+  level.  Since there is no-premption (at any TPL) or
+  multiprocessor support, acquiring the lock only consists
+  of raising to the locks TPL.
+
+  @param  Lock               The EFI_LOCK structure to initialize
+
+  @retval EFI_SUCCESS        Lock Owned.
+  @retval EFI_ACCESS_DENIED  Reentrant Lock Acquisition, Lock not Owned.
+
+**/
+EFI_STATUS
+CoreAcquireLockOrFail (
+  IN EFI_LOCK  *Lock
+  );
+
+/**
+  Releases ownership of the mutual exclusion lock, and
+  restores the previous task priority level.
+
+  @param  Lock               The lock to release
+
+  @return Lock unowned
+
+**/
+VOID
+CoreReleaseLock (
+  IN EFI_LOCK  *Lock
   );
 
 #endif

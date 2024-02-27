@@ -36,7 +36,6 @@
   Misc/InstallConfigurationTable.c
   Misc/MemoryAttributesTable.c
   Misc/MemoryProtection.c
-  Library/Library.c
   Hand/DriverSupport.c
   Hand/Notify.c
   Hand/Locate.c
