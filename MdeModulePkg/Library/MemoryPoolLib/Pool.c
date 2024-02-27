@@ -826,6 +826,27 @@ IsHeapGuardEnabled (
 }
 
 /**
+  Check to see if the pool at the given address should be guarded or not.
+
+  @param[in]  MemoryType      Pool type to check.
+
+
+  @return TRUE  The given type of pool should be guarded.
+  @return FALSE The given type of pool should not be guarded.
+**/
+BOOLEAN
+IsPoolTypeToGuard (
+  IN EFI_MEMORY_TYPE  MemoryType
+  )
+{
+  return IsMemoryTypeToGuard (
+           MemoryType,
+           AllocateAnyPages,
+           GUARD_HEAP_TYPE_POOL
+           );
+}
+
+/**
   Check to see if the memory at the given address should be guarded or not.
 
   @param[in]  MemoryType      Memory type to check.

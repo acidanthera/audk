@@ -12,52 +12,6 @@
 extern BOOLEAN  mOnGuarding;
 
 /**
-  Check to see if the pool at the given address should be guarded or not.
-
-  @param[in]  MemoryType      Pool type to check.
-
-
-  @return TRUE  The given type of pool should be guarded.
-  @return FALSE The given type of pool should not be guarded.
-**/
-BOOLEAN
-IsPoolTypeToGuard (
-  IN EFI_MEMORY_TYPE  MemoryType
-  );
-
-/**
-  Initialize a basic mutual exclusion lock.   Each lock
-  provides mutual exclusion access at it's task priority
-  level.  Since there is no-premption (at any TPL) or
-  multiprocessor support, acquiring the lock only consists
-  of raising to the locks TPL.
-
-  @param  Lock               The EFI_LOCK structure to initialize
-
-  @retval EFI_SUCCESS        Lock Owned.
-  @retval EFI_ACCESS_DENIED  Reentrant Lock Acquisition, Lock not Owned.
-
-**/
-EFI_STATUS
-CoreAcquireLockOrFail (
-  IN EFI_LOCK  *Lock
-  );
-
-/**
-  Releases ownership of the mutual exclusion lock, and
-  restores the previous task priority level.
-
-  @param  Lock               The lock to release
-
-  @return Lock unowned
-
-**/
-VOID
-CoreReleaseLock (
-  IN EFI_LOCK  *Lock
-  );
-
-/**
   Update memory profile information.
 
   @param CallerAddress  Address of caller who call Allocate or Free.
@@ -116,20 +70,6 @@ AdjustPoolHeadA (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 NoPages,
   IN UINTN                 Size
-  );
-
-/**
-  Raising to the task priority level of the mutual exclusion
-  lock, and then acquires ownership of the lock.
-
-  @param  Lock               The lock to acquire
-
-  @return Lock owned
-
-**/
-VOID
-CoreAcquireLock (
-  IN EFI_LOCK  *Lock
   );
 
 /**
