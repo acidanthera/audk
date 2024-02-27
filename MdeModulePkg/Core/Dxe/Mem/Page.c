@@ -1582,6 +1582,13 @@ CoreFreePages (
     }
   }
 
+  ApplyMemoryProtectionPolicy (
+    EfiMaxMemoryType,
+    EfiConventionalMemory,
+    Memory,
+    EFI_PAGES_TO_SIZE (NumberOfPages)
+    );
+
   Status = CoreInternalFreePages (Memory, NumberOfPages, &MemoryType);
   if (!EFI_ERROR (Status)) {
     GuardFreedPagesChecked (Memory, NumberOfPages);
@@ -1594,12 +1601,6 @@ CoreFreePages (
       NULL
       );
     InstallMemoryAttributesTableOnMemoryAllocation (MemoryType);
-    ApplyMemoryProtectionPolicy (
-      MemoryType,
-      EfiConventionalMemory,
-      Memory,
-      EFI_PAGES_TO_SIZE (NumberOfPages)
-      );
   }
 
   return Status;

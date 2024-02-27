@@ -7,6 +7,8 @@
 
 #include <Uefi.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/MemoryPoolLib.h>
+#include <Library/UefiBootServicesTableLib.h>
 
 #include "Ring3.h"
 
@@ -23,8 +25,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_ALLOCATE_PAGES)Ring3AllocatePages,                                                  // AllocatePages
   (EFI_FREE_PAGES)Ring3FreePages,                                                          // FreePages
   (EFI_GET_MEMORY_MAP)Ring3GetMemoryMap,                                                   // GetMemoryMap
-  (EFI_ALLOCATE_POOL)Ring3AllocatePool,                                                    // AllocatePool
-  (EFI_FREE_POOL)Ring3FreePool,                                                            // FreePool
+  (EFI_ALLOCATE_POOL)CoreAllocatePool,                                                     // AllocatePool
+  (EFI_FREE_POOL)CoreFreePool,                                                             // FreePool
   (EFI_CREATE_EVENT)Ring3CreateEvent,                                                      // CreateEvent
   (EFI_SET_TIMER)Ring3SetTimer,                                                            // SetTimer
   (EFI_WAIT_FOR_EVENT)Ring3WaitForEvent,                                                   // WaitForEvent
@@ -176,6 +178,10 @@ Ring3Initialization (
 
   Ring3Data->EntryPoint   = (VOID *)Ring3EntryPoint;
   Ring3Data->BootServices = &mBootServices;
+
+  gBS = &mBootServices;
+
+  CoreInitializePool ();
 
   return EFI_SUCCESS;
 }

@@ -32,13 +32,16 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
   BaseLib
   BaseMemoryLib
   DebugLib
+  MemoryPoolLib
+  UefiBootServicesTableLib
   UefiDriverEntryPoint
-
+  
 [Protocols]
   gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
   gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES
