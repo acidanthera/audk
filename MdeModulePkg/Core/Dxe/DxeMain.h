@@ -86,6 +86,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/OrderedCollectionLib.h>
 #include <Library/CpuArchLib.h>
+#include <Library/MemoryPoolLib.h>
 
 #include <MemoryBin.h>
 
@@ -279,15 +280,6 @@ extern LOADED_IMAGE_PRIVATE_DATA                   *mCurrentImage;
 //
 // Service Initialization Functions
 //
-
-/**
-  Called to initialize the pool.
-
-**/
-VOID
-CoreInitializePool (
-  VOID
-  );
 
 /**
   Called to initialize the memory map and add descriptors to
@@ -1240,80 +1232,6 @@ CoreGetMemoryMap (
   OUT UINTN                     *MapKey,
   OUT UINTN                     *DescriptorSize,
   OUT UINT32                    *DescriptorVersion
-  );
-
-/**
-  Allocate pool of a particular type.
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  Buffer                 The address to return a pointer to the allocated
-                                 pool
-
-  @retval EFI_INVALID_PARAMETER  PoolType not valid or Buffer is NULL
-  @retval EFI_OUT_OF_RESOURCES   Size exceeds max pool size or allocation failed.
-  @retval EFI_SUCCESS            Pool successfully allocated.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreAllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  );
-
-/**
-  Allocate pool of a particular type.
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  Buffer                 The address to return a pointer to the allocated
-                                 pool
-
-  @retval EFI_INVALID_PARAMETER  PoolType not valid or Buffer is NULL
-  @retval EFI_OUT_OF_RESOURCES   Size exceeds max pool size or allocation failed.
-  @retval EFI_SUCCESS            Pool successfully allocated.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreInternalAllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  );
-
-/**
-  Frees pool.
-
-  @param  Buffer                 The allocated pool entry to free
-
-  @retval EFI_INVALID_PARAMETER  Buffer is not a valid value.
-  @retval EFI_SUCCESS            Pool successfully freed.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreFreePool (
-  IN VOID  *Buffer
-  );
-
-/**
-  Frees pool.
-
-  @param  Buffer                 The allocated pool entry to free
-  @param  PoolType               Pointer to pool type
-
-  @retval EFI_INVALID_PARAMETER  Buffer is not a valid value.
-  @retval EFI_SUCCESS            Pool successfully freed.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreInternalFreePool (
-  IN VOID              *Buffer,
-  OUT EFI_MEMORY_TYPE  *PoolType OPTIONAL
   );
 
 /**

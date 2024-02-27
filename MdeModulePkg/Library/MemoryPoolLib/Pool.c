@@ -6,9 +6,14 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include "DxeMain.h"
-#include "Imem.h"
-#include "HeapGuard.h"
+#include <Guid/MemoryProfile.h>
+
+#include <Library/DebugLib.h>
+#include <Library/MemoryPoolLib.h>
+#include <Library/PcdLib.h>
+#include <Library/UefiLib.h>
+
+#include "InternalPool.h"
 
 STATIC EFI_LOCK  mPoolMemoryLock = EFI_INITIALIZE_LOCK_VARIABLE (TPL_NOTIFY);
 
@@ -137,6 +142,7 @@ CoreInitializePool (
   @return Pointer of Corresponding pool head.
 
 **/
+STATIC
 POOL *
 LookupPoolHead (
   IN EFI_MEMORY_TYPE  MemoryType
