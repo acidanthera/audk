@@ -2256,6 +2256,41 @@ CoreFreePoolPagesI (
 }
 
 /**
+  Internal function.  Frees guarded pool pages.
+
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
+
+**/
+VOID
+CoreFreePoolPagesWithGuard (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  EFI_PHYSICAL_ADDRESS  MemoryGuarded;
+  UINTN                 NoPagesGuarded;
+
+  MemoryGuarded  = Memory;
+  NoPagesGuarded = NoPages;
+
+  AdjustMemoryF (&Memory, &NoPages);
+  //
+  // It's safe to unset Guard page inside memory lock because there should
+  // be no memory allocation occurred in updating memory page attribute at
+  // this point. And unsetting Guard page before free will prevent Guard
+  // page just freed back to pool from being allocated right away before
+  // marking it usable (from non-present to present).
+  //
+  UnsetGuardForMemory (MemoryGuarded, NoPagesGuarded);
+  if (NoPages > 0) {
+    CoreFreePoolPagesI (PoolType, Memory, NoPages);
+  }
+}
+
+/**
   Internal function.  Used by the pool functions to allocate pages
   to back pool allocation requests.
 

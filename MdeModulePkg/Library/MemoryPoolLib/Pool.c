@@ -88,6 +88,73 @@ POOL  mPoolHead[EfiMaxMemoryType];
 LIST_ENTRY  mPoolHeadList = INITIALIZE_LIST_HEAD_VARIABLE (mPoolHeadList);
 
 /**
+  Adjust the pool head position to make sure the Guard page is adjavent to
+  pool tail or pool head.
+
+  @param[in]  Memory    Base address of memory allocated.
+  @param[in]  NoPages   Number of pages actually allocated.
+  @param[in]  Size      Size of memory requested.
+                        (plus pool head/tail overhead)
+
+  @return Address of pool head.
+**/
+STATIC
+VOID *
+AdjustPoolHeadA (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages,
+  IN UINTN                 Size
+  )
+{
+  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
+    //
+    // Pool head is put near the head Guard
+    //
+    return (VOID *)(UINTN)Memory;
+  }
+
+  //
+  // Pool head is put near the tail Guard
+  //
+  Size = ALIGN_VALUE (Size, 8);
+  return (VOID *)(UINTN)(Memory + EFI_PAGES_TO_SIZE (NoPages) - Size);
+}
+
+/**
+  Get the page base address according to pool head address.
+
+  @param[in]  Memory    Head address of pool to free.
+  @param[in]  NoPages   Number of pages actually allocated.
+  @param[in]  Size      Size of memory requested.
+                        (plus pool head/tail overhead)
+
+  @return Address of pool head.
+**/
+STATIC
+VOID *
+AdjustPoolHeadF (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages,
+  IN UINTN                 Size
+  )
+{
+  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
+    //
+    // Pool head is put near the head Guard
+    //
+    return (VOID *)(UINTN)Memory;
+  }
+
+  //
+  // Pool head is put near the tail Guard. We need to exactly undo the addition done in AdjustPoolHeadA
+  // because we may not have allocated the pool head on the first allocated page, since we are aligned to
+  // the tail and on some architectures, the runtime page allocation granularity is > one page. So we allocate
+  // more pages than we need and put the pool head somewhere past the first page.
+  //
+  return (VOID *)(UINTN)(Memory + Size - EFI_PAGES_TO_SIZE (NoPages));
+}
+
+/**
   Get pool size table index from the specified size.
 
   @param  Size          The specified size to get index from pool table.
@@ -567,42 +634,6 @@ CoreFreePool (
   }
 
   return Status;
-}
-
-/**
-  Internal function.  Frees guarded pool pages.
-
-  @param  PoolType               The type of memory for the pool pages
-  @param  Memory                 The base address to free
-  @param  NoPages                The number of pages to free
-
-**/
-STATIC
-VOID
-CoreFreePoolPagesWithGuard (
-  IN EFI_MEMORY_TYPE       PoolType,
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages
-  )
-{
-  EFI_PHYSICAL_ADDRESS  MemoryGuarded;
-  UINTN                 NoPagesGuarded;
-
-  MemoryGuarded  = Memory;
-  NoPagesGuarded = NoPages;
-
-  AdjustMemoryF (&Memory, &NoPages);
-  //
-  // It's safe to unset Guard page inside memory lock because there should
-  // be no memory allocation occurred in updating memory page attribute at
-  // this point. And unsetting Guard page before free will prevent Guard
-  // page just freed back to pool from being allocated right away before
-  // marking it usable (from non-present to present).
-  //
-  UnsetGuardForMemory (MemoryGuarded, NoPagesGuarded);
-  if (NoPages > 0) {
-    CoreFreePoolPagesI (PoolType, Memory, NoPages);
-  }
 }
 
 /**

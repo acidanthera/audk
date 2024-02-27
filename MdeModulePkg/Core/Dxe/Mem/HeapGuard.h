@@ -334,41 +334,6 @@ DumpGuardedMemoryBitmap (
   );
 
 /**
-  Adjust the pool head position to make sure the Guard page is adjavent to
-  pool tail or pool head.
-
-  @param[in]  Memory    Base address of memory allocated.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadA (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  );
-
-/**
-  Get the page base address according to pool head address.
-
-  @param[in]  Memory    Head address of pool to free.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadF (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  );
-
-/**
   Notify function used to set all Guard pages after CPU Arch Protocol installed.
 **/
 VOID
