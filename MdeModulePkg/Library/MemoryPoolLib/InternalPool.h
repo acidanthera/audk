@@ -10,7 +10,6 @@
 #define _INTERNAL_POOL_H_
 
 extern BOOLEAN  mOnGuarding;
-extern EFI_LOCK gMemoryLock;
 
 #define GUARD_HEAP_TYPE_FREED  BIT4
 
@@ -104,73 +103,6 @@ InstallMemoryAttributesTableOnMemoryAllocation (
   );
 
 /**
-  Internal function.  Used by the pool functions to allocate pages
-  to back pool allocation requests.
-
-  @param  PoolType               The type of memory for the new pool pages
-  @param  NumberOfPages          No of pages to allocate
-  @param  Alignment              Bits to align.
-  @param  NeedGuard              Flag to indicate Guard page is needed or not
-
-  @return The allocated memory, or NULL
-
-**/
-VOID *
-CoreAllocatePoolPages (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            NumberOfPages,
-  IN UINTN            Alignment,
-  IN BOOLEAN          NeedGuard
-  );
-
-/**
-  Exit critical section by releasing lock on gMemoryLock.
-
-**/
-VOID
-CoreReleaseMemoryLock (
-  VOID
-  );
-
-/**
-  Set head Guard and tail Guard for the given memory range.
-
-  @param[in]  Memory          Base address of memory to set guard for.
-  @param[in]  NumberOfPages   Memory size in pages.
-
-  @return VOID.
-**/
-VOID
-SetGuardForMemory (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NumberOfPages
-  );
-
-/**
-  Manage memory permission attributes on a memory range, according to the
-  configured DXE memory protection policy.
-
-  @param  OldType           The old memory type of the range
-  @param  NewType           The new memory type of the range
-  @param  Memory            The base address of the range
-  @param  Length            The size of the range (in bytes)
-
-  @return EFI_SUCCESS       If the the CPU arch protocol is not installed yet
-  @return EFI_SUCCESS       If no DXE memory protection policy has been configured
-  @return EFI_SUCCESS       If OldType and NewType use the same permission attributes
-  @return other             Return value of gCpu->SetMemoryAttributes()
-
-**/
-EFI_STATUS
-EFIAPI
-ApplyMemoryProtectionPolicy (
-  IN  EFI_MEMORY_TYPE       OldType,
-  IN  EFI_MEMORY_TYPE       NewType,
-  IN  EFI_PHYSICAL_ADDRESS  Memory,
-  IN  UINT64                Length
-  );
-
-/**
   Check to see if the heap guard is enabled for page and/or pool allocation.
 
   @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
@@ -212,43 +144,6 @@ AdjustPoolHeadA (
 VOID
 CoreAcquireLock (
   IN EFI_LOCK  *Lock
-  );
-
-/**
-  Enter critical section by gaining lock on gMemoryLock.
-
-**/
-VOID
-CoreAcquireMemoryLock (
-  VOID
-  );
-
-/**
-  Internal function.  Frees pool pages allocated via AllocatePoolPages ()
-
-  @param  Memory                 The base address to free
-  @param  NumberOfPages          The number of pages to free
-
-**/
-VOID
-CoreFreePoolPages (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NumberOfPages
-  );
-
-/**
-  Record freed pages as well as mark them as not-present, if enabled.
-
-  @param[in]  BaseAddress   Base address of just freed pages.
-  @param[in]  Pages         Number of freed pages.
-
-  @return VOID.
-**/
-VOID
-EFIAPI
-GuardFreedPagesChecked (
-  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
-  IN  UINTN                 Pages
   );
 
 /**
@@ -312,6 +207,41 @@ AdjustPoolHeadF (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 NoPages,
   IN UINTN                 Size
+  );
+
+/**
+  Internal function.  Used by the pool functions to allocate pages
+  to back pool allocation requests.
+
+  @param  PoolType               The type of memory for the new pool pages
+  @param  NoPages                No of pages to allocate
+  @param  Granularity            Bits to align.
+  @param  NeedGuard              Flag to indicate Guard page is needed or not
+
+  @return The allocated memory, or NULL
+
+**/
+VOID *
+CoreAllocatePoolPagesI (
+  IN EFI_MEMORY_TYPE  PoolType,
+  IN UINTN            NoPages,
+  IN UINTN            Granularity,
+  IN BOOLEAN          NeedGuard
+  );
+
+/**
+  Internal function.  Frees pool pages allocated via CoreAllocatePoolPagesI().
+
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
+
+**/
+VOID
+CoreFreePoolPagesI (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
   );
 
 #endif

@@ -2185,6 +2185,81 @@ Done:
   to back pool allocation requests.
 
   @param  PoolType               The type of memory for the new pool pages
+  @param  NoPages                No of pages to allocate
+  @param  Granularity            Bits to align.
+  @param  NeedGuard              Flag to indicate Guard page is needed or not
+
+  @return The allocated memory, or NULL
+
+**/
+VOID *
+CoreAllocatePoolPagesI (
+  IN EFI_MEMORY_TYPE  PoolType,
+  IN UINTN            NoPages,
+  IN UINTN            Granularity,
+  IN BOOLEAN          NeedGuard
+  )
+{
+  VOID        *Buffer;
+  EFI_STATUS  Status;
+
+  Status = CoreAcquireLockOrFail (&gMemoryLock);
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  Buffer = CoreAllocatePoolPages (PoolType, NoPages, Granularity, NeedGuard);
+  CoreReleaseMemoryLock ();
+
+  if (Buffer != NULL) {
+    if (NeedGuard) {
+      SetGuardForMemory ((EFI_PHYSICAL_ADDRESS)(UINTN)Buffer, NoPages);
+    }
+
+    ApplyMemoryProtectionPolicy (
+      EfiConventionalMemory,
+      PoolType,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)Buffer,
+      EFI_PAGES_TO_SIZE (NoPages)
+      );
+  }
+
+  return Buffer;
+}
+
+/**
+  Internal function.  Frees pool pages allocated via CoreAllocatePoolPagesI().
+
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
+
+**/
+VOID
+CoreFreePoolPagesI (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  CoreAcquireMemoryLock ();
+  CoreFreePoolPages (Memory, NoPages);
+  CoreReleaseMemoryLock ();
+
+  GuardFreedPagesChecked (Memory, NoPages);
+  ApplyMemoryProtectionPolicy (
+    PoolType,
+    EfiConventionalMemory,
+    (EFI_PHYSICAL_ADDRESS)(UINTN)Memory,
+    EFI_PAGES_TO_SIZE (NoPages)
+    );
+}
+
+/**
+  Internal function.  Used by the pool functions to allocate pages
+  to back pool allocation requests.
+
+  @param  PoolType               The type of memory for the new pool pages
   @param  NumberOfPages          No of pages to allocate
   @param  Alignment              Bits to align.
   @param  NeedGuard              Flag to indicate Guard page is needed or not
