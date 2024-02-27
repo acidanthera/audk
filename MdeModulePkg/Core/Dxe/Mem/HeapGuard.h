@@ -150,15 +150,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   }
 
 //
-// Memory type to guard (matching the related PCD definition)
-//
-#define GUARD_HEAP_TYPE_PAGE   BIT0
-#define GUARD_HEAP_TYPE_POOL   BIT1
-#define GUARD_HEAP_TYPE_FREED  BIT4
-#define GUARD_HEAP_TYPE_ALL         \
-        (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
-
-//
 // Debug message level
 //
 #define HEAP_GUARD_DEBUG_LEVEL  (DEBUG_POOL|DEBUG_PAGE)
@@ -389,18 +380,6 @@ AdjustPoolHeadF (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 NoPages,
   IN UINTN                 Size
-  );
-
-/**
-  Check to see if the heap guard is enabled for page and/or pool allocation.
-
-  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
-
-  @return TRUE/FALSE.
-**/
-BOOLEAN
-IsHeapGuardEnabled (
-  UINT8  GuardType
   );
 
 /**

@@ -11,8 +11,6 @@
 
 extern BOOLEAN  mOnGuarding;
 
-#define GUARD_HEAP_TYPE_FREED  BIT4
-
 /**
   Check to see if the pool at the given address should be guarded or not.
 
@@ -100,18 +98,6 @@ CoreUpdateProfile (
 VOID
 InstallMemoryAttributesTableOnMemoryAllocation (
   IN EFI_MEMORY_TYPE  MemoryType
-  );
-
-/**
-  Check to see if the heap guard is enabled for page and/or pool allocation.
-
-  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
-
-  @return TRUE/FALSE.
-**/
-BOOLEAN
-IsHeapGuardEnabled (
-  UINT8  GuardType
   );
 
 /**
