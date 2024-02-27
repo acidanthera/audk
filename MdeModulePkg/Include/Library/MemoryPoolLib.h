@@ -25,6 +25,15 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
 #define MEMORY_TYPE_OEM_RESERVED_MAX  0x7FFFFFFF
 
+//
+// Memory type to guard (matching the related PCD definition)
+//
+#define GUARD_HEAP_TYPE_PAGE   BIT0
+#define GUARD_HEAP_TYPE_POOL   BIT1
+#define GUARD_HEAP_TYPE_FREED  BIT4
+#define GUARD_HEAP_TYPE_ALL         \
+        (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
+
 /**
   Called to initialize the pool.
 
@@ -141,6 +150,36 @@ EFI_STATUS
 CoreFreePoolI (
   IN VOID              *Buffer,
   OUT EFI_MEMORY_TYPE  *PoolType OPTIONAL
+  );
+
+/**
+  Check to see if the heap guard is enabled for page and/or pool allocation.
+
+  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
+
+  @return TRUE/FALSE.
+**/
+BOOLEAN
+IsHeapGuardEnabled (
+  UINT8  GuardType
+  );
+
+/**
+  Check to see if the memory at the given address should be guarded or not.
+
+  @param[in]  MemoryType      Memory type to check.
+  @param[in]  AllocateType    Allocation type to check.
+  @param[in]  PageOrPool      Indicate a page allocation or pool allocation.
+
+
+  @return TRUE  The given type of memory should be guarded.
+  @return FALSE The given type of memory should not be guarded.
+**/
+BOOLEAN
+IsMemoryTypeToGuard (
+  IN EFI_MEMORY_TYPE    MemoryType,
+  IN EFI_ALLOCATE_TYPE  AllocateType,
+  IN UINT8              PageOrPool
   );
 
 #endif
