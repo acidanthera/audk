@@ -55,53 +55,18 @@ InstallMemoryAttributesTableOnMemoryAllocation (
   );
 
 /**
-  Adjust the pool head position to make sure the Guard page is adjavent to
-  pool tail or pool head.
+  Internal function.  Frees guarded pool pages.
 
-  @param[in]  Memory    Base address of memory allocated.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
 
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadA (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  );
-
-/**
-  Adjust the start address and number of pages to free according to Guard.
-
-  The purpose of this function is to keep the shared Guard page with adjacent
-  memory block if it's still in guard, or free it if no more sharing. Another
-  is to reserve pages as Guard pages in partial page free situation.
-
-  @param[in,out]  Memory          Base address of memory to free.
-  @param[in,out]  NumberOfPages   Size of memory to free.
-
-  @return VOID.
 **/
 VOID
-AdjustMemoryF (
-  IN OUT EFI_PHYSICAL_ADDRESS  *Memory,
-  IN OUT UINTN                 *NumberOfPages
-  );
-
-/**
-  Unset head Guard and tail Guard for the given memory range.
-
-  @param[in]  Memory          Base address of memory to unset guard for.
-  @param[in]  NumberOfPages   Memory size in pages.
-
-  @return VOID.
-**/
-VOID
-UnsetGuardForMemory (
+CoreFreePoolPagesWithGuard (
+  IN EFI_MEMORY_TYPE       PoolType,
   IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NumberOfPages
+  IN UINTN                 NoPages
   );
 
 /**
@@ -116,23 +81,6 @@ BOOLEAN
 EFIAPI
 IsMemoryGuarded (
   IN EFI_PHYSICAL_ADDRESS  Address
-  );
-
-/**
-  Get the page base address according to pool head address.
-
-  @param[in]  Memory    Head address of pool to free.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadF (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
   );
 
 /**
