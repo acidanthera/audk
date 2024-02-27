@@ -8,10 +8,14 @@
 
 #include <Uefi.h>
 
+#include <Guid/MemoryProfile.h>
+
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 
 #include "Ring3.h"
+
+BOOLEAN  mOnGuarding = FALSE;
 
 EFI_TPL
 EFIAPI
@@ -19,7 +23,10 @@ Ring3RaiseTpl (
   IN EFI_TPL  NewTpl
   )
 {
-  return NewTpl;
+  return (EFI_TPL)SysCall (
+                    SysCallRaiseTpl,
+                    NewTpl
+                    );
 }
 
 VOID
@@ -28,7 +35,10 @@ Ring3RestoreTpl (
   IN EFI_TPL  NewTpl
   )
 {
-
+  SysCall (
+    SysCallRestoreTpl,
+    NewTpl
+    );
 }
 
 EFI_STATUS
@@ -40,7 +50,20 @@ Ring3AllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS  Status;
+
+  Status = SysCall (
+             SysCallAllocatePages,
+             Type,
+             MemoryType,
+             NumberOfPages,
+             Memory
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate %d pages.\n", NumberOfPages));
+  }
+
+  return Status;
 }
 
 EFI_STATUS
@@ -50,7 +73,18 @@ Ring3FreePages (
   IN UINTN                 NumberOfPages
   )
 {
-  return EFI_UNSUPPORTED;
+  EFI_STATUS  Status;
+
+  Status = SysCall (
+             SysCallFreePages,
+             Memory,
+             NumberOfPages
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Ring3: Failed to free %d pages.\n", NumberOfPages));
+  }
+
+  return Status;
 }
 
 EFI_STATUS
@@ -64,48 +98,6 @@ Ring3GetMemoryMap (
   )
 {
   return EFI_UNSUPPORTED;
-}
-
-EFI_STATUS
-EFIAPI
-Ring3AllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  )
-{
-  EFI_STATUS  Status;
-
-  Status = SysCall (
-             SysCallAllocatePool,
-             PoolType,
-             Size,
-             Buffer
-             );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate %d bytes.\n", Size));
-  }
-
-  return Status;
-}
-
-EFI_STATUS
-EFIAPI
-Ring3FreePool (
-  IN VOID  *Buffer
-  )
-{
-  EFI_STATUS  Status;
-
-  Status = SysCall (
-             SysCallFreePool,
-             Buffer
-             );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to free buffer.\n"));
-  }
-
-  return Status;
 }
 
 EFI_STATUS
@@ -613,4 +605,70 @@ Ring3CreateEventEx (
   )
 {
   return EFI_UNSUPPORTED;
+}
+
+EFI_STATUS
+EFIAPI
+CoreUpdateProfile (
+  IN EFI_PHYSICAL_ADDRESS   CallerAddress,
+  IN MEMORY_PROFILE_ACTION  Action,
+  IN EFI_MEMORY_TYPE        MemoryType,
+  IN UINTN                  Size,       // Valid for AllocatePages/FreePages/AllocatePool
+  IN VOID                   *Buffer,
+  IN CHAR8                  *ActionString OPTIONAL
+  )
+{
+  return EFI_SUCCESS;
+}
+
+VOID
+InstallMemoryAttributesTableOnMemoryAllocation (
+  IN EFI_MEMORY_TYPE  MemoryType
+  )
+{
+  return;
+}
+
+BOOLEAN
+EFIAPI
+IsMemoryGuarded (
+  IN EFI_PHYSICAL_ADDRESS  Address
+  )
+{
+  return FALSE;
+}
+
+VOID *
+CoreAllocatePoolPagesI (
+  IN EFI_MEMORY_TYPE  PoolType,
+  IN UINTN            NoPages,
+  IN UINTN            Granularity,
+  IN BOOLEAN          NeedGuard
+  )
+{
+  EFI_PHYSICAL_ADDRESS  Memory;
+
+  Ring3AllocatePages (AllocateAnyPages, EfiRing3MemoryType, NoPages, &Memory);
+
+  return (VOID *)Memory;
+}
+
+VOID
+CoreFreePoolPagesI (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  Ring3FreePages (Memory, NoPages);
+}
+
+VOID
+CoreFreePoolPagesWithGuard (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  CoreFreePoolPagesI (PoolType, Memory, NoPages);
 }

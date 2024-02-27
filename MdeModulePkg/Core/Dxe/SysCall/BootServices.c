@@ -291,34 +291,6 @@ CallBootService (
 
       return Status;
 
-    case SysCallAllocatePool:
-      //
-      // Argument 1: EFI_MEMORY_TYPE  PoolType
-      // Argument 2: UINTN            Size
-      // Argument 3: VOID            **Buffer
-      //
-      DisableSMAP ();
-      Status = gBS->AllocatePool (
-                      EfiRing3MemoryType,
-                      CoreRbp->Argument2,
-                      (VOID **)CoreRbp->Argument3
-                      );
-      EnableSMAP ();
-
-      return Status;
-
-    case SysCallFreePool:
-      //
-      // Argument 1: VOID  *Buffer
-      //
-      DisableSMAP ();
-      Status = gBS->FreePool (
-                      (VOID *)CoreRbp->Argument1
-                      );
-      EnableSMAP ();
-
-      return Status;
-
     case SysCallCloseProtocol:
       //
       // Argument 1: EFI_HANDLE  CoreUserHandle
@@ -378,6 +350,52 @@ CallBootService (
       EnableSMAP ();
 
       return Status;
+
+    case SysCallAllocatePages:
+      //
+      // Argument 1: EFI_ALLOCATE_TYPE     Type
+      // Argument 2: EFI_MEMORY_TYPE       MemoryType
+      // Argument 3: UINTN                 NumberOfPages
+      // Argument 4: EFI_PHYSICAL_ADDRESS  *Memory
+      //
+      Status = gBS->AllocatePages (
+                      (EFI_ALLOCATE_TYPE)CoreRbp->Argument1,
+                      (EFI_MEMORY_TYPE)CoreRbp->Argument2,
+                      CoreRbp->Argument3,
+                      (EFI_PHYSICAL_ADDRESS *)&Argument4
+                      );
+
+      DisableSMAP ();
+      *(EFI_PHYSICAL_ADDRESS *)UserRsp->Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
+      EnableSMAP ();
+
+      return Status;
+
+    case SysCallFreePages:
+      //
+      // Argument 1: EFI_PHYSICAL_ADDRESS  Memory
+      // Argument 2: UINTN                 NumberOfPages
+      //
+      return gBS->FreePages (
+                    (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1,
+                    CoreRbp->Argument2
+                    );
+
+    case SysCallRaiseTpl:
+      //
+      // Argument 1: EFI_TPL  NewTpl
+      //
+      return (EFI_STATUS)gBS->RaiseTPL (
+                                (EFI_TPL)CoreRbp->Argument1
+                                );
+
+    case SysCallRestoreTpl:
+      //
+      // Argument 1: EFI_TPL  NewTpl
+      //
+      gBS->RestoreTPL ((EFI_TPL)CoreRbp->Argument1);
+
+      return EFI_SUCCESS;
 
     case SysCallBlockIoReset:
       //
