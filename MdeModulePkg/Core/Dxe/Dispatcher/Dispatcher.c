@@ -204,7 +204,7 @@ CoreAcquireDispatcherLock (
   VOID
   )
 {
-  CoreAcquireLock (&mDispatcherLock);
+  EfiAcquireLock (&mDispatcherLock);
 }
 
 /**
@@ -216,7 +216,7 @@ CoreReleaseDispatcherLock (
   VOID
   )
 {
-  CoreReleaseLock (&mDispatcherLock);
+  EfiReleaseLock (&mDispatcherLock);
 }
 
 /**

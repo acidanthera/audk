@@ -74,9 +74,9 @@ CoreCurrentSystemTime (
 {
   UINT64  SystemTime;
 
-  CoreAcquireLock (&mEfiSystemTimeLock);
+  EfiAcquireLock (&mEfiSystemTimeLock);
   SystemTime = mEfiSystemTime;
-  CoreReleaseLock (&mEfiSystemTimeLock);
+  EfiReleaseLock (&mEfiSystemTimeLock);
 
   return SystemTime;
 }
@@ -102,7 +102,7 @@ CoreCheckTimers (
   //
   // Check the timer database for expired timers
   //
-  CoreAcquireLock (&mEfiTimerLock);
+  EfiAcquireLock (&mEfiTimerLock);
   SystemTime = CoreCurrentSystemTime ();
 
   while (!IsListEmpty (&mEfiTimerList)) {
@@ -151,7 +151,7 @@ CoreCheckTimers (
     }
   }
 
-  CoreReleaseLock (&mEfiTimerLock);
+  EfiReleaseLock (&mEfiTimerLock);
 }
 
 /**
@@ -194,7 +194,7 @@ CoreTimerTick (
   //
   // Check runtiem flag in case there are ticks while exiting boot services
   //
-  CoreAcquireLock (&mEfiSystemTimeLock);
+  EfiAcquireLock (&mEfiSystemTimeLock);
 
   //
   // Update the system time
@@ -213,7 +213,7 @@ CoreTimerTick (
     }
   }
 
-  CoreReleaseLock (&mEfiSystemTimeLock);
+  EfiReleaseLock (&mEfiSystemTimeLock);
 }
 
 /**
@@ -255,7 +255,7 @@ CoreSetTimer (
     return EFI_INVALID_PARAMETER;
   }
 
-  CoreAcquireLock (&mEfiTimerLock);
+  EfiAcquireLock (&mEfiTimerLock);
 
   //
   // If the timer is queued to the timer database, remove it
@@ -285,7 +285,7 @@ CoreSetTimer (
     }
   }
 
-  CoreReleaseLock (&mEfiTimerLock);
+  EfiReleaseLock (&mEfiTimerLock);
 
   return EFI_SUCCESS;
 }
