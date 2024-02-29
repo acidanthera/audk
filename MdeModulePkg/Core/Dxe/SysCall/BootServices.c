@@ -103,10 +103,7 @@ PrepareRing3Interface (
 
   Ring3Limit = (UINTN)gRing3Interfaces + EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES);
 
-  ASSERT ((mRing3InterfacePointer + sizeof (EFI_GUID) + CoreSize) <= Ring3Limit);
-
-  CopyMem ((VOID *)mRing3InterfacePointer, (VOID *)Guid, sizeof (EFI_GUID));
-  mRing3InterfacePointer += sizeof (EFI_GUID);
+  ASSERT ((mRing3InterfacePointer + CoreSize) <= Ring3Limit);
 
   Ring3Interface = (VOID *)mRing3InterfacePointer;
 
@@ -265,7 +262,12 @@ CallBootService (
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
         if (EFI_ERROR (Status)) {
           EnableSMAP ();
-          //TODO: Free CoreArgList.
+
+          while (Index > 0) {
+            FreePool (CoreArgList[Index - 1]);
+            Index -= 2;
+          }
+
           return Status;
         }
 

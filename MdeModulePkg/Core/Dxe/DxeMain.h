@@ -1172,14 +1172,6 @@ CoreAllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   );
 
-VOID *
-EFIAPI
-AllocateRing3Copy (
-  IN VOID    *Source,
-  IN UINT32  AllocationSize,
-  IN UINT32  CopySize
-  );
-
 /**
   Frees previous allocated pages.
 

@@ -1570,30 +1570,6 @@ CoreLoadImage (
   return Status;
 }
 
-VOID *
-EFIAPI
-AllocateRing3Copy (
-  IN VOID    *Source,
-  IN UINT32  AllocationSize,
-  IN UINT32  CopySize
-  )
-{
-  EFI_STATUS Status;
-  VOID       *MemoryRing3;
-
-  Status = CoreAllocatePool (EfiRing3MemoryType, AllocationSize, &MemoryRing3);
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate %d bytes for Ring3.\n", AllocationSize));
-    return NULL;
-  }
-
-  ASSERT (CopySize <= AllocationSize);
-
-  CopyMem (MemoryRing3, Source, CopySize);
-
-  return MemoryRing3;
-}
-
 EFI_STATUS
 EFIAPI
 InitializeRing3 (

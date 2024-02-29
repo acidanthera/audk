@@ -77,6 +77,34 @@ GoToRing3 (
   return Status;
 }
 
+STATIC
+EFIAPI
+VOID *
+Ring3Copy (
+  IN VOID    *Core,
+  IN UINT32  Size
+  )
+{
+  EFI_STATUS  Status;
+  VOID        *Ring3;
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             1,
+             (EFI_PHYSICAL_ADDRESS *)&Ring3
+             );
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  DisableSMAP ();
+  CopyMem (Ring3, Core, Size);
+  EnableSMAP ();
+
+  return Ring3;
+}
+
 EFI_STATUS
 EFIAPI
 CoreDriverBindingSupported (
@@ -87,17 +115,10 @@ CoreDriverBindingSupported (
 {
   EFI_STATUS  Status;
 
-  DisableSMAP ();
-  This = AllocateRing3Copy (
-           This,
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
-           );
+  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
   if (This == NULL) {
-    EnableSMAP ();
     return EFI_OUT_OF_RESOURCES;
   }
-  EnableSMAP ();
 
   Status = GoToRing3 (
              3,
@@ -107,9 +128,7 @@ CoreDriverBindingSupported (
              RemainingDevicePath
              );
 
-  DisableSMAP ();
-  FreePool (This);
-  EnableSMAP ();
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
 
   return Status;
 }
@@ -124,17 +143,10 @@ CoreDriverBindingStart (
 {
   EFI_STATUS  Status;
 
-  DisableSMAP ();
-  This = AllocateRing3Copy (
-           This,
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
-           );
+  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
   if (This == NULL) {
-    EnableSMAP ();
     return EFI_OUT_OF_RESOURCES;
   }
-  EnableSMAP ();
 
   Status = GoToRing3 (
              3,
@@ -144,9 +156,7 @@ CoreDriverBindingStart (
              RemainingDevicePath
              );
 
-  DisableSMAP ();
-  FreePool (This);
-  EnableSMAP ();
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
 
   return Status;
 }
@@ -162,17 +172,10 @@ CoreDriverBindingStop (
 {
   EFI_STATUS  Status;
 
-  DisableSMAP ();
-  This = AllocateRing3Copy (
-           This,
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL),
-           sizeof (EFI_DRIVER_BINDING_PROTOCOL)
-           );
+  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
   if (This == NULL) {
-    EnableSMAP ();
     return EFI_OUT_OF_RESOURCES;
   }
-  EnableSMAP ();
 
   Status = GoToRing3 (
              4,
@@ -183,9 +186,7 @@ CoreDriverBindingStop (
              ChildHandleBuffer
              );
 
-  DisableSMAP ();
-  FreePool (This);
-  EnableSMAP ();
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
 
   return Status;
 }
