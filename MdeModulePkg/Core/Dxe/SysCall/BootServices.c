@@ -456,6 +456,10 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
+      DisableSMAP ();
+      CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[5], Argument4);
+      EnableSMAP ();
+
       Status = mCoreBlockIoProtocol->WriteBlocks (
                                        mCoreBlockIoProtocol,
                                        (UINT32)CoreRbp->Argument2,
@@ -463,9 +467,6 @@ CallBootService (
                                        Argument4,
                                        (VOID *)Argument5
                                        );
-      DisableSMAP ();
-      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
-      EnableSMAP ();
 
       FreePool ((VOID *)Argument5);
 
@@ -528,6 +529,10 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
+      DisableSMAP ();
+      CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[5], Argument4);
+      EnableSMAP ();
+
       Status = mCoreDiskIoProtocol->WriteDisk (
                                       mCoreDiskIoProtocol,
                                       (UINT32)CoreRbp->Argument2,
@@ -535,9 +540,6 @@ CallBootService (
                                       Argument4,
                                       (VOID *)Argument5
                                       );
-      DisableSMAP ();
-      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
-      EnableSMAP ();
 
       FreePool ((VOID *)Argument5);
 
