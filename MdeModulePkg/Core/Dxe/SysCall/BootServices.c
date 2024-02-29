@@ -10,6 +10,7 @@
 
 EFI_DISK_IO_PROTOCOL  *mCoreDiskIoProtocol;
 EFI_BLOCK_IO_PROTOCOL *mCoreBlockIoProtocol;
+UINTN                 mRing3InterfacePointer = 0;
 
 EFI_STATUS
 EFIAPI
@@ -20,6 +21,7 @@ CallInstallMultipleProtocolInterfaces (
   IN VOID        *Function
   );
 
+STATIC
 EFI_STATUS
 EFIAPI
 FindGuid (
@@ -79,24 +81,56 @@ FindGuid (
   return EFI_SUCCESS;
 }
 
-VOID
+STATIC
+VOID *
 EFIAPI
-FixInterface (
-  IN     EFI_GUID  *Guid,
-  IN OUT VOID      *Interface
+PrepareRing3Interface (
+  IN EFI_GUID  *Guid,
+  IN VOID      *CoreInterface,
+  IN UINT32    CoreSize
   )
 {
+  UINTN                  Ring3Limit;
+  VOID                   *Ring3Interface;
   EFI_BLOCK_IO_PROTOCOL  *BlockIo;
 
-  if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
-    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)Interface;
+  ASSERT (Guid != NULL);
+  ASSERT (CoreInterface != NULL);
 
-    BlockIo->Media = AllocateRing3Copy (
-                       BlockIo->Media,
-                       sizeof (EFI_BLOCK_IO_MEDIA),
-                       sizeof (EFI_BLOCK_IO_MEDIA)
-                       );
+  if (mRing3InterfacePointer == 0) {
+    mRing3InterfacePointer = (UINTN)gRing3Interfaces;
   }
+
+  Ring3Limit = (UINTN)gRing3Interfaces + EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES);
+
+  ASSERT ((mRing3InterfacePointer + sizeof (EFI_GUID) + CoreSize) <= Ring3Limit);
+
+  CopyMem ((VOID *)mRing3InterfacePointer, (VOID *)Guid, sizeof (EFI_GUID));
+  mRing3InterfacePointer += sizeof (EFI_GUID);
+
+  Ring3Interface = (VOID *)mRing3InterfacePointer;
+
+  CopyMem ((VOID *)mRing3InterfacePointer, CoreInterface, CoreSize);
+  mRing3InterfacePointer += CoreSize;
+
+  if (CompareGuid (Guid, &gEfiDiskIoProtocolGuid)) {
+
+    mCoreDiskIoProtocol = (EFI_DISK_IO_PROTOCOL *)CoreInterface;
+
+  } else if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
+    ASSERT ((mRing3InterfacePointer + sizeof (EFI_BLOCK_IO_MEDIA)) <= Ring3Limit);
+
+    mCoreBlockIoProtocol = (EFI_BLOCK_IO_PROTOCOL *)CoreInterface;
+    BlockIo              = (EFI_BLOCK_IO_PROTOCOL *)Ring3Interface;
+
+    CopyMem ((VOID *)mRing3InterfacePointer, (VOID *)BlockIo->Media, sizeof (EFI_BLOCK_IO_MEDIA));
+
+    BlockIo->Media = (EFI_BLOCK_IO_MEDIA *)mRing3InterfacePointer;
+
+    mRing3InterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
+  }
+
+  return Ring3Interface;
 }
 
 typedef struct {
@@ -170,11 +204,7 @@ CallBootService (
 
       DisableSMAP ();
       if (Interface != NULL) {
-        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
-        if (Interface == NULL) {
-          EnableSMAP ();
-          return EFI_OUT_OF_RESOURCES;
-        }
+        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
       }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
@@ -214,19 +244,7 @@ CallBootService (
 
       DisableSMAP ();
       if (Interface != NULL) {
-        if (CompareGuid (CoreProtocol, &gEfiDiskIoProtocolGuid)) {
-          mCoreDiskIoProtocol = (EFI_DISK_IO_PROTOCOL *)Interface;
-        } else if (CompareGuid (CoreProtocol, &gEfiBlockIoProtocolGuid)) {
-          mCoreBlockIoProtocol = (EFI_BLOCK_IO_PROTOCOL *)Interface;
-        }
-
-        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
-        if (Interface == NULL) {
-          EnableSMAP ();
-          return EFI_OUT_OF_RESOURCES;
-        }
-
-        FixInterface (CoreProtocol, Interface);
+        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
       }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
@@ -338,12 +356,7 @@ CallBootService (
 
       DisableSMAP ();
       if (Interface != NULL) {
-
-        Interface = AllocateRing3Copy (Interface, MemoryCoreSize, MemoryCoreSize);
-        if (Interface == NULL) {
-          EnableSMAP ();
-          return EFI_OUT_OF_RESOURCES;
-        }
+        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
       }
 
       *(VOID **)CoreRbp->Argument3 = Interface;
