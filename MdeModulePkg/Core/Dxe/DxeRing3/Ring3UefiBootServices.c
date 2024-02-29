@@ -17,6 +17,67 @@
 
 BOOLEAN  mOnGuarding = FALSE;
 
+STATIC
+EFI_STATUS
+EFIAPI
+FixInterface (
+  IN     EFI_GUID  *Protocol,
+  IN OUT VOID      **Interface
+  )
+{
+  EFI_LOADED_IMAGE_PROTOCOL          *LoadedImage;
+  EFI_BLOCK_IO_PROTOCOL              *BlockIo;
+  EFI_DISK_IO_PROTOCOL               *DiskIo;
+  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DevicePath;
+
+  ASSERT (Protocol != NULL);
+  ASSERT (Interface != NULL);
+
+  if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid)) {
+
+  } else if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
+
+    LoadedImage = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
+
+    // TODO: Copy User changes to Core? Resembles InstallMultipleProtocolInterfaces().
+
+    LoadedImage->Unload = NULL;
+
+  } else if (CompareGuid (Protocol, &gEfiBlockIoProtocolGuid)) {
+
+    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
+
+    BlockIo->Reset       = Ring3BlockIoReset;
+    BlockIo->ReadBlocks  = Ring3BlockIoRead;
+    BlockIo->WriteBlocks = Ring3BlockIoWrite;
+    BlockIo->FlushBlocks = Ring3BlockIoFlush;
+
+  } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
+
+    DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
+
+    DiskIo->ReadDisk  = Ring3DiskIoRead;
+    DiskIo->WriteDisk = Ring3DiskIoWrite;
+
+  } else if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
+    DevicePath = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
+
+    DevicePath->GetDevicePathSize = NULL;
+    DevicePath->DuplicateDevicePath = NULL;
+    DevicePath->AppendDevicePath = NULL;
+    DevicePath->AppendDeviceNode = NULL;
+    DevicePath->AppendDevicePathInstance = NULL;
+    DevicePath->GetNextDevicePathInstance = NULL;
+    DevicePath->IsDevicePathMultiInstance = NULL;
+    DevicePath->CreateDeviceNode = NULL;
+
+  } else {
+    return EFI_UNSUPPORTED;
+  }
+
+  return EFI_SUCCESS;
+}
+
 EFI_TPL
 EFIAPI
 Ring3RaiseTpl (
@@ -218,13 +279,7 @@ Ring3HandleProtocol (
     return Status;
   }
 
-  if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid)) {
-    Status = EFI_SUCCESS;
-  } else {
-    Status = EFI_UNSUPPORTED;
-  }
-
-  return Status;
+  return FixInterface (Protocol, Interface);
 }
 
 EFI_STATUS
@@ -394,10 +449,6 @@ Ring3OpenProtocol (
 {
   EFI_STATUS  Status;
 
-  EFI_LOADED_IMAGE_PROTOCOL *LoadedImage;
-  EFI_BLOCK_IO_PROTOCOL     *BlockIo;
-  EFI_DISK_IO_PROTOCOL      *DiskIo;
-
   Status = SysCall (
              SysCallOpenProtocol,
              CoreUserHandle,
@@ -411,35 +462,7 @@ Ring3OpenProtocol (
     return Status;
   }
 
-  if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
-
-    LoadedImage = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
-
-    // TODO: Copy User changes to Core? Resembles InstallMultipleProtocolInterfaces().
-
-    LoadedImage->Unload = NULL;
-
-  } else if (CompareGuid (Protocol, &gEfiBlockIoProtocolGuid)) {
-
-    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
-
-    BlockIo->Reset       = Ring3BlockIoReset;
-    BlockIo->ReadBlocks  = Ring3BlockIoRead;
-    BlockIo->WriteBlocks = Ring3BlockIoWrite;
-    BlockIo->FlushBlocks = Ring3BlockIoFlush;
-
-  } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
-
-    DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
-
-    DiskIo->ReadDisk  = Ring3DiskIoRead;
-    DiskIo->WriteDisk = Ring3DiskIoWrite;
-
-  } else {
-    Status = EFI_UNSUPPORTED;
-  }
-
-  return Status;
+  return FixInterface (Protocol, Interface);
 }
 
 EFI_STATUS
@@ -506,8 +529,6 @@ Ring3LocateProtocol (
 {
   EFI_STATUS  Status;
 
-  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DevicePath;
-
   Status = SysCall (
              SysCallLocateProtocol,
              Protocol,
@@ -519,22 +540,7 @@ Ring3LocateProtocol (
     return Status;
   }
 
-  if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
-    DevicePath = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
-
-    DevicePath->GetDevicePathSize = NULL;
-    DevicePath->DuplicateDevicePath = NULL;
-    DevicePath->AppendDevicePath = NULL;
-    DevicePath->AppendDeviceNode = NULL;
-    DevicePath->AppendDevicePathInstance = NULL;
-    DevicePath->GetNextDevicePathInstance = NULL;
-    DevicePath->IsDevicePathMultiInstance = NULL;
-    DevicePath->CreateDeviceNode = NULL;
-
-    return Status;
-  }
-
-  return EFI_UNSUPPORTED;
+  return FixInterface (Protocol, Interface);
 }
 
 EFI_STATUS
