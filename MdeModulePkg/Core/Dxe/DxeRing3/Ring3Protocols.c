@@ -7,9 +7,6 @@
 
 #include "Ring3.h"
 
-EFI_BLOCK_IO_PROTOCOL  mCoreBlockIo;
-EFI_DISK_IO_PROTOCOL   mCoreDiskIo;
-
 EFI_STATUS
 EFIAPI
 Ring3BlockIoReset (

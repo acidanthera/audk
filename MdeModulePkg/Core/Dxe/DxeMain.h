@@ -116,6 +116,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
 
 #define USER_STACK_SIZE             0x20000
+#define RING3_INTERFACES_PAGES      20
 
 typedef struct {
   EFI_GUID     *ProtocolGuid;
@@ -270,6 +271,10 @@ extern EFI_RUNTIME_ARCH_PROTOCOL         gRuntimeTemplate;
 extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfigurationTable;
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
 extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
+
+extern RING3_DATA                        *gRing3Data;
+extern VOID                              *gRing3Interfaces;
+
 //
 // Service Initialization Functions
 //

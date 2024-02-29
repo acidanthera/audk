@@ -30,7 +30,8 @@ extern BOOLEAN     gBdsStarted;
 VOID               *gCoreSysCallStackTop;
 VOID               *gRing3CallStackTop;
 VOID               *gRing3EntryPoint;
-RING3_DATA         *mRing3Data;
+RING3_DATA         *gRing3Data;
+VOID               *gRing3Interfaces;
 
 //
 // This code is needed to build the Image handle for the DXE Core
@@ -1593,13 +1594,14 @@ AllocateRing3Copy (
   return MemoryRing3;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 InitializeRing3 (
   IN EFI_HANDLE                 ImageHandle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
+  EFI_STATUS              Status;
   VOID                    *BaseOfStack;
   VOID                    *TopOfStack;
   UINTN                   SizeOfStack;
@@ -1616,18 +1618,39 @@ InitializeRing3 (
   //
   // Set Ring3 EntryPoint and BootServices.
   //
-  mRing3Data = AllocateRing3Copy (
-                 (VOID *)Image->Info.SystemTable,
-                 sizeof (RING3_DATA),
-                 sizeof (EFI_SYSTEM_TABLE)
-                 );
-  ASSERT (mRing3Data != NULL);
-  
-  Image->Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)mRing3Data);
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (sizeof (RING3_DATA)),
+             (EFI_PHYSICAL_ADDRESS *)&gRing3Data
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Data.\n"));
+    return Status;
+  }
 
-  gRing3EntryPoint = mRing3Data->EntryPoint;
+  CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
-  mRing3Data->SystemTable.BootServices = mRing3Data->BootServices;
+  Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gRing3Data);
+
+  gRing3EntryPoint = gRing3Data->EntryPoint;
+
+  gRing3Data->SystemTable.BootServices = gRing3Data->BootServices;
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             RING3_INTERFACES_PAGES,
+             (EFI_PHYSICAL_ADDRESS *)&gRing3Interfaces
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Interfaces.\n"));
+    CoreFreePages (
+      (EFI_PHYSICAL_ADDRESS)gRing3Data,
+      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+      );
+    return Status;
+  }
 
   //
   // Forbid supervisor-mode accesses to any user-mode pages.
@@ -1703,6 +1726,8 @@ InitializeRing3 (
 
   Msr = (UINT64)(UINTN)CoreBootServices;
   AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
+
+  return Status;
 }
 
 /**
@@ -1832,7 +1857,7 @@ CoreStartImage (
     Image->Started = TRUE;
 
     if (Image->IsRing3EntryPoint) {
-      InitializeRing3 (ImageHandle, Image);
+      Image->Status = InitializeRing3 (ImageHandle, Image);
     } else if (Image->IsUserImage) {
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1841,7 +1866,7 @@ CoreStartImage (
                         2,
                         (VOID *)Image->EntryPoint,
                         ImageHandle,
-                        mRing3Data
+                        gRing3Data
                         );
     } else {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);

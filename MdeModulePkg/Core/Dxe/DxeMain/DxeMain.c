@@ -851,6 +851,16 @@ CoreExitBootServices (
   //
   gRuntime->AtRuntime = TRUE;
 
+  CoreFreePages (
+    (EFI_PHYSICAL_ADDRESS)gRing3Data,
+    EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+    );
+
+  CoreFreePages (
+    (EFI_PHYSICAL_ADDRESS)gRing3Interfaces,
+    RING3_INTERFACES_PAGES
+    );
+
   return Status;
 }
 
