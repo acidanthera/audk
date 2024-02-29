@@ -4,6 +4,9 @@
   Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
+  Copyright (c) 2006 - 2018, Intel Corporation. All rights reserved.<BR>
+  SPDX-License-Identifier: BSD-2-Clause-Patent
+
 **/
 
 #ifndef _INTERNAL_POOL_H_

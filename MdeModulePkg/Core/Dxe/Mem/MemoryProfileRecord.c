@@ -222,7 +222,7 @@ CoreAcquireMemoryProfileLock (
   VOID
   )
 {
-  CoreAcquireLock (&mMemoryProfileLock);
+  EfiAcquireLock (&mMemoryProfileLock);
 }
 
 /**
@@ -233,7 +233,7 @@ CoreReleaseMemoryProfileLock (
   VOID
   )
 {
-  CoreReleaseLock (&mMemoryProfileLock);
+  EfiReleaseLock (&mMemoryProfileLock);
 }
 
 /**

@@ -104,7 +104,7 @@ CoreAcquireMemoryLock (
   VOID
   )
 {
-  CoreAcquireLock (&gMemoryLock);
+  EfiAcquireLock (&gMemoryLock);
 }
 
 /**
@@ -116,7 +116,7 @@ CoreReleaseMemoryLock (
   VOID
   )
 {
-  CoreReleaseLock (&gMemoryLock);
+  EfiReleaseLock (&gMemoryLock);
 }
 
 /**
@@ -2204,7 +2204,7 @@ CoreAllocatePoolPagesI (
   VOID        *Buffer;
   EFI_STATUS  Status;
 
-  Status = CoreAcquireLockOrFail (&gMemoryLock);
+  Status = EfiAcquireLockOrFail (&gMemoryLock);
   if (EFI_ERROR (Status)) {
     return NULL;
   }

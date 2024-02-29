@@ -310,13 +310,13 @@ CoreInternalAllocatePool (
   //
   // Acquire the memory lock and make the allocation
   //
-  Status = CoreAcquireLockOrFail (&mPoolMemoryLock);
+  Status = EfiAcquireLockOrFail (&mPoolMemoryLock);
   if (EFI_ERROR (Status)) {
     return EFI_OUT_OF_RESOURCES;
   }
 
   *Buffer = CoreAllocatePoolI (PoolType, Size, NeedGuard);
-  CoreReleaseLock (&mPoolMemoryLock);
+  EfiReleaseLock (&mPoolMemoryLock);
   return (*Buffer != NULL) ? EFI_SUCCESS : EFI_OUT_OF_RESOURCES;
 }
 
@@ -596,9 +596,9 @@ CoreInternalFreePool (
     return EFI_INVALID_PARAMETER;
   }
 
-  CoreAcquireLock (&mPoolMemoryLock);
+  EfiAcquireLock (&mPoolMemoryLock);
   Status = CoreFreePoolI (Buffer, PoolType);
-  CoreReleaseLock (&mPoolMemoryLock);
+  EfiReleaseLock (&mPoolMemoryLock);
   return Status;
 }
 
