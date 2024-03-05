@@ -220,6 +220,12 @@ HasErrorCode:
     mov     rax, gs
     push    rax
 
+    mov     rax, ss
+    mov     ds, rax
+    mov     es, rax
+    mov     fs, rax
+    mov     gs, rax
+
     mov     [rbp + 8], rcx               ; save vector number
 
 ;; UINT64  Rip;
@@ -369,7 +375,6 @@ DrFinish:
     incsspq rax                 ; SSP should be 0xFC0 now
 CetDone:
 %endif
-
     cli
 ;; UINT64  ExceptionData;
     add     rsp, 8
@@ -411,10 +416,9 @@ CetDone:
 
 ;; UINT64  Gs, Fs, Es, Ds, Cs, Ss;
     pop     rax
-    ; mov     gs, rax ; not for gs
+    mov     gs, rax
     pop     rax
-    ; mov     fs, rax ; not for fs
-    ; (X64 will not use fs and gs, so we do not restore it)
+    mov     fs, rax
     pop     rax
     mov     es, rax
     pop     rax
@@ -441,6 +445,16 @@ CetDone:
     pop     r14
     pop     r15
 
+    ; Check whether Ring3 process was interrupted.
+    push    rax
+    mov     rax, ss
+    push    rcx
+    mov     rcx, ds
+    cmp     rax, rcx
+    jne     ReturnToRing3
+    pop     rcx
+    pop     rax
+
     mov     rsp, rbp
     pop     rbp
     add     rsp, 16
@@ -466,6 +480,13 @@ DoReturn:
     popfq                     ; restore EFLAGS
     retfq
 DoIret:
+    iretq
+ReturnToRing3:
+    pop     rcx
+    pop     rax
+    mov     rsp, rbp
+    pop     rbp
+    add     rsp, 16
     iretq
 
 ;-------------------------------------------------------------------------------------
