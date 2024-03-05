@@ -139,6 +139,7 @@ ArchSetupExceptionStack (
   UINTN                     TssBase;
   UINT8                     *StackSwitchExceptions;
   UINTN                     NeedBufferSize;
+  UINT8                     *IOBitMap;
 
   if (BufferSize == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -210,12 +211,12 @@ ArchSetupExceptionStack (
 
   TssDesc->Uint128.Uint64   = 0;
   TssDesc->Uint128.Uint64_1 = 0;
-  TssDesc->Bits.LimitLow    = sizeof (IA32_TASK_STATE_SEGMENT) - 1;
+  TssDesc->Bits.LimitLow    = (UINT16)(CPU_TSS_SIZE - 1);
   TssDesc->Bits.BaseLow     = (UINT16)TssBase;
   TssDesc->Bits.BaseMidl    = (UINT8)(TssBase >> 16);
   TssDesc->Bits.Type        = IA32_GDT_TYPE_TSS;
   TssDesc->Bits.P           = 1;
-  TssDesc->Bits.LimitHigh   = 0;
+  TssDesc->Bits.LimitHigh   = (CPU_TSS_SIZE - 1) >> 16;
   TssDesc->Bits.BaseMidh    = (UINT8)(TssBase >> 24);
   TssDesc->Bits.BaseHigh    = (UINT32)(TssBase >> 32);
 
@@ -253,6 +254,24 @@ ArchSetupExceptionStack (
   // Publish GDT
   //
   AsmWriteGdtr (&Gdtr);
+
+  //
+  // Set I/O Permission Bit Map
+  //
+  Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
+  //
+  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06
+  //
+  IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
+  for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
+    if ((Index * 8) == 0x3F8) {
+      *IOBitMap = 0x84;
+    } else {
+      *IOBitMap = 0xFF;
+    }
+
+    ++IOBitMap;
+  }
 
   //
   // Load current task
