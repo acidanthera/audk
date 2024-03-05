@@ -38,6 +38,10 @@ typedef struct {
 } RESERVED_VECTORS_DATA;
 
 #define CPU_TSS_DESC_SIZE  sizeof (IA32_TSS_DESCRIPTOR)
-#define CPU_TSS_SIZE       sizeof (IA32_TASK_STATE_SEGMENT)
+//
+// 0x81 is needed to allow Ring3 code access to Uart in I/O Permission Bit Map.
+//
+#define IO_BIT_MAP_SIZE    0x81
+#define CPU_TSS_SIZE       (sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE)
 
 #endif
