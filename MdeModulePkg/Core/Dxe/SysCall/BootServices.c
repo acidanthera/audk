@@ -174,7 +174,7 @@ CallBootService (
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
   //
-  // TODO: Check User variables.
+  // Check User variables.
   //
   gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -186,6 +186,15 @@ CallBootService (
       // Argument 2: VOID      *CoreRegistration
       // Argument 3: VOID      **Interface
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + sizeof (EFI_GUID) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument1, &CoreProtocol, &MemoryCoreSize);
       EnableSMAP ();
@@ -218,6 +227,17 @@ CallBootService (
       // Argument 5: EFI_HANDLE  CoreControllerHandle
       // Argument 6: UINT32      Attributes
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
@@ -254,11 +274,27 @@ CallBootService (
       // Argument 1: EFI_HANDLE  *Handle
       // ...
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + sizeof (EFI_HANDLE *) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (VOID **) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       CoreHandle  = *(EFI_HANDLE *)CoreRbp->Argument1;
       UserArgList = (VOID **)CoreRbp->Argument2;
 
       for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserArgList[Index], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index] + sizeof (EFI_GUID) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
         if (EFI_ERROR (Status)) {
           EnableSMAP ();
@@ -271,7 +307,15 @@ CallBootService (
           return Status;
         }
 
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserArgList[Index + 1], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index + 1] + MemoryCoreSize - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
         CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
+
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] + sizeof (VOID *) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
       EnableSMAP ();
 
@@ -318,6 +362,13 @@ CallBootService (
       // Argument 3: EFI_HANDLE  CoreAgentHandle
       // Argument 4: EFI_HANDLE  CoreControllerHandle
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
@@ -343,6 +394,15 @@ CallBootService (
       // Argument 2: EFI_GUID    *Protocol
       // Argument 3: VOID        **Interface
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       EnableSMAP ();
@@ -373,6 +433,9 @@ CallBootService (
       // Argument 3: UINTN                 NumberOfPages
       // Argument 4: EFI_PHYSICAL_ADDRESS  *Memory
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       Status = gBS->AllocatePages (
                       (EFI_ALLOCATE_TYPE)CoreRbp->Argument1,
                       (EFI_MEMORY_TYPE)CoreRbp->Argument2,
@@ -381,6 +444,11 @@ CallBootService (
                       );
 
       DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       *(EFI_PHYSICAL_ADDRESS *)UserRsp->Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
       EnableSMAP ();
 
@@ -391,6 +459,11 @@ CallBootService (
       // Argument 1: EFI_PHYSICAL_ADDRESS  Memory
       // Argument 2: UINTN                 NumberOfPages
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + CoreRbp->Argument2 * EFI_PAGE_SIZE - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       return gBS->FreePages (
                     (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1,
                     CoreRbp->Argument2
@@ -430,6 +503,9 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Argument4 = UserRsp->Arguments[4];
       EnableSMAP ();
@@ -447,6 +523,11 @@ CallBootService (
                                        (VOID *)Argument5
                                        );
       DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
       EnableSMAP ();
 
@@ -462,6 +543,9 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Argument4 = UserRsp->Arguments[4];
       EnableSMAP ();
@@ -472,6 +556,11 @@ CallBootService (
       }
 
       DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[5], Argument4);
       EnableSMAP ();
 
@@ -503,6 +592,9 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Argument4 = UserRsp->Arguments[4];
       EnableSMAP ();
@@ -520,6 +612,11 @@ CallBootService (
                                       (VOID *)Argument5
                                       );
       DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
       EnableSMAP ();
 
@@ -535,6 +632,9 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       DisableSMAP ();
       Argument4 = UserRsp->Arguments[4];
       EnableSMAP ();
@@ -545,6 +645,11 @@ CallBootService (
       }
 
       DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
       CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[5], Argument4);
       EnableSMAP ();
 
