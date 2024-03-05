@@ -113,6 +113,7 @@ copy:
 ;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
+    cli
     ; Save User data segment selector temporarily in R11.
     mov     r11, ds
 
@@ -148,7 +149,11 @@ ASM_PFX(CoreBootServices):
     mov     rdx, rbp
     mov     r8, [rbp + 8*6]
 
+    sti
+
     call ASM_PFX(CallBootService)
+
+    cli
 
     ; Step over Arguments [1..3].
     add     rsp, 8*3
@@ -170,6 +175,8 @@ o16 mov     gs, r11
     pop     rbp
     pop     rsp
 
+    sti
+
     ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
 o64 sysret
     ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
@@ -185,6 +192,7 @@ o64 sysret
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
+    cli
     ; Save input Arguments.
     push    r12
     mov     r12, rcx
@@ -217,6 +225,8 @@ ASM_PFX(CallRing3):
     mov     rsp, [ASM_PFX(gRing3CallStackTop)]
     mov     rbp, rsp
 
+    sti
+
     ; Pass control to user image
 o64 sysret
 
@@ -224,6 +234,7 @@ coreReturnAddress:
     mov     rsp, [ASM_PFX(CoreRsp)]
     mov     rbp, [ASM_PFX(CoreRbp)]
     mov     rax, rdx
+    sti
     ret
 
 SECTION .data
