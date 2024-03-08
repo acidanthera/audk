@@ -2026,6 +2026,9 @@ typedef struct {
 } EFI_BOOT_SERVICES;
 
 typedef enum {
+  //
+  // BootServices
+  //
   SysCallReturnToCore,     // Must always be zero for CoreBootServices.nasm.
   SysCallLocateProtocol,
   SysCallOpenProtocol,
@@ -2036,6 +2039,9 @@ typedef enum {
   SysCallFreePages,
   SysCallRaiseTpl,
   SysCallRestoreTpl,
+  //
+  // RuntimeServices
+  //
   //
   // Protocols
   //

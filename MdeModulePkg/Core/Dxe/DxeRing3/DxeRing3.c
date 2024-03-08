@@ -66,6 +66,30 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
 };
 
+EFI_RUNTIME_SERVICES  mRuntimeServices = {
+  {
+    EFI_RUNTIME_SERVICES_SIGNATURE,                               // Signature
+    EFI_RUNTIME_SERVICES_REVISION,                                // Revision
+    sizeof (EFI_RUNTIME_SERVICES),                                // HeaderSize
+    0,                                                            // CRC32
+    0                                                             // Reserved
+  },
+  (EFI_GET_TIME)Ring3GetTime,                                     // GetTime
+  (EFI_SET_TIME)Ring3SetTime,                                     // SetTime
+  (EFI_GET_WAKEUP_TIME)Ring3GetWakeupTime,                        // GetWakeupTime
+  (EFI_SET_WAKEUP_TIME)Ring3SetWakeupTime,                        // SetWakeupTime
+  (EFI_SET_VIRTUAL_ADDRESS_MAP)Ring3SetVirtualAddressMap,         // SetVirtualAddressMap
+  (EFI_CONVERT_POINTER)Ring3ConvertPointer,                       // ConvertPointer
+  (EFI_GET_VARIABLE)Ring3GetVariable,                             // GetVariable
+  (EFI_GET_NEXT_VARIABLE_NAME)Ring3GetNextVariableName,           // GetNextVariableName
+  (EFI_SET_VARIABLE)Ring3SetVariable,                             // SetVariable
+  (EFI_GET_NEXT_HIGH_MONO_COUNT)Ring3GetNextHighMonotonicCount,   // GetNextHighMonotonicCount
+  (EFI_RESET_SYSTEM)Ring3ResetSystem,                             // ResetSystem
+  (EFI_UPDATE_CAPSULE)Ring3UpdateCapsule,                         // UpdateCapsule
+  (EFI_QUERY_CAPSULE_CAPABILITIES)Ring3QueryCapsuleCapabilities,  // QueryCapsuleCapabilities
+  (EFI_QUERY_VARIABLE_INFO)Ring3QueryVariableInfo                 // QueryVariableInfo
+};
+
 VOID
 EFIAPI
 Ring3EntryPoint (

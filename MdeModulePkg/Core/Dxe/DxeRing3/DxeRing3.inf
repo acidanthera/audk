@@ -25,6 +25,7 @@
   Ring3.h
   DxeRing3.c
   Ring3UefiBootServices.c
+  Ring3UefiRuntimeServices.c
   Ring3Protocols.c
 
 [Sources.X64]
@@ -41,7 +42,7 @@
   MemoryPoolLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
-  
+
 [Protocols]
   gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
   gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES
