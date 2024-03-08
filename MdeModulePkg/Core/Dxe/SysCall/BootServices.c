@@ -63,6 +63,11 @@ FindGuid (
     *Core     = &gEfiComponentNameProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
 
+  } else if (CompareGuid (Ring3, &gEfiComponentName2ProtocolGuid)) {
+
+    *Core     = &gEfiComponentName2ProtocolGuid;
+    *CoreSize = sizeof (EFI_COMPONENT_NAME2_PROTOCOL);
+
   } else if (CompareGuid (Ring3, &gEfiDevicePathProtocolGuid)) {
 
     *Core     = &gEfiDevicePathProtocolGuid;
@@ -74,7 +79,7 @@ FindGuid (
     *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
 
   } else {
-    DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol.\n"));
+    DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol - %g.\n", Ring3));
     return EFI_NOT_FOUND;
   }
 
@@ -222,7 +227,7 @@ CallBootService (
       //
       // Argument 1: EFI_HANDLE  CoreUserHandle
       // Argument 2: EFI_GUID    *Protocol
-      // Argument 3: VOID        **Interface
+      // Argument 3: VOID        **Interface  OPTIONAL
       // Argument 4: EFI_HANDLE  CoreImageHandle
       // Argument 5: EFI_HANDLE  CoreControllerHandle
       // Argument 6: UINT32      Attributes
@@ -231,10 +236,12 @@ CallBootService (
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      if ((VOID **)CoreRbp->Argument3 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      }
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -253,7 +260,7 @@ CallBootService (
       Status = gBS->OpenProtocol (
                       (EFI_HANDLE)CoreRbp->Argument1,
                       CoreProtocol,
-                      &Interface,
+                      ((VOID **)CoreRbp->Argument3 != NULL) ? &Interface : NULL,
                       (EFI_HANDLE)Argument4,
                       (EFI_HANDLE)Argument5,
                       (UINT32)Argument6
@@ -264,7 +271,9 @@ CallBootService (
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
       }
 
-      *(VOID **)CoreRbp->Argument3 = Interface;
+      if ((VOID **)CoreRbp->Argument3 != NULL) {
+        *(VOID **)CoreRbp->Argument3 = Interface;
+      }
       EnableSMAP ();
 
       return Status;
