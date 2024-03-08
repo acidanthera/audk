@@ -158,6 +158,8 @@ Ring3GetMemoryMap (
   OUT UINT32                    *DescriptorVersion
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: GetMemoryMap is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -171,6 +173,8 @@ Ring3CreateEvent (
   OUT EFI_EVENT        *Event
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: CreateEvent is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -182,6 +186,8 @@ Ring3SetTimer (
   IN UINT64           TriggerTime
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: SetTimer is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -193,6 +199,8 @@ Ring3WaitForEvent (
   OUT UINTN     *UserIndex
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: WaitForEvent is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -202,6 +210,8 @@ Ring3SignalEvent (
   IN EFI_EVENT  UserEvent
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: SignalEvent is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -211,6 +221,8 @@ Ring3CloseEvent (
   IN EFI_EVENT  UserEvent
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: CloseEvent is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -220,6 +232,8 @@ Ring3CheckEvent (
   IN EFI_EVENT  UserEvent
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: CheckEvent is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -232,6 +246,8 @@ Ring3InstallProtocolInterface (
   IN VOID                *Interface
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: InstallProtocolInterface is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -244,6 +260,8 @@ Ring3ReinstallProtocolInterface (
   IN VOID        *NewInterface
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: ReinstallProtocolInterface is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -255,6 +273,8 @@ Ring3UninstallProtocolInterface (
   IN VOID        *Interface
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: UninstallProtocolInterface is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -290,6 +310,8 @@ Ring3RegisterProtocolNotify (
   OUT  VOID     **Registration
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: RegisterProtocolNotify is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -303,6 +325,8 @@ Ring3LocateHandle (
   OUT EFI_HANDLE             *Buffer
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: LocateHandle is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -314,6 +338,8 @@ Ring3LocateDevicePath (
   OUT EFI_HANDLE                   *Device
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: LocateDevicePath is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -324,6 +350,8 @@ Ring3InstallConfigurationTable (
   IN VOID      *Table
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: InstallConfigurationTable is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -338,6 +366,8 @@ Ring3LoadImage (
   OUT EFI_HANDLE               *ImageHandle
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: LoadImage is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -349,6 +379,8 @@ Ring3StartImage (
   OUT CHAR16     **ExitData  OPTIONAL
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: StartImage is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -361,6 +393,8 @@ Ring3Exit (
   IN CHAR16      *ExitData  OPTIONAL
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: Exit is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -370,6 +404,8 @@ Ring3UnloadImage (
   IN EFI_HANDLE  ImageHandle
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: UnloadImage is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -380,6 +416,8 @@ Ring3ExitBootServices (
   IN UINTN       MapKey
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: ExitBootServices is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -389,6 +427,8 @@ Ring3GetNextMonotonicCount (
   OUT UINT64  *Count
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: GetNextMonotonicCount is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -398,6 +438,8 @@ Ring3Stall (
   IN UINTN  Microseconds
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: Stall is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -410,6 +452,8 @@ Ring3SetWatchdogTimer (
   IN CHAR16  *WatchdogData OPTIONAL
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: SetWatchdogTimer is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -422,6 +466,8 @@ Ring3ConnectController (
   IN  BOOLEAN                   Recursive
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: ConnectController is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -433,6 +479,8 @@ Ring3DisconnectController (
   IN  EFI_HANDLE  ChildHandle        OPTIONAL
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: DisconnectController is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -462,7 +510,7 @@ Ring3OpenProtocol (
     return Status;
   }
 
-  return FixInterface (Protocol, Interface);
+  return (Interface != NULL) ? FixInterface (Protocol, Interface) : Status;
 }
 
 EFI_STATUS
@@ -492,6 +540,8 @@ Ring3OpenProtocolInformation (
   OUT UINTN                                *EntryCount
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: OpenProtocolInformation is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -503,6 +553,8 @@ Ring3ProtocolsPerHandle (
   OUT UINTN      *ProtocolBufferCount
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: ProtocolsPerHandle is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -516,6 +568,8 @@ Ring3LocateHandleBuffer (
   OUT EFI_HANDLE             **Buffer
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: LocateHandleBuffer is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -585,6 +639,8 @@ Ring3UninstallMultipleProtocolInterfaces (
   ...
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: UninstallMultipleProtocolInterfaces is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -596,6 +652,8 @@ Ring3CalculateCrc32 (
   OUT UINT32                            *Crc32
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: CalculateCrc32 is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
@@ -610,6 +668,8 @@ Ring3CreateEventEx (
   OUT EFI_EVENT        *Event
   )
 {
+  DEBUG ((DEBUG_ERROR, "Ring3: CreateEventEx is not supported\n"));
+
   return EFI_UNSUPPORTED;
 }
 
