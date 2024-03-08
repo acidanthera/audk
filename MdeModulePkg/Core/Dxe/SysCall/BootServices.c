@@ -144,8 +144,8 @@ typedef struct {
 // Stack:
 //  rsp - User Rsp
 //  rbp - User Rbp
-//  rcx - Rip for SYSCALL
-//  r11 - User data segment selector
+//  rcx - User Rip for SYSCALL
+//  r11 - User RFLAGS for SYSCALL
 //  r9  - Argument 3
 //  r8  - Argument 2
 //  rdx - Argument 1 <- CoreRbp

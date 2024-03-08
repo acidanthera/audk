@@ -94,6 +94,19 @@ copy:
 
     ret
 
+%macro SetRing3DataSegmentSelectors 0
+    mov     rcx, MSR_IA32_STAR
+    call ASM_PFX(AsmReadMsr64)
+    ; rax = ((RING3_CODE64_SEL - 16) << 16 | RING0_CODE64_SEL) << 32
+    shr     rax, 48
+    add     rax, 8
+
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+%endmacro
+
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
 ; EFIAPI
@@ -114,9 +127,6 @@ copy:
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
     cli
-    ; Save User data segment selector temporarily in R11.
-    mov     r11, ds
-
     ; Switch from User to Core data segment selectors.
     mov     ax, ss
     mov     ds, ax
@@ -136,7 +146,7 @@ ASM_PFX(CoreBootServices):
     push    rbp
     ; Save return address for SYSRET.
     push    rcx
-    ; Save User data segment selector.
+    ; Save User RFLAGS for SYSRET.
     push    r11
     ; Save User Arguments [1..3].
     push    r9
@@ -152,24 +162,20 @@ ASM_PFX(CoreBootServices):
     sti
 
     call ASM_PFX(CallBootService)
+    push    rax
 
     cli
+
+    SetRing3DataSegmentSelectors
+
+    pop     rax
 
     ; Step over Arguments [1..3].
     add     rsp, 8*3
 
-    ; Switch from Core to User data segment selectors.
-    pop     r11
-
-o16 mov     ds, r11
-o16 mov     es, r11
-o16 mov     fs, r11
-o16 mov     gs, r11
-
     ; Prepare SYSRET arguments.
-    pop     rcx
-    pushfq
     pop     r11
+    pop     rcx
 
     ; Switch to User Stack.
     pop     rbp
@@ -194,30 +200,15 @@ global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
     cli
     ; Save input Arguments.
-    push    r12
-    mov     r12, rcx
+    push    rcx
 
-    ; Extract User Data selector.
-    mov     rcx, MSR_IA32_STAR
-    call ASM_PFX(AsmReadMsr64)
-    ; rax = ((RING3_CODE64_SEL - 16) << 16 | RING0_CODE64_SEL) << 32
-    shr     rax, 48
-    add     rax, 8
-
-    ; Set Data selectors
-    mov     ds, ax
-    mov     es, ax
-    mov     fs, ax
-    mov     gs, ax
+    SetRing3DataSegmentSelectors
 
     ; Prepare SYSRET arguments.
     mov     rcx, [gRing3EntryPoint]
-    mov     rdx, r12
+    pop     rdx
     pushfq
     pop     r11
-
-    ; Restore stack and registers.
-    pop     r12
 
     ; Save Core Stack pointers and switch to User Stack.
     mov     [ASM_PFX(CoreRsp)], rsp
