@@ -1691,13 +1691,18 @@ InitializeRing3 (
   DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
 
   //
-  // Initialize MSR_IA32_STAR and MSR_IA32_LSTAR for SYSCALL and SYSRET.
+  // Initialize MSR_IA32_STAR, MSR_IA32_LSTAR and MSR_IA32_FMASK for SYSCALL and SYSRET.
   //
   Msr = (((((UINT64)RING3_CODE64_SEL - 16) | 3) << 16) | (UINT64)RING0_CODE64_SEL) << 32;
   AsmWriteMsr64 (MSR_IA32_STAR, Msr);
 
   Msr = (UINT64)(UINTN)CoreBootServices;
   AsmWriteMsr64 (MSR_IA32_LSTAR, Msr);
+  //
+  // Disable maskable interrupts at SYSCALL.
+  //
+  Msr = (UINT64)BIT9;
+  AsmWriteMsr64 (MSR_IA32_FMASK, Msr);
 
   return Status;
 }

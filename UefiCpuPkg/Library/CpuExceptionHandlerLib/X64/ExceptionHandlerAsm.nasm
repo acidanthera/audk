@@ -207,6 +207,15 @@ HasErrorCode:
     mov     rax, gs
     push    rax
 
+    ; Check whether Ring3 process was interrupted.
+    and     rax, 3
+    cmp     rax, 3
+    jne     SkipHook
+    mov     rax, cr2
+    cmp     rax, 0xFFFFFFFFFFFFFFF8
+    jne     SkipHook
+    mov     rcx, 32
+SkipHook:
     mov     rax, ss
     mov     ds, rax
     mov     es, rax
@@ -433,14 +442,12 @@ CetDone:
     pop     r15
 
     ; Check whether Ring3 process was interrupted.
-    push    rax
-    mov     rax, ss
     push    rcx
     mov     rcx, ds
-    cmp     rax, rcx
-    jne     ReturnToRing3
+    and     rcx, 3
+    cmp     rcx, 3
     pop     rcx
-    pop     rax
+    je      ReturnToRing3
 
     mov     rsp, rbp
     pop     rbp
@@ -469,8 +476,6 @@ DoReturn:
 DoIret:
     iretq
 ReturnToRing3:
-    pop     rcx
-    pop     rax
     mov     rsp, rbp
     pop     rbp
     add     rsp, 16
