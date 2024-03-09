@@ -8,9 +8,11 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-EFI_DISK_IO_PROTOCOL  *mCoreDiskIoProtocol;
-EFI_BLOCK_IO_PROTOCOL *mCoreBlockIoProtocol;
-UINTN                 mRing3InterfacePointer = 0;
+EFI_DISK_IO_PROTOCOL            *mCoreDiskIoProtocol;
+EFI_BLOCK_IO_PROTOCOL           *mCoreBlockIoProtocol;
+EFI_UNICODE_COLLATION_PROTOCOL  *mCoreUnicodeCollationProtocol;
+
+UINTN  mRing3InterfacePointer = 0;
 
 EFI_STATUS
 EFIAPI
@@ -78,6 +80,11 @@ FindGuid (
     *Core     = &gEfiSimpleFileSystemProtocolGuid;
     *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
 
+  } else if (CompareGuid (Ring3, &gEfiUnicodeCollationProtocolGuid)) {
+
+    *Core     = &gEfiUnicodeCollationProtocolGuid;
+    *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
+
   } else {
     DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol - %g.\n", Ring3));
     return EFI_NOT_FOUND;
@@ -95,9 +102,11 @@ PrepareRing3Interface (
   IN UINT32    CoreSize
   )
 {
-  UINTN                  Ring3Limit;
-  VOID                   *Ring3Interface;
-  EFI_BLOCK_IO_PROTOCOL  *BlockIo;
+  EFI_STATUS                     Status;
+  UINTN                          Ring3Limit;
+  VOID                           *Ring3Interface;
+  EFI_BLOCK_IO_PROTOCOL          *BlockIo;
+  EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
 
   ASSERT (Guid != NULL);
   ASSERT (CoreInterface != NULL);
@@ -130,6 +139,25 @@ PrepareRing3Interface (
     BlockIo->Media = (EFI_BLOCK_IO_MEDIA *)mRing3InterfacePointer;
 
     mRing3InterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
+  } else if (CompareGuid (Guid, &gEfiUnicodeCollationProtocolGuid)) {
+
+    mCoreUnicodeCollationProtocol = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreInterface;
+    Unicode                       = (EFI_UNICODE_COLLATION_PROTOCOL *)Ring3Interface;
+
+    ASSERT ((mRing3InterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= Ring3Limit);
+
+    Status = AsciiStrCpyS (
+               (CHAR8 *)mRing3InterfacePointer,
+               AsciiStrSize (Unicode->SupportedLanguages),
+               Unicode->SupportedLanguages
+               );
+    if (EFI_ERROR (Status)) {
+      return NULL;
+    }
+
+    Unicode->SupportedLanguages = (CHAR8 *)mRing3InterfacePointer;
+
+    mRing3InterfacePointer += AsciiStrSize (Unicode->SupportedLanguages);
   }
 
   return Ring3Interface;
@@ -164,6 +192,7 @@ CallBootService (
   )
 {
   EFI_STATUS Status;
+  EFI_STATUS StatusBS;
   UINT64     Attributes;
   VOID       *Interface;
   EFI_GUID   *CoreProtocol;
@@ -175,9 +204,15 @@ CallBootService (
   VOID       **UserArgList;
   VOID       *CoreArgList[MAX_LIST];
   EFI_HANDLE CoreHandle;
+  VOID       *Ring3Pages;
+  UINT32     PagesNumber;
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
+
+  Argument4 = 0;
+  Argument5 = 0;
+  Argument6 = 0;
   //
   // Check User variables.
   //
@@ -494,6 +529,77 @@ CallBootService (
 
       return EFI_SUCCESS;
 
+    case SysCallLocateHandleBuffer:
+      //
+      // Argument 1: EFI_LOCATE_SEARCH_TYPE  SearchType
+      // Argument 2: EFI_GUID                *Protocol  OPTIONAL
+      // Argument 3: VOID                    *SearchKey OPTIONAL,
+      // Argument 4: UINTN                   *NumberHandles,
+      // Argument 5: EFI_HANDLE              **Buffer
+      //
+      if ((EFI_GUID *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+        EnableSMAP ();
+        if (EFI_ERROR (Status)) {
+          return Status;
+        }
+      }
+
+      StatusBS = gBS->LocateHandleBuffer (
+                        (EFI_LOCATE_SEARCH_TYPE)CoreRbp->Argument1,
+                        CoreProtocol,
+                        (VOID *)CoreRbp->Argument3,
+                        &Argument4,
+                        (EFI_HANDLE **)&Argument5
+                        );
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      DisableSMAP ();
+      if ((UINTN *)UserRsp->Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        *(UINTN *)UserRsp->Arguments[4] = Argument4;
+      }
+
+      if ((UINTN *)UserRsp->Arguments[5] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        PagesNumber = EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
+
+        Status = CoreAllocatePages (
+          AllocateAnyPages,
+          EfiRing3MemoryType,
+          PagesNumber,
+          (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+        );
+        if (EFI_ERROR (Status)) {
+          return Status;
+        }
+
+        CopyMem (Ring3Pages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
+
+        FreePool ((VOID *)Argument5);
+
+        *(EFI_HANDLE **)UserRsp->Arguments[5] = (EFI_HANDLE *)Ring3Pages;
+      }
+      EnableSMAP ();
+
+      return StatusBS;
+
     case SysCallBlockIoReset:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
@@ -673,6 +779,312 @@ CallBootService (
       FreePool ((VOID *)Argument5);
 
       return Status;
+
+    case SysCallUnicodeStriColl:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: CHAR16                          *Str1
+      // Argument 3: CHAR16                          *Str2
+      //
+      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      if ((CHAR16 *)CoreRbp->Argument3 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
+        EnableSMAP ();
+        if ((VOID *)Argument5 == NULL) {
+          if ((VOID *)Argument4 != NULL) {
+            FreePool ((VOID *)Argument4);
+          }
+
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      Status = (EFI_STATUS)mCoreUnicodeCollationProtocol->StriColl (
+                                                            mCoreUnicodeCollationProtocol,
+                                                            (CHAR16 *)Argument4,
+                                                            (CHAR16 *)Argument5
+                                                            );
+
+      if ((VOID *)Argument4 != NULL) {
+        FreePool ((VOID *)Argument4);
+      }
+
+      if ((VOID *)Argument5 != NULL) {
+        FreePool ((VOID *)Argument5);
+      }
+
+      return Status;
+
+    case SysCallUnicodeMetaiMatch:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: CHAR16                          *String
+      // Argument 3: CHAR16                          *Pattern
+      //
+      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      if ((CHAR16 *)CoreRbp->Argument3 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
+        EnableSMAP ();
+        if ((VOID *)Argument5 == NULL) {
+          if ((VOID *)Argument4 != NULL) {
+            FreePool ((VOID *)Argument4);
+          }
+
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      Status = (EFI_STATUS)mCoreUnicodeCollationProtocol->MetaiMatch (
+                                                            mCoreUnicodeCollationProtocol,
+                                                            (CHAR16 *)Argument4,
+                                                            (CHAR16 *)Argument5
+                                                            );
+
+      if ((VOID *)Argument4 != NULL) {
+        FreePool ((VOID *)Argument4);
+      }
+
+      if ((VOID *)Argument5 != NULL) {
+        FreePool ((VOID *)Argument5);
+      }
+
+      return Status;
+
+    case SysCallUnicodeStrLwr:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: CHAR16                          *Str
+      //
+      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      mCoreUnicodeCollationProtocol->StrLwr (
+                                       mCoreUnicodeCollationProtocol,
+                                       (CHAR16 *)Argument4
+                                       );
+
+      if ((VOID *)Argument4 != NULL) {
+        DisableSMAP ();
+        Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
+        EnableSMAP ();
+
+        FreePool ((VOID *)Argument4);
+      }
+
+      return Status;
+
+    case SysCallUnicodeStrUpr:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: CHAR16                          *Str
+      //
+      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      mCoreUnicodeCollationProtocol->StrUpr (
+                                       mCoreUnicodeCollationProtocol,
+                                       (CHAR16 *)Argument4
+                                       );
+
+      if ((VOID *)Argument4 != NULL) {
+        DisableSMAP ();
+        Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
+        EnableSMAP ();
+
+        FreePool ((VOID *)Argument4);
+      }
+
+      return Status;
+
+    case SysCallUnicodeFatToStr:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: UINTN                           FatSize
+      // Argument 3: CHAR8                           *Fat
+      // Argument 4: CHAR16                          *String
+      //
+      if ((CHAR8 *)CoreRbp->Argument3 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + CoreRbp->Argument2 - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        Argument4 = (UINTN)AllocateCopyPool (CoreRbp->Argument2, (CHAR8 *)CoreRbp->Argument3);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      if ((CHAR16 *)UserRsp->Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + 2 * CoreRbp->Argument2 - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument5 = (UINTN)AllocatePool (2 * CoreRbp->Argument2);
+        if ((VOID *)Argument5 == NULL) {
+          if ((VOID *)Argument4 != NULL) {
+            FreePool ((VOID *)Argument4);
+          }
+
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      mCoreUnicodeCollationProtocol->FatToStr (
+                                       mCoreUnicodeCollationProtocol,
+                                       CoreRbp->Argument2,
+                                       (CHAR8 *)Argument4,
+                                       (CHAR16 *)Argument5
+                                       );
+
+      if ((VOID *)Argument4 != NULL) {
+        FreePool ((VOID *)Argument4);
+      }
+
+      if ((VOID *)Argument5 != NULL) {
+        DisableSMAP ();
+        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, 2 * CoreRbp->Argument2);
+        EnableSMAP ();
+
+        FreePool ((VOID *)Argument5);
+      }
+
+      return EFI_SUCCESS;
+
+    case SysCallUnicodeStrToFat:
+      //
+      // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
+      // Argument 2: CHAR16                          *String
+      // Argument 3: UINTN                           FatSize
+      // Argument 4: CHAR8                           *Fat
+      //
+      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        DisableSMAP ();
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        EnableSMAP ();
+        if ((VOID *)Argument4 == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      if ((CHAR8 *)UserRsp->Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
+        if ((VOID *)Argument5 == NULL) {
+          if ((VOID *)Argument4 != NULL) {
+            FreePool ((VOID *)Argument4);
+          }
+
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+
+      mCoreUnicodeCollationProtocol->StrToFat (
+                                       mCoreUnicodeCollationProtocol,
+                                       (CHAR16 *)Argument4,
+                                       CoreRbp->Argument3,
+                                       (CHAR8 *)Argument5
+                                       );
+
+      if ((VOID *)Argument4 != NULL) {
+        FreePool ((VOID *)Argument4);
+      }
+
+      if ((VOID *)Argument5 != NULL) {
+        DisableSMAP ();
+        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
+        EnableSMAP ();
+
+        FreePool ((VOID *)Argument5);
+      }
+
+      return EFI_SUCCESS;
+
     default:
       DEBUG ((DEBUG_ERROR, "Ring0: Unknown syscall type.\n"));
       break;

@@ -9,6 +9,7 @@
 #include <Protocol/ComponentName.h>
 #include <Protocol/DevicePathUtilities.h>
 #include <Protocol/DiskIo.h>
+#include <Protocol/UnicodeCollation.h>
 
 extern EFI_DRIVER_BINDING_PROTOCOL      mRing3DriverBindingProtocol;
 extern EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mRing3SimpleFileSystemProtocol;
