@@ -112,3 +112,99 @@ Ring3DiskIoWrite (
            Buffer
            );
 }
+
+INTN
+EFIAPI
+Ring3UnicodeStriColl (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *Str1,
+  IN CHAR16                          *Str2
+  )
+{
+  return (INTN)SysCall (
+                 SysCallUnicodeStriColl,
+                 This,
+                 Str1,
+                 Str2
+                 );
+}
+
+BOOLEAN
+EFIAPI
+Ring3UnicodeMetaiMatch (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *String,
+  IN CHAR16                          *Pattern
+  )
+{
+  return (BOOLEAN)SysCall (
+                    SysCallUnicodeMetaiMatch,
+                    This,
+                    String,
+                    Pattern
+                    );
+}
+
+VOID
+EFIAPI
+Ring3UnicodeStrLwr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                      *Str
+  )
+{
+  SysCall (
+    SysCallUnicodeStrLwr,
+    This,
+    Str
+    );
+}
+
+VOID
+EFIAPI
+Ring3UnicodeStrUpr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                      *Str
+  )
+{
+  SysCall (
+    SysCallUnicodeStrUpr,
+    This,
+    Str
+    );
+}
+
+VOID
+EFIAPI
+Ring3UnicodeFatToStr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN UINTN                           FatSize,
+  IN CHAR8                           *Fat,
+  OUT CHAR16                         *String
+  )
+{
+  SysCall (
+    SysCallUnicodeFatToStr,
+    This,
+    FatSize,
+    Fat,
+    String
+    );
+}
+
+BOOLEAN
+EFIAPI
+Ring3UnicodeStrToFat (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *String,
+  IN UINTN                           FatSize,
+  OUT CHAR8                          *Fat
+  )
+{
+  return (BOOLEAN)SysCall (
+                    SysCallUnicodeStrToFat,
+                    This,
+                    String,
+                    FatSize,
+                    Fat
+                    );
+}

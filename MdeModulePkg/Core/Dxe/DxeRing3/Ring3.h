@@ -9,6 +9,7 @@
 #include <Protocol/DevicePathUtilities.h>
 #include <Protocol/DiskIo.h>
 #include <Protocol/LoadedImage.h>
+#include <Protocol/UnicodeCollation.h>
 
 EFI_STATUS
 EFIAPI
@@ -1546,4 +1547,118 @@ Ring3QueryVariableInfo (
   OUT UINT64            *MaximumVariableStorageSize,
   OUT UINT64            *RemainingVariableStorageSize,
   OUT UINT64            *MaximumVariableSize
+  );
+
+/**
+  Performs a case-insensitive comparison of two Null-terminated strings.
+
+  @param  This A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  Str1 A pointer to a Null-terminated string.
+  @param  Str2 A pointer to a Null-terminated string.
+
+  @retval 0   Str1 is equivalent to Str2.
+  @retval >0  Str1 is lexically greater than Str2.
+  @retval <0  Str1 is lexically less than Str2.
+
+**/
+INTN
+EFIAPI
+Ring3UnicodeStriColl (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN CHAR16                                 *Str1,
+  IN CHAR16                                 *Str2
+  );
+
+/**
+  Performs a case-insensitive comparison of a Null-terminated
+  pattern string and a Null-terminated string.
+
+  @param  This    A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  String  A pointer to a Null-terminated string.
+  @param  Pattern A pointer to a Null-terminated pattern string.
+
+  @retval TRUE    Pattern was found in String.
+  @retval FALSE   Pattern was not found in String.
+
+**/
+BOOLEAN
+EFIAPI
+Ring3UnicodeMetaiMatch (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN CHAR16                                 *String,
+  IN CHAR16                                 *Pattern
+  );
+
+/**
+  Converts all the characters in a Null-terminated string to
+  lower case characters.
+
+  @param  This   A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  String A pointer to a Null-terminated string.
+
+**/
+VOID
+EFIAPI
+Ring3UnicodeStrLwr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN OUT CHAR16                             *Str
+  );
+
+/**
+  Converts all the characters in a Null-terminated string to upper
+  case characters.
+
+  @param  This   A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  String A pointer to a Null-terminated string.
+
+**/
+VOID
+EFIAPI
+Ring3UnicodeStrUpr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN OUT CHAR16                             *Str
+  );
+
+/**
+  Converts an 8.3 FAT file name in an OEM character set to a Null-terminated
+  string.
+
+  @param  This    A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  FatSize The size of the string Fat in bytes.
+  @param  Fat     A pointer to a Null-terminated string that contains an 8.3 file
+                  name using an 8-bit OEM character set.
+  @param  String  A pointer to a Null-terminated string. The string must
+                  be allocated in advance to hold FatSize characters.
+
+**/
+VOID
+EFIAPI
+Ring3UnicodeFatToStr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN UINTN                                  FatSize,
+  IN CHAR8                                  *Fat,
+  OUT CHAR16                                *String
+  );
+
+/**
+  Converts a Null-terminated string to legal characters in a FAT
+  filename using an OEM character set.
+
+  @param  This    A pointer to the EFI_UNICODE_COLLATION_PROTOCOL instance.
+  @param  String  A pointer to a Null-terminated string.
+  @param  FatSize The size of the string Fat in bytes.
+  @param  Fat     A pointer to a string that contains the converted version of
+                  String using legal FAT characters from an OEM character set.
+
+  @retval TRUE    One or more conversions failed and were substituted with '_'
+  @retval FALSE   None of the conversions failed.
+
+**/
+BOOLEAN
+EFIAPI
+Ring3UnicodeStrToFat (
+  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
+  IN CHAR16                                 *String,
+  IN UINTN                                  FatSize,
+  OUT CHAR8                                 *Fat
   );

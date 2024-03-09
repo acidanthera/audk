@@ -168,6 +168,7 @@
   gEfiComponentNameProtocolGuid                 ## SOMETIMES_CONSUMES
   gEfiDiskIoProtocolGuid                        ## SOMETIMES_CONSUMES
   gEfiBlockIoProtocolGuid                       ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollationProtocolGuid              ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES

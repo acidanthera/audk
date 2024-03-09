@@ -29,6 +29,7 @@ FixInterface (
   EFI_BLOCK_IO_PROTOCOL              *BlockIo;
   EFI_DISK_IO_PROTOCOL               *DiskIo;
   EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DevicePath;
+  EFI_UNICODE_COLLATION_PROTOCOL     *Unicode;
 
   ASSERT (Protocol != NULL);
   ASSERT (Interface != NULL);
@@ -70,6 +71,16 @@ FixInterface (
     DevicePath->GetNextDevicePathInstance = NULL;
     DevicePath->IsDevicePathMultiInstance = NULL;
     DevicePath->CreateDeviceNode = NULL;
+
+  } else if (CompareGuid (Protocol, &gEfiUnicodeCollationProtocolGuid)) {
+    Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)*Interface;
+
+    Unicode->StriColl   = Ring3UnicodeStriColl;
+    Unicode->MetaiMatch = Ring3UnicodeMetaiMatch;
+    Unicode->StrLwr     = Ring3UnicodeStrLwr;
+    Unicode->StrUpr     = Ring3UnicodeStrUpr;
+    Unicode->FatToStr   = Ring3UnicodeFatToStr;
+    Unicode->StrToFat   = Ring3UnicodeStrToFat;
 
   } else {
     return EFI_UNSUPPORTED;
@@ -568,9 +579,14 @@ Ring3LocateHandleBuffer (
   OUT EFI_HANDLE             **Buffer
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: LocateHandleBuffer is not supported\n"));
-
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallLocateHandleBuffer,
+           SearchType,
+           Protocol,
+           SearchKey,
+           NumberHandles,
+           Buffer
+           );
 }
 
 EFI_STATUS
