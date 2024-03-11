@@ -42,6 +42,7 @@
   MemoryPoolLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
+  UefiRuntimeServicesTableLib
 
 [Protocols]
   gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES

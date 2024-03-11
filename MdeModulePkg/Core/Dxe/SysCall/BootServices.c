@@ -85,6 +85,10 @@ FindGuid (
     *Core     = &gEfiUnicodeCollationProtocolGuid;
     *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
 
+  } else if (CompareGuid (Ring3, &gEfiGlobalVariableGuid)) {
+
+    *Core     = &gEfiGlobalVariableGuid;
+
   } else {
     DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol - %g.\n", Ring3));
     return EFI_NOT_FOUND;
@@ -533,8 +537,8 @@ CallBootService (
       //
       // Argument 1: EFI_LOCATE_SEARCH_TYPE  SearchType
       // Argument 2: EFI_GUID                *Protocol  OPTIONAL
-      // Argument 3: VOID                    *SearchKey OPTIONAL,
-      // Argument 4: UINTN                   *NumberHandles,
+      // Argument 3: VOID                    *SearchKey OPTIONAL
+      // Argument 4: UINTN                   *NumberHandles
       // Argument 5: EFI_HANDLE              **Buffer
       //
       if ((EFI_GUID *)CoreRbp->Argument2 != NULL) {
@@ -581,11 +585,11 @@ CallBootService (
         PagesNumber = EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
 
         Status = CoreAllocatePages (
-          AllocateAnyPages,
-          EfiRing3MemoryType,
-          PagesNumber,
-          (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
-        );
+                   AllocateAnyPages,
+                   EfiRing3MemoryType,
+                   PagesNumber,
+                   (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+                   );
         if (EFI_ERROR (Status)) {
           return Status;
         }
@@ -599,6 +603,96 @@ CallBootService (
       EnableSMAP ();
 
       return StatusBS;
+
+    case SysCallGetVariable:
+      //
+      // Argument 1: CHAR16    *VariableName
+      // Argument 2: EFI_GUID  *VendorGuid
+      // Argument 3: UINT32    *Attributes     OPTIONAL
+      // Argument 4: UINTN     *DataSize
+      // Argument 5: VOID      *Data           OPTIONAL
+      //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      if ((UINT32 *)CoreRbp->Argument3 != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (UINT32) - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      }
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      DisableSMAP ();
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + StrSize ((CHAR16 *)CoreRbp->Argument1) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument1), (CHAR16 *)CoreRbp->Argument1);
+      if ((VOID *)Argument6 == NULL) {
+        EnableSMAP ();
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      if (EFI_ERROR (Status)) {
+        EnableSMAP ();
+        FreePool ((VOID *)Argument6);
+        return Status;
+      }
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      Argument4 = *(UINTN *)UserRsp->Arguments[4];
+
+      if ((VOID *)UserRsp->Arguments[5] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        Argument5 = (UINTN)AllocatePool (Argument4);
+        if ((VOID *)Argument5 == NULL) {
+          EnableSMAP ();
+          FreePool ((VOID *)Argument6);
+          return EFI_OUT_OF_RESOURCES;
+        }
+      }
+      EnableSMAP ();
+
+      Status = gRT->GetVariable (
+                      (CHAR16 *)Argument6,
+                      CoreProtocol,
+                      (UINT32 *)&Attributes,
+                      &Argument4,
+                      (VOID *)Argument5
+                      );
+
+      DisableSMAP ();
+      if ((VOID *)UserRsp->Arguments[5] != NULL) {
+        CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      }
+
+      *(UINTN *)UserRsp->Arguments[4] = Argument4;
+
+      if ((UINT32 *)CoreRbp->Argument3 != NULL) {
+        *(UINT32 *)CoreRbp->Argument3 = (UINT32)Attributes;
+      }
+      EnableSMAP ();
+
+      FreePool ((VOID *)Argument6);
+
+      if ((VOID *)Argument5 != NULL) {
+        FreePool ((VOID *)Argument5);
+      }
+
+      return Status;
 
     case SysCallBlockIoReset:
       //

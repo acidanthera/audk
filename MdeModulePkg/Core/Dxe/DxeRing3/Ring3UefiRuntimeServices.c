@@ -89,9 +89,14 @@ Ring3GetVariable (
   OUT    VOID                        *Data           OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetVariable is not supported\n"));
-
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallGetVariable,
+           VariableName,
+           VendorGuid,
+           Attributes,
+           DataSize,
+           Data
+           );
 }
 
 EFI_STATUS
