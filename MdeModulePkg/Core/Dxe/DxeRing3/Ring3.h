@@ -132,42 +132,6 @@ Ring3GetMemoryMap (
   );
 
 /**
-  Allocate pool of a particular type.
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  Buffer                 The address to return a pointer to the allocated
-                                 pool
-
-  @retval EFI_INVALID_PARAMETER  PoolType not valid or Buffer is NULL
-  @retval EFI_OUT_OF_RESOURCES   Size exceeds max pool size or allocation failed.
-  @retval EFI_SUCCESS            Pool successfully allocated.
-
-**/
-EFI_STATUS
-EFIAPI
-Ring3AllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  );
-
-/**
-  Frees pool.
-
-  @param  Buffer                 The allocated pool entry to free
-
-  @retval EFI_INVALID_PARAMETER  Buffer is not a valid value.
-  @retval EFI_SUCCESS            Pool successfully freed.
-
-**/
-EFI_STATUS
-EFIAPI
-Ring3FreePool (
-  IN VOID  *Buffer
-  );
-
-/**
   Creates an event.
 
   @param  Type                   The type of event to create and its mode and
