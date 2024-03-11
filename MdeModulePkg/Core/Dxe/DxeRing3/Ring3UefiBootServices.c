@@ -12,6 +12,7 @@
 
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
+#include <Library/MemoryPoolLib.h>
 
 #include "Ring3.h"
 
@@ -579,14 +580,42 @@ Ring3LocateHandleBuffer (
   OUT EFI_HANDLE             **Buffer
   )
 {
-  return SysCall (
-           SysCallLocateHandleBuffer,
-           SearchType,
-           Protocol,
-           SearchKey,
-           NumberHandles,
-           Buffer
-           );
+  EFI_STATUS  Status;
+  EFI_STATUS  StatusBS;
+  VOID        *Pool;
+  UINTN       PoolSize;
+
+  StatusBS = SysCall (
+               SysCallLocateHandleBuffer,
+               SearchType,
+               Protocol,
+               SearchKey,
+               NumberHandles,
+               Buffer
+               );
+
+  if ((NumberHandles != NULL) && (Buffer != NULL) && (*Buffer != NULL)) {
+    PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
+
+    Status = CoreAllocatePool (EfiRing3MemoryType, PoolSize, &Pool);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    CopyMem (Pool, *Buffer, PoolSize);
+
+    Status = Ring3FreePages (
+               (EFI_PHYSICAL_ADDRESS)*Buffer,
+               EFI_SIZE_TO_PAGES (PoolSize)
+               );
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    *Buffer = Pool;
+  }
+
+  return StatusBS;
 }
 
 EFI_STATUS

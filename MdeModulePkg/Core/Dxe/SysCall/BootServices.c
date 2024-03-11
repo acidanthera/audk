@@ -576,7 +576,7 @@ CallBootService (
         *(UINTN *)UserRsp->Arguments[4] = Argument4;
       }
 
-      if ((UINTN *)UserRsp->Arguments[5] != NULL) {
+      if ((EFI_HANDLE **)UserRsp->Arguments[5] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
