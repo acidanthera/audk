@@ -9,6 +9,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryPoolLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiRuntimeServicesTableLib.h>
 
 #include "Ring3.h"
 
@@ -200,10 +201,12 @@ Ring3Initialization (
 
   Ring3Data = (RING3_DATA *)SystemTable;
 
-  Ring3Data->EntryPoint   = (VOID *)Ring3EntryPoint;
-  Ring3Data->BootServices = &mBootServices;
+  Ring3Data->EntryPoint      = (VOID *)Ring3EntryPoint;
+  Ring3Data->BootServices    = &mBootServices;
+  Ring3Data->RuntimeServices = &mRuntimeServices;
 
   gBS = &mBootServices;
+  gRT = &mRuntimeServices;
 
   CoreInitializePool ();
 

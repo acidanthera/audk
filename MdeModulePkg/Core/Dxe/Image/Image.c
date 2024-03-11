@@ -1611,7 +1611,8 @@ InitializeRing3 (
 
   gRing3EntryPoint = gRing3Data->EntryPoint;
 
-  gRing3Data->SystemTable.BootServices = gRing3Data->BootServices;
+  gRing3Data->SystemTable.BootServices    = gRing3Data->BootServices;
+  gRing3Data->SystemTable.RuntimeServices = gRing3Data->RuntimeServices;
 
   Status = CoreAllocatePages (
              AllocateAnyPages,

@@ -133,6 +133,7 @@
   gEfiEndOfDxeEventGroupGuid                    ## SOMETIMES_CONSUMES   ## Event
   gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_CONSUMES   ## SystemTable
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
+  gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
