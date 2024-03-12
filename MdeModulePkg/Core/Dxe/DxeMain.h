@@ -274,6 +274,8 @@ extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
 
 extern RING3_DATA                        *gRing3Data;
 extern VOID                              *gRing3Interfaces;
+extern VOID                              *gCoreSysCallStackBase;
+extern VOID                              *gRing3CallStackBase;
 
 //
 // Service Initialization Functions
