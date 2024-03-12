@@ -7,10 +7,16 @@
 
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
+//
+// TODO: Free LIST in ExitBootServices
+//
+LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
-EFI_DISK_IO_PROTOCOL            *mCoreDiskIoProtocol;
-EFI_BLOCK_IO_PROTOCOL           *mCoreBlockIoProtocol;
-EFI_UNICODE_COLLATION_PROTOCOL  *mCoreUnicodeCollationProtocol;
+typedef struct {
+  VOID        *Core;
+  VOID        *Ring3;
+  LIST_ENTRY  Link;
+} INTERFACE;
 
 UINTN  mRing3InterfacePointer = 0;
 
@@ -100,6 +106,34 @@ FindGuid (
 STATIC
 VOID *
 EFIAPI
+FindInterface (
+  IN BOOLEAN FindRing3,
+  IN VOID    *Interface
+  )
+{
+  LIST_ENTRY  *Link;
+  INTERFACE   *Protocol;
+
+  for (Link = mProtocolsHead.ForwardLink; Link != &mProtocolsHead; Link = Link->ForwardLink) {
+    Protocol = BASE_CR (Link, INTERFACE, Link);
+
+    if (FindRing3) {
+      if (Protocol->Core == Interface) {
+        return Protocol->Ring3;
+      }
+    } else {
+      if (Protocol->Ring3 == Interface) {
+        return Protocol->Core;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+STATIC
+VOID *
+EFIAPI
 PrepareRing3Interface (
   IN EFI_GUID  *Guid,
   IN VOID      *CoreInterface,
@@ -111,12 +145,19 @@ PrepareRing3Interface (
   VOID                           *Ring3Interface;
   EFI_BLOCK_IO_PROTOCOL          *BlockIo;
   EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
+  INTERFACE                      *Protocol;
 
   ASSERT (Guid != NULL);
   ASSERT (CoreInterface != NULL);
 
   if (mRing3InterfacePointer == 0) {
     mRing3InterfacePointer = (UINTN)gRing3Interfaces;
+  }
+
+  Ring3Interface = FindInterface (TRUE, CoreInterface);
+
+  if (Ring3Interface != NULL) {
+    return Ring3Interface;
   }
 
   Ring3Limit = (UINTN)gRing3Interfaces + EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES);
@@ -128,15 +169,17 @@ PrepareRing3Interface (
   CopyMem ((VOID *)mRing3InterfacePointer, CoreInterface, CoreSize);
   mRing3InterfacePointer += CoreSize;
 
-  if (CompareGuid (Guid, &gEfiDiskIoProtocolGuid)) {
+  Protocol = AllocatePool (sizeof (INTERFACE));
 
-    mCoreDiskIoProtocol = (EFI_DISK_IO_PROTOCOL *)CoreInterface;
+  Protocol->Core  = CoreInterface;
+  Protocol->Ring3 = Ring3Interface;
 
-  } else if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
+  InsertTailList (&mProtocolsHead, &Protocol->Link);
+
+  if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
     ASSERT ((mRing3InterfacePointer + sizeof (EFI_BLOCK_IO_MEDIA)) <= Ring3Limit);
 
-    mCoreBlockIoProtocol = (EFI_BLOCK_IO_PROTOCOL *)CoreInterface;
-    BlockIo              = (EFI_BLOCK_IO_PROTOCOL *)Ring3Interface;
+    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)Ring3Interface;
 
     CopyMem ((VOID *)mRing3InterfacePointer, (VOID *)BlockIo->Media, sizeof (EFI_BLOCK_IO_MEDIA));
 
@@ -145,8 +188,7 @@ PrepareRing3Interface (
     mRing3InterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
   } else if (CompareGuid (Guid, &gEfiUnicodeCollationProtocolGuid)) {
 
-    mCoreUnicodeCollationProtocol = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreInterface;
-    Unicode                       = (EFI_UNICODE_COLLATION_PROTOCOL *)Ring3Interface;
+    Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)Ring3Interface;
 
     ASSERT ((mRing3InterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= Ring3Limit);
 
@@ -213,6 +255,10 @@ CallBootService (
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
+
+  EFI_BLOCK_IO_PROTOCOL          *BlockIo;
+  EFI_DISK_IO_PROTOCOL           *DiskIo;
+  EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
 
   Argument4 = 0;
   Argument5 = 0;
@@ -305,15 +351,15 @@ CallBootService (
                       (UINT32)Argument6
                       );
 
-      DisableSMAP ();
-      if (Interface != NULL) {
-        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
-      }
-
       if ((VOID **)CoreRbp->Argument3 != NULL) {
+        DisableSMAP ();
+        if (Interface != NULL) {
+          Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
+        }
+
         *(VOID **)CoreRbp->Argument3 = Interface;
+        EnableSMAP ();
       }
-      EnableSMAP ();
 
       return Status;
 
@@ -699,10 +745,16 @@ CallBootService (
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       // Argument 2: BOOLEAN                ExtendedVerification
       //
-      return mCoreBlockIoProtocol->Reset (
-                                     mCoreBlockIoProtocol,
-                                     (BOOLEAN)CoreRbp->Argument2
-                                     );
+      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (BlockIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
+      return BlockIo->Reset (
+                        BlockIo,
+                        (BOOLEAN)CoreRbp->Argument2
+                        );
 
     case SysCallBlockIoRead:
       //
@@ -712,6 +764,12 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (BlockIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -724,13 +782,13 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      Status = mCoreBlockIoProtocol->ReadBlocks (
-                                       mCoreBlockIoProtocol,
-                                       (UINT32)CoreRbp->Argument2,
-                                       (EFI_LBA)CoreRbp->Argument3,
-                                       Argument4,
-                                       (VOID *)Argument5
-                                       );
+      Status = BlockIo->ReadBlocks (
+                          BlockIo,
+                          (UINT32)CoreRbp->Argument2,
+                          (EFI_LBA)CoreRbp->Argument3,
+                          Argument4,
+                          (VOID *)Argument5
+                          );
       DisableSMAP ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -752,6 +810,12 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (BlockIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -773,13 +837,13 @@ CallBootService (
       CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[5], Argument4);
       EnableSMAP ();
 
-      Status = mCoreBlockIoProtocol->WriteBlocks (
-                                       mCoreBlockIoProtocol,
-                                       (UINT32)CoreRbp->Argument2,
-                                       (EFI_LBA)CoreRbp->Argument3,
-                                       Argument4,
-                                       (VOID *)Argument5
-                                       );
+      Status = BlockIo->WriteBlocks (
+                          BlockIo,
+                          (UINT32)CoreRbp->Argument2,
+                          (EFI_LBA)CoreRbp->Argument3,
+                          Argument4,
+                          (VOID *)Argument5
+                          );
 
       FreePool ((VOID *)Argument5);
 
@@ -789,9 +853,13 @@ CallBootService (
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       //
-      return mCoreBlockIoProtocol->FlushBlocks (
-                                     mCoreBlockIoProtocol
-                                     );
+      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (BlockIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
+      return BlockIo->FlushBlocks (BlockIo);
 
     case SysCallDiskIoRead:
       //
@@ -801,6 +869,12 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (DiskIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -813,13 +887,13 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      Status = mCoreDiskIoProtocol->ReadDisk (
-                                      mCoreDiskIoProtocol,
-                                      (UINT32)CoreRbp->Argument2,
-                                      (UINT64)CoreRbp->Argument3,
-                                      Argument4,
-                                      (VOID *)Argument5
-                                      );
+      Status = DiskIo->ReadDisk (
+                         DiskIo,
+                         (UINT32)CoreRbp->Argument2,
+                         (UINT64)CoreRbp->Argument3,
+                         Argument4,
+                         (VOID *)Argument5
+                         );
       DisableSMAP ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -841,6 +915,12 @@ CallBootService (
       // Argument 4: UINTN                 BufferSize
       // Argument 5: VOID                 *Buffer
       //
+      DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (DiskIo == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
@@ -862,13 +942,13 @@ CallBootService (
       CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[5], Argument4);
       EnableSMAP ();
 
-      Status = mCoreDiskIoProtocol->WriteDisk (
-                                      mCoreDiskIoProtocol,
-                                      (UINT32)CoreRbp->Argument2,
-                                      (UINT64)CoreRbp->Argument3,
-                                      Argument4,
-                                      (VOID *)Argument5
-                                      );
+      Status = DiskIo->WriteDisk (
+                         DiskIo,
+                         (UINT32)CoreRbp->Argument2,
+                         (UINT64)CoreRbp->Argument3,
+                         Argument4,
+                         (VOID *)Argument5
+                         );
 
       FreePool ((VOID *)Argument5);
 
@@ -880,6 +960,12 @@ CallBootService (
       // Argument 2: CHAR16                          *Str1
       // Argument 3: CHAR16                          *Str2
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -914,11 +1000,11 @@ CallBootService (
         }
       }
 
-      Status = (EFI_STATUS)mCoreUnicodeCollationProtocol->StriColl (
-                                                            mCoreUnicodeCollationProtocol,
-                                                            (CHAR16 *)Argument4,
-                                                            (CHAR16 *)Argument5
-                                                            );
+      Status = (EFI_STATUS)Unicode->StriColl (
+                                      Unicode,
+                                      (CHAR16 *)Argument4,
+                                      (CHAR16 *)Argument5
+                                      );
 
       if ((VOID *)Argument4 != NULL) {
         FreePool ((VOID *)Argument4);
@@ -936,6 +1022,12 @@ CallBootService (
       // Argument 2: CHAR16                          *String
       // Argument 3: CHAR16                          *Pattern
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -970,11 +1062,11 @@ CallBootService (
         }
       }
 
-      Status = (EFI_STATUS)mCoreUnicodeCollationProtocol->MetaiMatch (
-                                                            mCoreUnicodeCollationProtocol,
-                                                            (CHAR16 *)Argument4,
-                                                            (CHAR16 *)Argument5
-                                                            );
+      Status = (EFI_STATUS)Unicode->MetaiMatch (
+                                      Unicode,
+                                      (CHAR16 *)Argument4,
+                                      (CHAR16 *)Argument5
+                                      );
 
       if ((VOID *)Argument4 != NULL) {
         FreePool ((VOID *)Argument4);
@@ -991,6 +1083,12 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1006,10 +1104,10 @@ CallBootService (
         }
       }
 
-      mCoreUnicodeCollationProtocol->StrLwr (
-                                       mCoreUnicodeCollationProtocol,
-                                       (CHAR16 *)Argument4
-                                       );
+      Unicode->StrLwr (
+                 Unicode,
+                 (CHAR16 *)Argument4
+                 );
 
       if ((VOID *)Argument4 != NULL) {
         DisableSMAP ();
@@ -1026,6 +1124,12 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1041,10 +1145,10 @@ CallBootService (
         }
       }
 
-      mCoreUnicodeCollationProtocol->StrUpr (
-                                       mCoreUnicodeCollationProtocol,
-                                       (CHAR16 *)Argument4
-                                       );
+      Unicode->StrUpr (
+                 Unicode,
+                 (CHAR16 *)Argument4
+                 );
 
       if ((VOID *)Argument4 != NULL) {
         DisableSMAP ();
@@ -1063,6 +1167,12 @@ CallBootService (
       // Argument 3: CHAR8                           *Fat
       // Argument 4: CHAR16                          *String
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR8 *)CoreRbp->Argument3 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1096,12 +1206,12 @@ CallBootService (
         }
       }
 
-      mCoreUnicodeCollationProtocol->FatToStr (
-                                       mCoreUnicodeCollationProtocol,
-                                       CoreRbp->Argument2,
-                                       (CHAR8 *)Argument4,
-                                       (CHAR16 *)Argument5
-                                       );
+      Unicode->FatToStr (
+                 Unicode,
+                 CoreRbp->Argument2,
+                 (CHAR8 *)Argument4,
+                 (CHAR16 *)Argument5
+                 );
 
       if ((VOID *)Argument4 != NULL) {
         FreePool ((VOID *)Argument4);
@@ -1124,6 +1234,12 @@ CallBootService (
       // Argument 3: UINTN                           FatSize
       // Argument 4: CHAR8                           *Fat
       //
+      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+
+      if (Unicode == NULL) {
+        return EFI_NOT_FOUND;
+      }
+
       if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1158,12 +1274,12 @@ CallBootService (
         }
       }
 
-      mCoreUnicodeCollationProtocol->StrToFat (
-                                       mCoreUnicodeCollationProtocol,
-                                       (CHAR16 *)Argument4,
-                                       CoreRbp->Argument3,
-                                       (CHAR8 *)Argument5
-                                       );
+      Unicode->StrToFat (
+                 Unicode,
+                 (CHAR16 *)Argument4,
+                 CoreRbp->Argument3,
+                 (CHAR8 *)Argument5
+                 );
 
       if ((VOID *)Argument4 != NULL) {
         FreePool ((VOID *)Argument4);
