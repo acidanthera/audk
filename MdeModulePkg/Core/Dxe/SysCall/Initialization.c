@@ -10,7 +10,9 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 
 VOID        *gCoreSysCallStackTop;
+VOID        *gCoreSysCallStackBase;
 VOID        *gRing3CallStackTop;
+VOID        *gRing3CallStackBase;
 VOID        *gRing3EntryPoint;
 RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
@@ -23,7 +25,6 @@ InitializeRing3 (
   )
 {
   EFI_STATUS              Status;
-  VOID                    *BaseOfStack;
   VOID                    *TopOfStack;
   UINTN                   SizeOfStack;
   UINT64                  Msr;
@@ -105,35 +106,35 @@ InitializeRing3 (
   //
   // Allocate 128KB for the Core SysCall Stack.
   //
-  BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-  ASSERT (BaseOfStack != NULL);
+  gCoreSysCallStackBase = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+  ASSERT (gCoreSysCallStackBase != NULL);
 
   //
   // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
   //
-  TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+  TopOfStack = (VOID *)((UINTN)gCoreSysCallStackBase + SizeOfStack - CPU_STACK_ALIGNMENT);
   TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
 
   gCoreSysCallStackTop = TopOfStack;
 
-  SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP);
+  SetUefiImageMemoryAttributes ((UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
   DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
 
   //
   // Allocate 128KB for the User Stack.
   //
-  BaseOfStack = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-  ASSERT (BaseOfStack != NULL);
+  gRing3CallStackBase = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
+  ASSERT (gRing3CallStackBase != NULL);
 
   //
   // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
   //
-  TopOfStack = (VOID *)((UINTN)BaseOfStack + SizeOfStack - CPU_STACK_ALIGNMENT);
+  TopOfStack = (VOID *)((UINTN)gRing3CallStackBase + SizeOfStack - CPU_STACK_ALIGNMENT);
   TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
 
   gRing3CallStackTop = TopOfStack;
 
-  SetUefiImageMemoryAttributes ((UINTN)BaseOfStack, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
+  SetUefiImageMemoryAttributes ((UINTN)gRing3CallStackBase, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
   DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
 
   //
