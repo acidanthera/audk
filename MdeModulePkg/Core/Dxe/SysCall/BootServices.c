@@ -650,6 +650,42 @@ CallBootService (
 
       return StatusBS;
 
+    case SysCallCalculateCrc32:
+      //
+      // Argument 1: VOID    *Data
+      // Argument 2: UINTN   DataSize
+      // Argument 3: UINT32  *Crc32
+      //
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + CoreRbp->Argument2 - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (UINT32 *) - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      Argument4 = (UINTN)AllocatePool (CoreRbp->Argument2);
+      if ((VOID *)Argument4 == NULL) {
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      DisableSMAP ();
+      CopyMem ((VOID *)Argument4, (VOID *)CoreRbp->Argument1, CoreRbp->Argument2);
+      EnableSMAP ();
+
+      Status = gBS->CalculateCrc32 (
+                      (VOID *)Argument4,
+                      CoreRbp->Argument2,
+                      (UINT32 *)&Argument5
+                      );
+
+      DisableSMAP ();
+      *(UINT32 *)CoreRbp->Argument3 = (UINT32)Argument5;
+      EnableSMAP ();
+
+      return Status;
+
     case SysCallGetVariable:
       //
       // Argument 1: CHAR16    *VariableName
