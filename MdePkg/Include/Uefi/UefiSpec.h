@@ -2039,6 +2039,7 @@ typedef enum {
   SysCallRaiseTpl,
   SysCallRestoreTpl,
   SysCallLocateHandleBuffer,
+  SysCallCalculateCrc32,
   //
   // RuntimeServices
   //

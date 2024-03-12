@@ -697,9 +697,12 @@ Ring3CalculateCrc32 (
   OUT UINT32                            *Crc32
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: CalculateCrc32 is not supported\n"));
-
-  return EFI_UNSUPPORTED;
+  return SysCall (
+           SysCallCalculateCrc32,
+           Data,
+           DataSize,
+           Crc32
+           );
 }
 
 EFI_STATUS
