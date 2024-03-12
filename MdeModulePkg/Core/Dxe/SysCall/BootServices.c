@@ -7,9 +7,7 @@
 
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
-//
-// TODO: Free LIST in ExitBootServices
-//
+
 LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
@@ -28,6 +26,22 @@ CallInstallMultipleProtocolInterfaces (
   IN UINT32      ArgListSize,
   IN VOID        *Function
   );
+
+VOID
+EFIAPI
+FreeProtocolsList (
+  VOID
+  )
+{
+  LIST_ENTRY  *Link;
+  INTERFACE   *Protocol;
+
+  for (Link = mProtocolsHead.BackLink; Link != &mProtocolsHead; Link = mProtocolsHead.BackLink) {
+    Protocol = BASE_CR (Link, INTERFACE, Link);
+    RemoveEntryList (Link);
+    FreePool (Protocol);
+  }
+}
 
 STATIC
 EFI_STATUS

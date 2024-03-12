@@ -2748,4 +2748,10 @@ InitializeRing3 (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
+VOID
+EFIAPI
+FreeProtocolsList (
+  VOID
+  );
+
 #endif
