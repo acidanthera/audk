@@ -1058,6 +1058,8 @@ CoreExitBootServices (
     RING3_INTERFACES_PAGES
     );
 
+  FreeProtocolsList ();
+  
   return Status;
 }
 

@@ -2848,3 +2848,9 @@ InitializeRing3 (
   IN EFI_HANDLE                 ImageHandle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
+
+VOID
+EFIAPI
+FreeProtocolsList (
+  VOID
+  );
