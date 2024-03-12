@@ -1230,10 +1230,10 @@ CallBootService (
       if ((CHAR16 *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + 2 * CoreRbp->Argument2 - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + 2 * (CoreRbp->Argument2 + 1) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocatePool (2 * CoreRbp->Argument2);
+        Argument5 = (UINTN)AllocatePool (2 * (CoreRbp->Argument2 + 1));
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
@@ -1257,7 +1257,7 @@ CallBootService (
 
       if ((VOID *)Argument5 != NULL) {
         DisableSMAP ();
-        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, 2 * CoreRbp->Argument2);
+        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, 2 * (CoreRbp->Argument2 + 1));
         EnableSMAP ();
 
         FreePool ((VOID *)Argument5);
