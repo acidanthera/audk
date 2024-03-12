@@ -1190,6 +1190,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
+      DisableSMAP ();
       if ((CHAR16 *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1205,6 +1206,7 @@ CallBootService (
           return EFI_OUT_OF_RESOURCES;
         }
       }
+      EnableSMAP ();
 
       Unicode->FatToStr (
                  Unicode,
@@ -1258,6 +1260,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
+      DisableSMAP ();
       if ((CHAR8 *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1273,6 +1276,7 @@ CallBootService (
           return EFI_OUT_OF_RESOURCES;
         }
       }
+      EnableSMAP ();
 
       Unicode->StrToFat (
                  Unicode,
