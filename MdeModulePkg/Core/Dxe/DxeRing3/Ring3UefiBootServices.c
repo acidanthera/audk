@@ -605,7 +605,7 @@ Ring3LocateHandleBuffer (
     CopyMem (Pool, *Buffer, PoolSize);
 
     Status = Ring3FreePages (
-               (EFI_PHYSICAL_ADDRESS)*Buffer,
+               (EFI_PHYSICAL_ADDRESS)(UINTN)*Buffer,
                EFI_SIZE_TO_PAGES (PoolSize)
                );
     if (EFI_ERROR (Status)) {
@@ -764,7 +764,7 @@ CoreAllocatePoolPagesI (
 
   Ring3AllocatePages (AllocateAnyPages, EfiRing3MemoryType, NoPages, &Memory);
 
-  return (VOID *)Memory;
+  return (VOID *)(UINTN)Memory;
 }
 
 VOID

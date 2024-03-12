@@ -274,13 +274,14 @@ CallBootService (
   EFI_DISK_IO_PROTOCOL           *DiskIo;
   EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
 
-  Argument4 = 0;
-  Argument5 = 0;
-  Argument6 = 0;
+  CoreProtocol = NULL;
+  Argument4    = 0;
+  Argument5    = 0;
+  Argument6    = 0;
   //
   // Check User variables.
   //
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp, &Attributes);
+  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserRsp, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
   switch (Type) {
@@ -398,7 +399,7 @@ CallBootService (
       for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserArgList[Index], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index] + sizeof (EFI_GUID) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -415,7 +416,7 @@ CallBootService (
           return Status;
         }
 
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserArgList[Index + 1], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index + 1], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index + 1] + MemoryCoreSize - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1167,7 +1168,7 @@ CallBootService (
         FreePool ((VOID *)Argument4);
       }
 
-      return Status;
+      return EFI_SUCCESS;
 
     case SysCallUnicodeStrUpr:
       //
@@ -1208,7 +1209,7 @@ CallBootService (
         FreePool ((VOID *)Argument4);
       }
 
-      return Status;
+      return EFI_SUCCESS;
 
     case SysCallUnicodeFatToStr:
       //
@@ -1328,12 +1329,12 @@ CallBootService (
       }
       EnableSMAP ();
 
-      Unicode->StrToFat (
-                 Unicode,
-                 (CHAR16 *)Argument4,
-                 CoreRbp->Argument3,
-                 (CHAR8 *)Argument5
-                 );
+      Status = (EFI_STATUS)Unicode->StrToFat (
+                                      Unicode,
+                                      (CHAR16 *)Argument4,
+                                      CoreRbp->Argument3,
+                                      (CHAR8 *)Argument5
+                                      );
 
       if ((VOID *)Argument4 != NULL) {
         FreePool ((VOID *)Argument4);
@@ -1347,7 +1348,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      return EFI_SUCCESS;
+      return Status;
 
     default:
       DEBUG ((DEBUG_ERROR, "Ring0: Unknown syscall type.\n"));
