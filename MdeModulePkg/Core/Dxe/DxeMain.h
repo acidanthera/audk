@@ -2741,4 +2741,11 @@ GoToRing3 (
   ...
   );
 
+EFI_STATUS
+EFIAPI
+InitializeRing3 (
+  IN EFI_HANDLE                 ImageHandle,
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  );
+
 #endif

@@ -66,6 +66,7 @@
   DxeMain/DxeProtocolNotify.c
   DxeMain/DxeMain.c
   SysCall/BootServices.c
+  SysCall/Initialization.c
   SysCall/SupportedProtocols.h
   SysCall/SupportedProtocols.c
 
