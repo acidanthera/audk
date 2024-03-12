@@ -28,6 +28,9 @@
   Ring3UefiRuntimeServices.c
   Ring3Protocols.c
 
+[Sources.IA32]
+  IA32/SysCall.nasm
+
 [Sources.X64]
   X64/SysCall.nasm
 

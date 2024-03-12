@@ -69,7 +69,7 @@ InitializeRing3 (
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Interfaces.\n"));
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)gRing3Data,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
       EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
       );
     return Status;

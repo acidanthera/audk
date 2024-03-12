@@ -154,6 +154,7 @@
   Ia32/ARShiftU64.c | MSFT
   Ia32/EnableCache.c | MSFT
   Ia32/DisableCache.c | MSFT
+  Ia32/WriteEflags.nasm
 
 
   Ia32/GccInline.c | GCC

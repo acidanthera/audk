@@ -70,6 +70,9 @@
   SysCall/SupportedProtocols.h
   SysCall/SupportedProtocols.c
 
+[Sources.IA32]
+  SysCall/IA32/CoreBootServices.nasm
+
 [Sources.X64]
   SysCall/X64/CoreBootServices.nasm
 

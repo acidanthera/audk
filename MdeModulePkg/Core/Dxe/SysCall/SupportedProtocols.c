@@ -128,7 +128,7 @@ CoreDriverBindingSupported (
              RemainingDevicePath
              );
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -156,7 +156,7 @@ CoreDriverBindingStart (
              RemainingDevicePath
              );
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -186,7 +186,7 @@ CoreDriverBindingStop (
              ChildHandleBuffer
              );
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)This, 1);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -286,7 +286,7 @@ CoreFileRead (
   *BufferSize = *Ring3BufferSize;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -367,7 +367,7 @@ CoreFileGetPosition (
   *Position = *Ring3Position;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Position, 1);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Position, 1);
 
   return Status;
 }
@@ -446,7 +446,7 @@ CoreFileGetInfo (
   *BufferSize = *Ring3BufferSize;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -571,7 +571,7 @@ CoreFileOpen (
   EnableSMAP ();
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
     return Status;
   }
 
@@ -586,14 +586,14 @@ CoreFileOpen (
              );
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
     return Status;
   }
 
   NewFile = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
   if (NewFile == NULL) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -619,7 +619,7 @@ CoreFileOpen (
 
   *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Pages, PagesNumber);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -658,14 +658,14 @@ CoreOpenVolume (
              );
   if (EFI_ERROR (Status)) {
     *Root = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Root, 1);
+    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
     return Status;
   }
 
   File = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
   if (File == NULL) {
     *Root = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Root, 1);
+    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -707,7 +707,7 @@ CoreOpenVolume (
 
   *Root = (EFI_FILE_PROTOCOL *)File;
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)Ring3Root, 1);
+  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
 
   return Status;
 }

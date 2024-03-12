@@ -776,24 +776,24 @@ CoreExitBootServices (
   //
   if (gRing3Data != NULL) {
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)gRing3Data,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
       EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
     );
-    
+
     gRing3Data = NULL;
 
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)gRing3Interfaces,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Interfaces,
       RING3_INTERFACES_PAGES
     );
 
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)gCoreSysCallStackBase,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gCoreSysCallStackBase,
       EFI_SIZE_TO_PAGES (USER_STACK_SIZE)
     );
 
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)gRing3CallStackBase,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3CallStackBase,
       EFI_SIZE_TO_PAGES (USER_STACK_SIZE)
     );
 

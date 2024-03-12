@@ -1692,7 +1692,7 @@ CoreStartImage (
     if (Image->IsRing3EntryPoint) {
       Image->Status = InitializeRing3 (ImageHandle, Image);
     } else if (Image->IsUserImage) {
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Image->EntryPoint, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Image->Status = GoToRing3 (
