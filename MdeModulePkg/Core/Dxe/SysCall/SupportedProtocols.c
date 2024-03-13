@@ -78,8 +78,8 @@ GoToRing3 (
 }
 
 STATIC
-EFIAPI
 VOID *
+EFIAPI
 Ring3Copy (
   IN VOID    *Core,
   IN UINT32  Size
@@ -248,7 +248,7 @@ CoreFileRead (
   Ring3Buffer = NULL;
   Ring3Pages  = NULL;
 
-  PagesNumber = EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
+  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -399,7 +399,7 @@ CoreFileGetInfo (
   Ring3InformationType = NULL;
   Ring3Pages           = NULL;
 
-  PagesNumber = EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize + sizeof (EFI_GUID));
+  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize + sizeof (EFI_GUID));
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -550,7 +550,7 @@ CoreFileOpen (
   Ring3FileName  = NULL;
   Ring3Pages     = NULL;
 
-  PagesNumber = EFI_SIZE_TO_PAGES (sizeof (EFI_FILE_PROTOCOL *) + StrSize (FileName));
+  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (EFI_FILE_PROTOCOL *) + StrSize (FileName));
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
