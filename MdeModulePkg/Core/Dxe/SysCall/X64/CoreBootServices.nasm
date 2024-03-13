@@ -203,7 +203,7 @@ ASM_PFX(CallRing3):
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSRET arguments.
-    mov     rcx, [gRing3EntryPoint]
+    mov     rcx, [ASM_PFX(gRing3EntryPoint)]
     pop     rdx
 
     ; Save Core Stack pointers and switch to User Stack.
