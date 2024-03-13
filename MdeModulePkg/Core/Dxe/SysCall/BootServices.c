@@ -643,7 +643,7 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        PagesNumber = EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
+        PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
 
         Status = CoreAllocatePages (
                    AllocateAnyPages,
