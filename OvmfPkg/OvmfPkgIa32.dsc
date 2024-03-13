@@ -592,6 +592,7 @@
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiLoaderData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF40
     gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset|TRUE
+    gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
   !elseif $(WINDOWS_10_IA32) == TRUE
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
