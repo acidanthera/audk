@@ -69,6 +69,26 @@ STATIC GDT  mGdtTemplate = {
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
   },
+  .SysCode = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 0,
+    .Readable                 = 1,
+    .Conforming               = 0,
+    .IsCode                   = 1,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 0,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .Is32Bit                  = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
+  },
   .SysData = {
     .SegmentLimit_15_0        = 0xFFFF,
     .BaseAddress_15_0         = 0x0,
@@ -89,7 +109,7 @@ STATIC GDT  mGdtTemplate = {
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
   },
-  .SysCode = {
+  .Ring3Code32 = {
     .SegmentLimit_15_0        = 0xFFFF,
     .BaseAddress_15_0         = 0x0,
     .BaseAddress_23_16        = 0x0,
@@ -99,13 +119,33 @@ STATIC GDT  mGdtTemplate = {
     .Conforming               = 0,
     .IsCode                   = 1,
     .IsNotSystemSegment       = 1,
-    .DescriptorPrivilegeLevel = 0,
+    .DescriptorPrivilegeLevel = 3,
     .SegmentPresent           = 1,
 
     .SegmentLimit_19_16       = 0xF,
     .Available                = 0,
     .Reserved                 = 0,
     .Is32Bit                  = 1,
+    .Granularity              = 1,
+    .BaseAddress_31_24        = 0x0
+  },
+  .Ring3Data32 = {
+    .SegmentLimit_15_0        = 0xFFFF,
+    .BaseAddress_15_0         = 0x0,
+    .BaseAddress_23_16        = 0x0,
+
+    .Accessed                 = 1,
+    .Writable                 = 1,
+    .ExpansionDirection       = 0,
+    .IsCode                   = 0,
+    .IsNotSystemSegment       = 1,
+    .DescriptorPrivilegeLevel = 3,
+    .SegmentPresent           = 1,
+
+    .SegmentLimit_19_16       = 0xF,
+    .Available                = 0,
+    .Reserved                 = 0,
+    .UpperBound               = 1,
     .Granularity              = 1,
     .BaseAddress_31_24        = 0x0
   },

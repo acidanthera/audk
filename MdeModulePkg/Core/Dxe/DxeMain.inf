@@ -71,9 +71,11 @@
   SysCall/SupportedProtocols.c
 
 [Sources.IA32]
+  SysCall/IA32/InitializeMsr.c
   SysCall/IA32/CoreBootServices.nasm
 
 [Sources.X64]
+  SysCall/X64/InitializeMsr.c
   SysCall/X64/CoreBootServices.nasm
 
 [Packages]

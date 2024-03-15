@@ -5660,8 +5660,10 @@ typedef struct {
   SEGMENT_DESCRIPTOR Null;
   DATA_SEGMENT_32    Linear;
   CODE_SEGMENT_32    LinearCode;
-  DATA_SEGMENT_32    SysData;
   CODE_SEGMENT_32    SysCode;
+  DATA_SEGMENT_32    SysData;
+  CODE_SEGMENT_32    Ring3Code32;
+  DATA_SEGMENT_32    Ring3Data32;
   CODE_SEGMENT_32    SysCode16;
   CODE_SEGMENT_64    LinearCode64;
   DATA_SEGMENT_32    LinearData64;
@@ -5671,6 +5673,11 @@ typedef struct {
 } GDT;
 
 #pragma pack ()
+
+#define RING0_DATA32_SEL   OFFSET_OF (GDT, SysData)
+#define RING0_CODE32_SEL   OFFSET_OF (GDT, SysCode)
+#define RING3_DATA32_SEL   OFFSET_OF (GDT, Ring3Data32)
+#define RING3_CODE32_SEL   OFFSET_OF (GDT, Ring3Code32)
 
 #define RING0_DATA64_SEL   OFFSET_OF (GDT, LinearData64)
 #define RING0_CODE64_SEL   OFFSET_OF (GDT, LinearCode64)
