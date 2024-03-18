@@ -31,6 +31,7 @@ InitializeRing3 (
   EFI_STATUS              Status;
   VOID                    *TopOfStack;
   UINTN                   SizeOfStack;
+  EFI_PHYSICAL_ADDRESS    Physical;
 
   //
   // Set Ring3 EntryPoint and BootServices.
@@ -39,12 +40,14 @@ InitializeRing3 (
              AllocateAnyPages,
              EfiRing3MemoryType,
              EFI_SIZE_TO_PAGES (sizeof (RING3_DATA)),
-             (EFI_PHYSICAL_ADDRESS *)&gRing3Data
+             &Physical
              );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Data.\n"));
     return Status;
   }
+
+  gRing3Data = (RING3_DATA *)(UINTN)Physical;
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
@@ -59,7 +62,7 @@ InitializeRing3 (
              AllocateAnyPages,
              EfiRing3MemoryType,
              RING3_INTERFACES_PAGES,
-             (EFI_PHYSICAL_ADDRESS *)&gRing3Interfaces
+             &Physical
              );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Interfaces.\n"));
@@ -69,6 +72,8 @@ InitializeRing3 (
       );
     return Status;
   }
+
+  gRing3Interfaces = (VOID *)(UINTN)Physical;
 
   SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
 

@@ -251,21 +251,21 @@ CallBootService (
   IN RING3_STACK *UserRsp
   )
 {
-  EFI_STATUS Status;
-  EFI_STATUS StatusBS;
-  UINT64     Attributes;
-  VOID       *Interface;
-  EFI_GUID   *CoreProtocol;
-  UINT32     MemoryCoreSize;
-  UINTN      Argument4;
-  UINTN      Argument5;
-  UINTN      Argument6;
-  UINT32     Index;
-  VOID       **UserArgList;
-  VOID       *CoreArgList[MAX_LIST];
-  EFI_HANDLE CoreHandle;
-  VOID       *Ring3Pages;
-  UINT32     PagesNumber;
+  EFI_STATUS           Status;
+  EFI_STATUS           StatusBS;
+  UINT64               Attributes;
+  VOID                 *Interface;
+  EFI_GUID             *CoreProtocol;
+  UINT32               MemoryCoreSize;
+  UINTN                Argument4;
+  UINTN                Argument5;
+  UINTN                Argument6;
+  UINT32               Index;
+  VOID                 **UserArgList;
+  VOID                 *CoreArgList[MAX_LIST];
+  EFI_HANDLE           CoreHandle;
+  UINT32               PagesNumber;
+  EFI_PHYSICAL_ADDRESS Ring3Pages;
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
@@ -649,17 +649,17 @@ CallBootService (
                    AllocateAnyPages,
                    EfiRing3MemoryType,
                    PagesNumber,
-                   (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+                   &Ring3Pages
                    );
         if (EFI_ERROR (Status)) {
           return Status;
         }
 
-        CopyMem (Ring3Pages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
+        CopyMem ((VOID *)(UINTN)Ring3Pages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
 
         FreePool ((VOID *)Argument5);
 
-        *(EFI_HANDLE **)UserRsp->Arguments[5] = (EFI_HANDLE *)Ring3Pages;
+        *(EFI_HANDLE **)UserRsp->Arguments[5] = (EFI_HANDLE *)(UINTN)Ring3Pages;
       }
       EnableSMAP ();
 
