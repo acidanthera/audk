@@ -143,6 +143,7 @@ APRIORI DXE {
   INF  MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
   INF  MdeModulePkg/Universal/StatusCodeHandler/RuntimeDxe/StatusCodeHandlerRuntimeDxe.inf
   INF  UefiPayloadPkg/BlSupportDxe/BlSupportDxe.inf
+  INF  MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
 }
 
 #
@@ -285,6 +286,7 @@ INF MdeModulePkg/Bus/Pci/NvmExpressDxe/NvmExpressDxe.inf
 INF MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
 !endif
 INF FatPkg/EnhancedFatDxe/Fat.inf
+INF MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
 
 #
 # SD/eMMC Support
