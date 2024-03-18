@@ -85,24 +85,24 @@ Ring3Copy (
   IN UINT32  Size
   )
 {
-  EFI_STATUS  Status;
-  VOID        *Ring3;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  Ring3;
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
              1,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3
+             &Ring3
              );
   if (EFI_ERROR (Status)) {
     return NULL;
   }
 
   DisableSMAP ();
-  CopyMem (Ring3, Core, Size);
+  CopyMem ((VOID *)(UINTN)Ring3, Core, Size);
   EnableSMAP ();
 
-  return Ring3;
+  return (VOID *)(UINTN)Ring3;
 }
 
 EFI_STATUS
@@ -237,7 +237,7 @@ CoreFileRead (
   RING3_EFI_FILE_PROTOCOL *File;
   UINTN                   *Ring3BufferSize;
   VOID                    *Ring3Buffer;
-  VOID                    *Ring3Pages;
+  EFI_PHYSICAL_ADDRESS    Ring3Pages;
   UINT32                  PagesNumber;
 
   if ((This == NULL) || (BufferSize == NULL)) {
@@ -246,7 +246,7 @@ CoreFileRead (
 
   File        = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3Buffer = NULL;
-  Ring3Pages  = NULL;
+  Ring3Pages  = 0;
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
 
@@ -254,20 +254,20 @@ CoreFileRead (
              AllocateAnyPages,
              EfiRing3MemoryType,
              PagesNumber,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+             &Ring3Pages
              );
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Ring3BufferSize = (UINTN *)Ring3Pages;
+  Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
   DisableSMAP ();
   *Ring3BufferSize = *BufferSize;
   EnableSMAP ();
 
   if (Buffer != NULL) {
-    Ring3Buffer = (VOID *)((UINTN *)Ring3Pages + 1);
+    Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
   }
 
   Status = GoToRing3 (
@@ -286,7 +286,7 @@ CoreFileRead (
   *BufferSize = *Ring3BufferSize;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+  CoreFreePages (Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -333,27 +333,27 @@ CoreFileGetPosition (
 {
   EFI_STATUS              Status;
   RING3_EFI_FILE_PROTOCOL *File;
-  UINT64                  *Ring3Position;
+  EFI_PHYSICAL_ADDRESS    Ring3Position;
 
   if ((This == NULL) || (Position == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
   File          = (RING3_EFI_FILE_PROTOCOL *)This;
-  Ring3Position = NULL;
+  Ring3Position = 0;
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
              1,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3Position
+             &Ring3Position
              );
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
   DisableSMAP ();
-  *Ring3Position = *Position;
+  *(UINT64 *)(UINTN)Ring3Position = *Position;
   EnableSMAP ();
 
   Status = GoToRing3 (
@@ -364,10 +364,10 @@ CoreFileGetPosition (
              );
 
   DisableSMAP ();
-  *Position = *Ring3Position;
+  *Position = *(UINT64 *)(UINTN)Ring3Position;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Position, 1);
+  CoreFreePages (Ring3Position, 1);
 
   return Status;
 }
@@ -387,7 +387,7 @@ CoreFileGetInfo (
   EFI_GUID                *Ring3InformationType;
   UINTN                   *Ring3BufferSize;
   VOID                    *Ring3Buffer;
-  VOID                    *Ring3Pages;
+  EFI_PHYSICAL_ADDRESS    Ring3Pages;
   UINT32                  PagesNumber;
 
   if ((This == NULL) || (BufferSize == NULL)) {
@@ -397,7 +397,7 @@ CoreFileGetInfo (
   File                 = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3Buffer          = NULL;
   Ring3InformationType = NULL;
-  Ring3Pages           = NULL;
+  Ring3Pages           = 0;
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize + sizeof (EFI_GUID));
 
@@ -405,20 +405,20 @@ CoreFileGetInfo (
              AllocateAnyPages,
              EfiRing3MemoryType,
              PagesNumber,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+             &Ring3Pages
              );
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Ring3BufferSize = (UINTN *)Ring3Pages;
+  Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
   DisableSMAP ();
   *Ring3BufferSize = *BufferSize;
   EnableSMAP ();
 
   if (Buffer != NULL) {
-    Ring3Buffer = (VOID *)((UINTN *)Ring3Pages + 1);
+    Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
   }
 
   if (InformationType != NULL) {
@@ -446,7 +446,7 @@ CoreFileGetInfo (
   *BufferSize = *Ring3BufferSize;
   EnableSMAP ();
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+  CoreFreePages (Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -538,7 +538,7 @@ CoreFileOpen (
   RING3_EFI_FILE_PROTOCOL *NewFile;
   EFI_FILE_PROTOCOL       **Ring3NewHandle;
   CHAR16                  *Ring3FileName;
-  VOID                    *Ring3Pages;
+  EFI_PHYSICAL_ADDRESS    Ring3Pages;
   UINT32                  PagesNumber;
 
   if ((This == NULL) || (NewHandle == NULL) || (FileName == NULL)) {
@@ -548,7 +548,7 @@ CoreFileOpen (
   File           = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3NewHandle = NULL;
   Ring3FileName  = NULL;
-  Ring3Pages     = NULL;
+  Ring3Pages     = 0;
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (EFI_FILE_PROTOCOL *) + StrSize (FileName));
 
@@ -556,22 +556,22 @@ CoreFileOpen (
              AllocateAnyPages,
              EfiRing3MemoryType,
              PagesNumber,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3Pages
+             &Ring3Pages
              );
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     return Status;
   }
 
-  Ring3NewHandle = (EFI_FILE_PROTOCOL **)Ring3Pages;
-  Ring3FileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)Ring3Pages + 1);
+  Ring3NewHandle = (EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages;
+  Ring3FileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages + 1);
 
   DisableSMAP ();
   Status = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
   EnableSMAP ();
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+    CoreFreePages (Ring3Pages, PagesNumber);
     return Status;
   }
 
@@ -586,14 +586,14 @@ CoreFileOpen (
              );
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+    CoreFreePages (Ring3Pages, PagesNumber);
     return Status;
   }
 
   NewFile = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
   if (NewFile == NULL) {
     *NewHandle = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+    CoreFreePages (Ring3Pages, PagesNumber);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -619,7 +619,7 @@ CoreFileOpen (
 
   *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Pages, PagesNumber);
+  CoreFreePages (Ring3Pages, PagesNumber);
 
   return Status;
 }
@@ -634,6 +634,7 @@ CoreOpenVolume (
   EFI_STATUS              Status;
   EFI_FILE_PROTOCOL       **Ring3Root;
   RING3_EFI_FILE_PROTOCOL *File;
+  EFI_PHYSICAL_ADDRESS    Physical;
 
   if (Root == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -643,12 +644,14 @@ CoreOpenVolume (
              AllocateAnyPages,
              EfiRing3MemoryType,
              1,
-             (EFI_PHYSICAL_ADDRESS *)&Ring3Root
+             &Physical
              );
   if (EFI_ERROR (Status)) {
     *Root = NULL;
     return Status;
   }
+
+  Ring3Root = (EFI_FILE_PROTOCOL **)(UINTN)Physical;
 
   Status = GoToRing3 (
              2,
@@ -658,14 +661,14 @@ CoreOpenVolume (
              );
   if (EFI_ERROR (Status)) {
     *Root = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
+    CoreFreePages (Physical, 1);
     return Status;
   }
 
   File = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
   if (File == NULL) {
     *Root = NULL;
-    CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
+    CoreFreePages (Physical, 1);
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -707,7 +710,7 @@ CoreOpenVolume (
 
   *Root = (EFI_FILE_PROTOCOL *)File;
 
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)Ring3Root, 1);
+  CoreFreePages (Physical, 1);
 
   return Status;
 }
