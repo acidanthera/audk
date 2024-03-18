@@ -18,8 +18,13 @@ SECTION .text
 ;------------------------------------------------------------------------------
 global ASM_PFX(SysCall)
 ASM_PFX(SysCall):
-  sysenter
+  mov     edx, esp
+  mov     ecx, [esp + 4] ; Type
+  lea     eax, [userReturnAddress]
 
+  sysenter
+userReturnAddress:
+  ; sti
   ret
 
 ;------------------------------------------------------------------------------
@@ -29,10 +34,11 @@ ASM_PFX(SysCall):
 ;   IN RING3_CALL_DATA *Data
 ;   );
 ;
-;   (rcx) RIP of Ring3EntryPoint saved for SYSRET in CallRing3().
-;   (rdx) Data
+;   (eax) Data
 ;------------------------------------------------------------------------------
 global ASM_PFX(Ring3EntryPoint)
 ASM_PFX(Ring3EntryPoint):
+    push    eax
+    ; sti
 
     call ASM_PFX(Ring3Call)

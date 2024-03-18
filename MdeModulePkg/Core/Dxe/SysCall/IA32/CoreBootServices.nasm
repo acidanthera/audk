@@ -61,7 +61,42 @@ ASM_PFX(EnableSMAP):
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallInstallMultipleProtocolInterfaces)
 ASM_PFX(CallInstallMultipleProtocolInterfaces):
+    push    ebp
+    mov     ebp, esp
+
+    ; Prepare stack for call.
+    mov     eax, [ebp + 2 * 4]   ; eax = ArgList
+    mov     ecx, [ebp + 3 * 4]   ; ecx = ArgListSize
+    lea     eax, [eax + ecx * 4]
+copy:
+    sub     eax, 4
+    push dword [eax]
+    sub     ecx, 1
+    jnz     copy
+    push dword [ebp + 4]
+
+    call    [ebp + 4 * 4]
+
+    ; Step over Function arguments.
+    mov     esp, ebp
+    pop     ebp
+
     ret
+
+%macro SetRing3DataSegmentSelectors 0
+    push dword MSR_IA32_SYSENTER_CS
+    call ASM_PFX(AsmReadMsr64)
+    ; eax = RING0_CODE32_SEL
+    add     eax, 24  ; GDT: RING0_CODE32, RING0_DATA32, RING3_CODE32, RING3_DATA32
+    or      eax, 3   ; RPL = 3
+
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+
+    pop     eax
+%endmacro
 
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
@@ -71,18 +106,62 @@ ASM_PFX(CallInstallMultipleProtocolInterfaces):
 ;   ...
 ;   );
 ;
-;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
-;   (rdx) Argument 1 of the called function.
-;   (r8)  Argument 2 of the called function.
-;   (r9)  Argument 3 of the called function.
-;   (r10) Type.
-;   (r11) RFLAGS saved by SYSCALL in SysCall().
+;   (eax) User return address.
+;   (ecx) Type.
+;   (edx) User Stack Pointer.
 ;
-;   (On User Stack) Argument 4, 5, ...
+;   (On User Stack) Argument 1, 2, ...
 ;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
-    ret
+    ; Save User return address and Stack pointers.
+    push    edx
+    push    ebp
+    push    eax
+
+    ; Switch from User to Core data segment selectors.
+    mov     ax, ss
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
+
+    ; Special case for SysCallReturnToCore.
+    cmp     ecx, 0
+    je      coreReturnAddress
+
+    ; Prepare CallBootService arguments.
+    call ASM_PFX(DisableSMAP)
+    mov     eax, [edx + 4 * 4] ; User Argument 3
+    push    eax
+    mov     eax, [edx + 3 * 4] ; User Argument 2
+    push    eax
+    mov     eax, [edx + 2 * 4] ; User Argument 1
+    push    eax
+    call ASM_PFX(EnableSMAP)
+    mov     ebp, esp
+    push    edx
+    push    ebp
+    push    ecx
+
+    sti
+    call ASM_PFX(CallBootService)
+    push    eax
+    cli
+
+    SetRing3DataSegmentSelectors
+
+    pop     eax
+
+    ; Step over User Arguments [1..3] and CallBootService input.
+    add     esp, 4*6
+
+    ; Prepare SYSEXIT arguments.
+    pop     edx ; User return address.
+    pop     ebp
+    pop     ecx ; User Stack Pointer.
+
+    sysexit
 
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
@@ -91,8 +170,48 @@ ASM_PFX(CoreBootServices):
 ;   IN RING3_CALL_DATA *Data
 ;   );
 ;
-;   (rcx) Data
+;   (On User Stack) Data
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
+    cli
+
+    ; Save Core Stack pointers.
+    mov     [ASM_PFX(CoreEsp)], esp
+    mov     [ASM_PFX(CoreEbp)], ebp
+
+    push dword [ASM_PFX(gRing3EntryPoint)]
+    push dword [ASM_PFX(gRing3CallStackTop)]
+
+    SetRing3DataSegmentSelectors
+
+    ; Prepare SYSEXIT arguments.
+    pop     ecx
+    pop     edx
+    mov     eax, [esp + 4] ; Data
+
+    ; Switch to User Stack.
+    mov     ebp, ecx
+
+    ; Pass control to user image
+    sysexit
+
+coreReturnAddress:
+    mov     esp, [ASM_PFX(CoreEsp)]
+    mov     ebp, [ASM_PFX(CoreEbp)]
+
+    call ASM_PFX(DisableSMAP)
+    mov     eax, [edx + 2 * 4] ; User Argument 1
+    push    eax
+    call ASM_PFX(EnableSMAP)
+    pop     eax
+
+    sti
     ret
+
+SECTION .data
+ASM_PFX(CoreEsp):
+  resd 1
+
+ASM_PFX(CoreEbp):
+  resd 1
