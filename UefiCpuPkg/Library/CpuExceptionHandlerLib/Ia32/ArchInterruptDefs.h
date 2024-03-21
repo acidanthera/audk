@@ -39,8 +39,9 @@ typedef struct {
   (sizeof (IA32_TSS_DESCRIPTOR) * \
    (FixedPcdGetSize (PcdCpuStackSwitchExceptionList) + 1))
 
+#define IO_BIT_MAP_SIZE    (ALIGN_VALUE (0x81, 16))
 #define CPU_TSS_SIZE \
   (sizeof (IA32_TASK_STATE_SEGMENT) * \
-   (FixedPcdGetSize (PcdCpuStackSwitchExceptionList) + 1))
+   (FixedPcdGetSize (PcdCpuStackSwitchExceptionList) + 1) + IO_BIT_MAP_SIZE)
 
 #endif

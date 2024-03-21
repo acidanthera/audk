@@ -135,6 +135,7 @@ ArchSetupExceptionStack (
   UINT8                           *StackSwitchExceptions;
   UINTN                           NeedBufferSize;
   EXCEPTION_HANDLER_TEMPLATE_MAP  TemplateMap;
+  UINT8                           *IOBitMap;
 
   if (BufferSize == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -203,13 +204,37 @@ ArchSetupExceptionStack (
   TssBase = (UINTN)Tss;
 
   TssDesc->Uint64         = 0;
-  TssDesc->Bits.LimitLow  = sizeof (IA32_TASK_STATE_SEGMENT) - 1;
+  TssDesc->Bits.LimitLow  = (UINT16)(sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE - 1);
   TssDesc->Bits.BaseLow   = (UINT16)TssBase;
   TssDesc->Bits.BaseMid   = (UINT8)(TssBase >> 16);
   TssDesc->Bits.Type      = IA32_GDT_TYPE_TSS;
+  TssDesc->Bits.DPL       = 3;
   TssDesc->Bits.P         = 1;
-  TssDesc->Bits.LimitHigh = 0;
+  TssDesc->Bits.LimitHigh = (sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE - 1) >> 16;
   TssDesc->Bits.BaseHigh  = (UINT8)(TssBase >> 24);
+
+  //
+  // Set I/O Permission Bit Map
+  //
+  ZeroMem (Tss, sizeof (*Tss));
+
+  Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
+  //
+  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06
+  //
+  IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
+  for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
+    if ((Index * 8) == 0x3F8) {
+      *IOBitMap = 0x84;
+    } else {
+      *IOBitMap = 0xFF;
+    }
+
+    ++IOBitMap;
+  }
+
+  Tss = (IA32_TASK_STATE_SEGMENT *)((UINTN)Tss + sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE);
+  ++TssDesc;
 
   //
   // Fixup exception task descriptor and task-state segment
@@ -221,10 +246,7 @@ ArchSetupExceptionStack (
   StackTop = StackTop - CPU_STACK_ALIGNMENT + 1;
   StackTop = (UINTN)ALIGN_POINTER (StackTop, CPU_STACK_ALIGNMENT);
   IdtTable = (IA32_IDT_GATE_DESCRIPTOR  *)Idtr.Base;
-  for (Index = 0; Index < CPU_STACK_SWITCH_EXCEPTION_NUMBER; ++Index) {
-    TssDesc += 1;
-    Tss     += 1;
-
+  for (Index = 0; Index < CPU_STACK_SWITCH_EXCEPTION_NUMBER; ++Index, ++TssDesc, ++Tss) {
     //
     // Fixup TSS descriptor
     //

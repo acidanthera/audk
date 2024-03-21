@@ -612,6 +612,7 @@
     gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset|TRUE
     gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
   !endif
+  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
 
 ################################################################################
 #

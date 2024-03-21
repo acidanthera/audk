@@ -215,6 +215,7 @@ ArchSetupExceptionStack (
   TssDesc->Bits.BaseLow     = (UINT16)TssBase;
   TssDesc->Bits.BaseMidl    = (UINT8)(TssBase >> 16);
   TssDesc->Bits.Type        = IA32_GDT_TYPE_TSS;
+  TssDesc->Bits.DPL         = 3;
   TssDesc->Bits.P           = 1;
   TssDesc->Bits.LimitHigh   = (CPU_TSS_SIZE - 1) >> 16;
   TssDesc->Bits.BaseMidh    = (UINT8)(TssBase >> 24);
