@@ -615,6 +615,7 @@
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
     gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x70000000
   !endif
+  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
 
   #
   # Firmware volume supports UE, and may require PE.
