@@ -26,23 +26,28 @@ GoToRing3 (
   ...
   )
 {
-  EFI_STATUS       Status;
-  RING3_CALL_DATA  *Input;
-  VA_LIST          Marker;
-  UINTN            Index;
+  EFI_STATUS            Status;
+  RING3_CALL_DATA       *Input;
+  VA_LIST               Marker;
+  UINTN                 Index;
+  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  UINT32                PagesNumber;
 
-  DisableSMAP ();
-  Status = gBS->AllocatePool (
-                  EfiRing3MemoryType,
-                  sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN),
-                  (VOID **)&Input
-                  );
+  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN));
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             PagesNumber,
+             &Ring3Pages
+             );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring0: Failed to allocate memory for Input data.\n"));
-    EnableSMAP ();
     return Status;
   }
 
+  Input = (RING3_CALL_DATA *)(UINTN)Ring3Pages;
+
+  DisableSMAP ();
   Input->NumberOfArguments = Number;
   Input->EntryPoint        = EntryPoint;
 
@@ -73,6 +78,8 @@ GoToRing3 (
       EFI_MEMORY_XP
       );
   }
+
+  CoreFreePages (Ring3Pages, PagesNumber);
 
   return Status;
 }
