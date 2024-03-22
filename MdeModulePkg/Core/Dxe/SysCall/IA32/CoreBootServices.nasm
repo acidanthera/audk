@@ -65,17 +65,17 @@ ASM_PFX(CallInstallMultipleProtocolInterfaces):
     mov     ebp, esp
 
     ; Prepare stack for call.
-    mov     eax, [ebp + 2 * 4]   ; eax = ArgList
-    mov     ecx, [ebp + 3 * 4]   ; ecx = ArgListSize
+    mov     eax, [ebp + 3 * 4]   ; eax = ArgList
+    mov     ecx, [ebp + 4 * 4]   ; ecx = ArgListSize
     lea     eax, [eax + ecx * 4]
 copy:
     sub     eax, 4
     push dword [eax]
     sub     ecx, 1
     jnz     copy
-    push dword [ebp + 4]
+    push dword [ebp + 2 * 4]
 
-    call    [ebp + 4 * 4]
+    call    [ebp + 5 * 4]
 
     ; Step over Function arguments.
     mov     esp, ebp
