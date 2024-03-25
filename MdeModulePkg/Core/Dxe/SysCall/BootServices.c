@@ -18,6 +18,44 @@ typedef struct {
 
 UINTN  mRing3InterfacePointer = 0;
 
+CHAR8 *SysCallNames[] = {
+  //
+  // BootServices
+  //
+  "SysCallReturnToCore",     // Must always be zero for CoreBootServices.nasm.
+  "SysCallLocateProtocol",
+  "SysCallOpenProtocol",
+  "SysCallInstallMultipleProtocolInterfaces",
+  "SysCallCloseProtocol",
+  "SysCallHandleProtocol",
+  "SysCallAllocatePages",
+  "SysCallFreePages",
+  "SysCallRaiseTpl",
+  "SysCallRestoreTpl",
+  "SysCallLocateHandleBuffer",
+  "SysCallCalculateCrc32",
+  //
+  // RuntimeServices
+  //
+  "SysCallGetVariable",
+  //
+  // Protocols
+  //
+  "SysCallBlockIoReset",
+  "SysCallBlockIoRead",
+  "SysCallBlockIoWrite",
+  "SysCallBlockIoFlush",
+  "SysCallDiskIoRead",
+  "SysCallDiskIoWrite",
+  "SysCallUnicodeStriColl",
+  "SysCallUnicodeMetaiMatch",
+  "SysCallUnicodeStrLwr",
+  "SysCallUnicodeStrUpr",
+  "SysCallUnicodeFatToStr",
+  "SysCallUnicodeStrToFat",
+  "SysCallMax"
+};
+
 EFI_STATUS
 EFIAPI
 CallInstallMultipleProtocolInterfaces (

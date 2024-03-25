@@ -594,7 +594,8 @@ Ring3LocateHandleBuffer (
                Buffer
                );
 
-  if ((NumberHandles != NULL) && (*NumberHandles != 0) && (Buffer != NULL) && (*Buffer != NULL)) {
+  if ((!EFI_ERROR (StatusBS)) && (NumberHandles != NULL) && (*NumberHandles != 0)
+    && (Buffer != NULL) && (*Buffer != NULL)) {
     PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
 
     Status = CoreAllocatePool (EfiRing3MemoryType, PoolSize, &Pool);
