@@ -161,6 +161,7 @@ ASM_PFX(CoreBootServices):
     pop     ebp
     pop     ecx ; User Stack Pointer.
 
+    sti
     sysexit
 
 ;------------------------------------------------------------------------------
@@ -194,6 +195,7 @@ ASM_PFX(CallRing3):
     mov     ebp, ecx
 
     ; Pass control to user image
+    sti
     sysexit
 
 coreReturnAddress:

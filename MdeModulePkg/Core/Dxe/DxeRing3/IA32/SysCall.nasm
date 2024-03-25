@@ -24,7 +24,6 @@ ASM_PFX(SysCall):
 
   sysenter
 userReturnAddress:
-  ; sti
   ret
 
 ;------------------------------------------------------------------------------
@@ -39,6 +38,5 @@ userReturnAddress:
 global ASM_PFX(Ring3EntryPoint)
 ASM_PFX(Ring3EntryPoint):
     push    eax
-    ; sti
 
     call ASM_PFX(Ring3Call)
