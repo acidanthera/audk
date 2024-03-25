@@ -150,8 +150,8 @@ Ring3FreePages (
 
   Status = SysCall (
              SysCallFreePages,
-             Memory,
-             NumberOfPages
+             NumberOfPages,
+             Memory
              );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Ring3: Failed to free %d pages.\n", NumberOfPages));
@@ -594,7 +594,7 @@ Ring3LocateHandleBuffer (
                Buffer
                );
 
-  if ((NumberHandles != NULL) && (Buffer != NULL) && (*Buffer != NULL)) {
+  if ((NumberHandles != NULL) && (*NumberHandles != 0) && (Buffer != NULL) && (*Buffer != NULL)) {
     PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
 
     Status = CoreAllocatePool (EfiRing3MemoryType, PoolSize, &Pool);

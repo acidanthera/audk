@@ -35,9 +35,9 @@ Ring3BlockIoRead (
            SysCallBlockIoRead,
            This,
            MediaId,
-           Lba,
            BufferSize,
-           Buffer
+           Buffer,
+           Lba
            );
 }
 
@@ -55,9 +55,9 @@ Ring3BlockIoWrite (
            SysCallBlockIoWrite,
            This,
            MediaId,
-           Lba,
            BufferSize,
-           Buffer
+           Buffer,
+           Lba
            );
 }
 
@@ -87,9 +87,9 @@ Ring3DiskIoRead (
            SysCallDiskIoRead,
            This,
            MediaId,
-           Offset,
            BufferSize,
-           Buffer
+           Buffer,
+           Offset
            );
 }
 
@@ -107,9 +107,9 @@ Ring3DiskIoWrite (
            SysCallDiskIoWrite,
            This,
            MediaId,
-           Offset,
            BufferSize,
-           Buffer
+           Buffer,
+           Offset
            );
 }
 
