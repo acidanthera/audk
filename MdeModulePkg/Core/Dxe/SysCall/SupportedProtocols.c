@@ -322,12 +322,27 @@ CoreFileSetPosition (
 
   File = (RING3_EFI_FILE_PROTOCOL *)This;
 
+#if defined (MDE_CPU_X64)
   return GoToRing3 (
            2,
            (VOID *)mRing3FileProtocol.SetPosition,
            File->Ring3File,
            Position
            );
+#endif
+
+#if defined (MDE_CPU_IA32)
+  //
+  // UINT64 Position is passed as 2 double words on stack.
+  //
+  return GoToRing3 (
+           3,
+           (VOID *)mRing3FileProtocol.SetPosition,
+           File->Ring3File,
+           Position
+           );
+#endif
+
 }
 
 STATIC
@@ -582,6 +597,7 @@ CoreFileOpen (
     return Status;
   }
 
+#if defined (MDE_CPU_X64)
   Status = GoToRing3 (
              5,
              (VOID *)mRing3FileProtocol.Open,
@@ -591,6 +607,22 @@ CoreFileOpen (
              OpenMode,
              Attributes
              );
+#endif
+
+#if defined (MDE_CPU_IA32)
+  //
+  // UINT64 OpenMode and Attributes are each passed as 2 double words on stack.
+  //
+  Status = GoToRing3 (
+             7,
+             (VOID *)mRing3FileProtocol.Open,
+             File->Ring3File,
+             Ring3NewHandle,
+             Ring3FileName,
+             OpenMode,
+             Attributes
+             );
+#endif
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
