@@ -167,6 +167,10 @@ ErrorCodeAndVectorOnStack:
     ;
     ; Stack:
     ; +---------------------+
+    ; +    Old SS           + on CPL change
+    ; +---------------------+
+    ; +    Old ESP          + on CPL change
+    ; +---------------------+
     ; +    EFlags           +
     ; +---------------------+
     ; +    CS               +
@@ -198,6 +202,12 @@ ErrorCodeAndVectorOnStack:
     push    edx
     push    ebx
     lea     ecx, [ebp + 6 * 4]
+    ; Check whether Ring0 process was interrupted.
+    mov     eax, ds
+    and     eax, 3
+    jz      sameCPL_0
+    mov     ecx, [ecx]
+sameCPL_0:
     push    ecx                          ; ESP
     push    dword [ebp]              ; EBP
     push    esi
@@ -205,9 +215,15 @@ ErrorCodeAndVectorOnStack:
 
 ;; UINT32  Gs, Fs, Es, Ds, Cs, Ss;
     mov     eax, ss
-    push    eax
+    ; Check whether Ring0 process was interrupted.
+    mov     ecx, ds
+    and     ecx, 3
+    jz      sameCPL_1
+    movzx   eax, word [ebp + 7 * 4]
+sameCPL_1:
+    push    eax                     ; for ss
     movzx   eax, word [ebp + 4 * 4]
-    push    eax
+    push    eax                     ; for cs
     mov     eax, ds
     push    eax
     mov     eax, es
@@ -216,6 +232,12 @@ ErrorCodeAndVectorOnStack:
     push    eax
     mov     eax, gs
     push    eax
+
+    mov     eax, ss
+    mov     ds, eax
+    mov     es, eax
+    mov     fs, eax
+    mov     gs, eax
 
 ;; UINT32  Eip;
     mov     eax, [ebp + 3 * 4]
@@ -367,7 +389,15 @@ ErrorCodeAndVectorOnStack:
     pop     es
     pop     ds
     pop     dword [ebp + 4 * 4]
+    ; Check whether Ring0 process was interrupted.
+    mov     ecx, ss
+    and     ecx, 3
+    jz      sameCPL_2
+    pop     dword [ebp + 7 * 4]
+    jmp     continue
+sameCPL_2:
     pop     ss
+continue:
 
 ;; UINT32  Edi, Esi, Ebp, Esp, Ebx, Edx, Ecx, Eax;
     pop     edi
@@ -378,6 +408,14 @@ ErrorCodeAndVectorOnStack:
     pop     edx
     pop     ecx
     pop     eax
+
+    ; Check whether Ring3 process was interrupted.
+    push    ecx
+    mov     ecx, ds
+    and     ecx, 3
+    cmp     ecx, 3
+    pop     ecx
+    je      ReturnToRing3
 
     pop     dword [ebp - 8]
     pop     dword [ebp - 4]
@@ -405,6 +443,11 @@ DoReturn:
     retf                 ; far return
 
 DoIret:
+    iretd
+ReturnToRing3:
+    mov     esp, ebp
+    pop     ebp
+    add     esp, 8
     iretd
 
 ;---------------------------------------;
