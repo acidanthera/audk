@@ -565,17 +565,17 @@ CallBootService (
 
     case SysCallFreePages:
       //
-      // Argument 1: EFI_PHYSICAL_ADDRESS  Memory
-      // Argument 2: UINTN                 NumberOfPages
+      // Argument 1: UINTN                 NumberOfPages
+      // Argument 2: EFI_PHYSICAL_ADDRESS  Memory
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + CoreRbp->Argument2 * EFI_PAGE_SIZE - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + CoreRbp->Argument1 * EFI_PAGE_SIZE - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       return gBS->FreePages (
-                    (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1,
-                    CoreRbp->Argument2
+                    *(EFI_PHYSICAL_ADDRESS *)&CoreRbp->Argument2,
+                    CoreRbp->Argument1
                     );
 
     case SysCallRaiseTpl:
@@ -811,9 +811,9 @@ CallBootService (
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
       // Argument 2: UINT32                MediaId
-      // Argument 3: EFI_LBA               Lba
-      // Argument 4: UINTN                 BufferSize
-      // Argument 5: VOID                 *Buffer
+      // Argument 3: UINTN                 BufferSize
+      // Argument 4: VOID                  *Buffer
+      // Argument 5: EFI_LBA               Lba
       //
       BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
 
@@ -825,10 +825,10 @@ CallBootService (
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       DisableSMAP ();
-      Argument4 = UserRsp->Arguments[4];
+      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
       EnableSMAP ();
 
-      Argument5 = (UINTN)AllocatePool (Argument4);
+      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
         return EFI_OUT_OF_RESOURCES;
       }
@@ -836,17 +836,17 @@ CallBootService (
       Status = BlockIo->ReadBlocks (
                           BlockIo,
                           (UINT32)CoreRbp->Argument2,
-                          (EFI_LBA)CoreRbp->Argument3,
-                          Argument4,
+                          (EFI_LBA)Attributes,
+                          CoreRbp->Argument3,
                           (VOID *)Argument5
                           );
       DisableSMAP ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
       EnableSMAP ();
 
       FreePool ((VOID *)Argument5);
@@ -857,9 +857,9 @@ CallBootService (
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
       // Argument 2: UINT32                MediaId
-      // Argument 3: EFI_LBA               Lba
-      // Argument 4: UINTN                 BufferSize
-      // Argument 5: VOID                 *Buffer
+      // Argument 3: UINTN                 BufferSize
+      // Argument 4: VOID                  *Buffer
+      // Argument 5: EFI_LBA               Lba
       //
       BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
 
@@ -870,29 +870,27 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
-      Argument4 = UserRsp->Arguments[4];
-      EnableSMAP ();
-
-      Argument5 = (UINTN)AllocatePool (Argument4);
+      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
         return EFI_OUT_OF_RESOURCES;
       }
 
       DisableSMAP ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[5], Argument4);
+      CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
+
+      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
       EnableSMAP ();
 
       Status = BlockIo->WriteBlocks (
                           BlockIo,
                           (UINT32)CoreRbp->Argument2,
-                          (EFI_LBA)CoreRbp->Argument3,
-                          Argument4,
+                          (EFI_LBA)Attributes,
+                          CoreRbp->Argument3,
                           (VOID *)Argument5
                           );
 
@@ -916,9 +914,9 @@ CallBootService (
       //
       // Argument 1: EFI_DISK_IO_PROTOCOL  *This
       // Argument 2: UINT32                MediaId
-      // Argument 3: UINT64                Offset
-      // Argument 4: UINTN                 BufferSize
-      // Argument 5: VOID                 *Buffer
+      // Argument 3: UINTN                 BufferSize
+      // Argument 4: VOID                  *Buffer
+      // Argument 5: UINT64                Offset
       //
       DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
 
@@ -930,10 +928,10 @@ CallBootService (
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       DisableSMAP ();
-      Argument4 = UserRsp->Arguments[4];
+      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
       EnableSMAP ();
 
-      Argument5 = (UINTN)AllocatePool (Argument4);
+      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
         return EFI_OUT_OF_RESOURCES;
       }
@@ -941,17 +939,17 @@ CallBootService (
       Status = DiskIo->ReadDisk (
                          DiskIo,
                          (UINT32)CoreRbp->Argument2,
-                         (UINT64)CoreRbp->Argument3,
-                         Argument4,
+                         Attributes,
+                         CoreRbp->Argument3,
                          (VOID *)Argument5
                          );
       DisableSMAP ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
       EnableSMAP ();
 
       FreePool ((VOID *)Argument5);
@@ -962,9 +960,9 @@ CallBootService (
       //
       // Argument 1: EFI_DISK_IO_PROTOCOL  *This
       // Argument 2: UINT32                MediaId
-      // Argument 3: UINT64                Offset
-      // Argument 4: UINTN                 BufferSize
-      // Argument 5: VOID                 *Buffer
+      // Argument 3: UINTN                 BufferSize
+      // Argument 4: VOID                  *Buffer
+      // Argument 5: UINT64                Offset
       //
       DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
 
@@ -975,29 +973,27 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
-      Argument4 = UserRsp->Arguments[4];
-      EnableSMAP ();
-
-      Argument5 = (UINTN)AllocatePool (Argument4);
+      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
         return EFI_OUT_OF_RESOURCES;
       }
 
       DisableSMAP ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[5], Argument4);
+      CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
+
+      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
       EnableSMAP ();
 
       Status = DiskIo->WriteDisk (
                          DiskIo,
                          (UINT32)CoreRbp->Argument2,
-                         (UINT64)CoreRbp->Argument3,
-                         Argument4,
+                         Attributes,
+                         CoreRbp->Argument3,
                          (VOID *)Argument5
                          );
 
