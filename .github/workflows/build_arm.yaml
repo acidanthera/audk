@@ -11,7 +11,7 @@ env:
   PROJECT_TYPE: UEFI
   FORCE_INSTALL: 1
   WERROR: 1
-  QEMU_VERSION_TAG: qemu-ci-8.0.0-r2
+  QEMU_VERSION_TAG: qemu-ci-8.1.3-r1
   WINPE_VERSION_TAG: images-winpe-1.0
 
 jobs:
@@ -239,12 +239,12 @@ jobs:
         with:
           repository: "acidanthera/OcBinaryData"
           tag: ${{ env.QEMU_VERSION_TAG }}
-          fileName: "qemu.tar.xz"
+          fileName: "qemu-8.1.3.tar.xz"
 
       - name: Installing QEMU and add to PATH
         run: |
-          echo "${HOME}/qemu/bin" >> $GITHUB_PATH
-          tar -xJf ./qemu.tar.xz -C $HOME
+          echo "${HOME}/qemu-8.1.3/bin" >> $GITHUB_PATH
+          tar -xJf ./qemu-8.1.3.tar.xz -C $HOME
 
       - name: Download a single artifact
         uses: actions/download-artifact@v3
