@@ -12,8 +12,6 @@ extern ASM_PFX(gCoreSysCallStackTop)
 extern ASM_PFX(gRing3CallStackTop)
 extern ASM_PFX(gRing3EntryPoint)
 
-extern ASM_PFX(AsmReadMsr64)
-
 DEFAULT REL
 SECTION .text
 
@@ -79,9 +77,8 @@ ASM_PFX(CallInstallMultipleProtocolInterfaces):
 copy:
     sub     rax, 8
     push qword [rax]
-    cmp     r10, 0
     sub     r10, 1
-    jne     copy
+    jnz     copy
     push    rcx
 
     call    r11
@@ -96,7 +93,9 @@ copy:
 
 %macro SetRing3DataSegmentSelectors 0
     mov     rcx, MSR_IA32_STAR
-    call ASM_PFX(AsmReadMsr64)
+    rdmsr
+    shl     rdx, 0x20
+    or      rax, rdx
     ; rax = ((RING3_CODE64_SEL - 16) << 16 | RING0_CODE64_SEL) << 32
     shr     rax, 48
     add     rax, 8
@@ -197,19 +196,23 @@ ASM_PFX(CallRing3):
     pop     r11
     cli
 
+    ; Save Core Stack pointers.
+    mov     [ASM_PFX(CoreRsp)], rsp
+    mov     [ASM_PFX(CoreRbp)], rbp
+
     ; Save input Arguments.
-    push    rcx
+    mov     r8, [ASM_PFX(gRing3CallStackTop)]
+    mov     r9, [ASM_PFX(gRing3EntryPoint)]
+    mov     r10, rcx
 
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSRET arguments.
-    mov     rcx, [ASM_PFX(gRing3EntryPoint)]
-    pop     rdx
+    mov     rdx, r10
+    mov     rcx, r9
 
-    ; Save Core Stack pointers and switch to User Stack.
-    mov     [ASM_PFX(CoreRsp)], rsp
-    mov     [ASM_PFX(CoreRbp)], rbp
-    mov     rsp, [ASM_PFX(gRing3CallStackTop)]
+    ; Switch to User Stack.
+    mov     rsp, r8
     mov     rbp, rsp
 
     ; Pass control to user image
