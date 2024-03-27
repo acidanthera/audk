@@ -125,17 +125,13 @@ ifeq ($(HOST_ARCH), X64)
   CPPFLAGS += "-DEFIAPI=__attribute__((ms_abi))"
 endif
 
-ifeq ($(HOST_ARCH), IA32)
 #
-# Snow Leopard  is a 32-bit and 64-bit environment. uname -m returns i386, but gcc defaults
-#  to x86_64. So make sure tools match uname -m. You can manual have a 64-bit kernal on Snow Leopard
-#  so only do this is uname -m returns i386.
+# Provide fat binaries on Darwin
 #
 ifeq ($(DARWIN),Darwin)
-  CFLAGS   += -arch i386
-  CPPFLAGS += -arch i386
-  LDFLAGS  += -arch i386
-endif
+  CFLAGS        += -arch x86_64 -arch arm64 -mmacosx-version-min=10.9
+  CPPFLAGS      += -arch x86_64 -arch arm64 -mmacosx-version-min=10.9
+  EXTRA_LDFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=10.9
 endif
 
 CFLAGS += -DUEFI_IMAGE_FORMAT_SUPPORT_SOURCES=0x02
