@@ -129,9 +129,9 @@ endif
 # Provide FAT binaries on Darwin
 #
 ifeq ($(DARWIN),Darwin)
-  CFLAGS   += -arch x86_64 -arch arm64 -mmacosx-version-min=10.13
+  CFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=10.13
   CPPFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=10.13
-  LDFLAGS  += -arch x86_64 -arch arm64 -mmacosx-version-min=10.13
+  EXTRA_LDFLAGS += -arch x86_64 -arch arm64 -mmacosx-version-min=10.13
 endif
 
 CFLAGS += -DUEFI_IMAGE_FORMAT_SUPPORT_SOURCES=0x02
