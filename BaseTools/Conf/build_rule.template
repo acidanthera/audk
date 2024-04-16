@@ -308,7 +308,7 @@
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(DLINK2_FLAGS)
 
     <Command.XCODE>
-        "$(DLINK)" $(DLINK_FLAGS) -o ${dst} $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
+        "$(DLINK)" $(DLINK_FLAGS) -o ${dst} -object_path_lto ${dst}.lto $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
 
 
 [Static-Library-File.SEC, Static-Library-File.PEI_CORE, Static-Library-File.PEIM]
@@ -346,7 +346,7 @@
         "$(DLINK)" $(DLINK_FLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(DLINK2_FLAGS)
 
     <Command.XCODE>
-        "$(DLINK)" -o ${dst} $(DLINK_FLAGS)  $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
+        "$(DLINK)" -o ${dst} -object_path_lto ${dst}.lto $(DLINK_FLAGS)  $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
 
 [Static-Library-File.HOST_APPLICATION]
     <InputFile>
