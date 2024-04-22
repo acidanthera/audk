@@ -626,6 +626,11 @@
     gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
   !endif
 
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
+
 ################################################################################
 #
 # Pcd Dynamic Section - list of all EDK II PCD Entries defined by this Platform

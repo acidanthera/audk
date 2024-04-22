@@ -2305,17 +2305,23 @@
   # @Prompt Remove X permission from WX sections.
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|FALSE|BOOLEAN|0x40001021
 
-  ## Indicates the UEFI image file formats supported outside FVs.<BR><BR>
+  ## Indicates the UEFI image file formats supported outside FVs.
+  #  UE is experimental and not enabled by default.
+  #  For correct usage in a platform which opts in to UE support, this should
+  #  be overridden globally, not within individual modules.<BR><BR>
   #  BIT0 - PE.<BR>
   #  BIT1 - UE.<BR>
   # @Prompt Supported UEFI image file formats outside FVs.
-  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv|0x02|UINT8|0x40002000
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv|0x01|UINT8|0x40002000
 
-  ## Indicates the UEFI image file formats supported inside FVs.<BR><BR>
+  ## Indicates the UEFI image file formats supported inside FVs.
+  #  UE is experimental and not enabled by default.
+  #  For correct usage in a platform which opts in to UE support, this should
+  #  be overridden globally, not within individual modules.<BR><BR>
   #  BIT0 - PE.<BR>
   #  BIT1 - UE.<BR>
   # @Prompt Supported UEFI image file formats inside FVs.
-  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03|UINT8|0x40002001
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x01|UINT8|0x40002001
 
   ## Set image protection policy. The policy is applied for each source individually.
   #  If a bit is set, aligned images from this source will be protected and
