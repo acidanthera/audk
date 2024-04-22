@@ -1235,7 +1235,7 @@ CoreLoadImageCommon (
              &ImageContext,
              FHand.Source,
              (UINT32) FHand.SourceSize,
-             UEFI_IMAGE_SOURCE_FV,
+             ImageIsFromFv ? UEFI_IMAGE_SOURCE_FV : UEFI_IMAGE_SOURCE_NON_FV,
              ImageOrigin
              );
   if (EFI_ERROR (Status)) {
