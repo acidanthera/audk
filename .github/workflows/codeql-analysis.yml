@@ -12,6 +12,7 @@ on:
   push:
     branches:
       - master
+      - build-0.8.7
   pull_request:
     branches:
       - master
