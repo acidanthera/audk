@@ -329,14 +329,19 @@ CoreFileSetPosition (
            File->Ring3File,
            Position
            );
-#endif
-
-#if defined (MDE_CPU_IA32)
+#elif defined (MDE_CPU_IA32)
   //
   // UINT64 Position is passed as 2 double words on stack.
   //
   return GoToRing3 (
            3,
+           (VOID *)mRing3FileProtocol.SetPosition,
+           File->Ring3File,
+           Position
+           );
+#else
+  return GoToRing3 (
+           2,
            (VOID *)mRing3FileProtocol.SetPosition,
            File->Ring3File,
            Position
@@ -607,14 +612,22 @@ CoreFileOpen (
              OpenMode,
              Attributes
              );
-#endif
-
-#if defined (MDE_CPU_IA32)
+#elif defined (MDE_CPU_IA32)
   //
   // UINT64 OpenMode and Attributes are each passed as 2 double words on stack.
   //
   Status = GoToRing3 (
              7,
+             (VOID *)mRing3FileProtocol.Open,
+             File->Ring3File,
+             Ring3NewHandle,
+             Ring3FileName,
+             OpenMode,
+             Attributes
+             );
+#else
+  Status = GoToRing3 (
+             5,
              (VOID *)mRing3FileProtocol.Open,
              File->Ring3File,
              Ring3NewHandle,
