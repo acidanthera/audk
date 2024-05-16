@@ -39,6 +39,7 @@ READ_LOCK_CAP      = TRUE
 READ_LOCK_STATUS   = TRUE
 
 APRIORI DXE {
+  INF MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
   INF MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
 }
 
