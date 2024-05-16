@@ -385,13 +385,27 @@ EfiAttributeToArmAttribute (
   }
 
   // Determine protection attributes
-  if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
-    ArmAttributes |= TT_AP_NO_RO;
+  if ((EfiAttributes & EFI_MEMORY_USER) != 0) {
+    ArmAttributes |= TT_PXN_MASK;
+
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_AP_RO_RO;
+    } else {
+      ArmAttributes |= TT_AP_RW_RW;
+    }
+  } else {
+    ArmAttributes |= TT_UXN_MASK;
+
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_AP_NO_RO;
+    } else {
+      ArmAttributes |= TT_AP_NO_RW;
+    }
   }
 
   // Process eXecute Never attribute
   if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
-    ArmAttributes |= TT_PXN_MASK;
+    ArmAttributes |= TT_PXN_MASK | TT_UXN_MASK;
   }
 
   return ArmAttributes;

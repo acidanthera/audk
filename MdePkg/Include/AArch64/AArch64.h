@@ -28,6 +28,7 @@
 
 // ID_AA64MMFR1 - AArch64 Memory Model Feature Register 0 definitions
 #define AARCH64_MMFR1_VH  (0xF << 8)
+#define AARCH64_MMFR1_PAN (0xF << 20)
 
 // ID_AA64PFR0 - AArch64 Processor Feature Register 0 definitions
 #define AARCH64_PFR0_FP   (0xF << 16)
@@ -239,6 +240,21 @@ ArmReadHcr (
 UINTN
 ArmReadCurrentEL (
   VOID
+  );
+
+VOID
+ArmSetPan (
+  VOID
+  );
+
+VOID
+ArmClearPan (
+  VOID
+  );
+
+UINTN
+ArmWriteCptr (
+  IN  UINT64  Cptr
   );
 
 UINT32

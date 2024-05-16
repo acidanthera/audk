@@ -475,12 +475,26 @@ GcdAttributeToPageAttribute (
     }
   }
 
-  if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
-    PageAttributes |= TT_AP_NO_RO;
-  }
-
   if ((GcdAttributes & EFI_MEMORY_RP) == 0) {
     PageAttributes |= TT_AF;
+  }
+
+  if ((GcdAttributes & EFI_MEMORY_USER) != 0) {
+    PageAttributes |= TT_PXN_MASK;
+
+    if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
+      PageAttributes |= TT_AP_RO_RO;
+    } else {
+      PageAttributes |= TT_AP_RW_RW;
+    }
+  } else {
+    PageAttributes |= TT_UXN_MASK;
+
+    if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
+      PageAttributes |= TT_AP_NO_RO;
+    } else {
+      PageAttributes |= TT_AP_NO_RW;
+    }
   }
 
   return PageAttributes;
