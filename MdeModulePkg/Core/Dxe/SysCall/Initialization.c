@@ -50,8 +50,14 @@ InitializeRing3 (
   gRing3Data = (RING3_DATA *)(UINTN)Physical;
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
+  //
+  // Initialize DxeRing3 with Supervisor privileges.
+  //
+  ChangeUefiImageRing (&Image->Info, Image->LoadedImageDevicePath, FALSE);
 
   Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gRing3Data);
+
+  ChangeUefiImageRing (&Image->Info, Image->LoadedImageDevicePath, TRUE);
 
   gRing3EntryPoint = gRing3Data->EntryPoint;
 

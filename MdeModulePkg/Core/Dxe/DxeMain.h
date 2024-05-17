@@ -2637,6 +2637,20 @@ UnprotectUefiImage (
   );
 
 /**
+  Change UEFI image owner: Supervisor / Privileged or User / Unprivileged.
+
+  @param[in]  LoadedImage              The loaded image protocol
+  @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[in]  IsUser                   Whether UEFI image record is User Image.
+**/
+VOID
+ChangeUefiImageRing (
+  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
+  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath,
+  IN BOOLEAN                    IsUser
+  );
+
+/**
   ExitBootServices Callback function for memory protection.
 **/
 VOID

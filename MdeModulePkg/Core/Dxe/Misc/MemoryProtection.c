@@ -295,6 +295,44 @@ UnprotectUefiImage (
 }
 
 /**
+  Change UEFI image owner: Supervisor / Privileged or User / Unprivileged.
+
+  @param[in]  LoadedImage              The loaded image protocol
+  @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[in]  IsUser                   Whether UEFI image record is User Image.
+**/
+VOID
+ChangeUefiImageRing (
+  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
+  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath,
+  IN BOOLEAN                    IsUser
+  )
+{
+  UEFI_IMAGE_RECORD          *ImageRecord;
+  LIST_ENTRY                 *ImageRecordLink;
+
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink)
+    {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+
+    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+      ASSERT (gCpu != NULL);
+
+      SetUefiImageProtectionAttributes (ImageRecord, IsUser);
+
+      return;
+    }
+  }
+}
+
+/**
   Return the EFI memory permission attribute associated with memory
   type 'MemoryType' under the configured DXE memory protection policy.
 
