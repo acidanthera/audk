@@ -41,3 +41,21 @@ InitializeMsr (
     ASSERT (FALSE);
   }
 }
+
+VOID
+EFIAPI
+DisableSMAP (
+  VOID
+  )
+{
+  ArmClearPan ();
+}
+
+VOID
+EFIAPI
+EnableSMAP (
+  VOID
+  )
+{
+  ArmSetPan ();
+}

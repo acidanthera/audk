@@ -95,6 +95,12 @@ PageAttributeToGcdAttribute (
     GcdAttributes |= EFI_MEMORY_XP;
   }
 
+  if (((PageAttributes & TT_AP_MASK) == TT_AP_RW_RW) ||
+      ((PageAttributes & TT_AP_MASK) == TT_AP_RO_RO))
+  {
+    GcdAttributes |= EFI_MEMORY_USER;
+  }
+
   return GcdAttributes;
 }
 

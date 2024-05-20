@@ -278,6 +278,7 @@ STATIC EFI_CPU_ARCH_PROTOCOL  mCpu = {
   CpuSetMemoryAttributes,
   0,          // NumberOfTimers
   2048,       // DmaBufferAlignment
+  CpuGetMemoryAttributes
 };
 
 STATIC

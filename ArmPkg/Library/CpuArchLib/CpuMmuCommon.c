@@ -266,3 +266,28 @@ CpuSetMemoryAttributes (
     return EFI_SUCCESS;
   }
 }
+
+EFI_STATUS
+EFIAPI
+CpuGetMemoryAttributes (
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  EFI_PHYSICAL_ADDRESS   Address,
+  OUT UINT64                 *Attributes
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       RegionBaseAddress;
+  UINTN       RegionLength;
+  UINTN       RegionArmAttributes;
+
+  RegionBaseAddress = Address;
+  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes);
+
+  if (EFI_ERROR (Status)) {
+    return EFI_NOT_FOUND;
+  }
+
+  *Attributes = RegionAttributeToGcdAttribute (RegionArmAttributes);
+
+  return Status;
+}
