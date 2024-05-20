@@ -47,7 +47,37 @@ ASM_FUNC(CoreBootServices)
 //   IN RING3_CALL_DATA *Data
 //   );
 //
-//   (rcx) Data
+//   (x0) Data
+//   (x1) gRing3CallStackTop
+//   (x2) gRing3EntryPoint
 //------------------------------------------------------------------------------
-ASM_FUNC(CallRing3)
-    ret
+ASM_FUNC(ArmCallRing3)
+  // Disable interrupts
+  msr  daifset, #0xf
+  isb
+
+  // Use SP_ELx for Exception level ELx.
+  msr  SPsel, #1
+
+  msr  sp_el0, x1
+
+  msr  elr_el1, x2
+
+  // Copy PSTATE to SPSR.
+  mrs  x1, nzcv
+  mrs  x2, pan
+  orr  x1, x1, x2
+  mrs  x2, daif
+  orr  x1, x1, x2
+  //
+  // M[3:0], bits [3:0] AArch64 Exception level and selected Stack Pointer.
+  // 0b0000 - EL0.
+  // 0b0100 - EL1 with SP_EL0 (ELt).
+  // 0b0101 - EL1 with SP_EL1 (EL1h).
+  //
+  msr  spsr_el1, x1
+
+  isb
+  dsb sy
+
+  eret
