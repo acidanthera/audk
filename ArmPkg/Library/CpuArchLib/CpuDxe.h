@@ -97,6 +97,14 @@ CpuSetMemoryAttributes (
   );
 
 EFI_STATUS
+EFIAPI
+CpuGetMemoryAttributes (
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  EFI_PHYSICAL_ADDRESS   Address,
+  OUT UINT64                 *Attributes
+  );
+
+EFI_STATUS
 InitializeExceptions (
   VOID
   );
