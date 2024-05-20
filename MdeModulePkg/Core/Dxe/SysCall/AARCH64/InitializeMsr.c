@@ -10,6 +10,14 @@
 
 #include "DxeMain.h"
 
+EFI_STATUS
+EFIAPI
+ArmCallRing3 (
+  IN RING3_CALL_DATA *Data,
+  IN VOID            *StackPointer,
+  IN VOID            *EntryPoint
+  );
+
 VOID
 EFIAPI
 InitializeMsr (
@@ -58,4 +66,13 @@ EnableSMAP (
   )
 {
   ArmSetPan ();
+}
+
+EFI_STATUS
+EFIAPI
+CallRing3 (
+  IN RING3_CALL_DATA *Data
+  )
+{
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint);
 }

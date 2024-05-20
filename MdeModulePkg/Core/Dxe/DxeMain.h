@@ -277,6 +277,8 @@ extern VOID                              *gRing3Interfaces;
 extern VOID                              *gCoreSysCallStackBase;
 extern VOID                              *gCoreSysCallStackTop;
 extern VOID                              *gRing3CallStackBase;
+extern VOID                              *gRing3CallStackTop;
+extern VOID                              *gRing3EntryPoint;
 
 //
 // Service Initialization Functions

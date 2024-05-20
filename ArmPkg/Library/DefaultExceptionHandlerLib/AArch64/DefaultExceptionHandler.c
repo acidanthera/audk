@@ -8,6 +8,8 @@
 
 **/
 
+#include <Chipset/AArch64.h>
+
 #include <Uefi.h>
 #include <Library/UefiLib.h>
 #include <Library/BaseLib.h>
@@ -231,6 +233,8 @@ DefaultExceptionHandler (
   } else {
     DEBUG ((DEBUG_ERROR, "PC 0x%012lx\n", SystemContext.SystemContextAArch64->ELR));
   }
+
+  ArmClearPan ();
 
   if ((UINT64 *)SystemContext.SystemContextAArch64->FP != 0) {
     Idx = 0;
