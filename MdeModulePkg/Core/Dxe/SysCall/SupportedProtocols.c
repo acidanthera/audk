@@ -322,7 +322,7 @@ CoreFileSetPosition (
 
   File = (RING3_EFI_FILE_PROTOCOL *)This;
 
-#if defined (MDE_CPU_X64)
+#if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   return GoToRing3 (
            2,
            (VOID *)mRing3FileProtocol.SetPosition,
@@ -602,7 +602,7 @@ CoreFileOpen (
     return Status;
   }
 
-#if defined (MDE_CPU_X64)
+#if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   Status = GoToRing3 (
              5,
              (VOID *)mRing3FileProtocol.Open,

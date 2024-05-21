@@ -1391,3 +1391,18 @@ CallBootService (
 
   return EFI_UNSUPPORTED;
 }
+
+EFI_STATUS
+EFIAPI
+SysCallBootService (
+  IN  UINT8  Type,
+  IN  VOID   *CoreRbp,
+  IN  VOID   *UserRsp
+  )
+{
+  return CallBootService (
+           Type,
+           (CORE_STACK *)CoreRbp,
+           (RING3_STACK *)UserRsp
+           );
+}

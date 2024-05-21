@@ -252,7 +252,7 @@ ArchVectorConfig (
   @param[in]      ExceptionType  AArch64 exception type or interrupt vector number.
   @param[in,out]  SystemContext  Saved CPU context at the time of the exception.
 **/
-VOID
+EFI_STATUS
 EFIAPI
 CommonCExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
@@ -262,14 +262,14 @@ CommonCExceptionHandler (
   if ((UINTN)ExceptionType <= mMaxExceptionNumber) {
     if (mExceptionHandlers[ExceptionType] != NULL) {
       mExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
-      return;
+      return EFI_SUCCESS;
     }
   } else {
     DEBUG ((DEBUG_ERROR, "Unknown exception type %d\n", ExceptionType));
     ASSERT (FALSE);
   }
 
-  DumpCpuContext (ExceptionType, SystemContext);
+  return DumpCpuContext (ExceptionType, SystemContext);
 }
 
 //
@@ -286,7 +286,8 @@ CommonCExceptionHandler (
   @param[in]      ExceptionType  AArch64 exception type or interrupt vector number.
   @param[in,out]  SystemContext  Saved CPU context at the time of the exception.
 **/
-VOID
+EFI_STATUS
+EFIAPI
 DumpCpuContext (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
@@ -296,6 +297,14 @@ DumpCpuContext (
   CHAR16  UnicodeBuffer[MAX_PRINT_CHARS];
   UINTN   CharCount;
   INT32   Offset;
+
+  if (AARCH64_ESR_EC (SystemContext.SystemContextAArch64->ESR) == AARCH64_ESR_EC_SVC64) {
+    return gBS->SysCallBootService (
+                  SystemContext.SystemContextAArch64->X0,
+                  &(SystemContext.SystemContextAArch64->X1),
+                  &(SystemContext.SystemContextAArch64->X0)
+                  );
+  }
 
   if (mRecursiveException) {
     STATIC CHAR8 CONST  Message[] = "\nRecursive exception occurred while dumping the CPU state\n";
@@ -442,6 +451,8 @@ DumpCpuContext (
 
   ASSERT (FALSE);
   CpuDeadLoop ();
+
+  return EFI_SUCCESS;
 }
 
 /**
