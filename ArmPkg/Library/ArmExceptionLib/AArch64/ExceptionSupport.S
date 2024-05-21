@@ -315,7 +315,18 @@ ASM_PFX(CommonExceptionEntry):
   ldp      x22, x23, [sp, #0xb0]
   ldp      x24, x25, [sp, #0xc0]
   ldp      x26, x27, [sp, #0xd0]
+  // Preserve return value for SVC.
+  mrs      x1, esr_el1
+  lsr      x1, x1, #26
+  and      x1, x1, #0x3F
+  cmp      x1, #0x15
+  b.eq     is_SVC
+
   ldp      x0,  x1,  [sp], #0xe0
+  b        continue
+is_SVC:
+  ldr      x1, [sp, #0x8]
+continue:
 
   // Pop FP regs from Stack.
   ldp      q2,  q3,  [x28, #0x20]

@@ -2736,6 +2736,14 @@ CoreBootServices (
 
 EFI_STATUS
 EFIAPI
+SysCallBootService (
+  IN  UINT8  Type,
+  IN  VOID   *CoreRbp,
+  IN  VOID   *UserRsp
+  );
+
+EFI_STATUS
+EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data
   );

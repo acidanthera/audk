@@ -23,26 +23,6 @@ ASM_FUNC(CallInstallMultipleProtocolInterfaces)
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
-// CoreBootServices (
-//   IN  UINT8  Type,
-//   ...
-//   );
-//
-//   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
-//   (rdx) Argument 1 of the called function.
-//   (r8)  Argument 2 of the called function.
-//   (r9)  Argument 3 of the called function.
-//   (r10) Type.
-//   (r11) RFLAGS saved by SYSCALL in SysCall().
-//
-//   (On User Stack) Argument 4, 5, ...
-//------------------------------------------------------------------------------
-ASM_FUNC(CoreBootServices)
-    ret
-
-//------------------------------------------------------------------------------
-// EFI_STATUS
-// EFIAPI
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data
 //   );

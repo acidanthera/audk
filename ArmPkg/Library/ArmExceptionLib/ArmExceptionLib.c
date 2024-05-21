@@ -131,7 +131,7 @@ RegisterCpuInterruptHandler (
   return RETURN_SUCCESS;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 CommonCExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
@@ -141,14 +141,14 @@ CommonCExceptionHandler (
   if ((UINTN)ExceptionType <= gMaxExceptionNumber) {
     if (gExceptionHandlers[ExceptionType]) {
       gExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
-      return;
+      return EFI_SUCCESS;
     }
   } else {
     DEBUG ((DEBUG_ERROR, "Unknown exception type %d\n", ExceptionType));
     ASSERT (FALSE);
   }
 
-  DefaultExceptionHandler (ExceptionType, SystemContext);
+  return DefaultExceptionHandler (ExceptionType, SystemContext);
 }
 
 /**

@@ -185,7 +185,8 @@ BaseName (
   @param  SystemContext    Register state at the time of the Exception
 
 **/
-VOID
+EFI_STATUS
+EFIAPI
 DefaultExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
@@ -195,6 +196,14 @@ DefaultExceptionHandler (
   CHAR16  UnicodeBuffer[MAX_PRINT_CHARS];
   UINTN   CharCount;
   INT32   Offset;
+
+  if (AARCH64_ESR_EC (SystemContext.SystemContextAArch64->ESR) == AARCH64_ESR_EC_SVC64) {
+    return gBS->SysCallBootService (
+                  SystemContext.SystemContextAArch64->X0,
+                  &(SystemContext.SystemContextAArch64->X1),
+                  &(SystemContext.SystemContextAArch64->X0)
+                  );
+  }
 
   if (mRecursiveException) {
     STATIC CHAR8 CONST  Message[] = "\nRecursive exception occurred while dumping the CPU state\n";
@@ -343,4 +352,6 @@ DefaultExceptionHandler (
 
   ASSERT (FALSE);
   CpuDeadLoop ();
+
+  return EFI_SUCCESS;
 }

@@ -16,7 +16,8 @@
   @param  SystemContext    Register state at the time of the Exception
 
 **/
-VOID
+EFI_STATUS
+EFIAPI
 DefaultExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext

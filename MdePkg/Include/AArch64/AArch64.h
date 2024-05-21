@@ -74,6 +74,7 @@
 #define AARCH64_ESR_ISS(Ecr)  ((0x1FFFFFF) & (Ecr))
 
 #define AARCH64_ESR_EC_SMC32  (0x13 << 26)
+#define AARCH64_ESR_EC_SVC64  (0x15 << 26)
 #define AARCH64_ESR_EC_SMC64  (0x17 << 26)
 
 // AArch64 Exception Level
