@@ -776,6 +776,15 @@ CoreExitBootServices (
   // Free resources allocated for Ring3.
   //
   if (gRing3Data != NULL) {
+    DisableSMAP ();
+    if (gRing3Data->SystemTable.ConfigurationTable != NULL) {
+      CoreFreePages (
+        (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data->SystemTable.ConfigurationTable,
+        EFI_SIZE_TO_PAGES (gRing3Data->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE))
+      );
+    }
+    EnableSMAP ();
+
     CoreFreePages (
       (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
       EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
