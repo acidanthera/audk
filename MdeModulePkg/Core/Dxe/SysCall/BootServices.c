@@ -8,6 +8,8 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
+UINTN  CoreSp;
+
 LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
@@ -63,6 +65,13 @@ CallInstallMultipleProtocolInterfaces (
   IN VOID        **ArgList,
   IN UINT32      ArgListSize,
   IN VOID        *Function
+  );
+
+VOID
+EFIAPI
+ReturnToCore (
+  IN EFI_STATUS Status,
+  IN UINTN      CoreSp
   );
 
 VOID
@@ -1402,6 +1411,10 @@ SysCallBootService (
 {
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    Physical;
+
+  if (Type == SysCallReturnToCore) {
+    ReturnToCore (*(EFI_STATUS *)CoreRbp, CoreSp);
+  }
 
   Status = CoreAllocatePages (
              AllocateAnyPages,

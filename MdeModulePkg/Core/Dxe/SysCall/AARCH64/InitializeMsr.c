@@ -10,12 +10,16 @@
 
 #include "DxeMain.h"
 
+extern UINTN  CoreSp;
+
 EFI_STATUS
 EFIAPI
 ArmCallRing3 (
   IN RING3_CALL_DATA *Data,
   IN VOID            *StackPointer,
-  IN VOID            *EntryPoint
+  IN VOID            *EntryPoint,
+  IN VOID            *SysCallStack,
+  IN VOID            *CoreStack
   );
 
 VOID
@@ -74,5 +78,5 @@ CallRing3 (
   IN RING3_CALL_DATA *Data
   )
 {
-  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint);
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &CoreSp);
 }

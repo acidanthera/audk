@@ -30,18 +30,22 @@ ASM_FUNC(CallInstallMultipleProtocolInterfaces)
 //   (x0) Data
 //   (x1) gRing3CallStackTop
 //   (x2) gRing3EntryPoint
+//   (x3) gCoreSysCallStackTop
+//   (x4) &CoreSp
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
+  // Save FP and LR on Core Stack.
+  stp	x29, x30, [sp, #-0x10]!
   // Disable interrupts
   msr  daifset, #0xf
   isb
-
-  // Use SP_ELx for Exception level ELx.
-  msr  SPsel, #1
-
+  // Prepare Ring3 SP and EntryPoint.
   msr  sp_el0, x1
-
   msr  elr_el1, x2
+  // Save Core SP and switch to Ring3Call Stack.
+  mov  x5, sp
+  str  x5, [x4]
+  mov  sp, x3
 
   // Copy PSTATE to SPSR.
   mrs  x1, nzcv
@@ -61,3 +65,19 @@ ASM_FUNC(ArmCallRing3)
   dsb sy
 
   eret
+
+//------------------------------------------------------------------------------
+// VOID
+// EFIAPI
+// ReturnToCore (
+//   IN EFI_STATUS Status,
+//   IN UINTN      CoreSp
+//   );
+//------------------------------------------------------------------------------
+ASM_FUNC(ReturnToCore)
+  // Switch to Core Stack.
+  mov  sp, x1
+  // Restore Stack.
+  ldp	 x29, x30, [sp]
+  add	 sp, sp, #0x10
+  ret
