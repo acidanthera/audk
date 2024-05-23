@@ -28,6 +28,14 @@
 //
 #define MAX_PRINT_CHARS  100
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
+  IN  UINT8             Type,
+  IN  VOID              *CoreRbp,
+  IN  VOID              *UserRsp
+  );
+
 STATIC CHAR8  *gExceptionTypeString[] = {
   "Synchronous",
   "IRQ",
@@ -35,7 +43,8 @@ STATIC CHAR8  *gExceptionTypeString[] = {
   "SError"
 };
 
-STATIC BOOLEAN  mRecursiveException;
+STATIC BOOLEAN                    mRecursiveException;
+STATIC EFI_SYS_CALL_BOOT_SERVICE  mSysCallHandler;
 
 CONST CHAR8 *
 GetImageName (
@@ -176,6 +185,15 @@ BaseName (
   return Str;
 }
 
+VOID
+EFIAPI
+InitializeSysCallHandler (
+  IN VOID  *Handler
+  )
+{
+  mSysCallHandler = (EFI_SYS_CALL_BOOT_SERVICE)Handler;
+}
+
 /**
   This is the default action to take on an unexpected exception
 
@@ -198,11 +216,11 @@ DefaultExceptionHandler (
   INT32   Offset;
 
   if (AARCH64_ESR_EC (SystemContext.SystemContextAArch64->ESR) == AARCH64_ESR_EC_SVC64) {
-    return gBS->SysCallBootService (
-                  SystemContext.SystemContextAArch64->X0,
-                  &(SystemContext.SystemContextAArch64->X1),
-                  &(SystemContext.SystemContextAArch64->X0)
-                  );
+    return mSysCallHandler (
+             SystemContext.SystemContextAArch64->X0,
+             &(SystemContext.SystemContextAArch64->X1),
+             &(SystemContext.SystemContextAArch64->X0)
+             );
   }
 
   if (mRecursiveException) {

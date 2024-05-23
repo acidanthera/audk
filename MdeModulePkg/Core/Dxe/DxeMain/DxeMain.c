@@ -89,8 +89,7 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_CALCULATE_CRC32)CoreEfiNotAvailableYetArg3,                                        // CalculateCrc32
   (EFI_COPY_MEM)CopyMem,                                                                  // CopyMem
   (EFI_SET_MEM)SetMem,                                                                    // SetMem
-  (EFI_CREATE_EVENT_EX)CoreCreateEventEx,                                                 // CreateEventEx
-  (EFI_SYS_CALL_BOOT_SERVICE)SysCallBootService
+  (EFI_CREATE_EVENT_EX)CoreCreateEventEx                                                  // CreateEventEx
 };
 
 EFI_DXE_SERVICES  mDxeServices = {

@@ -7,10 +7,11 @@
 
 #include <Chipset/AArch64.h>
 #include <Library/ArmLib.h>
+#include <Library/DefaultExceptionHandlerLib.h>
 
 #include "DxeMain.h"
 
-extern UINTN  CoreSp;
+UINTN  CoreSp;
 
 EFI_STATUS
 EFIAPI
@@ -21,6 +22,53 @@ ArmCallRing3 (
   IN VOID            *SysCallStack,
   IN VOID            *CoreStack
   );
+
+VOID
+EFIAPI
+ReturnToCore (
+  IN EFI_STATUS Status,
+  IN UINTN      CoreSp
+  );
+
+EFI_STATUS
+EFIAPI
+SysCallBootService (
+  IN  UINT8  Type,
+  IN  VOID   *CoreRbp,
+  IN  VOID   *UserRsp
+  )
+{
+  EFI_STATUS              Status;
+  EFI_PHYSICAL_ADDRESS    Physical;
+
+  if (Type == SysCallReturnToCore) {
+    ReturnToCore (*(EFI_STATUS *)CoreRbp, CoreSp);
+  }
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
+             &Physical
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  DisableSMAP ();
+  CopyMem ((VOID *)(UINTN)Physical, (VOID *)UserRsp, 8 * sizeof (UINTN));
+  EnableSMAP ();
+
+  Status = CallBootService (
+             Type,
+             (CORE_STACK *)CoreRbp,
+             (RING3_STACK *)(UINTN)Physical
+             );
+
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)));
+
+  return Status;
+}
 
 VOID
 EFIAPI
@@ -52,6 +100,8 @@ InitializeMsr (
     DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
     ASSERT (FALSE);
   }
+
+  InitializeSysCallHandler ((VOID *)SysCallBootService);
 }
 
 VOID

@@ -23,4 +23,10 @@ DefaultExceptionHandler (
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
   );
 
+VOID
+EFIAPI
+InitializeSysCallHandler (
+  IN VOID  *Handler
+  );
+
 #endif // DEFAULT_EXCEPTION_HANDLER_LIB_H_

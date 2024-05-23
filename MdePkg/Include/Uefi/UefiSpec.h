@@ -1840,14 +1840,6 @@ EFI_STATUS
   OUT UINT64            *MaximumVariableSize
   );
 
-typedef
-EFI_STATUS
-(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
-  IN  UINT8             Type,
-  IN  VOID              *CoreRbp,
-  IN  VOID              *UserRsp
-  );
-
 //
 // Firmware should stop at a firmware user interface on next boot
 //
@@ -2031,7 +2023,6 @@ typedef struct {
   EFI_COPY_MEM                                  CopyMem;
   EFI_SET_MEM                                   SetMem;
   EFI_CREATE_EVENT_EX                           CreateEventEx;
-  EFI_SYS_CALL_BOOT_SERVICE                     SysCallBootService;
 } EFI_BOOT_SERVICES;
 
 typedef enum {
