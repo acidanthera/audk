@@ -1400,9 +1400,30 @@ SysCallBootService (
   IN  VOID   *UserRsp
   )
 {
-  return CallBootService (
-           Type,
-           (CORE_STACK *)CoreRbp,
-           (RING3_STACK *)UserRsp
-           );
+  EFI_STATUS              Status;
+  EFI_PHYSICAL_ADDRESS    Physical;
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
+             &Physical
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  DisableSMAP ();
+  CopyMem ((VOID *)(UINTN)Physical, (VOID *)UserRsp, 8 * sizeof (UINTN));
+  EnableSMAP ();
+
+  Status = CallBootService (
+             Type,
+             (CORE_STACK *)CoreRbp,
+             (RING3_STACK *)(UINTN)Physical
+             );
+
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)));
+
+  return Status;
 }

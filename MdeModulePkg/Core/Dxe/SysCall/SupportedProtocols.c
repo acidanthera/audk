@@ -58,6 +58,7 @@ GoToRing3 (
   VA_END (Marker);
   EnableSMAP ();
 
+#if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
   if (Number == 2) {
     //
     // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
@@ -68,9 +69,11 @@ GoToRing3 (
       EFI_MEMORY_XP | EFI_MEMORY_USER
       );
   }
+#endif
 
   Status = CallRing3 (Input);
 
+#if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
   if (Number == 2) {
     SetUefiImageMemoryAttributes (
       FixedPcdGet32 (PcdOvmfWorkAreaBase),
@@ -78,6 +81,7 @@ GoToRing3 (
       EFI_MEMORY_XP
       );
   }
+#endif
 
   CoreFreePages (Ring3Pages, PagesNumber);
 

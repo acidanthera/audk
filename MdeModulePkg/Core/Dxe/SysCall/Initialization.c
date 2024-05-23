@@ -32,6 +32,8 @@ InitializeRing3 (
   VOID                    *TopOfStack;
   UINTN                   SizeOfStack;
   EFI_PHYSICAL_ADDRESS    Physical;
+  UINTN                   Index;
+  EFI_CONFIGURATION_TABLE *Conf;
 
   //
   // Set Ring3 EntryPoint and BootServices.
@@ -50,6 +52,28 @@ InitializeRing3 (
   gRing3Data = (RING3_DATA *)(UINTN)Physical;
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (gRing3Data->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE)),
+             &Physical
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3 ConfigurationTable.\n"));
+    return Status;
+  }
+
+  Conf = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+
+  for (Index = 0; Index < gRing3Data->SystemTable.NumberOfTableEntries; ++Index) {
+    Conf->VendorGuid  = gRing3Data->SystemTable.ConfigurationTable[Index].VendorGuid;
+    Conf->VendorTable = gRing3Data->SystemTable.ConfigurationTable[Index].VendorTable;
+    ++Conf;
+  }
+
+  gRing3Data->SystemTable.ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+
   //
   // Initialize DxeRing3 with Supervisor privileges.
   //
