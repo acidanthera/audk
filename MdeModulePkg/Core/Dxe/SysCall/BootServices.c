@@ -8,8 +8,6 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-UINTN  CoreSp;
-
 LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
@@ -65,13 +63,6 @@ CallInstallMultipleProtocolInterfaces (
   IN VOID        **ArgList,
   IN UINT32      ArgListSize,
   IN VOID        *Function
-  );
-
-VOID
-EFIAPI
-ReturnToCore (
-  IN EFI_STATUS Status,
-  IN UINTN      CoreSp
   );
 
 VOID
@@ -270,16 +261,6 @@ PrepareRing3Interface (
   return Ring3Interface;
 }
 
-typedef struct {
-  UINTN  Argument1;
-  UINTN  Argument2;
-  UINTN  Argument3;
-} CORE_STACK;
-
-typedef struct {
-  UINTN  Rip;
-  UINTN  Arguments[];
-} RING3_STACK;
 //
 // Stack:
 //  rsp - User Rsp
@@ -1399,44 +1380,4 @@ CallBootService (
   }
 
   return EFI_UNSUPPORTED;
-}
-
-EFI_STATUS
-EFIAPI
-SysCallBootService (
-  IN  UINT8  Type,
-  IN  VOID   *CoreRbp,
-  IN  VOID   *UserRsp
-  )
-{
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    Physical;
-
-  if (Type == SysCallReturnToCore) {
-    ReturnToCore (*(EFI_STATUS *)CoreRbp, CoreSp);
-  }
-
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
-             &Physical
-             );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  DisableSMAP ();
-  CopyMem ((VOID *)(UINTN)Physical, (VOID *)UserRsp, 8 * sizeof (UINTN));
-  EnableSMAP ();
-
-  Status = CallBootService (
-             Type,
-             (CORE_STACK *)CoreRbp,
-             (RING3_STACK *)(UINTN)Physical
-             );
-
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)));
-
-  return Status;
 }

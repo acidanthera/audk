@@ -99,3 +99,9 @@ DumpCpuContext (
   IN EFI_EXCEPTION_TYPE  ExceptionType,
   IN EFI_SYSTEM_CONTEXT  SystemContext
   );
+
+VOID
+EFIAPI
+InitializeSysCallHandler (
+  IN VOID  *Handler
+  );
