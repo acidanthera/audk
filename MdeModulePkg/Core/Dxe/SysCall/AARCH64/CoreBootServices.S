@@ -18,6 +18,39 @@
 //   );
 //------------------------------------------------------------------------------
 ASM_FUNC(CallInstallMultipleProtocolInterfaces)
+    stp	 x29, x30, [sp, #-0x10]!
+    mov  x29, sp
+    // Save funtion input.
+    mov  x9, x1
+    mov  x10, x2
+    mov  x11, x3
+    // Prepare registers for call.
+    ldp  x1, x2, [x9]
+    ldp  x3, x4, [x9, #0x10]
+    ldp  x5, x6, [x9, #0x20]
+    ldr  x7, [x9, #0x30]
+    // Prepare stack for call.
+    cmp  x10, #7
+    b.le call
+    add  x9, x9, x10, LSL #3
+    sub  x10, x10, #7
+    tst  x10, #1
+    b.eq copy
+    // To align stack on 16 bytes.
+    add  x9, x9, #0x8
+    add  x10, x10, #1
+copy:
+    ldp  x12, x13, [x9, #-0x10]!
+    stp  x12, x13, [sp, #-0x10]!
+    subs x10, x10, #2
+    b.ne copy
+
+call:
+    blr  x11
+
+    mov  sp, x29
+    ldp	 x29, x30, [sp]
+    add	 sp, sp, #0x10
     ret
 
 //------------------------------------------------------------------------------
@@ -35,7 +68,7 @@ ASM_FUNC(CallInstallMultipleProtocolInterfaces)
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save FP and LR on Core Stack.
-  stp	x29, x30, [sp, #-0x10]!
+  stp	 x29, x30, [sp, #-0x10]!
   // Disable interrupts
   msr  daifset, #0xf
   isb
