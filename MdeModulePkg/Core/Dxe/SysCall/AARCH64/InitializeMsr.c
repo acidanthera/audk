@@ -11,7 +11,7 @@
 
 #include "DxeMain.h"
 
-UINTN  CoreSp;
+STATIC UINTN  mCoreSp;
 
 EFI_STATUS
 EFIAPI
@@ -30,6 +30,7 @@ ReturnToCore (
   IN UINTN      CoreSp
   );
 
+STATIC
 EFI_STATUS
 EFIAPI
 SysCallBootService (
@@ -42,13 +43,13 @@ SysCallBootService (
   EFI_PHYSICAL_ADDRESS    Physical;
 
   if (Type == SysCallReturnToCore) {
-    ReturnToCore (*(EFI_STATUS *)CoreRbp, CoreSp);
+    ReturnToCore (*(EFI_STATUS *)CoreRbp, mCoreSp);
   }
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
+             EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)),
              &Physical
              );
   if (EFI_ERROR (Status)) {
@@ -56,7 +57,7 @@ SysCallBootService (
   }
 
   DisableSMAP ();
-  CopyMem ((VOID *)(UINTN)Physical, (VOID *)UserRsp, 8 * sizeof (UINTN));
+  CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)UserRsp, 8 * sizeof (UINTN));
   EnableSMAP ();
 
   Status = CallBootService (
@@ -65,7 +66,7 @@ SysCallBootService (
              (RING3_STACK *)(UINTN)Physical
              );
 
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)));
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
 
   return Status;
 }
@@ -128,5 +129,5 @@ CallRing3 (
   IN RING3_CALL_DATA *Data
   )
 {
-  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &CoreSp);
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp);
 }
