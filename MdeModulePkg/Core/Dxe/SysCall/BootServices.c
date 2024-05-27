@@ -90,6 +90,7 @@ FindGuid (
   OUT UINT32    *CoreSize
   )
 {
+  ASSERT (Ring3 != NULL);
   ASSERT (Core != NULL);
   ASSERT (CoreSize != NULL);
 
@@ -306,6 +307,7 @@ CallBootService (
   Argument4    = 0;
   Argument5    = 0;
   Argument6    = 0;
+  Interface    = NULL;
   //
   // Check User variables.
   //
