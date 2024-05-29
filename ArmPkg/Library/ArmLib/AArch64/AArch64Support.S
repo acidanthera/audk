@@ -338,16 +338,6 @@ ASM_FUNC(ArmReadCurrentEL)
   mrs   x0, CurrentEL
   ret
 
-// VOID ArmSetPan(VOID)
-ASM_FUNC(ArmSetPan)
-  msr   pan, #1
-  ret
-
-// VOID ArmClearPan(VOID)
-ASM_FUNC(ArmClearPan)
-  msr   pan, #0
-  ret
-
 // UINT32 ArmReadCntHctl(VOID)
 ASM_FUNC(ArmReadCntHctl)
   mrs   x0, cnthctl_el2

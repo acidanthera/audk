@@ -243,16 +243,6 @@ ArmReadCurrentEL (
   VOID
   );
 
-VOID
-ArmSetPan (
-  VOID
-  );
-
-VOID
-ArmClearPan (
-  VOID
-  );
-
 UINTN
 ArmWriteCptr (
   IN  UINT64  Cptr

@@ -53,6 +53,12 @@ GetImageName (
   OUT UINTN  *DebugBase
   );
 
+VOID
+EFIAPI
+ArmClearPan (
+  VOID
+  );
+
 STATIC
 VOID
 DescribeInstructionOrDataAbort (
