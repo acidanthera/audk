@@ -71,7 +71,7 @@ call:
 ASM_FUNC(ArmCallRing3)
   // Save FP and LR on Core Stack.
   stp	 x29, x30, [sp, #-0x10]!
-  // Disable interrupts
+  // Disable interrupts.
   msr  daifset, #0xf
   isb
   // Prepare Ring3 SP and EntryPoint.
@@ -81,12 +81,9 @@ ASM_FUNC(ArmCallRing3)
   mov  x5, sp
   str  x5, [x4]
   mov  sp, x3
-
   // Copy PSTATE to SPSR.
   mrs  x1, nzcv
   mrs  x2, pan
-  orr  x1, x1, x2
-  mrs  x2, daif
   orr  x1, x1, x2
   //
   // M[3:0], bits [3:0] AArch64 Exception level and selected Stack Pointer.
@@ -95,10 +92,8 @@ ASM_FUNC(ArmCallRing3)
   // 0b0101 - EL1 with SP_EL1 (EL1h).
   //
   msr  spsr_el1, x1
-
   isb
-  dsb sy
-
+  dsb  sy
   eret
 
 //------------------------------------------------------------------------------
@@ -110,14 +105,16 @@ ASM_FUNC(ArmCallRing3)
 //   );
 //------------------------------------------------------------------------------
 ASM_FUNC(ReturnToCore)
+  // Zero Exception Syndrome Register to prevent QEMU from random crashing.
+  msr  esr_el1, xzr
   // Switch to Core Stack.
   mov  sp, x1
-  // Zero Exception Syndrome Register to prevent QEMU from random crashing.
-  mov  x1, #0
-  msr  esr_el1, x1
   // Restore Stack.
   ldp	 x29, x30, [sp]
   add	 sp, sp, #0x10
+  // Enable interrupts.
+  msr  daifclr, #0xf
+  isb
   ret
 
 //------------------------------------------------------------------------------
