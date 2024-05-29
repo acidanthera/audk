@@ -54,6 +54,12 @@ STATIC CHAR8  *mExceptionTypeString[] = {
 STATIC BOOLEAN                    mRecursiveException;
 STATIC EFI_SYS_CALL_BOOT_SERVICE  mSysCallHandler;
 
+VOID
+EFIAPI
+ArmClearPan (
+  VOID
+  );
+
 /**
   Decodes and logs the fault cause of an Instruction or Data Abort
   by mapping the Fault Status Code bits [5:0] of the ISS field to
