@@ -251,6 +251,7 @@ PrepareRing3Interface (
                Unicode->SupportedLanguages
                );
     if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Could not copy string!\n"));
       return NULL;
     }
 
@@ -346,9 +347,10 @@ CallBootService (
       DisableSMAP ();
       if (Interface != NULL) {
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
-      }
+        ASSERT (Interface != NULL);
 
-      *(VOID **)CoreRbp->Argument3 = Interface;
+        *(VOID **)CoreRbp->Argument3 = Interface;
+      }
       EnableSMAP ();
 
       return Status;
@@ -558,9 +560,10 @@ CallBootService (
       DisableSMAP ();
       if (Interface != NULL) {
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
-      }
+        ASSERT (Interface != NULL);
 
-      *(VOID **)CoreRbp->Argument3 = Interface;
+        *(VOID **)CoreRbp->Argument3 = Interface;
+      }
       EnableSMAP ();
 
       return Status;
