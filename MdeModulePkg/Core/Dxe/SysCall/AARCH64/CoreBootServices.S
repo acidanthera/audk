@@ -112,6 +112,9 @@ ASM_FUNC(ArmCallRing3)
 ASM_FUNC(ReturnToCore)
   // Switch to Core Stack.
   mov  sp, x1
+  // Zero Exception Syndrome Register to prevent QEMU from random crashing.
+  mov  x1, #0
+  msr  esr_el1, x1
   // Restore Stack.
   ldp	 x29, x30, [sp]
   add	 sp, sp, #0x10
