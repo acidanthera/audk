@@ -13,6 +13,10 @@ EFI_FILE_PROTOCOL                mRing3FileProtocol;
 
 EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
 
+#if defined (MDE_CPU_AARCH64)
+extern UINTN  gUartBaseAddress;
+#endif
+
 typedef struct {
   EFI_FILE_PROTOCOL  Protocol;
   EFI_FILE_PROTOCOL  *Ring3File;
@@ -69,8 +73,16 @@ GoToRing3 (
       EFI_MEMORY_XP | EFI_MEMORY_USER
       );
   }
+#elif defined (MDE_CPU_AARCH64)
+  //
+  // Necessary fix for DEBUG printings.
+  //
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
 #endif
-
   Status = CallRing3 (Input);
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
@@ -81,6 +93,21 @@ GoToRing3 (
       EFI_MEMORY_XP
       );
   }
+#elif defined (MDE_CPU_AARCH64)
+  //
+  // Problem 2: Uart memory maped page is not allocated at the very beginnig
+  // and can be used for translation table later.
+  //
+  DisableSMAP ();
+  //
+  // Problem 3: QEMU ramdomly breaks GP registers' context.
+  //
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP
+    );
+  EnableSMAP ();
 #endif
 
   CoreFreePages (Ring3Pages, PagesNumber);
