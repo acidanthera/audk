@@ -18,7 +18,8 @@ VOID        *gRing3Interfaces;
 VOID
 EFIAPI
 InitializeMsr (
-  VOID
+  IN OUT EFI_CONFIGURATION_TABLE *Table,
+  IN     UINTN                   NumberOfEntries
   );
 
 EFI_STATUS
@@ -141,7 +142,10 @@ InitializeRing3 (
   SetUefiImageMemoryAttributes ((UINTN)gRing3CallStackBase, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
   DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
 
-  InitializeMsr ();
+  InitializeMsr (
+    gRing3Data->SystemTable.ConfigurationTable,
+    gRing3Data->SystemTable.NumberOfTableEntries
+    );
 
   return Status;
 }

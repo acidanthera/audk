@@ -10,7 +10,8 @@
 VOID
 EFIAPI
 InitializeMsr (
-  VOID
+  IN OUT EFI_CONFIGURATION_TABLE *Table,
+  IN     UINTN                   NumberOfEntries
   )
 {
 

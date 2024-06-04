@@ -69,8 +69,22 @@ call:
 //   (x4) &CoreSp
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
-  // Save FP and LR on Core Stack.
-  stp	 x29, x30, [sp, #-0x10]!
+  // Save registers.
+  sub  sp, sp, #0x100
+
+  stp  q8,  q9,  [sp, #0xe0]
+  stp  q10, q11, [sp, #0xc0]
+  stp  q12, q13, [sp, #0xa0]
+  stp  q14, q15, [sp, #0x80]
+
+  stp  xzr, x16, [sp, #0x70]
+  stp  x17, x18, [sp, #0x60]
+  stp  x19, x20, [sp, #0x50]
+  stp  x21, x22, [sp, #0x40]
+  stp  x23, x24, [sp, #0x30]
+  stp  x25, x26, [sp, #0x20]
+  stp  x27, x28, [sp, #0x10]
+  stp  x29, x30, [sp]
   // Disable interrupts.
   msr  daifset, #0xf
   isb
@@ -112,9 +126,21 @@ ASM_FUNC(ReturnToCore)
   msr  far_el1, xzr
   // Switch to Core Stack.
   mov  sp, x1
-  // Restore Stack.
-  ldp	 x29, x30, [sp]
-  add	 sp, sp, #0x10
+  // Restore registers and Stack.
+  ldp  q8,  q9,  [sp, #0xe0]
+  ldp  q10, q11, [sp, #0xc0]
+  ldp  q12, q13, [sp, #0xa0]
+  ldp  q14, q15, [sp, #0x80]
+
+  ldr  x16, [sp, #0x78]
+  ldp  x17, x18, [sp, #0x60]
+  ldp  x19, x20, [sp, #0x50]
+  ldp  x21, x22, [sp, #0x40]
+  ldp  x23, x24, [sp, #0x30]
+  ldp  x25, x26, [sp, #0x20]
+  ldp  x27, x28, [sp, #0x10]
+  ldp  x29, x30, [sp]
+  add	 sp, sp, #0x100
   // Enable interrupts.
   msr  daifclr, #0xf
   isb

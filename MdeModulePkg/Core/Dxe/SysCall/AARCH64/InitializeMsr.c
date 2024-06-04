@@ -6,12 +6,14 @@
 **/
 
 #include <Chipset/AArch64.h>
+#include <Guid/EarlyPL011BaseAddress.h>
 #include <Library/ArmLib.h>
 #include <Library/DefaultExceptionHandlerLib.h>
 
 #include "DxeMain.h"
 
 STATIC UINTN  mCoreSp;
+UINTN         gUartBaseAddress;
 
 EFI_STATUS
 EFIAPI
@@ -70,6 +72,12 @@ SysCallBootService (
 
   DisableSMAP ();
   CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)UserRsp, 8 * sizeof (UINTN));
+
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP
+    );
   EnableSMAP ();
 
   Status = CallBootService (
@@ -77,6 +85,12 @@ SysCallBootService (
              (CORE_STACK *)CoreRbp,
              (RING3_STACK *)(UINTN)Physical
              );
+
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
 
@@ -86,10 +100,17 @@ SysCallBootService (
 VOID
 EFIAPI
 InitializeMsr (
-  VOID
+  IN OUT EFI_CONFIGURATION_TABLE *Table,
+  IN     UINTN                   NumberOfEntries
   )
 {
-  UINTN  Tcr;
+  UINTN                    Tcr;
+  UINTN                    Index;
+  EARLY_PL011_BASE_ADDRESS *UartBase;
+  EFI_PHYSICAL_ADDRESS     Physical;
+  EFI_HOB_GENERIC_HEADER   *Ring3Hob;
+  UINT16                   HobLength;
+  EFI_STATUS               Status;
   //
   // If HCR_EL2.NV is 1 and the current Exception level is EL1,
   // then EL1 read accesses to the CurrentEL register return a value of 0x2 in bits[3:2].
@@ -103,6 +124,49 @@ InitializeMsr (
   Tcr = ArmGetTCR ();
   Tcr |= TCR_EL1_HPD0_MASK | TCR_EL1_HPD1_MASK;
   ArmSetTCR (Tcr);
+  //
+  // Problem 1: Uart is memory maped.
+  //
+  for (Index = 0; Index < NumberOfEntries; ++Index) {
+    if (CompareGuid (&gEfiHobListGuid, &(Table[Index].VendorGuid))) {
+      UartBase         = GET_GUID_HOB_DATA (Table[Index].VendorTable);
+      gUartBaseAddress = UartBase->DebugAddress;
+      //
+      // Copy Hob into Ring3.
+      //
+      Status = CoreAllocatePages (
+                 AllocateAnyPages,
+                 EfiRing3MemoryType,
+                 1,
+                 &Physical
+                 );
+      if (EFI_ERROR (Status)) {
+        DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Hob.\n"));
+        ASSERT (FALSE);
+      }
+      DEBUG ((DEBUG_ERROR, "UartBaseAddress = %p.\n", gUartBaseAddress));
+
+      Ring3Hob = (EFI_HOB_GENERIC_HEADER *)(UINTN)Physical;
+
+      HobLength = (UINT16)((sizeof (EFI_HOB_GUID_TYPE) + sizeof (EARLY_PL011_BASE_ADDRESS) + 0x7) & (~0x7));
+
+      Ring3Hob->HobType = EFI_HOB_TYPE_GUID_EXTENSION;
+      Ring3Hob->HobLength = HobLength;
+      Ring3Hob->Reserved  = 0;
+
+      CopyGuid (&((EFI_HOB_GUID_TYPE *)Ring3Hob)->Name, &gEarlyPL011BaseAddressGuid);
+
+      Ring3Hob = (EFI_HOB_GENERIC_HEADER *)((UINTN)Ring3Hob + HobLength);
+
+      Ring3Hob->HobType   = EFI_HOB_TYPE_END_OF_HOB_LIST;
+      Ring3Hob->HobLength = sizeof (EFI_HOB_GENERIC_HEADER);
+      Ring3Hob->Reserved  = 0;
+
+      Table[Index].VendorTable = (VOID *)(UINTN)Physical;
+      UartBase                 = GET_GUID_HOB_DATA (Table[Index].VendorTable);
+      UartBase->DebugAddress   = gUartBaseAddress;
+    }
+  }
 
   if (ArmHasPan ()) {
     //
