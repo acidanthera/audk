@@ -125,14 +125,14 @@ gUefiOvmfPkgTokenSpaceGuid.PcdOvmfEarlyMemDebugLogBase|gUefiOvmfPkgTokenSpaceGui
 #
 # PEI firmware volume is uncompressed to this area
 #
-0x030000|0x110000
+0x030000|0x120000
 gUefiOvmfPkgTokenSpaceGuid.PcdOvmfPeiMemFvBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfPeiMemFvSize
 FV = PEIFV
 
 #
 # DXE firmware volume is uncompressed to this area
 #
-0x140000|0xE40000
+0x150000|0xE30000
 gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeMemFvBase|gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeMemFvSize
 FV = DXEFV
 
