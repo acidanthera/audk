@@ -39,3 +39,6 @@
 
 [Depex]
   gEfiPeiMemoryDiscoveredPpiGuid
+
+[BuildOptions]
+  NOOPT_CLANGPDB_*_DLINK_FLAGS = /force:unresolved
