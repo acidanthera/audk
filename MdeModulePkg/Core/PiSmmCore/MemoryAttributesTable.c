@@ -392,7 +392,7 @@ SmmInsertImageRecord (
       DEBUG ((DEBUG_WARN, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
     }
 
-    goto Finish;
+    return;
   }
 
   //
@@ -400,20 +400,13 @@ SmmInsertImageRecord (
   //
   ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
-    return ;
+    return;
   }
 
   UefiImageDebugPrintSegments (ImageContext);
   UefiImageDebugPrintImageRecord (ImageRecord);
 
   InsertSortImageRecord (ImageRecord);
-
-Finish:
-  if (EFI_ERROR (Status) && (ImageRecord != NULL)) {
-    DeleteImagePropertiesRecord (ImageRecord);
-  }
-
-  return;
 }
 
 /**

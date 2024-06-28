@@ -14,7 +14,6 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/ImagePropertiesRecordLib.h>
 
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
@@ -327,15 +326,15 @@ SplitRecord (
     //
     // Update PhysicalStart to exclude the portion before the image buffer
     //
-    if (TempRecord.PhysicalStart < ImageRecord->ImageBase) {
+    if (TempRecord.PhysicalStart < ImageRecord->StartAddress) {
       NewRecord->Type          = TempRecord.Type;
       NewRecord->PhysicalStart = TempRecord.PhysicalStart;
       NewRecord->VirtualStart  = 0;
-      NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->ImageBase - TempRecord.PhysicalStart);
+      NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - TempRecord.PhysicalStart);
       NewRecord->Attribute     = TempRecord.Attribute;
       TotalNewRecordCount++;
 
-      PhysicalStart            = ImageRecord->ImageBase;
+      PhysicalStart            = ImageRecord->StartAddress;
       TempRecord.PhysicalStart = PhysicalStart;
       TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
 
@@ -490,7 +489,7 @@ SplitTable (
 VOID
 EFIAPI
 DeleteImagePropertiesRecord (
-  IN  IMAGE_PROPERTIES_RECORD  *ImageRecord
+  IN  UEFI_IMAGE_RECORD  *ImageRecord
   )
 {
   if (!IsListEmpty (&ImageRecord->Link)) {

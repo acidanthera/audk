@@ -10,6 +10,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Base.h>
 #include <Library/BaseMemoryLib.h>
 
+#if !defined (__arm__)
 #if defined (__clang__) && !defined (__APPLE__)
 
 /* Copies bytes between buffers */
@@ -52,4 +53,5 @@ __bzero (
 {
   ZeroMem (src, count);
 }
+#endif
 #endif

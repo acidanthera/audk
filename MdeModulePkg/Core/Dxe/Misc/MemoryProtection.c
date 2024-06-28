@@ -115,45 +115,52 @@ SetUefiImageProtectionAttributes (
 }
 
 /**
-  Return the section alignment requirement for the PE image section type.
+  Return if the PE image section is aligned.
 
-  @param[in]  MemoryType  PE/COFF image memory type
+  @param[in]  SectionAlignment    PE/COFF section alignment
+  @param[in]  MemoryType          PE/COFF image memory type
 
-  @retval     The required section alignment for this memory type
-
+  @retval TRUE  The PE image section is aligned.
+  @retval FALSE The PE image section is not aligned.
 **/
 STATIC
-UINT32
-GetMemoryProtectionSectionAlignment (
+BOOLEAN
+IsMemoryProtectionSectionAligned (
+  IN UINT32           SectionAlignment,
   IN EFI_MEMORY_TYPE  MemoryType
   )
 {
-  UINT32  SectionAlignment;
+  UINT32  PageAlignment;
 
   switch (MemoryType) {
     case EfiRuntimeServicesCode:
     case EfiACPIMemoryNVS:
-    case EfiReservedMemoryType:
-      SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+      PageAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
       break;
     case EfiRuntimeServicesData:
+    case EfiACPIReclaimMemory:
       ASSERT (FALSE);
-      SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+      PageAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
       break;
     case EfiBootServicesCode:
     case EfiLoaderCode:
-      SectionAlignment = EFI_PAGE_SIZE;
+    case EfiReservedMemoryType:
+      PageAlignment = EFI_PAGE_SIZE;
       break;
-    case EfiACPIReclaimMemory:
     default:
       ASSERT (FALSE);
-      SectionAlignment = EFI_PAGE_SIZE;
+      PageAlignment = EFI_PAGE_SIZE;
       break;
   }
 
-  return SectionAlignment;
+  if ((SectionAlignment & (PageAlignment - 1)) != 0) {
+    return FALSE;
+  } else {
+    return TRUE;
+  }
 }
 
+// FIXME: Deduplicate
 /**
   Protect UEFI PE/COFF image.
 

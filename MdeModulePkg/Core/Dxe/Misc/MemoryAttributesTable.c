@@ -668,8 +668,7 @@ InsertImageRecord (
       DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
     }
 
-    Status = EFI_ABORTED;
-    goto Finish;
+    return;
   }
 
   ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
@@ -686,9 +685,6 @@ InsertImageRecord (
   //
 
   InsertSortImageRecord (ImageRecord);
-
-Finish:
-  return;
 }
 
 /**
@@ -728,7 +724,7 @@ FindImageRecord (
     }
   }
 
-  return;
+  return NULL;
 }
 
 /**

@@ -35,9 +35,9 @@
   MemoryAllocationLib
   MpInitLib
   ReportStatusCodeLib
+  SerialPortLib
   TimerLib
   UefiBootServicesTableLib
-  UefiDriverEntryPoint
   UefiLib
 
 [LibraryClasses.IA32, LibraryClasses.X64]

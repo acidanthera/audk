@@ -11,6 +11,8 @@
 #ifndef IMAGE_PROPERTIES_RECORD_SUPPORT_LIB_H_
 #define IMAGE_PROPERTIES_RECORD_SUPPORT_LIB_H_
 
+#include <Library/UefiImageLib.h>
+
 /**
   Split the original memory map and add more entries to describe PE code
   and data sections for each image in the input ImageRecordList.
@@ -72,7 +74,7 @@ SplitTable (
 VOID
 EFIAPI
 DeleteImagePropertiesRecord (
-  IN  IMAGE_PROPERTIES_RECORD  *ImageRecord
+  IN  UEFI_IMAGE_RECORD  *ImageRecord
   );
 
 #endif
