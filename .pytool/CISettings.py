@@ -80,6 +80,7 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
                 "DynamicTablesPkg",
                 "EmbeddedPkg",
                 "EmulatorPkg",
+                "Ext4Pkg",
                 "IntelFsp2Pkg",
                 "IntelFsp2WrapperPkg",
                 "MdePkg",
@@ -239,6 +240,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
             "CryptoPkg/Library/MbedTlsLib/mbedtls", False))
         rs.append(RequiredSubmodule(
             "SecurityPkg/DeviceSecurity/SpdmLib/libspdm", False))
+        rs.append(RequiredSubmodule(
+            "OpenCorePkg", False))
         return rs
 
     def GetName(self):
