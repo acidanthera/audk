@@ -59,10 +59,10 @@ Tpm2GetAlgoFromHashMask (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 HashStart (
-  OUT HASH_HANDLE  *HashHandle
+  OUT VOID           **HashHandle
   )
 {
   TPMI_DH_OBJECT  SequenceHandle;
@@ -73,10 +73,11 @@ HashStart (
 
   Status = Tpm2HashSequenceStart (AlgoId, &SequenceHandle);
   if (!EFI_ERROR (Status)) {
-    *HashHandle = (HASH_HANDLE)SequenceHandle;
+    *HashHandle = (VOID *)(UINTN)SequenceHandle;
+    return TRUE;
   }
 
-  return Status;
+  return FALSE;
 }
 
 /**
@@ -88,11 +89,11 @@ HashStart (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 HashUpdate (
-  IN HASH_HANDLE  HashHandle,
-  IN VOID         *DataToHash,
+  IN VOID           *HashHandle,
+  IN CONST VOID     *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
@@ -107,9 +108,9 @@ HashUpdate (
     CopyMem (HashBuffer.buffer, Buffer, sizeof (HashBuffer.buffer));
     Buffer += sizeof (HashBuffer.buffer);
 
-    Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)HashHandle, &HashBuffer);
+    Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)(UINTN)HashHandle, &HashBuffer);
     if (EFI_ERROR (Status)) {
-      return EFI_DEVICE_ERROR;
+      return FALSE;
     }
   }
 
@@ -118,12 +119,12 @@ HashUpdate (
   //
   HashBuffer.size = (UINT16)HashLen;
   CopyMem (HashBuffer.buffer, Buffer, (UINTN)HashLen);
-  Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)HashHandle, &HashBuffer);
+  Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)(UINTN)HashHandle, &HashBuffer);
   if (EFI_ERROR (Status)) {
-    return EFI_DEVICE_ERROR;
+    return FALSE;
   }
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -140,7 +141,7 @@ HashUpdate (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN HASH_HANDLE          HashHandle,
+  IN VOID                *HashHandle,
   IN TPMI_DH_PCR          PcrIndex,
   IN VOID                 *DataToHash,
   IN UINTN                DataToHashLen,
@@ -162,7 +163,7 @@ HashCompleteAndExtend (
     CopyMem (HashBuffer.buffer, Buffer, sizeof (HashBuffer.buffer));
     Buffer += sizeof (HashBuffer.buffer);
 
-    Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)HashHandle, &HashBuffer);
+    Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)(UINTN)HashHandle, &HashBuffer);
     if (EFI_ERROR (Status)) {
       return EFI_DEVICE_ERROR;
     }
@@ -180,13 +181,13 @@ HashCompleteAndExtend (
   if (AlgoId == TPM_ALG_NULL) {
     Status = Tpm2EventSequenceComplete (
                PcrIndex,
-               (TPMI_DH_OBJECT)HashHandle,
+               (TPMI_DH_OBJECT)(UINTN)HashHandle,
                &HashBuffer,
                DigestList
                );
   } else {
     Status = Tpm2SequenceComplete (
-               (TPMI_DH_OBJECT)HashHandle,
+               (TPMI_DH_OBJECT)(UINTN)HashHandle,
                &HashBuffer,
                &Result
                );

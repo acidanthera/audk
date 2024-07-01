@@ -9,7 +9,7 @@
 #ifndef _PAGE_TABLE_LIB_H_
 #define _PAGE_TABLE_LIB_H_
 
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #define PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PSE              BIT0
 #define PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE              BIT1

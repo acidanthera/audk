@@ -142,9 +142,8 @@ ASM_PFX(DiscoverDramFromDt):
   // window at the beginning of the FD image as a temp stack.
   //
   mov   x0, x7
-  adr   x1, PeCoffLoaderImageReadFromMemory
   mov   sp, x7
-  bl    RelocatePeCoffImage
+  bl    RelocateUefiImage
 
   //
   // Discover the memory size and offset from the DTB, and record in the

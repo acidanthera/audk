@@ -32,9 +32,10 @@
 #include <Guid/MmramMemoryReserve.h>
 
 #include <Library/StandaloneMmCoreEntryPoint.h>
+#include <Library/StandaloneMmProtectionLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/ReportStatusCodeLib.h>
@@ -70,7 +71,7 @@ typedef struct {
   EFI_FIRMWARE_VOLUME_HEADER    *FwVolHeader;
   EFI_GUID                      FileName;
   VOID                          *Pe32Data;
-  UINTN                         Pe32DataSize;
+  UINT32                          Pe32DataSize;
 
   VOID                          *Depex;
   UINTN                         DepexSize;

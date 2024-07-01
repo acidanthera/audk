@@ -20,11 +20,12 @@
 //
 // Macro definitions for RISC-V architecture.
 //
-#define RV_X(x, s, n)  (((x) >> (s)) & ((1<<(n))-1))
-#define RISCV_IMM_BITS   12
-#define RISCV_IMM_REACH  (1LL<<RISCV_IMM_BITS)
+#define RV_X(x, s, n) (((x) >> (s)) & ((1<<(n))-1))
+#define RISCV_IMM_BITS 12
+#define RISCV_IMM_REACH (1LL<<RISCV_IMM_BITS)
 #define RISCV_CONST_HIGH_PART(VALUE) \
   (((VALUE) + (RISCV_IMM_REACH/2)) & ~(RISCV_IMM_REACH-1))
+
 
 /**
   Performs an Itanium-based specific relocation fixup and is a no-op on other
@@ -40,11 +41,12 @@
 **/
 RETURN_STATUS
 PeCoffLoaderRelocateImageEx (
-  IN UINT16     *Reloc,
-  IN OUT CHAR8  *Fixup,
-  IN OUT CHAR8  **FixupData,
-  IN UINT64     Adjust
+  IN UINT16      *Reloc,
+  IN OUT CHAR8   *Fixup,
+  IN OUT CHAR8   **FixupData,
+  IN UINT64      Adjust
   );
+
 
 /**
   Performs an Itanium-based specific re-relocation fixup and is a no-op on other
@@ -61,11 +63,12 @@ PeCoffLoaderRelocateImageEx (
 **/
 RETURN_STATUS
 PeHotRelocateImageEx (
-  IN UINT16     *Reloc,
-  IN OUT CHAR8  *Fixup,
-  IN OUT CHAR8  **FixupData,
-  IN UINT64     Adjust
+  IN UINT16      *Reloc,
+  IN OUT CHAR8   *Fixup,
+  IN OUT CHAR8   **FixupData,
+  IN UINT64      Adjust
   );
+
 
 /**
   Returns TRUE if the machine type of PE/COFF image is supported. Supported
@@ -125,9 +128,9 @@ PeCoffLoaderGetPeHeader (
 **/
 VOID *
 PeCoffLoaderImageAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN     UINTN                         Address,
-  IN     UINTN                         TeStrippedOffset
+  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT          *ImageContext,
+  IN     UINTN                                 Address,
+  IN     UINTN                                 TeStrippedOffset
   );
 
 #endif

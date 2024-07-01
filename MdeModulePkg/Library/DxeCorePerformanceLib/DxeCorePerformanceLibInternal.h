@@ -42,7 +42,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/DxeServicesLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 
 /**
   Create performance record with event description and a timestamp.

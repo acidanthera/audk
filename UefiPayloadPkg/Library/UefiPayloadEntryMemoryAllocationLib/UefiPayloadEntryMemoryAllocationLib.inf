@@ -1,0 +1,27 @@
+# FIXME: Docs
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = UefiPayloadEntryMemoryAllocationLib
+  FILE_GUID                      = D3C5B8A1-B946-4D46-8251-9020A527EE40
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = UefiPayloadEntryMemoryAllocationLib|SEC
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64
+#
+
+[Sources]
+  MemoryAllocation.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  UefiPayloadPkg/UefiPayloadPkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  DebugLib
+  HobLib
