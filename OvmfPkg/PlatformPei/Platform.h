@@ -95,7 +95,7 @@ AmdSevInitialize (
   **/
 VOID
 IntelTdxInitialize (
-  VOID
+  IN EFI_HOB_PLATFORM_INFO  *PlatformInfoHob
   );
 
 /**
