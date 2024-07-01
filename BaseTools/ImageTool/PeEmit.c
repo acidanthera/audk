@@ -395,12 +395,14 @@ ToolImageEmitPeSection (
     SizeOfRawData = Segment->ImageSize;
   }
 
-  strncpy (
-    (char *)SectionHeader->Name,
-    Segment->Name,
-    sizeof (SectionHeader->Name)
-    );
-  SectionHeader->Name[ARRAY_SIZE (SectionHeader->Name) - 1] = 0;
+  if (Segment->Name != NULL) {
+    strncpy (
+      (char *)SectionHeader->Name,
+      Segment->Name,
+      sizeof (SectionHeader->Name)
+      );
+    SectionHeader->Name[ARRAY_SIZE (SectionHeader->Name) - 1] = 0;
+  }
 
   SectionHeader->VirtualSize      = Segment->ImageSize;
   SectionHeader->VirtualAddress   = Segment->ImageAddress;

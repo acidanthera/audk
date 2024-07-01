@@ -37,6 +37,8 @@ OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\ElfScan64.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\ElfScanCommon.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\UefiImageScan.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\UeScan.obj \
+  $(EDK2_OBJPATH)\BaseTools\ImageTool\UeEmit.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\PeScan.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmit32.obj \
   $(EDK2_OBJPATH)\BaseTools\ImageTool\PeEmit64.obj \
@@ -121,7 +123,11 @@ OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BasePeCoffLib2\PeCoffRelocate.obj
 
 OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUeImageLib\UeImageLib.obj
+
+OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\CommonSupport.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\UeSupport.obj \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\PeSupport.obj \
   $(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\UefiImageLib.obj
 

@@ -1443,7 +1443,7 @@ InitializeImageServices (
 **/
 EFI_STATUS
 LoadAndRelocateUefiImageInPlace (
-  IN  VOID  *Pe32Data,
+  IN  VOID    *Pe32Data,
   IN  VOID    *ImageAddress,
   IN  UINT32  ImageSize
   );
@@ -1461,8 +1461,8 @@ LoadAndRelocateUefiImageInPlace (
 EFI_STATUS
 PeiGetPe32Data (
   IN     EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT    VOID                         **Pe32Data,
-  OUT    UINT32                       *Pe32DataSize
+  OUT    VOID                 **Pe32Data,
+  OUT    UINT32               *Pe32DataSize
   );
 
 /**
@@ -1487,6 +1487,17 @@ PeiLoadImageLoadImageWrapper (
   OUT    UINT64                       *ImageSizeArg      OPTIONAL,
   OUT    EFI_PHYSICAL_ADDRESS         *EntryPoint,
   OUT    UINT32                       *AuthenticationState
+  );
+
+EFI_STATUS
+EFIAPI
+PeiLoadImageLoadImageWithHob (
+  IN     EFI_PEI_FILE_HANDLE     FileHandle,
+  OUT    EFI_PHYSICAL_ADDRESS    *ImageAddressArg   OPTIONAL,
+  OUT    UINT64                  *ImageSizeArg      OPTIONAL,
+  OUT    EFI_PHYSICAL_ADDRESS    *EntryPoint,
+  OUT    UINT32                  *AuthenticationState,
+  OUT    HOB_IMAGE_CONTEXT       *Hob
   );
 
 /**
