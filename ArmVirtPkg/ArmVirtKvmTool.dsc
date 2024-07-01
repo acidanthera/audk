@@ -162,6 +162,11 @@
   #
   gEmbeddedTokenSpaceGuid.PcdPrePiCpuIoSize|16
 
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
+
 [PcdsPatchableInModule.common]
   #
   # This will be overridden in the code

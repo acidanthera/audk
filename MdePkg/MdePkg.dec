@@ -992,6 +992,7 @@
 
   ## Include/Ppi/LoadFile.h
   gEfiPeiLoadFilePpiGuid = { 0xb9e0abfe, 0x5979, 0x4914, { 0x97, 0x7f, 0x6d, 0xee, 0x78, 0xc2, 0x78, 0xa6 } }
+  gEfiPeiLoadFileWithHobPpiGuid = { 0x14c2d0d0, 0xccfd, 0x40e5, { 0xae, 0xa7, 0x57, 0x23, 0x58, 0xdd, 0xbf, 0xe8 } }
 
   ## Include/Ppi/Decompress.h
   gEfiPeiDecompressPpiGuid = { 0x1a36e4e7, 0xfab6, 0x476a, { 0x8e, 0x75, 0x69, 0x5a, 0x5, 0x76, 0xfd, 0xd7 } }
@@ -2366,13 +2367,21 @@
   # @Prompt Remove X permission from WX sections.
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|FALSE|BOOLEAN|0x40001021
 
-  ## Indicates the UEFI image file formats supported outside FVs.<BR><BR>
+  ## Indicates the UEFI image file formats supported outside FVs.
+  #  UE is experimental and not enabled by default.
+  #  For correct usage in a platform which opts in to UE support, this should
+  #  be overridden globally, not within individual modules.<BR><BR>
   #  BIT0 - PE.<BR>
+  #  BIT1 - UE.<BR>
   # @Prompt Supported UEFI image file formats outside FVs.
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv|0x01|UINT8|0x40002000
 
-  ## Indicates the UEFI image file formats supported inside FVs.<BR><BR>
+  ## Indicates the UEFI image file formats supported inside FVs.
+  #  UE is experimental and not enabled by default.
+  #  For correct usage in a platform which opts in to UE support, this should
+  #  be overridden globally, not within individual modules.<BR><BR>
   #  BIT0 - PE.<BR>
+  #  BIT1 - UE.<BR>
   # @Prompt Supported UEFI image file formats inside FVs.
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x01|UINT8|0x40002001
 
