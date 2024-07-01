@@ -306,14 +306,16 @@ SplitRecord (
     NewImageRecord = GetImageRecordByAddress (PhysicalStart, PhysicalEnd - PhysicalStart, ImageRecordList);
     if (NewImageRecord == NULL) {
       //
-      // No more images cover this range, check if we've reached the end of the old descriptor. If not,
-      // add the remaining range to the new descriptor list.
+      // No more image covered by this range, stop
       //
-      if (PhysicalEnd > PhysicalStart) {
+      if ((PhysicalEnd > PhysicalStart) && (ImageRecord != NULL)) {
+        //
+        // Always create a new entry for non-PE image record
+        //
         NewRecord->Type          = TempRecord.Type;
-        NewRecord->PhysicalStart = PhysicalStart;
+        NewRecord->PhysicalStart = TempRecord.PhysicalStart;
         NewRecord->VirtualStart  = 0;
-        NewRecord->NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
+        NewRecord->NumberOfPages = TempRecord.NumberOfPages;
         NewRecord->Attribute     = TempRecord.Attribute;
         TotalNewRecordCount++;
       }
@@ -322,24 +324,6 @@ SplitRecord (
     }
 
     ImageRecord = NewImageRecord;
-
-    //
-    // Update PhysicalStart to exclude the portion before the image buffer
-    //
-    if (TempRecord.PhysicalStart < ImageRecord->StartAddress) {
-      NewRecord->Type          = TempRecord.Type;
-      NewRecord->PhysicalStart = TempRecord.PhysicalStart;
-      NewRecord->VirtualStart  = 0;
-      NewRecord->NumberOfPages = EfiSizeToPages (ImageRecord->StartAddress - TempRecord.PhysicalStart);
-      NewRecord->Attribute     = TempRecord.Attribute;
-      TotalNewRecordCount++;
-
-      PhysicalStart            = ImageRecord->StartAddress;
-      TempRecord.PhysicalStart = PhysicalStart;
-      TempRecord.NumberOfPages = EfiSizeToPages (PhysicalEnd - PhysicalStart);
-
-      NewRecord = (EFI_MEMORY_DESCRIPTOR *)((UINT8 *)NewRecord + DescriptorSize);
-    }
 
     //
     // Set new record
