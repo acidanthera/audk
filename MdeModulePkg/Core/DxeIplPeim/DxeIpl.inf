@@ -51,6 +51,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
 
 [LibraryClasses]
   PcdLib
@@ -73,7 +74,7 @@
   gEfiPeiDecompressPpiGuid               ## PRODUCES
   gEfiEndOfPeiSignalPpiGuid              ## SOMETIMES_PRODUCES # Not produced on S3 boot path
   gEfiPeiReadOnlyVariable2PpiGuid        ## SOMETIMES_CONSUMES
-  gEfiPeiLoadFilePpiGuid                 ## SOMETIMES_CONSUMES
+  gEfiPeiLoadFileWithHobPpiGuid          ## SOMETIMES_CONSUMES
   gEfiPeiS3Resume2PpiGuid                ## SOMETIMES_CONSUMES # Consumed on S3 boot path
   gEfiPeiRecoveryModulePpiGuid           ## SOMETIMES_CONSUMES # Consumed on recovery boot path
   ## SOMETIMES_CONSUMES
@@ -88,6 +89,7 @@
   ## SOMETIMES_CONSUMES ## Variable:L"MemoryTypeInformation"
   ## SOMETIMES_PRODUCES ## HOB
   gEfiMemoryTypeInformationGuid
+  gUefiImageLoaderImageContextGuid
 
 [FeaturePcd.IA32]
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeIplSwitchToLongMode      ## CONSUMES
@@ -116,7 +118,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdSetNxForStack               ## SOMETIMES_CONSUMES
 
 [Depex]
-  gEfiPeiLoadFilePpiGuid AND gEfiPeiMasterBootModePpiGuid
+  gEfiPeiLoadFileWithHobPpiGuid AND gEfiPeiMasterBootModePpiGuid
 
 #
 # [BootMode]

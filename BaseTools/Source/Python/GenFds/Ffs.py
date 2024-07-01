@@ -33,6 +33,7 @@ FdfFvFileTypeToFileType = {
 SectionSuffix = {
     BINARY_FILE_TYPE_PE32                 : '.pe32',
     BINARY_FILE_TYPE_PIC                  : '.pic',
+    BINARY_FILE_TYPE_UE                   : '.pe32',
     BINARY_FILE_TYPE_DXE_DEPEX            : '.dpx',
     'VERSION'              : '.ver',
     BINARY_FILE_TYPE_UI                   : '.ui',
