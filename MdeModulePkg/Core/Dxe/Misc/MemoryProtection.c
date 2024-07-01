@@ -10,7 +10,6 @@
      requirement.
   3) This policy is applied only if the Source UEFI image matches the
      PcdImageProtectionPolicy definition.
-  4) This policy is not applied to the non-PE image region.
 
   The DxeCore calls CpuArchProtocol->SetMemoryAttributes() to protect
   the image. If the CpuArch protocol is not installed yet, the DxeCore
@@ -47,12 +46,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "ProcessorBind.h"
 #include "Uefi/UefiMultiPhase.h"
 
-//
-// Protection policy bit definition
-//
-#define DO_NOT_PROTECT                 0x00000000
-#define PROTECT_IF_ALIGNED_ELSE_ALLOW  0x00000001
-
 #define MEMORY_TYPE_OS_RESERVED_MIN   0x80000000
 #define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
 
@@ -64,58 +57,6 @@ UINT32  mImageProtectionPolicy;
 extern LIST_ENTRY  mGcdMemorySpaceMap;
 
 STATIC LIST_ENTRY  mProtectedImageRecordList;
-
-/**
-  Get UEFI image protection policy based upon image type.
-
-  @param[in]  ImageIsFromFv  Whether File comes from FV. Must be FALSE or TRUE.
-
-  @return UEFI image protection policy
-**/
-UINT32
-GetProtectionPolicyFromImageType (
-  IN BOOLEAN  ImageIsFromFv
-  )
-{
-  ASSERT (ImageIsFromFv == FALSE || ImageIsFromFv == TRUE);
-
-  if (((ImageIsFromFv + 1) & mImageProtectionPolicy) == 0) {
-    return DO_NOT_PROTECT;
-  } else {
-    return PROTECT_IF_ALIGNED_ELSE_ALLOW;
-  }
-}
-
-/**
-  Get UEFI image protection policy based upon loaded image device path.
-
-  @param[in]  ImageIsFromFv  Whether File comes from FV. Must be FALSE or TRUE.
-
-  @return UEFI image protection policy
-**/
-UINT32
-GetUefiImageProtectionPolicy (
-  IN BOOLEAN  ImageIsFromFv
-  )
-{
-  BOOLEAN  InSmm;
-  UINT32   ProtectionPolicy;
-
-  //
-  // Check SMM
-  //
-  InSmm = FALSE;
-  if (gSmmBase2 != NULL) {
-    gSmmBase2->InSmm (gSmmBase2, &InSmm);
-  }
-
-  if (InSmm) {
-    return FALSE;
-  }
-
-  ProtectionPolicy = GetProtectionPolicyFromImageType (ImageIsFromFv);
-  return ProtectionPolicy;
-}
 
 /**
   Set UEFI image memory attributes.
@@ -224,38 +165,31 @@ IsMemoryProtectionSectionAligned (
   Protect UEFI PE/COFF image.
 
   @param[in]  LoadedImage              The loaded image protocol
-  @param[in]  ImageIsFromFv            Whether File comes from FV. Must be FALSE
-                                       or TRUE.
+  @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
 **/
 VOID
 ProtectUefiImage (
   IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
-  IN BOOLEAN                       ImageIsFromFv,
+  IN UINT8                         ImageOrigin,
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  RETURN_STATUS              PdbStatus;
-  UINT32                     SectionAlignment;
-  UEFI_IMAGE_RECORD          *ImageRecord;
-  CONST CHAR8                *PdbPointer;
-  UINT32                     PdbSize;
-  BOOLEAN                    IsAligned;
-  UINT32                     ProtectionPolicy;
+  RETURN_STATUS      PdbStatus;
+  UINT32             SectionAlignment;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  CONST CHAR8        *PdbPointer;
+  UINT32             PdbSize;
+  BOOLEAN            IsAligned;
+  //
+  // Do not protect images, if policy allows.
+  //
+  if ((mImageProtectionPolicy & (BIT30 >> ImageOrigin)) != 0) {
+    return;
+  }
 
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
-
-  ProtectionPolicy = GetUefiImageProtectionPolicy (ImageIsFromFv);
-  switch (ProtectionPolicy) {
-    case DO_NOT_PROTECT:
-      return;
-    case PROTECT_IF_ALIGNED_ELSE_ALLOW:
-      break;
-    default:
-      ASSERT (FALSE);
-      return;
-  }
 
   PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
   if (!RETURN_ERROR (PdbStatus)) {

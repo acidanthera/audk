@@ -673,7 +673,8 @@ GetAlignmentFromFile (
              &ImageContext,
              ImageFileBuffer + CurSecHdrSize,
              ImageFileSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and return status is %x", InFile, (int) Status);

@@ -24,6 +24,8 @@ STATIC LIST_ENTRY  mAvailableEmulators;
 STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
 
+extern BOOLEAN     gBdsStarted;
+
 //
 // This code is needed to build the Image handle for the DXE Core
 //
@@ -1101,11 +1103,13 @@ CoreLoadImageCommon (
   BOOLEAN                         ImageIsFromFv;
   BOOLEAN                         ImageIsFromLoadFile;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINT8                           ImageOrigin;
 
   SecurityStatus = EFI_SUCCESS;
 
   ASSERT (gEfiCurrentTpl < TPL_NOTIFY);
   ParentImage = NULL;
+  Image       = NULL;
 
   //
   // The caller must pass in a valid ParentImageHandle
@@ -1171,6 +1175,7 @@ CoreLoadImageCommon (
     Status = CoreLocateDevicePath (&gEfiFirmwareVolume2ProtocolGuid, &HandleFilePath, &DeviceHandle);
     if (!EFI_ERROR (Status)) {
       ImageIsFromFv = TRUE;
+      ImageOrigin   = UefiImageOriginFv;
     } else {
       HandleFilePath = FilePath;
       Status         = CoreLocateDevicePath (&gEfiSimpleFileSystemProtocolGuid, &HandleFilePath, &DeviceHandle);
@@ -1189,6 +1194,8 @@ CoreLoadImageCommon (
           }
         }
       }
+
+      ImageOrigin = UefiImageOriginOptionROM;
     }
 
     //
@@ -1214,8 +1221,11 @@ CoreLoadImageCommon (
   }
 
   if (EFI_ERROR (Status)) {
-    Image = NULL;
     goto Done;
+  }
+
+  if (gBdsStarted) {
+    ImageOrigin = UefiImageOriginUserImage;
   }
 
   //
@@ -1225,11 +1235,15 @@ CoreLoadImageCommon (
              &ImageContext,
              FHand.Source,
              (UINT32) FHand.SourceSize,
-             ImageIsFromFv ? UEFI_IMAGE_SOURCE_FV : UEFI_IMAGE_SOURCE_NON_FV
+             ImageIsFromFv ? UEFI_IMAGE_SOURCE_FV : UEFI_IMAGE_SOURCE_NON_FV,
+             ImageOrigin
              );
   if (EFI_ERROR (Status)) {
-    ASSERT (FALSE);
-    return Status;
+    if ((ImageOrigin != UefiImageOriginUserImage) && (Status != EFI_NOT_STARTED)) {
+      CpuDeadLoop ();
+    }
+
+    goto Done;
   }
 
   // FIXME: Context
@@ -1284,12 +1298,15 @@ CoreLoadImageCommon (
     }
 
     Status = SecurityStatus;
-    Image  = NULL;
     goto Done;
   }
 
   Status = UefiImageInitializeContextPostHash (&ImageContext);
-  if (RETURN_ERROR (Status)) {
+  if (EFI_ERROR (Status)) {
+    if (ImageOrigin != UefiImageOriginUserImage) {
+      CpuDeadLoop ();
+    }
+
     goto Done;
   }
 
@@ -1418,7 +1435,7 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (&Image->Info, ImageIsFromFv, &ImageContext);
+  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext);
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
