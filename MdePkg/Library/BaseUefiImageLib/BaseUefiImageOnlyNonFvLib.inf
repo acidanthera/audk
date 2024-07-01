@@ -18,6 +18,7 @@
 [Sources]
   CommonSupport.c
   ExecutionSupport.c
+  UeSupport.c
   PeSupport.c
   UefiImageLib.c
 
@@ -32,14 +33,14 @@
   DebugLib
   MemoryAllocationLib
   PeCoffLib2
+  UeImageLib
   UefiImageExtraActionLib
 
 [FixedPcd]
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAlignmentPolicy
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderLoadHeader
-  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask
-
+  gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv
 

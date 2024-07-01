@@ -10,7 +10,9 @@
 #include "ImageTool.h"
 #include "DynamicBuffer.h"
 
+#ifndef IMAGE_TOOL_DYNAMIC_BUFFER_GROWTH
 #define IMAGE_TOOL_DYNAMIC_BUFFER_GROWTH  0x1000
+#endif // IMAGE_TOOL_DYNAMIC_BUFFER_GROWTH
 
 void
 ImageToolBufferInit (
@@ -186,9 +188,11 @@ ImageToolBufferDump (
   void      *Data;
   uint32_t  DataSize;
 
+  // LCOV_EXCL_START
   if (Buffer->Memory == NULL) {
     return NULL;
   }
+  // LCOV_EXCL_STOP
 
   DataSize = ImageToolBufferGetSize (Buffer);
 

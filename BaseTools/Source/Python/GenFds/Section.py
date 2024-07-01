@@ -26,6 +26,7 @@ class Section (SectionClassObject):
         'FREEFORM'  : 'EFI_SECTION_FREEFORM_SUBTYPE_GUID',
         BINARY_FILE_TYPE_PE32      : 'EFI_SECTION_PE32',
         BINARY_FILE_TYPE_PIC       : 'EFI_SECTION_PIC',
+        BINARY_FILE_TYPE_UE        : 'EFI_SECTION_PE32',
         'FV_IMAGE'  : 'EFI_SECTION_FIRMWARE_VOLUME_IMAGE',
         'COMPAT16'  : 'EFI_SECTION_COMPATIBILITY16',
         BINARY_FILE_TYPE_DXE_DEPEX : 'EFI_SECTION_DXE_DEPEX',
@@ -46,6 +47,7 @@ class Section (SectionClassObject):
         BINARY_FILE_TYPE_PIC           : '.pic',
         BINARY_FILE_TYPE_PEI_DEPEX     : '.depex',
         'SEC_PEI_DEPEX' : '.depex',
+        BINARY_FILE_TYPE_UE            : '.pe32',
         BINARY_FILE_TYPE_UNI_VER       : '.ver',
         BINARY_FILE_TYPE_VER           : '.ver',
         BINARY_FILE_TYPE_UNI_UI        : '.ui',
@@ -121,7 +123,8 @@ class Section (SectionClassObject):
             for File in FfsInf.BinFileList:
                 if File.Arch == TAB_ARCH_COMMON or FfsInf.CurrentArch == File.Arch:
                     if File.Type == FileType or (int(FfsInf.PiSpecVersion, 16) >= 0x0001000A \
-                                                 and FileType == 'DXE_DPEX' and File.Type == BINARY_FILE_TYPE_SMM_DEPEX):
+                                                 and FileType == 'DXE_DPEX' and File.Type == BINARY_FILE_TYPE_SMM_DEPEX) \
+                                                 or (FileType == BINARY_FILE_TYPE_UE and File.Type == BINARY_FILE_TYPE_PE32):
                         if TAB_STAR in FfsInf.TargetOverrideList or File.Target == TAB_STAR or File.Target in FfsInf.TargetOverrideList or FfsInf.TargetOverrideList == []:
                             FileList.append(FfsInf.PatchEfiFile(File.Path, File.Type))
                         else:
