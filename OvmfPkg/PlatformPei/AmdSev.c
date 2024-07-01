@@ -348,6 +348,9 @@ AmdSevEsInitialize (
 
   Status = PcdSet64S (PcdGhcbBase, GhcbBasePa);
   ASSERT_RETURN_ERROR (Status);
+
+  PlatformInfoHob->GhcbBase = GhcbBasePa;
+
   Status = PcdSet64S (PcdGhcbSize, EFI_PAGES_TO_SIZE (GhcbPageCount));
   ASSERT_RETURN_ERROR (Status);
 
@@ -458,6 +461,8 @@ AmdSevInitialize (
   PcdStatus      = PcdSet64S (PcdPteMemoryEncryptionAddressOrMask, EncryptionMask);
   ASSERT_RETURN_ERROR (PcdStatus);
 
+  PlatformInfoHob->PteMemoryEncryptionAddressOrMask = EncryptionMask;
+
   DEBUG ((DEBUG_INFO, "SEV is enabled (mask 0x%lx)\n", EncryptionMask));
 
   //
@@ -518,10 +523,13 @@ AmdSevInitialize (
   //
   if (MemEncryptSevSnpIsEnabled ()) {
     PcdStatus = PcdSet64S (PcdConfidentialComputingGuestAttr, CCAttrAmdSevSnp);
+    PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrAmdSevSnp;
   } else if (MemEncryptSevEsIsEnabled ()) {
     PcdStatus = PcdSet64S (PcdConfidentialComputingGuestAttr, CCAttrAmdSevEs);
+    PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrAmdSevEs;
   } else {
     PcdStatus = PcdSet64S (PcdConfidentialComputingGuestAttr, CCAttrAmdSev);
+    PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrAmdSev;
   }
 
   ASSERT_RETURN_ERROR (PcdStatus);
