@@ -331,7 +331,8 @@ EFI_STATUS
 FfsRebase (
   IN OUT  FV_INFO               *FvInfo,
   IN      CHAR8                 *FileName,
-  IN OUT  EFI_FFS_FILE_HEADER   *FfsFile,
+  IN OUT  EFI_FFS_FILE_HEADER   **FfsFile,
+  IN OUT  UINTN                 *FileSize,
   IN      UINTN                 XipOffset,
   IN      FILE                  *FvMapFile
   );

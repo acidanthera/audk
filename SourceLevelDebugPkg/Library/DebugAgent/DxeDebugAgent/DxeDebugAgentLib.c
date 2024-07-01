@@ -445,7 +445,6 @@ InitializeDebugAgent (
       EnableInterrupts ();
 
       mDebugAgentInitialized = TRUE;
-      FindAndReportModuleImageInfo (SIZE_4KB);
 
       *(EFI_STATUS *)Context = EFI_SUCCESS;
 
@@ -527,7 +526,6 @@ InitializeDebugAgent (
       // Disable interrupt
       //
       DisableInterrupts ();
-      FindAndReportModuleImageInfo (SIZE_4KB);
       if (GetDebugFlag (DEBUG_AGENT_FLAG_BREAK_BOOT_SCRIPT) == 1) {
         //
         // If Boot Script entry break is set, code will be break at here.

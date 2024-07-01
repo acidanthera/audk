@@ -38,7 +38,7 @@
 
 [Sources]
   Tcg2Dxe.c
-  MeasureBootPeCoff.c
+  MeasureBootUefiImage.c
 
 [Packages]
   MdePkg/MdePkg.dec
@@ -63,7 +63,7 @@
   PerformanceLib
   ReportStatusCodeLib
   Tcg2PhysicalPresenceLib
-  PeCoffLib
+  UefiImageLib
 
 [Guids]
   ## SOMETIMES_CONSUMES     ## Variable:L"SecureBoot"

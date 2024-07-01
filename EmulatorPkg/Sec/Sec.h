@@ -15,7 +15,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/EmuMagicPageLib.h>
 #include <Library/DebugLib.h>
 #include <Library/PeiServicesLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/BaseMemoryLib.h>
 
 #include <Ppi/TemporaryRamSupport.h>

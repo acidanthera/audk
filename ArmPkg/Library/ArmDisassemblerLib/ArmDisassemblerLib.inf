@@ -32,4 +32,3 @@
   BaseLib
   PrintLib
   DebugLib
-  PeCoffGetEntryPointLib

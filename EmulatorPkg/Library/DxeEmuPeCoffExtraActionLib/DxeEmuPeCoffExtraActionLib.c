@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 /** @file
   Provides services to perform additional actions to relocate and unload
   PE/Coff image for Emu environment specific purpose such as souce level debug.
@@ -23,7 +25,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Cache of UnixThunk protocol
 //
-EMU_THUNK_PROTOCOL  *mThunk = NULL;
+EMU_THUNK_PROTOCOL   *mThunk = NULL;
+
 
 /**
   The constructor function gets  the pointer of the WinNT thunk functions
@@ -39,7 +42,7 @@ DxeEmuPeCoffLibExtraActionConstructor (
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  EFI_HOB_GUID_TYPE  *GuidHob;
+   EFI_HOB_GUID_TYPE        *GuidHob;
 
   //
   // Retrieve EmuThunkProtocol from GUID'ed HOB
@@ -72,6 +75,8 @@ PeCoffLoaderRelocateImageExtraAction (
   }
 }
 
+
+
 /**
   Performs additional actions just before a PE/COFF image is unloaded.  Any resources
   that were allocated by PeCoffLoaderRelocateImageExtraAction() must be freed.
@@ -92,3 +97,5 @@ PeCoffLoaderUnloadImageExtraAction (
     mThunk->PeCoffUnloadImageExtraAction (ImageContext);
   }
 }
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

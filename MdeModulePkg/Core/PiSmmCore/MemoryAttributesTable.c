@@ -16,12 +16,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PcdLib.h>
 #include <Library/ImagePropertiesRecordLib.h>
 
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Guid/PiSmmMemoryAttributesTable.h>
 
 #include "PiSmmCore.h"
+#include "ProcessorBind.h"
 
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
@@ -31,7 +31,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 typedef struct {
   UINT32        Signature;
   UINTN         ImageRecordCount;
-  UINTN         CodeSegmentCountMax;
+  UINT32        NumberOfSectionsMax;
   LIST_ENTRY    ImageRecordList;
 } IMAGE_PROPERTIES_PRIVATE_DATA;
 
@@ -212,7 +212,10 @@ SmmCoreGetMemoryMapMemoryAttributesTable (
     return EFI_INVALID_PARAMETER;
   }
 
-  AdditionalRecordCount = (2 * mImagePropertiesPrivateData.CodeSegmentCountMax + 3) * mImagePropertiesPrivateData.ImageRecordCount;
+  //
+  // Per image, they may be one trailer. There may be prefixed data.
+  //
+  AdditionalRecordCount = (mImagePropertiesPrivateData.NumberOfSectionsMax + 1) * mImagePropertiesPrivateData.ImageRecordCount + 1;
 
   OldMemoryMapSize = *MemoryMapSize;
   Status           = SmmCoreGetMemoryMap (MemoryMapSize, MemoryMap, MapKey, DescriptorSize, DescriptorVersion);
@@ -252,88 +255,158 @@ SmmCoreGetMemoryMapMemoryAttributesTable (
 //
 
 /**
+  Set MemoryProtectionAttribute according to PE/COFF image section alignment.
+
+  @param[in]  SectionAlignment    PE/COFF section alignment
+**/
+STATIC
+VOID
+SetMemoryAttributesTableSectionAlignment (
+  IN UINT32  SectionAlignment
+  )
+{
+  if (((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) &&
+      ((mMemoryProtectionAttribute & EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA) != 0))
+  {
+    DEBUG ((DEBUG_VERBOSE, "SMM SetMemoryAttributesTableSectionAlignment - Clear\n"));
+    mMemoryProtectionAttribute &= ~((UINT64)EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA);
+  }
+}
+
+/**
+  Sort image record based upon the ImageBase from low to high.
+**/
+STATIC
+VOID
+InsertSortImageRecord (
+  IN UEFI_IMAGE_RECORD        *NewImageRecord
+  )
+{
+  UEFI_IMAGE_RECORD            *ImageRecord;
+  LIST_ENTRY                   *PrevImageRecordLink;
+  LIST_ENTRY                   *ImageRecordLink;
+  LIST_ENTRY                   *ImageRecordList;
+
+  ImageRecordList = &mImagePropertiesPrivateData.ImageRecordList;
+
+  PrevImageRecordLink = ImageRecordList;
+  for (
+    ImageRecordLink = GetFirstNode (ImageRecordList);
+    !IsNull (ImageRecordLink, ImageRecordList);
+    ImageRecordLink = GetNextNode (ImageRecordList, PrevImageRecordLink)
+    ) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+    if (NewImageRecord->StartAddress < ImageRecord->StartAddress) {
+      break;
+    }
+
+    PrevImageRecordLink = ImageRecordLink;
+  }
+
+  InsertHeadList (PrevImageRecordLink, &NewImageRecord->Link);
+  mImagePropertiesPrivateData.ImageRecordCount++;
+
+  if (mImagePropertiesPrivateData.NumberOfSectionsMax < NewImageRecord->NumSegments) {
+    mImagePropertiesPrivateData.NumberOfSectionsMax = NewImageRecord->NumSegments;
+  }
+}
+
+/**
+  Dump image record.
+**/
+STATIC
+VOID
+DumpImageRecord (
+  VOID
+  )
+{
+  UEFI_IMAGE_RECORD            *ImageRecord;
+  LIST_ENTRY               *ImageRecordLink;
+  LIST_ENTRY               *ImageRecordList;
+  UINTN                    Index;
+
+  ImageRecordList = &mImagePropertiesPrivateData.ImageRecordList;
+
+  for (ImageRecordLink = ImageRecordList->ForwardLink, Index = 0;
+       ImageRecordLink != ImageRecordList;
+       ImageRecordLink = ImageRecordLink->ForwardLink, Index++)
+  {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+    DEBUG ((DEBUG_VERBOSE, "SMM  Image[%d]: 0x%016lx - 0x%016lx\n", Index, ImageRecord->StartAddress, ImageRecord->EndAddress - ImageRecord->StartAddress));
+  }
+}
+
+/**
   Insert image record.
 
   @param[in]  DriverEntry    Driver information
 **/
 VOID
 SmmInsertImageRecord (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS               Status;
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  CHAR8                    *PdbPointer;
-  UINT32                   RequiredAlignment;
+  RETURN_STATUS      PdbStatus;
+  PHYSICAL_ADDRESS   ImageBuffer;
+  UINTN              NumberOfPage;
+  UINT32             SectionAlignment;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  CONST CHAR8        *PdbPointer;
+  UINT32             PdbSize;
 
-  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%x\n", DriverEntry));
+  ImageBuffer  = (UINTN)LoadedImage->ImageBase;
+  NumberOfPage = EFI_SIZE_TO_PAGES((UINTN)LoadedImage->ImageSize);
 
-  ImageRecord = AllocatePool (sizeof (*ImageRecord));
+  DEBUG ((DEBUG_VERBOSE, "SMM InsertImageRecord - 0x%016lx - 0x%08x\n", ImageBuffer, NumberOfPage));
+
+  DEBUG ((DEBUG_VERBOSE, "SMM ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
+
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!RETURN_ERROR (PdbStatus)) {
+    DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
+  }
+
+  //
+  // Get SectionAlignment
+  //
+  SectionAlignment = UefiImageGetSegmentAlignment (ImageContext);
+
+  SetMemoryAttributesTableSectionAlignment (SectionAlignment);
+  if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
+    DEBUG ((
+      DEBUG_WARN,
+      "SMM !!!!!!!!  InsertImageRecord - Section Alignment(0x%x) is not %dK  !!!!!!!!\n",
+      SectionAlignment, RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10));
+    if (!RETURN_ERROR (PdbStatus)) {
+      DEBUG ((DEBUG_WARN, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
+    }
+
+    return;
+  }
+
+  //
+  // The image headers are not recorded among the sections, allocate one more.
+  //
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
   if (ImageRecord == NULL) {
     return;
   }
 
-  InitializeListHead (&ImageRecord->Link);
-  InitializeListHead (&ImageRecord->CodeSegmentList);
+  UefiImageDebugPrintSegments (ImageContext);
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)DriverEntry->ImageBuffer);
-  if (PdbPointer != NULL) {
-    DEBUG ((DEBUG_VERBOSE, "SMM   Image - %a\n", PdbPointer));
-  }
-
-  RequiredAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
-  Status            = CreateImagePropertiesRecord (
-                        (VOID *)(UINTN)DriverEntry->ImageBuffer,
-                        LShiftU64 (DriverEntry->NumberOfPage, EFI_PAGE_SHIFT),
-                        &RequiredAlignment,
-                        ImageRecord
-                        );
-
-  if (EFI_ERROR (Status)) {
-    if (Status == EFI_ABORTED) {
-      mMemoryProtectionAttribute &=
-        ~((UINT64)EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA);
-    }
-
-    goto Finish;
-  }
-
-  if (ImageRecord->CodeSegmentCount == 0) {
-    mMemoryProtectionAttribute &=
-      ~((UINT64)EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA);
-    DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    if (PdbPointer != NULL) {
-      DEBUG ((DEBUG_ERROR, "SMM !!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
-    }
-
-    Status = EFI_ABORTED;
-    goto Finish;
-  }
-
-  //
-  // Check overlap all section in ImageBase/Size
-  //
-  if (!IsImageRecordCodeSectionValid (ImageRecord)) {
-    DEBUG ((DEBUG_ERROR, "SMM IsImageRecordCodeSectionValid - FAIL\n"));
-    Status = EFI_ABORTED;
-    goto Finish;
-  }
-
-  InsertTailList (&mImagePropertiesPrivateData.ImageRecordList, &ImageRecord->Link);
-  mImagePropertiesPrivateData.ImageRecordCount++;
-
-  if (mImagePropertiesPrivateData.CodeSegmentCountMax < ImageRecord->CodeSegmentCount) {
-    mImagePropertiesPrivateData.CodeSegmentCountMax = ImageRecord->CodeSegmentCount;
-  }
-
-  SortImageRecord (&mImagePropertiesPrivateData.ImageRecordList);
-
-Finish:
-  if (EFI_ERROR (Status) && (ImageRecord != NULL)) {
-    DeleteImagePropertiesRecord (ImageRecord);
-  }
-
-  return;
+  InsertSortImageRecord (ImageRecord);
 }
 
 /**
@@ -419,60 +492,6 @@ PublishMemoryAttributesTable (
 }
 
 /**
-  This function installs all SMM image record information.
-**/
-VOID
-SmmInstallImageRecord (
-  VOID
-  )
-{
-  EFI_STATUS                 Status;
-  UINTN                      NoHandles;
-  EFI_HANDLE                 *HandleBuffer;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  UINTN                      Index;
-  EFI_SMM_DRIVER_ENTRY       DriverEntry;
-
-  Status = SmmLocateHandleBuffer (
-             ByProtocol,
-             &gEfiLoadedImageProtocolGuid,
-             NULL,
-             &NoHandles,
-             &HandleBuffer
-             );
-  if (EFI_ERROR (Status)) {
-    return;
-  }
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gSmst->SmmHandleProtocol (
-                      HandleBuffer[Index],
-                      &gEfiLoadedImageProtocolGuid,
-                      (VOID **)&LoadedImage
-                      );
-    if (EFI_ERROR (Status)) {
-      continue;
-    }
-
-    DEBUG ((DEBUG_VERBOSE, "LoadedImage - 0x%x 0x%x ", LoadedImage->ImageBase, LoadedImage->ImageSize));
-    {
-      VOID  *PdbPointer;
-      PdbPointer = PeCoffLoaderGetPdbPointer (LoadedImage->ImageBase);
-      if (PdbPointer != NULL) {
-        DEBUG ((DEBUG_VERBOSE, "(%a) ", PdbPointer));
-      }
-    }
-    DEBUG ((DEBUG_VERBOSE, "\n"));
-    ZeroMem (&DriverEntry, sizeof (DriverEntry));
-    DriverEntry.ImageBuffer  = (UINTN)LoadedImage->ImageBase;
-    DriverEntry.NumberOfPage = EFI_SIZE_TO_PAGES ((UINTN)LoadedImage->ImageSize);
-    SmmInsertImageRecord (&DriverEntry);
-  }
-
-  FreePool (HandleBuffer);
-}
-
-/**
   Install MemoryAttributesTable.
 
   @param[in] Protocol   Points to the protocol's unique identifier.
@@ -489,8 +508,6 @@ SmmInstallMemoryAttributesTable (
   IN EFI_HANDLE      Handle
   )
 {
-  SmmInstallImageRecord ();
-
   DEBUG ((DEBUG_VERBOSE, "SMM MemoryProtectionAttribute - 0x%016lx\n", mMemoryProtectionAttribute));
   if ((mMemoryProtectionAttribute & EFI_MEMORY_ATTRIBUTES_RUNTIME_MEMORY_PROTECTION_NON_EXECUTABLE_PE_DATA) == 0) {
     return EFI_SUCCESS;
@@ -500,7 +517,7 @@ SmmInstallMemoryAttributesTable (
   if ( mImagePropertiesPrivateData.ImageRecordCount > 0) {
     DEBUG ((DEBUG_INFO, "SMM - Total Runtime Image Count - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
     DEBUG ((DEBUG_INFO, "SMM - Dump Runtime Image Records:\n"));
-    DumpImageRecords (&mImagePropertiesPrivateData.ImageRecordList);
+    DumpImageRecord ();
   }
 
   DEBUG_CODE_END ();
