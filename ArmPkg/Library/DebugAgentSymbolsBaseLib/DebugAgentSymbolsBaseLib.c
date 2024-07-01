@@ -218,7 +218,8 @@ GetImageContext (
              ImageContext,
              EfiImage,
              SectionLength - sizeof (*Section),
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (!EFI_ERROR(Status)) {
     Status = UefiImageLoadImageInplace( ImageContext);
