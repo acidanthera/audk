@@ -55,6 +55,7 @@
   MdePkg/Library/PciSegmentLibSegmentInfo/DxeRuntimePciSegmentLibSegmentInfo.inf
   MdePkg/Library/BaseS3PciSegmentLib/BaseS3PciSegmentLib.inf
   MdePkg/Library/BaseArmTrngLibNull/BaseArmTrngLibNull.inf
+  MdePkg/Library/BaseUeImageLib/BaseUeImageLib.inf
   MdePkg/Library/BasePeCoffLib2/BasePeCoffLib2.inf
   MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyNonFvLib.inf
   MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyFvLib.inf

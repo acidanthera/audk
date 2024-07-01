@@ -10,6 +10,7 @@
 #include <Library/UefiImageLib.h>
 
 #include "PeScan.h"
+#include "UeScan.h"
 
 static
 bool
@@ -24,7 +25,12 @@ ScanUefiImageGetHeaderInfo (
   HeaderInfo->BaseAddress       = UefiImageGetBaseAddress (Context);
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
-  HeaderInfo->Subsystem         = UefiImageGetSubsystem (Context);
+  if (HeaderInfo->Machine == 0xFFFF) {
+    DEBUG_RAISE ();
+    return false;
+  }
+
+  HeaderInfo->Subsystem = UefiImageGetSubsystem (Context);
 
   Status = UefiImageGetFixedAddress (Context, &Address);
   if (!RETURN_ERROR (Status)) {
@@ -48,6 +54,7 @@ static
 RETURN_STATUS
 ScanUefiImageGetRelocInfo (
   OUT image_tool_reloc_info_t          *RelocInfo,
+  IN  const image_tool_segment_info_t  *SegmentInfo,
   IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   )
 {
@@ -61,12 +68,21 @@ ScanUefiImageGetRelocInfo (
     return ScanPeGetRelocInfo (RelocInfo, &Context->Ctx.Pe);
   }
 
+  // LCOV_EXCL_START
+  if (FormatIndex == UefiImageFormatUe) {
+  // LCOV_EXCL_STOP
+    return ScanUeGetRelocInfo (RelocInfo, SegmentInfo, &Context->Ctx.Ue);
+  }
+
+  // LCOV_EXCL_START
   fprintf (
     stderr,
     "ImageTool: Unsupported UefiImage format %u\n",
     FormatIndex
     );
+  assert (false);
   return RETURN_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 static
@@ -86,12 +102,21 @@ ScanUefiImageGetSegmentInfo (
     return ScanPeGetSegmentInfo (SegmentInfo, &Context->Ctx.Pe);
   }
 
+  // LCOV_EXCL_START
+  if (FormatIndex == UefiImageFormatUe) {
+  // LCOV_EXCL_STOP
+    return ScanUeGetSegmentInfo (SegmentInfo, &Context->Ctx.Ue);
+  }
+
+  // LCOV_EXCL_START
   fprintf (
     stderr,
     "ImageTool: Unsupported UefiImage format %u\n",
     FormatIndex
     );
+  assert (false);
   return RETURN_UNSUPPORTED;
+  // LCOV_EXCL_STOP
 }
 
 RETURN_STATUS
@@ -166,7 +191,7 @@ ToolContextConstructUefiImage (
   OUT image_tool_image_info_t  *Image,
   OUT int8_t                   *Format,
   IN  const void               *File,
-  IN  size_t                   FileSize
+  IN  uint32_t                 FileSize
   )
 {
   RETURN_STATUS                    Status;
@@ -179,11 +204,6 @@ ToolContextConstructUefiImage (
   bool                             Success;
 
   assert (File != NULL || FileSize == 0);
-
-  if (FileSize > MAX_UINT32) {
-    fprintf (stderr, "ImageTool: FileSize is too huge\n");
-    return RETURN_UNSUPPORTED;
-  }
 
   Status = UefiImageInitializeContext (
              &Context,
@@ -209,11 +229,13 @@ ToolContextConstructUefiImage (
   }
 
   Status = UefiImageLoadImage (&Context, Destination, DestinationSize);
+  // LCOV_EXCL_START
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not Load Image\n");
     FreeAlignedPages (Destination, DestinationPages);
     return Status;
   }
+  // LCOV_EXCL_STOP
 
   memset (Image, 0, sizeof (*Image));
 
@@ -233,7 +255,11 @@ ToolContextConstructUefiImage (
     return Status;
   }
 
-  Status = ScanUefiImageGetRelocInfo (&Image->RelocInfo, &Context);
+  Status = ScanUefiImageGetRelocInfo (
+             &Image->RelocInfo,
+             &Image->SegmentInfo,
+             &Context
+             );
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not retrieve reloc info\n");
     ToolImageDestruct (Image);
