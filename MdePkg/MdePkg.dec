@@ -2385,6 +2385,27 @@
   # @Prompt Supported UEFI image file formats inside FVs.
   gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x01|UINT8|0x40002001
 
+  ## Set image protection policy. The policy is applied for each source individually.
+  #  If a bit is set, aligned images from this source will be protected and
+  #  unaligned images won't be loaded. Image protection means that
+  #  the code section becomes read-only, and the data section becomes non-executable.<BR>
+  #  If a bit is cleared, both aligned and unaligned images from this source will
+  #  be loaded but protection will be applied only to aligned images.<BR>
+  #  Image is aligned, if its SectionAlignment is a power of 2 and >= 4KB.<BR>
+  #  If BIT31 is set, unaligned image from firmware volume will stop boot process.<BR>
+  #  If BIT31 is cleared, unaligned images from firmware volume will be ignored.<BR>
+  #
+  #    BIT0 - Images from firmware volume.<BR>
+  #    BIT1 - Images from option ROM.<BR>
+  #    BIT2 - Images supplied by user.<BR>
+  #    <BR>
+  #    BIT31 - Firmware volume policy.<BR>
+  #    BIT30 - Turn off protection for images from firmware volume.<BR>
+  #    BIT29 - Turn off protection for images from option ROM.<BR>
+  #    BIT28 - Turn off protection for images supplied by user.<BR>
+  # @Prompt Set image protection policy.
+  gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000007|UINT32|0x40002002
+
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following
   #  BaseLib functions: StrLen(), StrSize(), StrCmp(), StrnCmp(), StrCpy(), StrnCpy()<BR><BR>

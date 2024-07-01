@@ -27,10 +27,11 @@ RETURN_STATUS
 UefiImageInitializeContextPreHashPe (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
-  IN  UINT32                           FileSize
+  IN  UINT32                           FileSize,
+  IN  UINT8                            ImageOrigin
   )
 {
-  return PeCoffInitializeContext (&Context->Ctx.Pe, FileBuffer, FileSize);
+  return PeCoffInitializeContext (&Context->Ctx.Pe, FileBuffer, FileSize, ImageOrigin);
 }
 
 BOOLEAN
@@ -528,7 +529,8 @@ InternalDebugLocateImage (
   OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  CHAR8                         *Buffer,
   IN  UINTN                         Address,
-  IN  BOOLEAN                       Recurse
+  IN  BOOLEAN                       Recurse,
+  IN  UINT8                         ImageOrigin
   )
 {
   RETURN_STATUS                Status;
@@ -557,7 +559,8 @@ InternalDebugLocateImage (
     Status = PeCoffInitializeContext (
                Context,
                Buffer,
-               MAX_UINT32
+               MAX_UINT32,
+               ImageOrigin
                );
     if (RETURN_ERROR (Status)) {
       continue;
@@ -576,7 +579,8 @@ InternalDebugLocateImage (
                       &DosContext,
                       Buffer - 4,
                       Address,
-                      TRUE
+                      TRUE,
+                      ImageOrigin
                       );
         if (!RETURN_ERROR (DosStatus)) {
           Buffer = DosContext.ImageBuffer;
@@ -611,7 +615,8 @@ InternalDebugLocateImage (
 RETURN_STATUS
 UefiImageDebugLocateImagePe (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                            Address
+  IN  UINTN                            Address,
+  IN  UINT8                            ImageOrigin
   )
 {
   RETURN_STATUS Status;
@@ -641,7 +646,8 @@ UefiImageDebugLocateImagePe (
              &Context->Ctx.Pe,
              (CHAR8 *) (Address & ~(UINTN) 3U),
              Address,
-             FALSE
+             FALSE,
+             ImageOrigin
              );
 
   DEBUG_CODE_END ();
@@ -710,7 +716,7 @@ UefiImageDebugPrintSegmentsPe (
     Name = Sections[SectionIndex].Name;
     DEBUG ((
       DEBUG_VERBOSE,
-      "  Section - '%c%c%c%c%c%c%c%c'\n",
+      "  Section - '%c%c%c%c%c%c%c%c'\n"
       "  VirtualSize          - 0x%08x\n"
       "  VirtualAddress       - 0x%08x\n"
       "  SizeOfRawData        - 0x%08x\n"
