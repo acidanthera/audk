@@ -28,13 +28,13 @@ LoadUefiImage (
   OUT EFI_PHYSICAL_ADDRESS  *EntryPoint
   )
 {
-  RETURN_STATUS                 Status;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT   ImageContext;
-  UINT32                            ImageSize;
-  UINT32                            ImageAlignment;
-  UINT32                        BufferPages;
-  UINT32                        BufferSize;
-  VOID                          *Buffer;
+  RETURN_STATUS                    Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
+  UINT32                           ImageSize;
+  UINT32                           ImageAlignment;
+  UINT32                           BufferPages;
+  UINT32                           BufferSize;
+  VOID                             *Buffer;
 
   Status = UefiImageInitializeContext (
              &ImageContext,
