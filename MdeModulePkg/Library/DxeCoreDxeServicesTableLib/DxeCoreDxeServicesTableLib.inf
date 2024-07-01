@@ -1,0 +1,40 @@
+## @file
+# Dummy instance of DXE Services Table Library for DxeCore.
+#
+# Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DxeCoreDxeServicesTableLib
+  MODULE_UNI_FILE                = DxeCoreDxeServicesTableLib.uni
+  FILE_GUID                      = 898fc74c-b07c-4b68-bdd3-365c9ce26a9d
+  MODULE_TYPE                    = DXE_CORE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DxeServicesTableLib|DXE_CORE
+
+  CONSTRUCTOR                    = DxeServicesTableLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
+#
+
+[Sources]
+  DxeCoreDxeServicesTableLib.c
+
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+
+[LibraryClasses]
+  UefiLib
+  DebugLib
+
+
+[Guids]
+  gEfiDxeServicesTableGuid                      ## CONSUMES  ## SystemTable
