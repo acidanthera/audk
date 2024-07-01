@@ -487,6 +487,11 @@
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF45
   !endif
 
+  #
+  # Firmware volume is PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x01
+
 ################################################################################
 #
 # Pcd Dynamic Section - list of all EDK II PCD Entries defined by this Platform

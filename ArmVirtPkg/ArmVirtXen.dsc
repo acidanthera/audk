@@ -99,6 +99,11 @@
   #
   gEfiMdeModulePkgTokenSpaceGuid.PcdEmuVariableNvModeEnable|TRUE
 
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
+
 [PcdsPatchableInModule.common]
   # we need to provide a resolution for this PCD that supports PcdSet64()
   # being called from ArmVirtPkg/Library/PlatformPeiLib/PlatformPeiLib.c,

@@ -544,6 +544,11 @@
   gEfiSecurityPkgTokenSpaceGuid.PcdRemovableMediaImageVerificationPolicy|0x04
 !endif
 
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
+
 [PcdsPatchableInModule.X64]
 !if $(NETWORK_DRIVER_ENABLE) == TRUE
   gEfiNetworkPkgTokenSpaceGuid.PcdAllowHttpConnections|TRUE

@@ -566,6 +566,11 @@
   gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x1
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
 
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
+
 [PcdsFixedAtBuild.IA32]
   #
   # The NumberOfPages values below are ad-hoc. They are updated sporadically at
