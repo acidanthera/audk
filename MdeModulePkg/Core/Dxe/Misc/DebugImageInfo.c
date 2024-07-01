@@ -119,7 +119,7 @@ CoreInitializeDebugImageInfoTable (
   // Initialize EFI_SYSTEM_TABLE_POINTER structure
   //
   mDebugTable->Signature          = EFI_SYSTEM_TABLE_SIGNATURE;
-  mDebugTable->EfiSystemTableBase = (EFI_PHYSICAL_ADDRESS)(UINTN)gDxeCoreST;
+  mDebugTable->EfiSystemTableBase = (EFI_PHYSICAL_ADDRESS)(UINTN)gST;
   mDebugTable->Crc32              = 0;
 
   //
