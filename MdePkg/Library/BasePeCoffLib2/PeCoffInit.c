@@ -339,7 +339,8 @@ STATIC
 RETURN_STATUS
 InternalInitializePe (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
-  IN     UINT32                        FileSize
+  IN     UINT32                        FileSize,
+  IN     UINT8                         ImageOrigin
   )
 {
   BOOLEAN                               Overflow;
@@ -356,6 +357,7 @@ InternalInitializePe (
   UINT32                                NumberOfRvaAndSizes;
   RETURN_STATUS                         Status;
   UINT32                                StartAddress;
+  UINT32                                Policy;
 
   ASSERT (Context != NULL);
   ASSERT (sizeof (EFI_IMAGE_NT_HEADERS_COMMON_HDR) + sizeof (UINT16) <= FileSize - Context->ExeHdrOffset);
@@ -478,6 +480,26 @@ InternalInitializePe (
   if (!IS_POW2 (Context->SectionAlignment)) {
     DEBUG_RAISE ();
     return RETURN_VOLUME_CORRUPTED;
+  }
+  //
+  // Apply image protection policy
+  //
+  if (Context->SectionAlignment < EFI_PAGE_SIZE) {
+    Policy = PcdGet32 (PcdImageProtectionPolicy);
+    //
+    // Images, which are less than 4KB aligned, won't be loaded, if policy demands.
+    //
+    if ((Policy & (1U << ImageOrigin)) != 0) {
+      //
+      // Such an image from firmware volume will stop boot process, if policy orders.
+      //
+      if (((Policy & PCD_IMAGE_PROTECTION_POLICY_FV_STOP_BOOT) != 0)
+        && (ImageOrigin == UefiImageOriginFv)) {
+        return RETURN_SECURITY_VIOLATION;
+      }
+
+      return RETURN_NOT_STARTED;
+    }
   }
 
   STATIC_ASSERT (
@@ -649,7 +671,8 @@ RETURN_STATUS
 PeCoffInitializeContext (
   OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                    *FileBuffer,
-  IN  UINT32                        FileSize
+  IN  UINT32                        FileSize,
+  IN  UINT8                         ImageOrigin
   )
 {
   RETURN_STATUS               Status;
@@ -711,7 +734,7 @@ PeCoffInitializeContext (
   //
   // Verify the PE Image Header is well-formed.
   //
-  Status = InternalInitializePe (Context, FileSize);
+  Status = InternalInitializePe (Context, FileSize, ImageOrigin);
   if (Status != RETURN_SUCCESS) {
     return Status;
   }

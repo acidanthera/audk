@@ -840,7 +840,8 @@ Returns:
              &Context,
              FileBuffer,
              FileSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (RETURN_ERROR (Status)) {
     Error (NULL, 0, 2000, "Invalid parameter", "Input file does not appear to be an UEFI image - %llu!", Status);

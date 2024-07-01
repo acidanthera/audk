@@ -44,7 +44,8 @@ LoadUefiImage (
              &ImageContext,
              UefiImage,
              UefiImageSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   ASSERT_EFI_ERROR (Status);
 
