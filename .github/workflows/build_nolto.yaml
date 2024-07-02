@@ -521,6 +521,7 @@ jobs:
           fileName: "winpe_IA32.iso"
 
       - name: Run TestConsole
+        if: always()
         run: |
           IFS=', ' read -r -a TARGETS <<< "$TARGETS"
           IFS=', ' read -r -a ARCHS <<< "$ARCHS"
@@ -537,6 +538,7 @@ jobs:
           TOOLCHAIN: ${{ matrix.package.toolchain }}
 
       - name: Run TestLinux
+        if: always()
         run: |
           IFS=', ' read -r -a TARGETS <<< "$TARGETS"
           IFS=', ' read -r -a ARCHS <<< "$ARCHS"
@@ -553,6 +555,7 @@ jobs:
           TOOLCHAIN: ${{ matrix.package.toolchain }}
 
       - name: Run Windows PE
+        if: always()
         run: |
           IFS=', ' read -r -a TARGETS <<< "$TARGETS"
           IFS=', ' read -r -a ARCHS <<< "$ARCHS"
