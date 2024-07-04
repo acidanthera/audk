@@ -64,3 +64,18 @@ ArmHasCcidx (
   Mmfr4 = ArmReadIdMmfr4 ();
   return (((Mmfr4 >> 24) & 0xF) == 1) ? TRUE : FALSE;
 }
+
+/**
+  Checks whether the CPU implements the Privileged Access Never.
+
+  @retval TRUE  FEAT_PAN is implemented.
+  @retval FALSE FEAT_PAN is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasPan (
+  VOID
+  )
+{
+  return ((ArmReadIdMmfr3 () & ARM_MMFR3_PAN) != 0);
+}

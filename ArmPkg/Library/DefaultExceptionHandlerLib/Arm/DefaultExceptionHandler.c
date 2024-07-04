@@ -196,7 +196,8 @@ STATIC CHAR8  *gExceptionTypeString[] = {
 
 
 **/
-VOID
+EFI_STATUS
+EFIAPI
 DefaultExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
@@ -287,4 +288,6 @@ DefaultExceptionHandler (
   // Clear the error registers that we have already displayed incase some one wants to keep going
   SystemContext.SystemContextArm->DFSR = 0;
   SystemContext.SystemContextArm->IFSR = 0;
+
+  return EFI_SUCCESS;
 }
