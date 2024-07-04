@@ -63,14 +63,17 @@ SectionToGcdAttributes (
   // determine protection attributes
   switch (SectionAttributes & TT_DESCRIPTOR_SECTION_AP_MASK) {
     case TT_DESCRIPTOR_SECTION_AP_NO_RW:
+      break;
     case TT_DESCRIPTOR_SECTION_AP_RW_RW:
-      // normal read/write access, do not add additional attributes
+      *GcdAttributes |= EFI_MEMORY_USER;
       break;
 
     // read only cases map to write-protect
     case TT_DESCRIPTOR_SECTION_AP_NO_RO:
-    case TT_DESCRIPTOR_SECTION_AP_RO_RO:
       *GcdAttributes |= EFI_MEMORY_RO;
+      break;
+    case TT_DESCRIPTOR_SECTION_AP_RO_RO:
+      *GcdAttributes |= EFI_MEMORY_USER | EFI_MEMORY_RO;
       break;
   }
 
@@ -468,10 +471,21 @@ EfiAttributeToArmAttribute (
   }
 
   // Determine protection attributes
-  if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
+  if ((EfiAttributes & EFI_MEMORY_USER) != 0) {
+    //
+    // TODO: Add PXN for Translation table descriptors.
+    //
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
+    } else {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
+    }
   } else {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RO;
+    } else {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RW;
+    }
   }
 
   // Determine eXecute Never attribute

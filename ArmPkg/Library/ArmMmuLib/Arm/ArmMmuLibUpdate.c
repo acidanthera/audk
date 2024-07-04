@@ -142,10 +142,21 @@ UpdatePageEntries (
     EntryValue |= TT_DESCRIPTOR_PAGE_AF;
   }
 
-  if ((Attributes & EFI_MEMORY_RO) != 0) {
-    EntryValue |= TT_DESCRIPTOR_PAGE_AP_RO_RO;
+  if ((Attributes & EFI_MEMORY_USER) != 0) {
+    //
+    // TODO: Add PXN for Translation table descriptors.
+    //
+    if ((Attributes & EFI_MEMORY_RO) != 0) {
+      EntryValue |= TT_DESCRIPTOR_PAGE_AP_RO_RO;
+    } else {
+      EntryValue |= TT_DESCRIPTOR_PAGE_AP_RW_RW;
+    }
   } else {
-    EntryValue |= TT_DESCRIPTOR_PAGE_AP_RW_RW;
+    if ((Attributes & EFI_MEMORY_RO) != 0) {
+      EntryValue |= TT_DESCRIPTOR_PAGE_AP_NO_RO;
+    } else {
+      EntryValue |= TT_DESCRIPTOR_PAGE_AP_NO_RW;
+    }
   }
 
   if ((Attributes & EFI_MEMORY_XP) != 0) {
