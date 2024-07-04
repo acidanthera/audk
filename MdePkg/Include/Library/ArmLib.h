@@ -669,6 +669,18 @@ ArmHasCcidx (
   VOID
   );
 
+/**
+  Checks whether the CPU implements the Privileged Access Never.
+
+  @retval TRUE  FEAT_PAN is implemented.
+  @retval FALSE FEAT_PAN is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasPan (
+  VOID
+  );
+
 ///
 /// AArch64-only ID Register Helper functions
 ///
@@ -682,18 +694,6 @@ ArmHasCcidx (
 BOOLEAN
 EFIAPI
 ArmHasVhe (
-  VOID
-  );
-
-/**
-  Checks whether the CPU implements the Privileged Access Never.
-
-  @retval TRUE  FEAT_PAN is implemented.
-  @retval FALSE FEAT_PAN is not mplemented.
-**/
-BOOLEAN
-EFIAPI
-ArmHasPan (
   VOID
   );
 
