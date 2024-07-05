@@ -91,7 +91,7 @@ ASM_FUNC(ArmCallRing3)
   // Prepare Ring3 SP and EntryPoint.
   msr  sp_el0, x1
   msr  elr_el1, x2
-  // Save Core SP and switch to Ring3Call Stack.
+  // Save Core SP and switch to CoreSysCall Stack.
   mov  x5, sp
   str  x5, [x4]
   mov  sp, x3

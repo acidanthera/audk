@@ -9,6 +9,18 @@
 
 #include "DxeMain.h"
 
+STATIC UINTN  mCoreSp;
+
+EFI_STATUS
+EFIAPI
+ArmCallRing3 (
+  IN RING3_CALL_DATA *Data,
+  IN VOID            *StackPointer,
+  IN VOID            *EntryPoint,
+  IN VOID            *SysCallStack,
+  IN VOID            *CoreStack
+  );
+
 VOID
 EFIAPI
 ArmSetPan (
@@ -35,7 +47,7 @@ InitializeMsr (
     ArmSetPan ();
   } else {
     DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
-    ASSERT (FALSE);
+    // ASSERT (FALSE);
   }
 }
 
@@ -45,7 +57,9 @@ DisableSMAP (
   VOID
   )
 {
-  ArmClearPan ();
+  if (ArmHasPan ()) {
+    ArmClearPan ();
+  }
 }
 
 VOID
@@ -54,5 +68,16 @@ EnableSMAP (
   VOID
   )
 {
-  ArmSetPan ();
+  if (ArmHasPan ()) {
+    ArmSetPan ();
+  }
+}
+
+EFI_STATUS
+EFIAPI
+CallRing3 (
+  IN RING3_CALL_DATA *Data
+  )
+{
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp);
 }
