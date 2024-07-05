@@ -5,6 +5,8 @@
 
 #include <AsmMacroIoLib.h>
 
+.extern ASM_PFX(Ring3Call)
+
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
@@ -14,8 +16,8 @@
 //   );
 //------------------------------------------------------------------------------
 ASM_FUNC(SysCall)
-
-  bx    LR
+  svc #0
+  bx  LR
 
 //------------------------------------------------------------------------------
 // VOID
@@ -24,9 +26,7 @@ ASM_FUNC(SysCall)
 //   IN RING3_CALL_DATA *Data
 //   );
 //
-//   (rcx) RIP of Ring3EntryPoint saved for SYSRET in CallRing3().
-//   (rdx) Data
+//   (r0) Data
 //------------------------------------------------------------------------------
 ASM_FUNC(Ring3EntryPoint)
-
-  bx    LR
+  b ASM_PFX(Ring3Call)
