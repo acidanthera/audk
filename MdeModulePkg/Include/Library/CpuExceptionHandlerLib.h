@@ -14,6 +14,14 @@
 
 #define X86_CPU_INTERRUPT_NUM  256
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
+  IN  UINT8             Type,
+  IN  VOID              *CoreRbp,
+  IN  VOID              *UserRsp
+  );
+
 /**
   Initializes all CPU exceptions entries and provides the default exception handlers.
 
@@ -103,5 +111,5 @@ DumpCpuContext (
 VOID
 EFIAPI
 InitializeSysCallHandler (
-  IN VOID  *Handler
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
   );

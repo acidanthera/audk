@@ -29,14 +29,6 @@
 //
 #define MAX_PRINT_CHARS  100
 
-typedef
-EFI_STATUS
-(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
-  IN  UINT8             Type,
-  IN  VOID              *CoreRbp,
-  IN  VOID              *UserRsp
-  );
-
 UINTN                   mMaxExceptionNumber                           = MAX_AARCH64_EXCEPTION;
 EFI_EXCEPTION_CALLBACK  mExceptionHandlers[MAX_AARCH64_EXCEPTION + 1] = { 0 };
 PHYSICAL_ADDRESS        mExceptionVectorAlignmentMask                 = ARM_VECTOR_TABLE_ALIGNMENT;
@@ -229,10 +221,10 @@ BaseName (
 VOID
 EFIAPI
 InitializeSysCallHandler (
-  IN VOID  *Handler
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
   )
 {
-  mSysCallHandler = (EFI_SYS_CALL_BOOT_SERVICE)Handler;
+  mSysCallHandler = Handler;
 }
 
 /**

@@ -6,6 +6,7 @@
 **/
 
 #include <Library/ArmLib.h>
+#include <Library/DefaultExceptionHandlerLib.h>
 
 #include "DxeMain.h"
 
@@ -33,6 +34,50 @@ ArmClearPan (
   VOID
   );
 
+STATIC
+EFI_STATUS
+EFIAPI
+SysCallBootService (
+  IN  UINT8  Type,
+  IN  VOID   *CoreRbp,
+  IN  VOID   *UserRsp
+  )
+{
+  EFI_STATUS              Status;
+  EFI_PHYSICAL_ADDRESS    Physical;
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)),
+             &Physical
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  DisableSMAP ();
+  //
+  // First 3 arguments are passed through R1-R3 and copied to SysCall Stack.
+  //
+  CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)CoreRbp, 3 * sizeof (UINTN));
+  //
+  // All remaining arguments are on User Stack.
+  //
+  CopyMem ((VOID *)((UINTN)Physical + 4 * sizeof (UINTN)), (VOID *)UserRsp, 5 * sizeof (UINTN));
+  EnableSMAP ();
+
+  Status = CallBootService (
+             Type,
+             (CORE_STACK *)CoreRbp,
+             (RING3_STACK *)(UINTN)Physical
+             );
+
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
+
+  return Status;
+}
+
 VOID
 EFIAPI
 InitializeMsr (
@@ -49,6 +94,8 @@ InitializeMsr (
     DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
     // ASSERT (FALSE);
   }
+
+  InitializeSysCallHandler (SysCallBootService);
 }
 
 VOID
