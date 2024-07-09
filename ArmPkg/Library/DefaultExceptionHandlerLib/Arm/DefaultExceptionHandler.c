@@ -38,6 +38,8 @@ typedef struct {
   CHAR8     Char;
 } CPSR_CHAR;
 
+STATIC EFI_SYS_CALL_BOOT_SERVICE  mSysCallHandler;
+
 STATIC CONST CPSR_CHAR  mCpsrChar[] = {
   { 31, 'n' },
   { 30, 'z' },
@@ -186,6 +188,15 @@ STATIC CHAR8  *gExceptionTypeString[] = {
   "FIQ"
 };
 
+VOID
+EFIAPI
+InitializeSysCallHandler (
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
+  )
+{
+  mSysCallHandler = Handler;
+}
+
 /**
   This is the default action to take on an unexpected exception
 
@@ -209,6 +220,14 @@ DefaultExceptionHandler (
   UINT32   DfsrStatus;
   UINT32   IfsrStatus;
   BOOLEAN  DfsrWrite;
+
+  if (ExceptionType == EXCEPT_ARM_SOFTWARE_INTERRUPT) {
+    return mSysCallHandler (
+             SystemContext.SystemContextArm->R0,
+             &(SystemContext.SystemContextArm->R1),
+             &(SystemContext.SystemContextArm->SP)
+             );
+  }
 
   CharCount = AsciiSPrint (
                 Buffer,

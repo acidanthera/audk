@@ -9,6 +9,14 @@
 #ifndef DEFAULT_EXCEPTION_HANDLER_LIB_H_
 #define DEFAULT_EXCEPTION_HANDLER_LIB_H_
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
+  IN  UINT8  Type,
+  IN  VOID   *CoreRbp,
+  IN  VOID   *UserRsp
+  );
+
 /**
   This is the default action to take on an unexpected exception
 
@@ -26,7 +34,7 @@ DefaultExceptionHandler (
 VOID
 EFIAPI
 InitializeSysCallHandler (
-  IN VOID  *Handler
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
   );
 
 #endif // DEFAULT_EXCEPTION_HANDLER_LIB_H_

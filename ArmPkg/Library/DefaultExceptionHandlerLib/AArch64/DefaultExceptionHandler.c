@@ -21,20 +21,13 @@
 #include <Guid/DebugImageInfoTable.h>
 #include <Protocol/DebugSupport.h>
 #include <Protocol/LoadedImage.h>
+#include <Library/DefaultExceptionHandlerLib.h>
 
 //
 // Maximum number of characters to print to serial (UINT8s) and to console if
 // available (as UINT16s)
 //
 #define MAX_PRINT_CHARS  100
-
-typedef
-EFI_STATUS
-(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
-  IN  UINT8             Type,
-  IN  VOID              *CoreRbp,
-  IN  VOID              *UserRsp
-  );
 
 STATIC CHAR8  *gExceptionTypeString[] = {
   "Synchronous",
@@ -194,10 +187,10 @@ BaseName (
 VOID
 EFIAPI
 InitializeSysCallHandler (
-  IN VOID  *Handler
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
   )
 {
-  mSysCallHandler = (EFI_SYS_CALL_BOOT_SERVICE)Handler;
+  mSysCallHandler = Handler;
 }
 
 /**
