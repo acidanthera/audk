@@ -71,11 +71,11 @@ SysCallBootService (
   //
   // First 3 arguments are passed through R1-R3 and copied to SysCall Stack.
   //
-  CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)CoreRbp, 3 * sizeof (UINTN));
+  CopyMem ((VOID *)((UINTN)Physical + 2 * sizeof (UINTN)), (VOID *)CoreRbp, 3 * sizeof (UINTN));
   //
   // All remaining arguments are on User Stack.
   //
-  CopyMem ((VOID *)((UINTN)Physical + 4 * sizeof (UINTN)), (VOID *)UserRsp, 5 * sizeof (UINTN));
+  CopyMem ((VOID *)((UINTN)Physical + 5 * sizeof (UINTN)), (VOID *)UserRsp, 4 * sizeof (UINTN));
   EnableSMAP ();
 
   Status = CallBootService (
