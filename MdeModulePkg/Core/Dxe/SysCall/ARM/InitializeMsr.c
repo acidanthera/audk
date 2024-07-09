@@ -24,6 +24,13 @@ ArmCallRing3 (
 
 VOID
 EFIAPI
+ReturnToCore (
+  IN EFI_STATUS Status,
+  IN UINTN      CoreSp
+  );
+
+VOID
+EFIAPI
 ArmSetPan (
   VOID
   );
@@ -45,6 +52,10 @@ SysCallBootService (
 {
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    Physical;
+
+  if (Type == SysCallReturnToCore) {
+    ReturnToCore (*(EFI_STATUS *)CoreRbp, mCoreSp);
+  }
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
