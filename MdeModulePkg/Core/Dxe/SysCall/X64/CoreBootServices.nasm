@@ -61,7 +61,7 @@ global ASM_PFX(CallInstallMultipleProtocolInterfaces)
 ASM_PFX(CallInstallMultipleProtocolInterfaces):
     push    r12
 
-    ; Save funtion input.
+    ; Save function input.
     mov     rax, rdx
     mov     r10, r8
     mov     r11, r9

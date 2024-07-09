@@ -22,7 +22,7 @@
 ASM_FUNC(CallInstallMultipleProtocolInterfaces)
     stp	 x29, x30, [sp, #-0x10]!
     mov  x29, sp
-    // Save funtion input.
+    // Save function input.
     mov  x9, x1
     mov  x10, x2
     mov  x11, x3
