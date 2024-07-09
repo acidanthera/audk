@@ -20,7 +20,38 @@
 //   );
 //------------------------------------------------------------------------------
 ASM_FUNC(CallInstallMultipleProtocolInterfaces)
-    bx    LR
+  push  {R4-R8, LR}
+  mov   R7, SP
+  // Save function input.
+  mov   R4, R3
+  mov   R5, R1
+  mov   R6, R2
+  // Prepare registers for call.
+  ldmfd R5, {R1-R3}
+  // Prepare stack for call.
+  cmp   R6, #3
+  ble   call
+
+  add   R5, R5, R6, LSL #2
+  sub   R6, R6, #3
+  tst   R6, #1
+  beq   copy
+  // To align stack on 8 bytes.
+  add   R5, R5, #0x4
+  add   R6, R6, #1
+copy:
+  sub   R5, R5, #0x4
+  ldmfd R5, {R8}
+  push  {R8}
+  subs  R6, R6, #1
+  bne   copy
+
+call:
+  blx   R4
+
+  mov   SP, R7
+  pop   {R4-R8, LR}
+  bx    LR
 
 //------------------------------------------------------------------------------
 // EFI_STATUS
