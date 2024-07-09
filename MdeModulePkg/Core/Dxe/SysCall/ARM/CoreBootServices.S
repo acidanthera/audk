@@ -80,8 +80,8 @@ ASM_FUNC(ArmCallRing3)
 
   // Disable interrupts.
   mrs   R4, CPSR
-  orr   R5, R4, #0x80
-  msr   CPSR_c, R5
+  cpsid if
+  isb
 
   // Set SP_usr to gRing3CallStackTop.
   push  {R1}
@@ -99,6 +99,31 @@ ASM_FUNC(ArmCallRing3)
   push  {R4}
   push  {R2}
   rfefd SP
+
+//------------------------------------------------------------------------------
+// VOID
+// EFIAPI
+// ReturnToCore (
+//   IN EFI_STATUS Status,
+//   IN UINTN      CoreSp
+//   );
+//------------------------------------------------------------------------------
+ASM_FUNC(ReturnToCore)
+  // Switch to Core Stack.
+  mov   SP, R1
+
+  // Restore registers and Stack.
+#if (FixedPcdGet32(PcdVFPEnabled))
+  vpop  {d0-d15}
+#endif
+
+  pop   {R4-R12, LR}
+
+  // Enable interrupts.
+  cpsie if
+  isb
+
+  bx    LR
 
 //------------------------------------------------------------------------------
 // VOID
