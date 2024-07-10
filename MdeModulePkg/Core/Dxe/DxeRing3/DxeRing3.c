@@ -166,6 +166,19 @@ EFI_STATUS
   IN UINTN Argument7
   );
 
+typedef
+EFI_STATUS
+(EFIAPI *FUNCTION_8)(
+  IN UINTN Argument1,
+  IN UINTN Argument2,
+  IN UINTN Argument3,
+  IN UINTN Argument4,
+  IN UINTN Argument5,
+  IN UINTN Argument6,
+  IN UINTN Argument7,
+  IN UINTN Argument8
+  );
+
 VOID
 EFIAPI
 Ring3Call (
@@ -181,6 +194,7 @@ Ring3Call (
   FUNCTION_5  Function5;
   FUNCTION_6  Function6;
   FUNCTION_7  Function7;
+  FUNCTION_8  Function8;
 
   switch (Data->NumberOfArguments) {
     case 0:
@@ -214,6 +228,10 @@ Ring3Call (
     case 7:
       Function7 = (FUNCTION_7)Data->EntryPoint;
       Status = Function7 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6]);
+      break;
+    case 8:
+      Function8 = (FUNCTION_8)Data->EntryPoint;
+      Status = Function8 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6], Data->Arguments[7]);
       break;
     default:
       Status = EFI_UNSUPPORTED;
