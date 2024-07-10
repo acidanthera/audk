@@ -315,6 +315,8 @@ CallBootService (
   gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserRsp, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
+  DEBUG ((DEBUG_VERBOSE, "Type: %a\n", SysCallNames[Type]));
+
   switch (Type) {
     case SysCallLocateProtocol:
       //
@@ -854,11 +856,22 @@ CallBootService (
         return EFI_NOT_FOUND;
       }
 
+#if defined (MDE_CPU_ARM)
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
+#else
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+#endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       DisableSMAP ();
+#if defined (MDE_CPU_ARM)
+      //
+      // EFI_LBA Lba is aligned on 8 bytes.
+      //
+      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+#else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+#endif
       EnableSMAP ();
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
@@ -900,7 +913,11 @@ CallBootService (
         return EFI_NOT_FOUND;
       }
 
+#if defined (MDE_CPU_ARM)
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
+#else
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+#endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
@@ -916,7 +933,14 @@ CallBootService (
 
       CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
 
+#if defined (MDE_CPU_ARM)
+      //
+      // EFI_LBA Lba is aligned on 8 bytes.
+      //
+      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+#else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+#endif
       EnableSMAP ();
 
       Status = BlockIo->WriteBlocks (
@@ -957,11 +981,22 @@ CallBootService (
         return EFI_NOT_FOUND;
       }
 
+#if defined (MDE_CPU_ARM)
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
+#else
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+#endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       DisableSMAP ();
+#if defined (MDE_CPU_ARM)
+      //
+      // UINT64 Offset is aligned on 8 bytes.
+      //
+      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+#else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+#endif
       EnableSMAP ();
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
@@ -1003,7 +1038,11 @@ CallBootService (
         return EFI_NOT_FOUND;
       }
 
+#if defined (MDE_CPU_ARM)
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
+#else
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
+#endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
@@ -1019,7 +1058,14 @@ CallBootService (
 
       CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
 
+#if defined (MDE_CPU_ARM)
+      //
+      // UINT64 Offset is aligned on 8 bytes.
+      //
+      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+#else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+#endif
       EnableSMAP ();
 
       Status = DiskIo->WriteDisk (
