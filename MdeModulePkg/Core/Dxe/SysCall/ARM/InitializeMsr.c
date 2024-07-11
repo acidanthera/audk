@@ -96,12 +96,19 @@ InitializeMsr (
   IN     UINTN                   NumberOfEntries
   )
 {
+  //
+  // TODO: EFI_CONFIGURATION_TABLE, HOB_DATA, Uart are accessible to User.
+  // Fix PageTable initialization.
+  //
   if (ArmHasPan ()) {
     //
     // Enable Privileged Access Never feature.
     //
     ArmSetPan ();
   } else {
+    //
+    // TODO: Refactoring.
+    //
     DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
     // ASSERT (FALSE);
   }
@@ -109,6 +116,9 @@ InitializeMsr (
   InitializeSysCallHandler (SysCallBootService);
 }
 
+//
+// TODO: Refactoring.
+//
 VOID
 EFIAPI
 DisableSMAP (
