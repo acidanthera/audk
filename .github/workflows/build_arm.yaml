@@ -1,0 +1,312 @@
+name: Build ARM Firmwares
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+  QEMU_VERSION_TAG: qemu-ci-8.1.5-r1
+  WINPE_VERSION_TAG: images-winpe-1.0
+
+jobs:
+  build-linux-gcc5:
+    name: Linux GCC5
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build ArmPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPkg
+          SELFPKG_DIR: ArmPkg
+          TOOLCHAINS: GCC5
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC5_ARM_PREFIX: arm-linux-gnueabi-
+          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+
+      - name: Build ArmPlatformPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPlatformPkg
+          SELFPKG_DIR: ArmPlatformPkg
+          TOOLCHAINS: GCC5
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC5_ARM_PREFIX: arm-linux-gnueabi-
+          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+
+      - name: Build ArmVirtQemu
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: GCC5
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC5_ARM_PREFIX: arm-linux-gnueabi-
+          GCC5_AARCH64_PREFIX: aarch64-linux-gnu-
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: GCC5
+
+      - name: Zip artifacts
+        run: zip GCC5_fw_arm_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCC5 Firmware ARM Artifacts
+          path: GCC5_fw_arm_artifacts.zip
+
+  build-linux-clangdwarf:
+    name: Linux CLANGDWARF
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          yes '' | sudo ./llvm.sh 15
+          rm -f llvm.sh
+          echo "/usr/lib/llvm-15/bin" >> $GITHUB_PATH
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build ArmPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPkg
+          SELFPKG_DIR: ArmPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build ArmPlatformPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPlatformPkg
+          SELFPKG_DIR: ArmPlatformPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build ArmVirtQemu
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGDWARF
+
+      - name: Zip artifacts
+        run: zip CLANGDWARF_fw_arm_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLANGDWARF Firmware ARM Artifacts
+          path: CLANGDWARF_fw_arm_artifacts.zip
+
+  test-firmwares:
+    name: Test
+    runs-on: ubuntu-22.04
+    needs: [build-linux-gcc5, build-linux-clangdwarf]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
+        ]
+    steps:
+      - name: Checkout ocbuild repository
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/ocbuild
+          ref: master
+          path: ./
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip libglib2.0-dev libfdt-dev libpixman-1-dev libepoxy-dev libcapstone-dev libsdl2-dev libnuma-dev libgtk-3-dev libvte-2.91-dev libbrlapi-dev libiscsi-dev libnfs-dev  librbd-dev libxen-dev
+          python3 -m pip install -r requirements.txt
+
+      - name: Downloading QEMU
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.QEMU_VERSION_TAG }}
+          fileName: "qemu.tar.xz"
+
+      - name: Installing QEMU and add to PATH
+        run: |
+          echo "${HOME}/qemu/bin" >> $GITHUB_PATH
+          tar -xJf ./qemu.tar.xz -C $HOME
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.package.toolchain }} Firmware ARM Artifacts
+
+      - name: Unzip artifacts
+        run: unzip "$TOOLCHAIN"_fw_arm_artifacts.zip
+        env:
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Downloading Windows PE AARCH64 iso
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.WINPE_VERSION_TAG }}
+          fileName: "winpe_AARCH64.iso"
+
+      - name: Run TestConsole
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch "$arch"
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestLinux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux --fw-arch "$arch"
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run Windows PE aarch64
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            echo Checking "$PACKAGE"AARCH64 "$target"_"$TOOLCHAIN"
+              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/AARCH64/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch AARCH64 --test-winpe --test-winpe-path ./winpe_AARCH64.iso
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
