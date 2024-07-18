@@ -36,6 +36,7 @@
 
 **/
 
+#include "ProcessorBind.h"
 #include "StandaloneMmCore.h"
 
 //
@@ -97,6 +98,76 @@ BOOLEAN  gDispatcherRunning = FALSE;
 //
 BOOLEAN  gRequestDispatch = FALSE;
 
+STATIC
+RETURN_STATUS
+InternalProtectMmImage (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  )
+{
+  UEFI_IMAGE_RECORD       *ImageRecord;
+  UINTN                   SectionAddress;
+  UINT32                  SectionIndex;
+
+  if (UefiImageGetSegmentAlignment (ImageContext) < EFI_PAGE_SIZE) {
+    // FIXME: PCD to abort loading?
+    //
+    // The sections need to be at least 4 KB aligned, since that is the
+    // granularity at which we can tighten permissions. So just clear the
+    // noexec permissions on the entire region.
+    //
+    DEBUG ((DEBUG_WARN,
+      "%a: Image at 0x%lx has SectionAlignment < 4 KB (%lu)\n",
+      __FUNCTION__, UefiImageLoaderGetImageAddress (ImageContext), UefiImageGetSegmentAlignment (ImageContext)));
+
+    ASSERT ((UefiImageLoaderGetImageAddress (ImageContext) & (EFI_PAGE_SIZE - 1)) == 0);
+
+    ClearMemoryRegionNoExec (
+      UefiImageLoaderGetImageAddress (ImageContext),
+      ALIGN_VALUE (UefiImageGetImageSize (ImageContext), EFI_PAGE_SIZE)
+      );
+
+    return RETURN_SUCCESS;
+  }
+
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
+  if (ImageRecord == NULL) {
+    return RETURN_OUT_OF_RESOURCES;
+  }
+  //
+  // Images are loaded into RW memory, thus only +X and -W need to be handled.
+  //
+  SectionAddress = ImageRecord->StartAddress;
+  for (SectionIndex = 0; SectionIndex < ImageRecord->NumSegments; ++ SectionIndex) {
+    DEBUG ((DEBUG_INFO,
+      "%a: Mapping segment of image at 0x%lx with %s-%s permissions and size 0x%x\n",
+      __FUNCTION__, SectionAddress,
+      (ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) != 0 ? "RO" : "RW",
+      (ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) != 0 ? "XN" : "X",
+      ImageRecord->Segments[SectionIndex].Size));
+
+    // FIXME: What about their return values?
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) != 0) {
+      SetMemoryRegionReadOnly (
+        SectionAddress,
+        ImageRecord->Segments[SectionIndex].Size
+        );
+    }
+
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) == 0) {
+      ClearMemoryRegionNoExec (
+        SectionAddress,
+        ImageRecord->Segments[SectionIndex].Size
+        );
+    }
+
+    SectionAddress += ImageRecord->Segments[SectionIndex].Size;
+  }
+
+  FreePool (ImageRecord);
+
+  return RETURN_SUCCESS;
+}
+
 /**
   Loads an EFI image into SMRAM.
 
@@ -113,9 +184,12 @@ MmLoadImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  UINTN                 PageCount;
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  DstBuffer;
+  UINT32      ImageSize;
+  UINT32      ImageAlignment;
+  EFI_STATUS  Status;
+  VOID        *DstBuffer;
+  UINT32      DstBufferPages;
+  UINT32      DstBufferSize;
 
   DEBUG ((DEBUG_INFO, "MmLoadImage - %g\n", &DriverEntry->FileName));
 
@@ -126,72 +200,38 @@ MmLoadImage (
   Status = EFI_SUCCESS;
 
   //
-  // Initialize ImageContext
-  //
-  ImageContext->Handle    = DriverEntry->Pe32Data;
-  ImageContext->ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (ImageContext);
+  Status = UefiImageInitializeContext (ImageContext, DriverEntry->Pe32Data, DriverEntry->Pe32DataSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  PageCount = (UINTN)EFI_SIZE_TO_PAGES ((UINTN)ImageContext->ImageSize + ImageContext->SectionAlignment);
-  DstBuffer = (UINTN)(-1);
+  ImageSize      = UefiImageGetImageSize (ImageContext);
+  DstBufferPages = EFI_SIZE_TO_PAGES (ImageSize);
+  DstBufferSize  = EFI_PAGES_TO_SIZE (DstBufferPages);
+  ImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
-  Status = MmAllocatePages (
-             AllocateMaxAddress,
-             EfiRuntimeServicesCode,
-             PageCount,
-             &DstBuffer
-             );
-  if (EFI_ERROR (Status)) {
-    ASSERT_EFI_ERROR (Status);
-    return Status;
+  DstBuffer = AllocateAlignedCodePages (DstBufferPages, ImageAlignment);
+  if (DstBuffer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
   }
-
-  ImageContext->ImageAddress = (EFI_PHYSICAL_ADDRESS)DstBuffer;
-
-  //
-  // Align buffer on section boundary
-  //
-  ImageContext->ImageAddress += ImageContext->SectionAlignment - 1;
-  ImageContext->ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)(ImageContext->SectionAlignment - 1));
 
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (ImageContext);
+  Status = UefiImageLoadImageForExecution (ImageContext, DstBuffer, DstBufferSize, NULL, 0);
   if (EFI_ERROR (Status)) {
-    MmFreePages (DstBuffer, PageCount);
+    FreeAlignedPages (DstBuffer, DstBufferPages);
     return Status;
   }
-
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (ImageContext);
-  if (EFI_ERROR (Status)) {
-    // if relocate fails, we don't need to call unload image here, as the extra action that may change page attributes
-    // only is called on a successful return
-    MmFreePages (DstBuffer, PageCount);
-    return Status;
-  }
-
-  //
-  // Flush the instruction cache so the image data are written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext->ImageAddress, (UINTN)ImageContext->ImageSize);
 
   //
   // Save Image EntryPoint in DriverEntry
   //
-  DriverEntry->ImageEntryPoint = ImageContext->EntryPoint;
-  DriverEntry->ImageBuffer     = DstBuffer;
-  DriverEntry->NumberOfPage    = PageCount;
+  DriverEntry->ImageEntryPoint = UefiImageLoaderGetImageEntryPoint (ImageContext);
+  DriverEntry->ImageBuffer     = (UINTN)DstBuffer;
+  DriverEntry->NumberOfPage    = DstBufferPages;
 
   //
   // Fill in the remaining fields of the Loaded Image Protocol instance.
@@ -203,8 +243,8 @@ MmLoadImage (
   DriverEntry->LoadedImage.DeviceHandle = NULL;
   DriverEntry->LoadedImage.FilePath     = NULL;
 
-  DriverEntry->LoadedImage.ImageBase     = (VOID *)(UINTN)DriverEntry->ImageBuffer;
-  DriverEntry->LoadedImage.ImageSize     = ImageContext->ImageSize;
+  DriverEntry->LoadedImage.ImageBase     = DstBuffer;
+  DriverEntry->LoadedImage.ImageSize     = ImageSize;
   DriverEntry->LoadedImage.ImageCodeType = EfiRuntimeServicesCode;
   DriverEntry->LoadedImage.ImageDataType = EfiRuntimeServicesData;
 
@@ -218,58 +258,32 @@ MmLoadImage (
     &DriverEntry->LoadedImage
     );
 
+  InternalProtectMmImage (ImageContext);
+
   //
   // Print the load address and the PDB file name if it is available
   //
   DEBUG_CODE_BEGIN ();
 
-  UINTN  Index;
-  UINTN  StartIndex;
   CHAR8  EfiFileName[256];
 
   DEBUG ((
     DEBUG_INFO | DEBUG_LOAD,
     "Loading MM driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)ImageContext->ImageAddress,
-    FUNCTION_ENTRY_POINT (ImageContext->EntryPoint)
+    DstBuffer,
+    FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))
     ));
+
+  Status = UefiImageGetModuleNameFromSymbolsPath (
+             ImageContext,
+             EfiFileName,
+             sizeof (EfiFileName)
+             );
 
   //
   // Print Module Name by Pdb file path.
-  // Windows and Unix style file path are all trimmed correctly.
   //
-  if (ImageContext->PdbPointer != NULL) {
-    StartIndex = 0;
-    for (Index = 0; ImageContext->PdbPointer[Index] != 0; Index++) {
-      if ((ImageContext->PdbPointer[Index] == '\\') || (ImageContext->PdbPointer[Index] == '/')) {
-        StartIndex = Index + 1;
-      }
-    }
-
-    //
-    // Copy the PDB file name to our temporary string, and replace .pdb with .efi
-    // The PDB file name is limited in the range of 0~255.
-    // If the length is bigger than 255, trim the redundant characters to avoid overflow in array boundary.
-    //
-    for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-      EfiFileName[Index] = ImageContext->PdbPointer[Index + StartIndex];
-      if (EfiFileName[Index] == 0) {
-        EfiFileName[Index] = '.';
-      }
-
-      if (EfiFileName[Index] == '.') {
-        EfiFileName[Index + 1] = 'e';
-        EfiFileName[Index + 2] = 'f';
-        EfiFileName[Index + 3] = 'i';
-        EfiFileName[Index + 4] = 0;
-        break;
-      }
-    }
-
-    if (Index == sizeof (EfiFileName) - 4) {
-      EfiFileName[Index] = 0;
-    }
-
+  if (!EFI_ERROR (Status)) {
     DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
   }
 
@@ -699,7 +713,7 @@ EFI_STATUS
 MmAddToDriverList (
   IN EFI_FIRMWARE_VOLUME_HEADER  *FwVolHeader,
   IN VOID                        *Pe32Data,
-  IN UINTN                       Pe32DataSize,
+  IN UINT32                      Pe32DataSize,
   IN VOID                        *Depex,
   IN UINTN                       DepexSize,
   IN EFI_GUID                    *DriverName

@@ -16,8 +16,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef __DEBUG_SUPPORT_H__
 #define __DEBUG_SUPPORT_H__
 
-#include <IndustryStandard/PeImage.h>
-
 typedef struct _EFI_DEBUG_SUPPORT_PROTOCOL EFI_DEBUG_SUPPORT_PROTOCOL;
 
 ///
@@ -845,12 +843,12 @@ VOID
 /// Machine type definition
 ///
 typedef enum {
-  IsaIa32    = IMAGE_FILE_MACHINE_I386,           ///< 0x014C
-  IsaX64     = IMAGE_FILE_MACHINE_X64,            ///< 0x8664
-  IsaIpf     = IMAGE_FILE_MACHINE_IA64,           ///< 0x0200
-  IsaEbc     = IMAGE_FILE_MACHINE_EBC,            ///< 0x0EBC
-  IsaArm     = IMAGE_FILE_MACHINE_ARMTHUMB_MIXED, ///< 0x01c2
-  IsaAArch64 = IMAGE_FILE_MACHINE_ARM64           ///< 0xAA64
+  IsaIa32     = EFI_IMAGE_MACHINE_IA32,           ///< 0x014C
+  IsaX64      = EFI_IMAGE_MACHINE_X64,            ///< 0x8664
+  IsaIpf      = EFI_IMAGE_MACHINE_IA64,           ///< 0x0200
+  IsaEbc      = EFI_IMAGE_MACHINE_EBC,            ///< 0x0EBC
+  IsaArm      = EFI_IMAGE_MACHINE_ARMTHUMB_MIXED, ///< 0x01c2
+  IsaAArch64  = EFI_IMAGE_MACHINE_AARCH64         ///< 0xAA64
 } EFI_INSTRUCTION_SET_ARCHITECTURE;
 
 //

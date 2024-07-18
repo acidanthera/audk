@@ -44,10 +44,10 @@ Tpm2SetSha512ToDigestList (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha512HashInit (
-  OUT HASH_HANDLE  *HashHandle
+  OUT VOID           **HashHandle
   )
 {
   VOID   *Sha512Ctx;
@@ -59,9 +59,9 @@ Sha512HashInit (
 
   Sha512Init (Sha512Ctx);
 
-  *HashHandle = (HASH_HANDLE)Sha512Ctx;
+  *HashHandle = Sha512Ctx;
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -73,20 +73,17 @@ Sha512HashInit (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha512HashUpdate (
-  IN HASH_HANDLE  HashHandle,
-  IN VOID         *DataToHash,
+  IN VOID           *HashHandle,
+  IN CONST VOID     *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sha512Ctx;
+  Sha512Update (HashHandle, DataToHash, DataToHashLen);
 
-  Sha512Ctx = (VOID *)HashHandle;
-  Sha512Update (Sha512Ctx, DataToHash, DataToHashLen);
-
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -97,10 +94,10 @@ Sha512HashUpdate (
 
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 Sha512HashFinal (
-  IN HASH_HANDLE          HashHandle,
+  IN VOID                *HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
@@ -114,7 +111,7 @@ Sha512HashFinal (
 
   Tpm2SetSha512ToDigestList (DigestList, Digest);
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 HASH_INTERFACE  mSha512InternalHashInstance = {

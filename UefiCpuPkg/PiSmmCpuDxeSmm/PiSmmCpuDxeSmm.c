@@ -38,6 +38,64 @@ IsSmmProfileEnabled (
   return FeaturePcdGet (PcdCpuSmmProfileEnable);
 }
 
+#include <Library/SmmServicesTableLib.h>
+#include <Guid/DebugImageInfoTable.h>
+#include <Library/DebugLib.h>
+
+EFI_STATUS
+EFIAPI
+SmmGetSystemConfigurationTable (
+  IN  EFI_GUID  *TableGuid,
+  OUT VOID      **Table
+  );
+
+CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTableHeader = NULL;
+
+// FIXME:
+CONST EFI_DEBUG_IMAGE_INFO_NORMAL *
+InternalLocateImage (
+  IN  UINTN              CurrentEip
+  )
+{
+  EFI_STATUS                        Status;
+  UINT32                            Index;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+
+  if (mDebugImageInfoTableHeader == NULL) {
+    Status = SmmGetSystemConfigurationTable (
+               &gEfiDebugImageInfoTableGuid,
+               (VOID **) &mDebugImageInfoTableHeader
+               );
+    if (EFI_ERROR (Status)) {
+      mDebugImageInfoTableHeader = NULL;
+      return NULL;
+    }
+  }
+
+  ASSERT (mDebugImageInfoTableHeader != NULL);
+
+  for (Index = 0; Index < mDebugImageInfoTableHeader->TableSize; ++Index) {
+    if (mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType == NULL) {
+      continue;
+    }
+
+    if (*mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+      continue;
+    }
+
+    NormalImage = mDebugImageInfoTableHeader->EfiDebugImageInfoTable[Index].NormalImage;
+
+    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+
+    if (CurrentEip >= (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase &&
+        CurrentEip < (UINTN) NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize) {
+      return NormalImage;
+    }
+  }
+
+  return NULL;
+}
+
 /**
   Perform the remaining tasks.
 

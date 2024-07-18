@@ -40,9 +40,6 @@
   CpuLib
   DebugAgentLib
   IoLib
-  PeCoffLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
   ExtractGuidedSectionLib
   LocalApicLib
   MemEncryptSevLib

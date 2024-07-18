@@ -9,7 +9,7 @@
 #include <PiPei.h>
 #include <Pi/PiBootMode.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/PrePiLib.h>
 #include <Library/PrintLib.h>
 #include <Library/PrePiHobListPointerLib.h>
@@ -129,15 +129,15 @@ CEntryPoint (
 }
 
 VOID
-RelocatePeCoffImage (
-  IN  EFI_PEI_FV_HANDLE         FwVolHeader,
-  IN  PE_COFF_LOADER_READ_FILE  ImageRead
+RelocateUefiImage (
+  IN  EFI_PEI_FV_HANDLE             FwVolHeader
   )
 {
-  EFI_PEI_FILE_HANDLE           FileHandle;
-  VOID                          *SectionData;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  EFI_STATUS                    Status;
+  EFI_PEI_FILE_HANDLE             FileHandle;
+  VOID                            *SectionData;
+  UINT32                          SectionSize;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  EFI_STATUS                      Status;
 
   FileHandle = NULL;
   Status     = FfsFindNextFile (
@@ -147,21 +147,16 @@ RelocatePeCoffImage (
                  );
   ASSERT_EFI_ERROR (Status);
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SectionData);
+  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SectionData, &SectionSize);
   if (EFI_ERROR (Status)) {
-    Status = FfsFindSectionData (EFI_SECTION_TE, FileHandle, &SectionData);
+    Status = FfsFindSectionData (EFI_SECTION_TE, FileHandle, &SectionData, &SectionSize);
   }
 
   ASSERT_EFI_ERROR (Status);
 
-  ZeroMem (&ImageContext, sizeof ImageContext);
+  Status = UefiImageInitializeContext (&ImageContext, SectionData, SectionSize);
+  ASSERT_RETURN_ERROR (Status);
 
-  ImageContext.Handle    = (EFI_HANDLE)SectionData;
-  ImageContext.ImageRead = ImageRead;
-  PeCoffLoaderGetImageInfo (&ImageContext);
-
-  if (ImageContext.ImageAddress != (UINTN)SectionData) {
-    ImageContext.ImageAddress = (UINTN)SectionData;
-    PeCoffLoaderRelocateImage (&ImageContext);
-  }
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  ASSERT_RETURN_ERROR (Status);
 }
