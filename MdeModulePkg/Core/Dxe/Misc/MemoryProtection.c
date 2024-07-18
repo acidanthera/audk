@@ -40,8 +40,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/FirmwareVolume2.h>
 #include <Protocol/SimpleFileSystem.h>
 
+#include "Base.h"
 #include "DxeMain.h"
+#include "Library/UefiImageLib.h"
 #include "Mem/HeapGuard.h"
+#include "ProcessorBind.h"
+#include "Uefi/UefiMultiPhase.h"
 
 //
 // Image type definitions
@@ -213,113 +217,73 @@ SetUefiImageMemoryAttributes (
 **/
 VOID
 SetUefiImageProtectionAttributes (
-  IN IMAGE_PROPERTIES_RECORD  *ImageRecord
+  IN UEFI_IMAGE_RECORD  *ImageRecord
   )
 {
-  IMAGE_PROPERTIES_RECORD_CODE_SECTION  *ImageRecordCodeSection;
-  LIST_ENTRY                            *ImageRecordCodeSectionLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionEndLink;
-  LIST_ENTRY                            *ImageRecordCodeSectionList;
-  UINT64                                CurrentBase;
-  UINT64                                ImageEnd;
+  UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
+  UINTN                      SectionAddress;
+  UINT32                     Index;
 
-  ImageRecordCodeSectionList = &ImageRecord->CodeSegmentList;
-
-  CurrentBase = ImageRecord->ImageBase;
-  ImageEnd    = ImageRecord->ImageBase + ImageRecord->ImageSize;
-
-  ImageRecordCodeSectionLink    = ImageRecordCodeSectionList->ForwardLink;
-  ImageRecordCodeSectionEndLink = ImageRecordCodeSectionList;
-  while (ImageRecordCodeSectionLink != ImageRecordCodeSectionEndLink) {
-    ImageRecordCodeSection = CR (
-                               ImageRecordCodeSectionLink,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION,
-                               Link,
-                               IMAGE_PROPERTIES_RECORD_CODE_SECTION_SIGNATURE
-                               );
-    ImageRecordCodeSectionLink = ImageRecordCodeSectionLink->ForwardLink;
-
-    ASSERT (CurrentBase <= ImageRecordCodeSection->CodeSegmentBase);
-    if (CurrentBase < ImageRecordCodeSection->CodeSegmentBase) {
-      //
-      // DATA
-      //
-      SetUefiImageMemoryAttributes (
-        CurrentBase,
-        ImageRecordCodeSection->CodeSegmentBase - CurrentBase,
-        EFI_MEMORY_XP
-        );
-    }
-
-    //
-    // CODE
-    //
+  SectionAddress = ImageRecord->StartAddress;
+  for (Index = 0; Index < ImageRecord->NumSegments; Index++) {
+    ImageRecordSegment = &ImageRecord->Segments[Index];
     SetUefiImageMemoryAttributes (
-      ImageRecordCodeSection->CodeSegmentBase,
-      ImageRecordCodeSection->CodeSegmentSize,
-      EFI_MEMORY_RO
+      SectionAddress,
+      ImageRecordSegment->Size,
+      ImageRecordSegment->Attributes
       );
-    CurrentBase = ImageRecordCodeSection->CodeSegmentBase + ImageRecordCodeSection->CodeSegmentSize;
-  }
 
-  //
-  // Last DATA
-  //
-  ASSERT (CurrentBase <= ImageEnd);
-  if (CurrentBase < ImageEnd) {
-    //
-    // DATA
-    //
-    SetUefiImageMemoryAttributes (
-      CurrentBase,
-      ImageEnd - CurrentBase,
-      EFI_MEMORY_XP
-      );
+    SectionAddress += ImageRecordSegment->Size;
   }
-
-  return;
 }
 
 /**
-  Return the section alignment requirement for the PE image section type.
+  Return if the PE image section is aligned.
 
-  @param[in]  MemoryType  PE/COFF image memory type
+  @param[in]  SectionAlignment    PE/COFF section alignment
+  @param[in]  MemoryType          PE/COFF image memory type
 
-  @retval     The required section alignment for this memory type
-
+  @retval TRUE  The PE image section is aligned.
+  @retval FALSE The PE image section is not aligned.
 **/
 STATIC
-UINT32
-GetMemoryProtectionSectionAlignment (
+BOOLEAN
+IsMemoryProtectionSectionAligned (
+  IN UINT32           SectionAlignment,
   IN EFI_MEMORY_TYPE  MemoryType
   )
 {
-  UINT32  SectionAlignment;
+  UINT32  PageAlignment;
 
   switch (MemoryType) {
     case EfiRuntimeServicesCode:
     case EfiACPIMemoryNVS:
     case EfiReservedMemoryType:
-      SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+      PageAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
       break;
     case EfiRuntimeServicesData:
       ASSERT (FALSE);
-      SectionAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
+      PageAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
       break;
     case EfiBootServicesCode:
     case EfiLoaderCode:
-      SectionAlignment = EFI_PAGE_SIZE;
+      PageAlignment = EFI_PAGE_SIZE;
       break;
     case EfiACPIReclaimMemory:
     default:
       ASSERT (FALSE);
-      SectionAlignment = EFI_PAGE_SIZE;
+      PageAlignment = EFI_PAGE_SIZE;
       break;
   }
 
-  return SectionAlignment;
+  if ((SectionAlignment & (PageAlignment - 1)) != 0) {
+    return FALSE;
+  } else {
+    return TRUE;
+  }
 }
 
+// FIXME: Deduplicate
 /**
   Protect UEFI PE/COFF image.
 
@@ -328,21 +292,25 @@ GetMemoryProtectionSectionAlignment (
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  IN LOADED_IMAGE_PRIVATE_DATA     *Image,
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  UINT32                   ProtectionPolicy;
-  EFI_STATUS               Status;
-  UINT32                   RequiredAlignment;
+  RETURN_STATUS              PdbStatus;
+  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
+  EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath;
+  UINT32                     SectionAlignment;
+  UEFI_IMAGE_RECORD          *ImageRecord;
+  CONST CHAR8                *PdbPointer;
+  UINT32                     PdbSize;
+  BOOLEAN                    IsAligned;
+  UINT32                     ProtectionPolicy;
+
+  LoadedImage = &Image->Info;
+  LoadedImageDevicePath = Image->LoadedImageDevicePath;
 
   DEBUG ((DEBUG_INFO, "ProtectUefiImageCommon - 0x%x\n", LoadedImage));
   DEBUG ((DEBUG_INFO, "  - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase, LoadedImage->ImageSize));
-
-  if (gCpu == NULL) {
-    return;
-  }
 
   ProtectionPolicy = GetUefiImageProtectionPolicy (LoadedImage, LoadedImageDevicePath);
   switch (ProtectionPolicy) {
@@ -355,35 +323,48 @@ ProtectUefiImage (
       return;
   }
 
-  ImageRecord = AllocateZeroPool (sizeof (*ImageRecord));
-  if (ImageRecord == NULL) {
-    return;
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!RETURN_ERROR (PdbStatus)) {
+    DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
   }
 
-  RequiredAlignment = GetMemoryProtectionSectionAlignment (LoadedImage->ImageCodeType);
+  //
+  // Get SectionAlignment
+  //
+  SectionAlignment = UefiImageGetSegmentAlignment (ImageContext);
 
-  Status = CreateImagePropertiesRecord (
-             LoadedImage->ImageBase,
-             LoadedImage->ImageSize,
-             &RequiredAlignment,
-             ImageRecord
-             );
+  IsAligned = IsMemoryProtectionSectionAligned (SectionAlignment, LoadedImage->ImageCodeType);
+  if (!IsAligned) {
+    DEBUG ((
+      DEBUG_VERBOSE,
+      "!!!!!!!!  ProtectUefiImageCommon - Section Alignment(0x%x) is incorrect  !!!!!!!!\n",
+      SectionAlignment));
+    if (!RETURN_ERROR (PdbStatus)) {
+      DEBUG ((DEBUG_VERBOSE, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
+    }
 
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "%a failed to create image properties record\n", __func__));
-    FreePool (ImageRecord);
     goto Finish;
   }
 
-  //
-  // CPU ARCH present. Update memory attribute directly.
-  //
-  SetUefiImageProtectionAttributes (ImageRecord);
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
+  if (ImageRecord == NULL) {
+    return ;
+  }
+
+  UefiImageDebugPrintSegments (ImageContext);
+  UefiImageDebugPrintImageRecord (ImageRecord);
 
   //
   // Record the image record in the list so we can undo the protections later
   //
   InsertTailList (&mProtectedImageRecordList, &ImageRecord->Link);
+
+  if (gCpu != NULL) {
+    //
+    // CPU ARCH present. Update memory attribute directly.
+    //
+    SetUefiImageProtectionAttributes (ImageRecord);
+  }
 
 Finish:
   return;
@@ -401,30 +382,31 @@ UnprotectUefiImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  LIST_ENTRY               *ImageRecordLink;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  LIST_ENTRY         *ImageRecordLink;
 
-  if (PcdGet32 (PcdImageProtectionPolicy) != 0) {
-    for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
-         ImageRecordLink != &mProtectedImageRecordList;
-         ImageRecordLink = ImageRecordLink->ForwardLink)
-    {
-      ImageRecord = CR (
-                      ImageRecordLink,
-                      IMAGE_PROPERTIES_RECORD,
-                      Link,
-                      IMAGE_PROPERTIES_RECORD_SIGNATURE
-                      );
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
 
-      if (ImageRecord->ImageBase == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
+      // TODO: Revise for removal (e.g. CpuDxe integration)
+      if (gCpu != NULL) {
         SetUefiImageMemoryAttributes (
-          ImageRecord->ImageBase,
-          ImageRecord->ImageSize,
+          ImageRecord->StartAddress,
+          ImageRecord->EndAddress - ImageRecord->StartAddress,
           0
           );
-        DeleteImagePropertiesRecord (ImageRecord);
-        return;
       }
+      RemoveEntryList (&ImageRecord->Link);
+      FreePool (ImageRecord);
+      return;
     }
   }
 }
@@ -567,7 +549,6 @@ MergeMemoryMapForProtectionPolicy (
   Remove exec permissions from all regions whose type is identified by
   PcdDxeNxMemoryProtectionPolicy.
 **/
-STATIC
 VOID
 InitializeDxeNxMemoryProtectionPolicy (
   VOID
@@ -775,12 +756,9 @@ MemoryProtectionCpuArchProtocolNotify (
   IN VOID       *Context
   )
 {
-  EFI_STATUS                 Status;
-  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage;
-  EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath;
-  UINTN                      NoHandles;
-  EFI_HANDLE                 *HandleBuffer;
-  UINTN                      Index;
+  EFI_STATUS         Status;
+  LIST_ENTRY         *ImageRecordLink;
+  UEFI_IMAGE_RECORD  *ImageRecord;
 
   DEBUG ((DEBUG_INFO, "MemoryProtectionCpuArchProtocolNotify:\n"));
   Status = CoreLocateProtocol (&gEfiCpuArchProtocolGuid, NULL, (VOID **)&gCpu);
@@ -804,40 +782,21 @@ MemoryProtectionCpuArchProtocolNotify (
     goto Done;
   }
 
-  Status = gBS->LocateHandleBuffer (
-                  ByProtocol,
-                  &gEfiLoadedImageProtocolGuid,
-                  NULL,
-                  &NoHandles,
-                  &HandleBuffer
-                  );
-  if (EFI_ERROR (Status) && (NoHandles == 0)) {
-    goto Done;
-  }
-
-  for (Index = 0; Index < NoHandles; Index++) {
-    Status = gBS->HandleProtocol (
-                    HandleBuffer[Index],
-                    &gEfiLoadedImageProtocolGuid,
-                    (VOID **)&LoadedImage
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
                     );
-    if (EFI_ERROR (Status)) {
-      continue;
-    }
 
-    Status = gBS->HandleProtocol (
-                    HandleBuffer[Index],
-                    &gEfiLoadedImageDevicePathProtocolGuid,
-                    (VOID **)&LoadedImageDevicePath
-                    );
-    if (EFI_ERROR (Status)) {
-      LoadedImageDevicePath = NULL;
-    }
-
-    ProtectUefiImage (LoadedImage, LoadedImageDevicePath);
+    //
+    // CPU ARCH present. Update memory attribute directly.
+    //
+    SetUefiImageProtectionAttributes (ImageRecord);
   }
-
-  FreePool (HandleBuffer);
 
 Done:
   CoreCloseEvent (Event);

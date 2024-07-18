@@ -24,7 +24,7 @@
   BaseMemoryLib
   DebugLib
   MemoryAllocationLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
 
 [Packages]
   MdePkg/MdePkg.dec

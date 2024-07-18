@@ -59,18 +59,18 @@ CheckSupportedHashMaskMismatch (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 HashStart (
-  OUT HASH_HANDLE  *HashHandle
+  OUT VOID  **HashHandle
   )
 {
-  HASH_HANDLE  *HashCtx;
+  VOID         **HashCtx;
   UINTN        Index;
   UINT32       HashMask;
 
   if (mHashInterfaceCount == 0) {
-    return EFI_UNSUPPORTED;
+    return FALSE;
   }
 
   CheckSupportedHashMaskMismatch ();
@@ -85,9 +85,9 @@ HashStart (
     }
   }
 
-  *HashHandle = (HASH_HANDLE)HashCtx;
+  *HashHandle = HashCtx;
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -99,25 +99,25 @@ HashStart (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-EFI_STATUS
+BOOLEAN
 EFIAPI
 HashUpdate (
-  IN HASH_HANDLE  HashHandle,
-  IN VOID         *DataToHash,
-  IN UINTN        DataToHashLen
+  IN VOID        *HashHandle,
+  IN CONST VOID  *DataToHash,
+  IN UINTN       DataToHashLen
   )
 {
-  HASH_HANDLE  *HashCtx;
+  VOID         **HashCtx;
   UINTN        Index;
   UINT32       HashMask;
 
   if (mHashInterfaceCount == 0) {
-    return EFI_UNSUPPORTED;
+    return FALSE;
   }
 
   CheckSupportedHashMaskMismatch ();
 
-  HashCtx = (HASH_HANDLE *)HashHandle;
+  HashCtx = (VOID **)HashHandle;
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&mHashInterface[Index].HashGuid);
@@ -126,7 +126,7 @@ HashUpdate (
     }
   }
 
-  return EFI_SUCCESS;
+  return TRUE;
 }
 
 /**
@@ -186,7 +186,7 @@ Tpm2ExtendNvIndex (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN HASH_HANDLE          HashHandle,
+  IN VOID                *HashHandle,
   IN TPMI_DH_PCR          PcrIndex,
   IN VOID                 *DataToHash,
   IN UINTN                DataToHashLen,
@@ -194,7 +194,7 @@ HashCompleteAndExtend (
   )
 {
   TPML_DIGEST_VALUES               Digest;
-  HASH_HANDLE                      *HashCtx;
+  VOID                             **HashCtx;
   UINTN                            Index;
   EFI_STATUS                       Status;
   UINT32                           HashMask;
@@ -210,7 +210,7 @@ HashCompleteAndExtend (
 
   CheckSupportedHashMaskMismatch ();
 
-  HashCtx = (HASH_HANDLE *)HashHandle;
+  HashCtx = (VOID **)HashHandle;
   ZeroMem (DigestList, sizeof (*DigestList));
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
@@ -269,8 +269,8 @@ HashAndExtend (
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
-  HASH_HANDLE  HashHandle;
-  EFI_STATUS   Status;
+  VOID        *HashHandle;
+  EFI_STATUS  Status;
 
   if (mHashInterfaceCount == 0) {
     return EFI_UNSUPPORTED;

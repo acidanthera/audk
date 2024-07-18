@@ -1,0 +1,29 @@
+# FIXME: Docs
+[Defines]
+  INF_VERSION                    = 0x0001001A
+  BASE_NAME                      = StandaloneMmProtectionLib
+  FILE_GUID                      = 4FCCC091-D240-4FE3-A922-5153D1DB1649
+  MODULE_TYPE                    = MM_CORE_STANDALONE
+  VERSION_STRING                 = 1.0
+  PI_SPECIFICATION_VERSION       = 0x00010032
+  LIBRARY_CLASS                  = StandaloneMmProtectionLib|MM_CORE_STANDALONE
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 IPF EBC (EBC is for build only)
+#
+
+[Sources.AARCH64]
+  ProtectionAarch64.c
+
+[Sources.X64, Sources.ARM]
+  ProtectionNull.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  StandaloneMmPkg/StandaloneMmPkg.dec
+
+[Packages.AARCH64]
+  ArmPkg/ArmPkg.dec
+
+[LibraryClasses.AARCH64]
+  StandaloneMmMmuLib

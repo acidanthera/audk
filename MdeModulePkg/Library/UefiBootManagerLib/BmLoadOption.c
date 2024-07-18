@@ -1214,82 +1214,6 @@ EfiBootManagerFreeLoadOptions (
 }
 
 /**
-  Return whether the PE header of the load option is valid or not.
-
-  @param[in] Type       The load option type.
-                        It's used to check whether the load option is valid.
-                        When it's LoadOptionTypeMax, the routine only guarantees
-                        the load option is a valid PE image but doesn't guarantee
-                        the PE's subsystem type is valid.
-  @param[in] FileBuffer The PE file buffer of the load option.
-  @param[in] FileSize   The size of the load option file.
-
-  @retval TRUE  The PE header of the load option is valid.
-  @retval FALSE The PE header of the load option is not valid.
-**/
-BOOLEAN
-BmIsLoadOptionPeHeaderValid (
-  IN EFI_BOOT_MANAGER_LOAD_OPTION_TYPE  Type,
-  IN VOID                               *FileBuffer,
-  IN UINTN                              FileSize
-  )
-{
-  EFI_IMAGE_DOS_HEADER             *DosHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *PeHeader;
-  EFI_IMAGE_OPTIONAL_HEADER32      *OptionalHeader;
-  UINT16                           Subsystem;
-
-  if ((FileBuffer == NULL) || (FileSize == 0)) {
-    return FALSE;
-  }
-
-  //
-  // Read dos header
-  //
-  DosHeader = (EFI_IMAGE_DOS_HEADER *)FileBuffer;
-  if ((FileSize >= sizeof (EFI_IMAGE_DOS_HEADER)) &&
-      (FileSize > DosHeader->e_lfanew) && (DosHeader->e_magic == EFI_IMAGE_DOS_SIGNATURE)
-      )
-  {
-    //
-    // Read and check PE signature
-    //
-    PeHeader = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINT8 *)FileBuffer + DosHeader->e_lfanew);
-    if ((FileSize >= DosHeader->e_lfanew + sizeof (EFI_IMAGE_OPTIONAL_HEADER_UNION)) &&
-        (PeHeader->Pe32.Signature == EFI_IMAGE_NT_SIGNATURE)
-        )
-    {
-      //
-      // Check PE32 or PE32+ magic, and machine type
-      //
-      OptionalHeader = (EFI_IMAGE_OPTIONAL_HEADER32 *)&PeHeader->Pe32.OptionalHeader;
-      if ((OptionalHeader->Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) ||
-          (OptionalHeader->Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC))
-      {
-        //
-        // Check the Subsystem:
-        //   Driver#### must be of type BootServiceDriver or RuntimeDriver
-        //   SysPrep####, Boot####, OsRecovery####, PlatformRecovery#### must be of type Application
-        //
-        Subsystem = OptionalHeader->Subsystem;
-        if ((Type == LoadOptionTypeMax) ||
-            ((Type == LoadOptionTypeDriver) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER)) ||
-            ((Type == LoadOptionTypeDriver) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER)) ||
-            ((Type == LoadOptionTypeSysPrep) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) ||
-            ((Type == LoadOptionTypeBoot) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)) ||
-            ((Type == LoadOptionTypePlatformRecovery) && (Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION))
-            )
-        {
-          return TRUE;
-        }
-      }
-    }
-  }
-
-  return FALSE;
-}
-
-/**
   Return the next matched load option buffer.
   The routine keeps calling BmGetNextLoadOptionDevicePath() until a valid
   load option is read.
@@ -1322,7 +1246,6 @@ BmGetNextLoadOptionBuffer (
   EFI_DEVICE_PATH_PROTOCOL  *CurFullPath;
   UINTN                     LocalFileSize;
   UINT32                    AuthenticationStatus;
-  EFI_DEVICE_PATH_PROTOCOL  *RamDiskDevicePath;
 
   LocalFileSize = 0;
   FileBuffer    = NULL;
@@ -1342,22 +1265,6 @@ BmGetNextLoadOptionBuffer (
     }
 
     FileBuffer = GetFileBufferByFilePath (TRUE, CurFullPath, &LocalFileSize, &AuthenticationStatus);
-    if ((FileBuffer != NULL) && !BmIsLoadOptionPeHeaderValid (Type, FileBuffer, LocalFileSize)) {
-      //
-      // Free the RAM disk file system if the load option is invalid.
-      //
-      RamDiskDevicePath = BmGetRamDiskDevicePath (FilePath);
-      if (RamDiskDevicePath != NULL) {
-        BmDestroyRamDisk (RamDiskDevicePath);
-        FreePool (RamDiskDevicePath);
-      }
-
-      //
-      // Free the invalid load option buffer.
-      //
-      FreePool (FileBuffer);
-      FileBuffer = NULL;
-    }
   } while (FileBuffer == NULL);
 
   if (FileBuffer == NULL) {
@@ -1399,6 +1306,7 @@ EfiBootManagerProcessLoadOption (
   EFI_LOADED_IMAGE_PROTOCOL  *ImageInfo;
   VOID                       *FileBuffer;
   UINTN                      FileSize;
+  EFI_DEVICE_PATH_PROTOCOL   *RamDiskDevicePath;
 
   if ((UINT32)LoadOption->OptionType >= LoadOptionTypeMax) {
     return EFI_INVALID_PARAMETER;
@@ -1475,6 +1383,15 @@ EfiBootManagerProcessLoadOption (
       //
       if (Status == EFI_SECURITY_VIOLATION) {
         gBS->UnloadImage (ImageHandle);
+      }
+
+      //
+      // Free the RAM disk file system if the load option is invalid.
+      //
+      RamDiskDevicePath = BmGetRamDiskDevicePath (LoadOption->FilePath);
+      if (RamDiskDevicePath != NULL) {
+        BmDestroyRamDisk (RamDiskDevicePath);
+        FreePool (RamDiskDevicePath);
       }
     } else {
       Status = gBS->HandleProtocol (ImageHandle, &gEfiLoadedImageProtocolGuid, (VOID **)&ImageInfo);

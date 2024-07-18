@@ -11,11 +11,13 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiDriverEntryPoint.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/UefiLib.h>
+#include <Library/MemoryAllocationLib.h>
+#include <Library/MemoryAllocationLibEx.h>
 
 /**
   Relocate this image under 4G memory.
@@ -37,9 +39,11 @@ RelocateImageUnder4GIfNeeded (
   UINT8                         *Buffer;
   UINTN                         BufferSize;
   EFI_HANDLE                    NewImageHandle;
+  UINT32                        ImageSize;
+  UINT32                        ImageAlignment;
   UINTN                         Pages;
   EFI_PHYSICAL_ADDRESS          FfsBuffer;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   VOID                          *Interface;
 
   //
@@ -83,43 +87,34 @@ RelocateImageUnder4GIfNeeded (
              &BufferSize
              );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.Handle    = Buffer;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32) BufferSize);
   ASSERT_EFI_ERROR (Status);
-  if (ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + ImageContext.SectionAlignment));
-  } else {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize);
-  }
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
+  Pages = EFI_SIZE_TO_PAGES (ImageSize);
 
   FfsBuffer = 0xFFFFFFFF;
-  Status    = gBS->AllocatePages (
-                     AllocateMaxAddress,
-                     EfiBootServicesCode,
-                     Pages,
-                     &FfsBuffer
-                     );
+  Status    = AllocateAlignedPagesEx (
+                AllocateMaxAddress,
+                EfiBootServicesCode,
+                Pages,
+                ImageAlignment,
+                &FfsBuffer
+                );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.ImageAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
   //
-  // Align buffer on section boundary
+  // Load and relocate the image to our new buffer
   //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
-  //
-  // Load the image to our new buffer
-  //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
-  ASSERT_EFI_ERROR (Status);
-
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
+  Status = UefiImageLoadImageForExecution (
+             &ImageContext,
+             (VOID *) (UINTN) FfsBuffer,
+             ImageSize,
+             NULL,
+             0
+             );
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -127,16 +122,11 @@ RelocateImageUnder4GIfNeeded (
   //
   gBS->FreePool (Buffer);
 
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
-
-  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08x EntryPoint=0x%08x\n", (UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.EntryPoint));
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.EntryPoint))(NewImageHandle, gST);
+  DEBUG ((DEBUG_INFO, "Loading driver at 0x%08llx EntryPoint=0x%08x\n", FfsBuffer, UefiImageLoaderGetImageEntryPoint (&ImageContext)));
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08x start failed: %r\n", ImageContext.ImageAddress, Status));
-    gBS->FreePages (FfsBuffer, Pages);
+    DEBUG ((DEBUG_ERROR, "Error: Image at 0x%08llx start failed: %r\n", FfsBuffer, Status));
+    FreeAlignedPages ((VOID *)(UINTN)FfsBuffer, Pages);
   }
 
   //

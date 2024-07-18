@@ -49,7 +49,7 @@
   HobLib
   LocalApicLib
   MemoryAllocationLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   PrintLib
   SerialPortLib
   SynchronizationLib
