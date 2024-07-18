@@ -11,6 +11,7 @@ Stable branches in AUDK project are constructed by rebasing all the commits in m
 Available stable branches:<br>
 [audk-stable-202211](https://github.com/acidanthera/audk/tree/audk-stable-202211)<br>
 [audk-stable-202302](https://github.com/acidanthera/audk/tree/audk-stable-202302)<br>
+[audk-stable-202305](https://github.com/acidanthera/audk/tree/audk-stable-202305)<br>
 
 ## Supported features
 [PE loader designed with formal methods](#pe-loader-designed-with-formal-methods)<br>
