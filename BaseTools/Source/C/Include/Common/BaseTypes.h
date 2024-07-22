@@ -13,10 +13,6 @@
 #ifndef __BT_BASE_TYPES_H__
 #define __BT_BASE_TYPES_H__
 
-//
-// To be able to safely include Windows headers, we need to include
-// WinNtInclude.h first.
-//
 #include "WinNtInclude.h"
 
 #include <stdarg.h>
