@@ -9,12 +9,17 @@
 **/
 
 #include "MpLib.h"
-#include <Library/CcExitLib.h>
+
 #include <Library/AmdSvsmLib.h>
+#include <Library/CcExitLib.h>
+#include <Library/PlatformInitLib.h>
+
 #include <Register/Amd/SevSnpMsr.h>
 #include <Register/Amd/Ghcb.h>
 
 #define _IS_ALIGNED(x, y)  (ALIGN_POINTER((x), (y)) == (x))
+
+extern EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob;
 
 /**
   Perform the requested AP Creation action.
@@ -302,7 +307,7 @@ SevSnpCreateAP (
       //
       GuidHob     = GetFirstGuidHob (&gGhcbApicIdsGuid);
       GhcbApicIds = (GHCB_APIC_IDS *)(*(UINTN *)GET_GUID_HOB_DATA (GuidHob));
-      MaxIndex    = MIN (GhcbApicIds->NumEntries, PcdGet32 (PcdCpuMaxLogicalProcessorNumber));
+      MaxIndex    = MIN (GhcbApicIds->NumEntries, mPlatformInfoHob->PcdCpuMaxLogicalProcessorNumber);
 
       //
       // Set to TRUE so that ApicId and SEV-SNP SaveArea stay in sync. When

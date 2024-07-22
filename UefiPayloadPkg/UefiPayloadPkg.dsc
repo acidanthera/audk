@@ -23,8 +23,7 @@
   SUPPORTED_ARCHITECTURES             = IA32|X64|AARCH64
   BUILD_TARGETS                       = DEBUG|RELEASE|NOOPT
   SKUID_IDENTIFIER                    = DEFAULT
-  BUILD_ARCH                          = Legacy
-  OUTPUT_DIRECTORY                    = Build/UefiPayloadPkg$(BUILD_ARCH)
+  OUTPUT_DIRECTORY                    = Build/UefiPayloadPkg
   FLASH_DEFINITION                    = UefiPayloadPkg/UefiPayloadPkg.fdf
   PCD_DYNAMIC_AS_DYNAMICEX            = TRUE
 
@@ -480,6 +479,7 @@
 !endif
   CpuArchLib|UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
   MpInitLib|UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
+  CpuPageTableLib|UefiCpuPkg/Library/CpuPageTableLib/CpuPageTableLib.inf
 
 [LibraryClasses.AARCH64.DXE_CORE]
   CpuArchLib|ArmPkg/Library/CpuArchLib/CpuArchLib.inf

@@ -51,7 +51,6 @@
   PcdLib
   DebugAgentLib
   CpuLib
-  UefiCpuLib
   UefiImageExtraActionLib
   CpuExceptionHandlerLib
   ReportStatusCodeLib

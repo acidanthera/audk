@@ -51,6 +51,7 @@
   PrintLib
   SerialPortLib
   SynchronizationLib
+  SmmServicesTableLib
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard
