@@ -17,7 +17,7 @@
   PLATFORM_GUID                  = 37d7e986-f7e9-45c2-8067-e371421a626c
   PLATFORM_VERSION               = 0.1
   DSC_SPECIFICATION              = 0x00010005
-  OUTPUT_DIRECTORY               = Build/ArmVirtQemu-AArch64
+  OUTPUT_DIRECTORY               = Build/ArmVirtQemu-AARCH64
   SUPPORTED_ARCHITECTURES        = AARCH64
   BUILD_TARGETS                  = DEBUG|RELEASE|NOOPT
   SKUID_IDENTIFIER               = DEFAULT

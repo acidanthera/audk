@@ -53,6 +53,9 @@ ifndef PYTHON_COMMAND
       $(error Unable to find a Python interpreter, if one is installed, set the PYTHON_COMMAND environment variable!)
     endif
   endif
+else
+  MAKEROOT:=.
+  SEP:=/
 endif
 
 test:

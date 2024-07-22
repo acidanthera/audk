@@ -20,16 +20,18 @@
 
 #define GET_BOOTLOADER_PARAMETER()  PcdGet64 (PcdBootloaderParameter)
 
-typedef RETURN_STATUS \
-(*BL_MEM_INFO_CALLBACK) (
-  MEMORY_MAP_ENTRY  *MemoryMapEntry,
-  VOID              *Param
+typedef
+RETURN_STATUS
+(EFIAPI *BL_MEM_INFO_CALLBACK)(
+  IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
+  IN VOID              *Param
   );
 
-typedef VOID \
+typedef
+VOID
 (EFIAPI *BL_CAPSULE_CALLBACK)(
-  EFI_PHYSICAL_ADDRESS  BaseAddress,
-  UINT64                Length
+  IN EFI_PHYSICAL_ADDRESS  BaseAddress,
+  IN UINT64                Length
   );
 
 /**

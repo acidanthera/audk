@@ -38,3 +38,6 @@
 [Protocols]
   gVirtioDeviceProtocolGuid        ## TO_START
   gEfiSerialIoProtocolGuid
+
+[BuildOptions]
+  MSFT:*_*_*_CC_FLAGS = /wd4204 

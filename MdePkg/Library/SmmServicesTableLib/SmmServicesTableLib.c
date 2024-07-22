@@ -55,6 +55,34 @@ SmmServicesTableLibConstructor (
   return EFI_SUCCESS;
 }
 
+EFI_STATUS
+EFIAPI
+StandaloneSmmServicesTableLibConstructor (
+  IN EFI_HANDLE           ImageHandle,
+  IN EFI_MM_SYSTEM_TABLE  *MmSystemTable
+  )
+{
+  EFI_STATUS              Status;
+  EFI_SMM_BASE2_PROTOCOL  *InternalSmmBase2;
+
+  InternalSmmBase2 = NULL;
+  Status           = MmSystemTable->MmLocateProtocol (
+                                      &gEfiSmmBase2ProtocolGuid,
+                                      NULL,
+                                      (VOID **)&InternalSmmBase2
+                                      );
+  ASSERT_EFI_ERROR (Status);
+  ASSERT (InternalSmmBase2 != NULL);
+
+  //
+  // We are in SMM, retrieve the pointer to SMM System Table
+  //
+  InternalSmmBase2->GetSmstLocation (InternalSmmBase2, &gSmst);
+  ASSERT (gSmst != NULL);
+
+  return EFI_SUCCESS;
+}
+
 /**
   This function allows the caller to determine if the driver is executing in
   System Management Mode(SMM).
