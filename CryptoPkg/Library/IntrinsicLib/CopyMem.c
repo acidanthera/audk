@@ -44,4 +44,13 @@ memcpy (
   return CopyMem (dest, src, (UINTN)count);
 }
 
+void
+__bzero (
+  void          *src,
+  unsigned int  count
+  )
+{
+  ZeroMem (src, count);
+}
+
 #endif
