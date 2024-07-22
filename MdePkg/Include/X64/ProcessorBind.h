@@ -125,36 +125,23 @@ typedef unsigned __int32 UINT32;
 /// 4-byte signed value
 ///
 typedef __int32 INT32;
+#elif defined (__clang__)
 ///
-/// 2-byte unsigned value
+/// 8-byte unsigned value
 ///
-typedef unsigned short UINT16;
+typedef __UINT64_TYPE__ UINT64;
 ///
-/// 2-byte Character.  Unless otherwise specified all strings are stored in the
-/// UTF-16 encoding format as defined by Unicode 2.1 and ISO/IEC 10646 standards.
+/// 8-byte signed value
 ///
-typedef unsigned short CHAR16;
+typedef __INT64_TYPE__ INT64;
 ///
-/// 2-byte signed value
+/// 4-byte unsigned value
 ///
-typedef short INT16;
+typedef unsigned int UINT32;
 ///
-/// Logical Boolean.  1-byte value containing 0 for FALSE or a 1 for TRUE.  Other
-/// values are undefined.
+/// 4-byte signed value
 ///
-typedef unsigned char BOOLEAN;
-///
-/// 1-byte unsigned value
-///
-typedef unsigned char UINT8;
-///
-/// 1-byte Character
-///
-typedef char CHAR8;
-///
-/// 1-byte signed value
-///
-typedef signed char INT8;
+typedef signed int INT32;
 #else
 ///
 /// 8-byte unsigned value
@@ -172,6 +159,8 @@ typedef unsigned int UINT32;
 /// 4-byte signed value
 ///
 typedef int INT32;
+#endif
+
 ///
 /// 2-byte unsigned value
 ///
@@ -202,7 +191,6 @@ typedef char CHAR8;
 /// 1-byte signed value
 ///
 typedef signed char INT8;
-#endif
 
 ///
 /// Unsigned value of native width.  (4 bytes on supported 32-bit processor instructions,
