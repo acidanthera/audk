@@ -480,6 +480,7 @@
 !endif
   CpuArchLib|UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
   MpInitLib|UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
+  CpuPageTableLib|UefiCpuPkg/Library/CpuPageTableLib/CpuPageTableLib.inf
 
 [LibraryClasses.AARCH64.DXE_CORE]
   CpuArchLib|ArmPkg/Library/CpuArchLib/CpuArchLib.inf
