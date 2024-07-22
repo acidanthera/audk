@@ -3521,7 +3521,7 @@ Returns:
 
     Machine = UefiImageGetMachine (&ImageContext);
 
-    if (Machine == IMAGE_FILE_MACHINE_AARCH64) {
+    if (Machine == IMAGE_FILE_MACHINE_ARM64) {
       mArm = TRUE;
     }
 
