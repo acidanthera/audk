@@ -12,10 +12,6 @@
 
 #pragma once
 
-//
-// To be able to safely include Windows headers, we need to include
-// WinNtInclude.h first.
-//
 #include "WinNtInclude.h"
 
 #include <stdarg.h>

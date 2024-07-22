@@ -58,6 +58,7 @@
   Tcg2PhysicalPresenceLib
   PcdLib
   HobLib
+  IntrinsicLib
 
 [Guids]
   gEfiTpmDeviceInstanceTpm20DtpmGuid                            ## PRODUCES           ## GUID       # TPM device identifier

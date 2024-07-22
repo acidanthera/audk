@@ -12,7 +12,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 typedef UINTN size_t;
 
-#if defined (__clang__) && !defined (__APPLE__)
+#if !defined (__arm__)
+  #if defined (__clang__) && !defined (__APPLE__)
 
 /* Copies bytes between buffers */
 static __attribute__ ((__used__))
@@ -34,7 +35,7 @@ memcpy (
   unsigned int  count
   );
 
-#else
+  #else
 /* Copies bytes between buffers */
 void *
 memcpy (
@@ -46,4 +47,14 @@ memcpy (
   return CopyMem (dest, src, count);
 }
 
+void
+__bzero (
+  void          *src,
+  unsigned int  count
+  )
+{
+  ZeroMem (src, count);
+}
+
+  #endif
 #endif

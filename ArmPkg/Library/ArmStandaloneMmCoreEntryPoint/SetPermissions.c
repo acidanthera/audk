@@ -62,7 +62,12 @@ LocateStandaloneMmCoreUefiImage (
     return Status;
   }
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, UefiImage, UefiImageSize);
+  Status = FfsFindSectionData (
+             EFI_SECTION_PE32,
+             FileHeader,
+             UefiImage,
+             (UINTN *)UefiImageSize
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((
       DEBUG_ERROR,

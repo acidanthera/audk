@@ -5,12 +5,10 @@ Copyright (c) 2004 - 2018, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
+
 #include "WinNtInclude.h"
 
 #ifndef __GNUC__
-#define RUNTIME_FUNCTION  _WINNT_DUP_RUNTIME_FUNCTION
-  #include <windows.h>
-  #undef RUNTIME_FUNCTION
   #include <io.h>
   #include <sys/types.h>
   #include <sys/stat.h>

@@ -54,6 +54,8 @@ VarCheckHiiLibReceiveHiiBinHandler (
 {
   EFI_STATUS  Status;
 
+  Status = EFI_INVALID_PARAMETER;
+
   //
   // If input is invalid, stop processing this SMI
   //
