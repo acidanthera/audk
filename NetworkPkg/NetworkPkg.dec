@@ -135,7 +135,7 @@
   # TRUE  - Enforce the use of Secure UEFI spec defined RNG algorithms.
   # FALSE - Do not enforce and depend on the default implementation of RNG algorithm from the provider.
   # @Prompt Enforce the use of Secure UEFI spec defined RNG algorithms.
-  gEfiNetworkPkgTokenSpaceGuid.PcdEnforceSecureRngAlgorithms|TRUE|BOOLEAN|0x1000000D
+  gEfiNetworkPkgTokenSpaceGuid.PcdEnforceSecureRngAlgorithms|FALSE|BOOLEAN|0x1000000D
 
 [PcdsFixedAtBuild, PcdsPatchableInModule, PcdsDynamic, PcdsDynamicEx]
   ## IPv6 DHCP Unique Identifier (DUID) Type configuration (From RFCs 3315 and 6355).
