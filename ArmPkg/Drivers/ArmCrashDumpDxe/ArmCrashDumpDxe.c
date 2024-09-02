@@ -30,6 +30,6 @@ ArmCrashDumpDxeInitialize (
   return mCpu->RegisterInterruptHandler (
                  mCpu,
                  EXCEPT_AARCH64_SYNCHRONOUS_EXCEPTIONS,
-                 &DumpCpuContext
+                 (EFI_CPU_INTERRUPT_HANDLER)&DumpCpuContext
                  );
 }

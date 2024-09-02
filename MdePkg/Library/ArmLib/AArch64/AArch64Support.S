@@ -382,5 +382,15 @@ ASM_FUNC(ArmReadIdAA64Pfr1)
 ASM_FUNC(ArmReadIdAA64Pfr2)
   mrs   x0, ID_AA64PFR2_EL1
   ret
+  
+.cpu cortex-a76
+
+ASM_FUNC(ArmSetPan)
+  msr   pan, #1
+  ret
+
+ASM_FUNC(ArmClearPan)
+  msr   pan, #0
+  ret
 
 ASM_FUNCTION_REMOVE_IF_UNREFERENCED

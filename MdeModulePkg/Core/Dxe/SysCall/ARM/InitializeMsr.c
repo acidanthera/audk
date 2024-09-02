@@ -29,18 +29,6 @@ ReturnToCore (
   IN UINTN      CoreSp
   );
 
-VOID
-EFIAPI
-ArmSetPan (
-  VOID
-  );
-
-VOID
-EFIAPI
-ArmClearPan (
-  VOID
-  );
-
 STATIC
 EFI_STATUS
 EFIAPI

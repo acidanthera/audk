@@ -681,6 +681,18 @@ ArmHasPan (
   VOID
   );
 
+VOID
+EFIAPI
+ArmSetPan (
+  VOID
+  );
+
+VOID
+EFIAPI
+ArmClearPan (
+  VOID
+  );
+
 ///
 /// AArch64-only ID Register Helper functions
 ///
