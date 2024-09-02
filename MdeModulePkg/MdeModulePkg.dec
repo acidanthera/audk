@@ -1243,6 +1243,12 @@
   # @Prompt USB Network periodic timer interval for asynchronous transfers in ms.
   # @ValidRange 0x80000001 | 1 - 255
   gEfiMdeModulePkgTokenSpaceGuid.PcdUsbNetworkPeriodicTimerInterval|16|UINT8|0x30001063
+  
+  ## Indicates whether some DXE drivers will be loaded in user memory.
+  #   TRUE  - Some DXE drivers will be loaded in user memory.<BR>
+  #   FALSE - All DXE drivers will be loaded in supervisor memory.<BR>
+  # @Prompt Enable User Space.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062
 
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
