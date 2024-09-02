@@ -150,4 +150,14 @@ ASM_FUNC (ArmGetPhysicalAddressBits)
   movge   r0, #40                 // 40 bits if LPAE
   bx      lr
 
+.arch armv8.1-a
+
+ASM_FUNC(ArmSetPan)
+  setpan #1
+  bx     LR
+
+ASM_FUNC(ArmClearPan)
+  setpan #0
+  bx     LR
+
 ASM_FUNCTION_REMOVE_IF_UNREFERENCED
