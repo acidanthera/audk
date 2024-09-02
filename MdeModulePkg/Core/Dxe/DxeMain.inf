@@ -93,7 +93,7 @@
   OvmfPkg/OvmfPkg.dec
   ArmPkg/ArmPkg.dec
   ArmVirtPkg/ArmVirtPkg.dec
-  
+
 [LibraryClasses]
   BaseMemoryLib
   CacheMaintenanceLib
