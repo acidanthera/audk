@@ -176,10 +176,14 @@ ASM_PFX(CoreBootServices):
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
     cli
+    ; Save nonvolatile registers EBX, EBP, EDI, ESI, ESP.
+    push    ebx
+    push    ebp
+    push    edi
+    push    esi
 
-    ; Save Core Stack pointers.
+    ; Save Core Stack pointer.
     mov     [ASM_PFX(CoreEsp)], esp
-    mov     [ASM_PFX(CoreEbp)], ebp
 
     push dword [ASM_PFX(gRing3EntryPoint)]
     push dword [ASM_PFX(gRing3CallStackTop)]
@@ -189,7 +193,7 @@ ASM_PFX(CallRing3):
     ; Prepare SYSEXIT arguments.
     pop     ecx
     pop     edx
-    mov     eax, [esp + 4] ; Data
+    mov     eax, [esp + 4 * 5] ; Data
 
     ; Switch to User Stack.
     mov     ebp, ecx
@@ -200,7 +204,10 @@ ASM_PFX(CallRing3):
 
 coreReturnAddress:
     mov     esp, [ASM_PFX(CoreEsp)]
-    mov     ebp, [ASM_PFX(CoreEbp)]
+    pop     esi
+    pop     edi
+    pop     ebp
+    pop     ebx
 
     call ASM_PFX(DisableSMAP)
     mov     eax, [edx + 2 * 4] ; User Argument 1
@@ -213,7 +220,4 @@ coreReturnAddress:
 
 SECTION .data
 ASM_PFX(CoreEsp):
-  resd 1
-
-ASM_PFX(CoreEbp):
   resd 1

@@ -195,10 +195,18 @@ ASM_PFX(CallRing3):
     pushfq
     pop     r11
     cli
+    ; Save nonvolatile registers RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15.
+    push    rbx
+    push    rbp
+    push    rdi
+    push    rsi
+    push    r12
+    push    r13
+    push    r14
+    push    r15
 
-    ; Save Core Stack pointers.
+    ; Save Core Stack pointer.
     mov     [ASM_PFX(CoreRsp)], rsp
-    mov     [ASM_PFX(CoreRbp)], rbp
 
     ; Save input Arguments.
     mov     r8, [ASM_PFX(gRing3CallStackTop)]
@@ -220,14 +228,19 @@ o64 sysret
 
 coreReturnAddress:
     mov     rsp, [ASM_PFX(CoreRsp)]
-    mov     rbp, [ASM_PFX(CoreRbp)]
+    pop     r15
+    pop     r14
+    pop     r13
+    pop     r12
+    pop     rsi
+    pop     rdi
+    pop     rbp
+    pop     rbx
+
     mov     rax, rdx
     sti
     ret
 
 SECTION .data
 ASM_PFX(CoreRsp):
-  resq 1
-
-ASM_PFX(CoreRbp):
   resq 1
