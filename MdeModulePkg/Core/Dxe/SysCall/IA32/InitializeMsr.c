@@ -27,14 +27,9 @@ InitializeMsr (
 
   //
   // Forbid supervisor-mode accesses to any user-mode pages.
-  // SMEP and SMAP must be supported.
   //
   AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
-  //
-  // SYSENTER and SYSEXIT must be also supported.
-  //
-  AsmCpuidEx (0x01, 0x0, NULL, NULL, NULL, &Edx);
-  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0) && ((Edx & BIT11) != 0)) {
+  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0)) {
     Cr4.UintN     = AsmReadCr4 ();
     Cr4.Bits.SMAP = 1;
     Cr4.Bits.SMEP = 1;
@@ -43,9 +38,15 @@ InitializeMsr (
     Eflags.UintN   = AsmReadEflags ();
     Eflags.Bits.AC = 0;
     AsmWriteEflags (Eflags.UintN);
-  } else {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
-    ASSERT (FALSE);
+  }
+
+  //
+  // SYSENTER and SYSEXIT must be supported.
+  //
+  AsmCpuidEx (0x01, 0x0, NULL, NULL, NULL, &Edx);
+  if ((Edx & BIT11) == 0) {
+    DEBUG ((DEBUG_ERROR, "Core: SYSENTER and SYSEXIT are not supported.\n"));
+    CpuDeadLoop ();
   }
 
   //
