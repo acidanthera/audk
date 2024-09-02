@@ -217,6 +217,7 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard                           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdFwVolDxeMaxEncapsulationDepth           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageLargeAddressLoad                   ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace                         ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask                        ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES

@@ -236,14 +236,19 @@ ProtectUefiImage (
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    if (AsciiStrStr (PdbPointer, "Fat") != NULL) {
-      SetUefiImageProtectionAttributes (ImageRecord, TRUE);
-      *IsUserImage = TRUE;
-    } else if (AsciiStrStr (PdbPointer, "Ring3") != NULL) {
-      SetUefiImageProtectionAttributes (ImageRecord, TRUE);
-      *IsUserImage       = TRUE;
-      *IsRing3EntryPoint = TRUE;
-  } else {
+    if (PcdGetBool (PcdEnableUserSpace)) {
+      if (AsciiStrStr (PdbPointer, "Fat") != NULL) {
+        SetUefiImageProtectionAttributes (ImageRecord, TRUE);
+        *IsUserImage = TRUE;
+      } else if (AsciiStrStr (PdbPointer, "Ring3") != NULL) {
+        SetUefiImageProtectionAttributes (ImageRecord, TRUE);
+        *IsUserImage       = TRUE;
+        *IsRing3EntryPoint = TRUE;
+      } else {
+        SetUefiImageProtectionAttributes (ImageRecord, FALSE);
+        *IsUserImage = FALSE;
+      }
+    } else {
       SetUefiImageProtectionAttributes (ImageRecord, FALSE);
       *IsUserImage = FALSE;
     }

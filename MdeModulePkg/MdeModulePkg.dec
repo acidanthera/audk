@@ -1204,6 +1204,12 @@
   # @Prompt Defines the page allocation for the MM communication buffer; default is 128 pages (512KB).
   gEfiMdeModulePkgTokenSpaceGuid.PcdMmCommBufferPages|128|UINT32|0x30001061
 
+  ## Indicates whether some DXE drivers will be loaded in user memory.
+  #   TRUE  - Some DXE drivers will be loaded in user memory.<BR>
+  #   FALSE - All DXE drivers will be loaded in supervisor memory.<BR>
+  # @Prompt Enable User Space.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
   #  PcdMaxPeiPcdCallBackNumberPerPcdEntry indicates the maximum number of callback function
