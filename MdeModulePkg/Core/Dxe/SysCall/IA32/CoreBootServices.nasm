@@ -20,12 +20,12 @@ SECTION .text
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; DisableSMAP (
+; AllowSupervisorAccessToUserMemory (
 ;   VOID
 ;   );
 ;------------------------------------------------------------------------------
-global ASM_PFX(DisableSMAP)
-ASM_PFX(DisableSMAP):
+global ASM_PFX(AllowSupervisorAccessToUserMemory)
+ASM_PFX(AllowSupervisorAccessToUserMemory):
     pushfd
     pop     eax
     or      eax, 0x40000 ; Set AC (bit 18)
@@ -36,12 +36,12 @@ ASM_PFX(DisableSMAP):
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; EnableSMAP (
+; ForbidSupervisorAccessToUserMemory (
 ;   VOID
 ;   );
 ;------------------------------------------------------------------------------
-global ASM_PFX(EnableSMAP)
-ASM_PFX(EnableSMAP):
+global ASM_PFX(ForbidSupervisorAccessToUserMemory)
+ASM_PFX(ForbidSupervisorAccessToUserMemory):
     pushfd
     pop     eax
     and     eax, ~0x40000 ; Clear AC (bit 18)
@@ -131,14 +131,14 @@ ASM_PFX(CoreBootServices):
     je      coreReturnAddress
 
     ; Prepare CallBootService arguments.
-    call ASM_PFX(DisableSMAP)
+    call ASM_PFX(AllowSupervisorAccessToUserMemory)
     mov     eax, [edx + 4 * 4] ; User Argument 3
     push    eax
     mov     eax, [edx + 3 * 4] ; User Argument 2
     push    eax
     mov     eax, [edx + 2 * 4] ; User Argument 1
     push    eax
-    call ASM_PFX(EnableSMAP)
+    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
     mov     ebp, esp
     push    edx
     push    ebp
@@ -209,10 +209,10 @@ coreReturnAddress:
     pop     ebp
     pop     ebx
 
-    call ASM_PFX(DisableSMAP)
+    call ASM_PFX(AllowSupervisorAccessToUserMemory)
     mov     eax, [edx + 2 * 4] ; User Argument 1
     push    eax
-    call ASM_PFX(EnableSMAP)
+    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
     pop     eax
 
     sti

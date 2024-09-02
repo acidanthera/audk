@@ -51,7 +51,7 @@ GoToRing3 (
 
   Input = (RING3_CALL_DATA *)(UINTN)Ring3Pages;
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   Input->NumberOfArguments = Number;
   Input->EntryPoint        = EntryPoint;
 
@@ -60,7 +60,7 @@ GoToRing3 (
     Input->Arguments[Index] = VA_ARG (Marker, UINTN);
   }
   VA_END (Marker);
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
   if (Number == 2) {
@@ -98,7 +98,7 @@ GoToRing3 (
   // Problem 2: Uart memory maped page is not allocated at the very beginnig
   // and can be used for translation table later.
   //
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   //
   // Problem 3: QEMU ramdomly breaks GP registers' context.
   //
@@ -107,7 +107,7 @@ GoToRing3 (
     EFI_PAGE_SIZE,
     EFI_MEMORY_XP
     );
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 #endif
 
   CoreFreePages (Ring3Pages, PagesNumber);
@@ -136,9 +136,9 @@ Ring3Copy (
     return NULL;
   }
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   CopyMem ((VOID *)(UINTN)Ring3, Core, Size);
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   return (VOID *)(UINTN)Ring3;
 }
@@ -300,9 +300,9 @@ CoreFileRead (
 
   Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   *Ring3BufferSize = *BufferSize;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
     Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
@@ -316,13 +316,13 @@ CoreFileRead (
              Ring3Buffer
              );
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
     CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
   }
 
   *BufferSize = *Ring3BufferSize;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (Ring3Pages, PagesNumber);
 
@@ -414,9 +414,9 @@ CoreFileGetPosition (
     return Status;
   }
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   *(UINT64 *)(UINTN)Ring3Position = *Position;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              2,
@@ -425,9 +425,9 @@ CoreFileGetPosition (
              Ring3Position
              );
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   *Position = *(UINT64 *)(UINTN)Ring3Position;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (Ring3Position, 1);
 
@@ -475,9 +475,9 @@ CoreFileGetInfo (
 
   Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   *Ring3BufferSize = *BufferSize;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
     Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
@@ -486,9 +486,9 @@ CoreFileGetInfo (
   if (InformationType != NULL) {
     Ring3InformationType = (EFI_GUID *)((UINTN)Ring3Pages + sizeof (UINTN *) + *BufferSize);
 
-    DisableSMAP ();
+    AllowSupervisorAccessToUserMemory ();
     CopyGuid (Ring3InformationType, InformationType);
-    EnableSMAP ();
+    ForbidSupervisorAccessToUserMemory ();
   }
 
   Status = GoToRing3 (
@@ -500,13 +500,13 @@ CoreFileGetInfo (
              Ring3Buffer
              );
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
     CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
   }
 
   *BufferSize = *Ring3BufferSize;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (Ring3Pages, PagesNumber);
 
@@ -628,9 +628,9 @@ CoreFileOpen (
   Ring3NewHandle = (EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages;
   Ring3FileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages + 1);
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   Status = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
@@ -706,9 +706,9 @@ CoreFileOpen (
   NewFile->Protocol.WriteEx     = CoreFileWriteEx;
   NewFile->Protocol.FlushEx     = CoreFileFlushEx;
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   NewFile->Ring3File = *Ring3NewHandle;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
 
@@ -765,7 +765,7 @@ CoreOpenVolume (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   mRing3FileProtocol.Revision    = (*Ring3Root)->Revision;
   mRing3FileProtocol.Open        = (*Ring3Root)->Open;
   mRing3FileProtocol.Close       = (*Ring3Root)->Close;
@@ -783,7 +783,7 @@ CoreOpenVolume (
   mRing3FileProtocol.FlushEx     = (*Ring3Root)->FlushEx;
 
   File->Ring3File = *Ring3Root;
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   File->Protocol.Revision    = mRing3FileProtocol.Revision;
   File->Protocol.Open        = CoreFileOpen;

@@ -333,9 +333,9 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument1, &CoreProtocol, &MemoryCoreSize);
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
         return Status;
       }
@@ -346,14 +346,14 @@ CallBootService (
                       &Interface
                       );
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if (Interface != NULL) {
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
         *(VOID **)CoreRbp->Argument3 = Interface;
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       return Status;
 
@@ -379,17 +379,17 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         return Status;
       }
 
       Argument4 = UserRsp->Arguments[4];
       Argument5 = UserRsp->Arguments[5];
       Argument6 = UserRsp->Arguments[6];
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = gBS->OpenProtocol (
                       (EFI_HANDLE)CoreRbp->Argument1,
@@ -401,13 +401,13 @@ CallBootService (
                       );
 
       if ((VOID **)CoreRbp->Argument3 != NULL) {
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         if (Interface != NULL) {
           Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         }
 
         *(VOID **)CoreRbp->Argument3 = Interface;
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
       }
 
       return Status;
@@ -426,7 +426,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (VOID **) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       CoreHandle  = *(EFI_HANDLE *)CoreRbp->Argument1;
       UserArgList = (VOID **)CoreRbp->Argument2;
 
@@ -440,7 +440,7 @@ CallBootService (
 
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
         if (EFI_ERROR (Status)) {
-          EnableSMAP ();
+          ForbidSupervisorAccessToUserMemory ();
 
           while (Index > 0) {
             FreePool (CoreArgList[Index - 1]);
@@ -460,7 +460,7 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] + sizeof (VOID *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       ASSERT (Index < MAX_LIST);
       CoreArgList[Index] = NULL;
@@ -483,9 +483,9 @@ CallBootService (
 
           CoreSimpleFileSystem->OpenVolume = CoreOpenVolume;
 
-          DisableSMAP ();
+          AllowSupervisorAccessToUserMemory ();
           mRing3SimpleFileSystemPointer = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)UserArgList[Index + 1];
-          EnableSMAP ();
+          ForbidSupervisorAccessToUserMemory ();
         }
       }
 
@@ -512,15 +512,15 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         return Status;
       }
 
       Argument4 = UserRsp->Arguments[4];
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = gBS->CloseProtocol (
                       (EFI_HANDLE)CoreRbp->Argument1,
@@ -546,9 +546,9 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
         return Status;
       }
@@ -559,14 +559,14 @@ CallBootService (
                       &Interface
                       );
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if (Interface != NULL) {
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
         *(VOID **)CoreRbp->Argument3 = Interface;
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       return Status;
 
@@ -587,14 +587,14 @@ CallBootService (
                       (EFI_PHYSICAL_ADDRESS *)&Argument4
                       );
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       *(EFI_PHYSICAL_ADDRESS *)UserRsp->Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       return Status;
 
@@ -643,9 +643,9 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if (EFI_ERROR (Status)) {
           return Status;
         }
@@ -662,7 +662,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if ((UINTN *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -696,7 +696,7 @@ CallBootService (
 
         *(EFI_HANDLE **)UserRsp->Arguments[5] = (EFI_HANDLE *)(UINTN)Ring3Pages;
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       return StatusBS;
 
@@ -720,9 +720,9 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       CopyMem ((VOID *)Argument4, (VOID *)CoreRbp->Argument1, CoreRbp->Argument2);
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = gBS->CalculateCrc32 (
                       (VOID *)Argument4,
@@ -730,9 +730,9 @@ CallBootService (
                       (UINT32 *)&Argument5
                       );
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       *(UINT32 *)CoreRbp->Argument3 = (UINT32)Argument5;
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       return Status;
 
@@ -759,19 +759,19 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + StrSize ((CHAR16 *)CoreRbp->Argument1) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument1), (CHAR16 *)CoreRbp->Argument1);
       if ((VOID *)Argument6 == NULL) {
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         return EFI_OUT_OF_RESOURCES;
       }
 
       Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         FreePool ((VOID *)Argument6);
         return Status;
       }
@@ -791,12 +791,12 @@ CallBootService (
 
         Argument5 = (UINTN)AllocatePool (Argument4);
         if ((VOID *)Argument5 == NULL) {
-          EnableSMAP ();
+          ForbidSupervisorAccessToUserMemory ();
           FreePool ((VOID *)Argument6);
           return EFI_OUT_OF_RESOURCES;
         }
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = gRT->GetVariable (
                       (CHAR16 *)Argument6,
@@ -806,7 +806,7 @@ CallBootService (
                       (VOID *)Argument5
                       );
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if ((VOID *)UserRsp->Arguments[5] != NULL) {
         CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
       }
@@ -816,7 +816,7 @@ CallBootService (
       if ((UINT32 *)CoreRbp->Argument3 != NULL) {
         *(UINT32 *)CoreRbp->Argument3 = (UINT32)Attributes;
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument6);
 
@@ -863,7 +863,7 @@ CallBootService (
 #endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
 #if defined (MDE_CPU_ARM)
       //
       // EFI_LBA Lba is aligned on 8 bytes.
@@ -872,7 +872,7 @@ CallBootService (
 #else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
 #endif
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
@@ -886,14 +886,14 @@ CallBootService (
                           CoreRbp->Argument3,
                           (VOID *)Argument5
                           );
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument5);
 
@@ -925,7 +925,7 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
@@ -941,7 +941,7 @@ CallBootService (
 #else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
 #endif
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = BlockIo->WriteBlocks (
                           BlockIo,
@@ -988,7 +988,7 @@ CallBootService (
 #endif
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
 #if defined (MDE_CPU_ARM)
       //
       // UINT64 Offset is aligned on 8 bytes.
@@ -997,7 +997,7 @@ CallBootService (
 #else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
 #endif
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
       if ((VOID *)Argument5 == NULL) {
@@ -1011,14 +1011,14 @@ CallBootService (
                          CoreRbp->Argument3,
                          (VOID *)Argument5
                          );
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument5);
 
@@ -1050,7 +1050,7 @@ CallBootService (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
@@ -1066,7 +1066,7 @@ CallBootService (
 #else
       Attributes = *(UINT64 *)&UserRsp->Arguments[5];
 #endif
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = DiskIo->WriteDisk (
                          DiskIo,
@@ -1096,12 +1096,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1111,12 +1111,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
@@ -1158,12 +1158,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1173,12 +1173,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
@@ -1219,12 +1219,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1236,9 +1236,9 @@ CallBootService (
                  );
 
       if ((VOID *)Argument4 != NULL) {
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument4);
       }
@@ -1260,12 +1260,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1277,9 +1277,9 @@ CallBootService (
                  );
 
       if ((VOID *)Argument4 != NULL) {
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument4);
       }
@@ -1305,9 +1305,9 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + CoreRbp->Argument2 - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         Argument4 = (UINTN)AllocateCopyPool (CoreRbp->Argument2, (CHAR8 *)CoreRbp->Argument3);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1316,7 +1316,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if ((CHAR16 *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1332,7 +1332,7 @@ CallBootService (
           return EFI_OUT_OF_RESOURCES;
         }
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Unicode->FatToStr (
                  Unicode,
@@ -1346,9 +1346,9 @@ CallBootService (
       }
 
       if ((VOID *)Argument5 != NULL) {
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, 2 * (CoreRbp->Argument2 + 1));
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument5);
       }
@@ -1372,12 +1372,12 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
           return EFI_OUT_OF_RESOURCES;
         }
@@ -1386,7 +1386,7 @@ CallBootService (
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      DisableSMAP ();
+      AllowSupervisorAccessToUserMemory ();
       if ((CHAR8 *)UserRsp->Arguments[4] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -1402,7 +1402,7 @@ CallBootService (
           return EFI_OUT_OF_RESOURCES;
         }
       }
-      EnableSMAP ();
+      ForbidSupervisorAccessToUserMemory ();
 
       Status = (EFI_STATUS)Unicode->StrToFat (
                                       Unicode,
@@ -1416,9 +1416,9 @@ CallBootService (
       }
 
       if ((VOID *)Argument5 != NULL) {
-        DisableSMAP ();
+        AllowSupervisorAccessToUserMemory ();
         CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
-        EnableSMAP ();
+        ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument5);
       }
