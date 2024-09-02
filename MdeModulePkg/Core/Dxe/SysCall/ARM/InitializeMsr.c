@@ -105,12 +105,6 @@ InitializeMsr (
     // Enable Privileged Access Never feature.
     //
     ArmSetPan ();
-  } else {
-    //
-    // TODO: Refactoring.
-    //
-    DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
-    // ASSERT (FALSE);
   }
 
   InitializeSysCallHandler (SysCallBootService);

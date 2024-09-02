@@ -28,14 +28,9 @@ InitializeMsr (
 
   //
   // Forbid supervisor-mode accesses to any user-mode pages.
-  // SMEP and SMAP must be supported.
   //
   AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
-  //
-  // SYSCALL and SYSRET must be also supported.
-  //
-  AsmCpuidEx (0x80000001, 0x0, NULL, NULL, NULL, &Edx);
-  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0) && ((Edx & BIT11) != 0)) {
+  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0)) {
     Cr4.UintN     = AsmReadCr4 ();
     Cr4.Bits.SMAP = 1;
     Cr4.Bits.SMEP = 1;
@@ -44,15 +39,19 @@ InitializeMsr (
     Eflags.UintN   = AsmReadEflags ();
     Eflags.Bits.AC = 0;
     AsmWriteEflags (Eflags.UintN);
-    //
-    // Enable SYSCALL and SYSRET.
-    //
+  }
+
+  //
+  // Enable SYSCALL and SYSRET.
+  //
+  AsmCpuidEx (0x80000001, 0x0, NULL, NULL, NULL, &Edx);
+  if ((Edx & BIT11) != 0) {
     MsrEfer.Uint64   = AsmReadMsr64 (MSR_IA32_EFER);
     MsrEfer.Bits.SCE = 1;
     AsmWriteMsr64 (MSR_IA32_EFER, MsrEfer.Uint64);
   } else {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
-    ASSERT (FALSE);
+    DEBUG ((DEBUG_ERROR, "Core: SYSCALL and SYSRET are not supported.\n"));
+    CpuDeadLoop ();
   }
 
   //

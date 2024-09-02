@@ -173,9 +173,6 @@ InitializeMsr (
     // Enable Privileged Access Never feature.
     //
     ArmSetPan ();
-  } else {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to initialize MSRs for Ring3.\n"));
-    ASSERT (FALSE);
   }
 
   InitializeSysCallHandler ((VOID *)SysCallBootService);
@@ -187,7 +184,9 @@ DisableSMAP (
   VOID
   )
 {
-  ArmClearPan ();
+  if (ArmHasPan ()) {
+    ArmClearPan ();
+  }
 }
 
 VOID
@@ -196,7 +195,9 @@ EnableSMAP (
   VOID
   )
 {
-  ArmSetPan ();
+  if (ArmHasPan ()) {
+    ArmSetPan ();
+  }
 }
 
 EFI_STATUS
