@@ -2761,13 +2761,13 @@ CallRing3 (
 
 VOID
 EFIAPI
-DisableSMAP (
+AllowSupervisorAccessToUserMemory (
   VOID
   );
 
 VOID
 EFIAPI
-EnableSMAP (
+ForbidSupervisorAccessToUserMemory (
   VOID
   );
 

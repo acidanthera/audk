@@ -18,12 +18,12 @@ SECTION .text
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; DisableSMAP (
+; AllowSupervisorAccessToUserMemory (
 ;   VOID
 ;   );
 ;------------------------------------------------------------------------------
-global ASM_PFX(DisableSMAP)
-ASM_PFX(DisableSMAP):
+global ASM_PFX(AllowSupervisorAccessToUserMemory)
+ASM_PFX(AllowSupervisorAccessToUserMemory):
     pushfq
     pop     r10
     or      r10, 0x40000 ; Set AC (bit 18)
@@ -34,12 +34,12 @@ ASM_PFX(DisableSMAP):
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; EnableSMAP (
+; ForbidSupervisorAccessToUserMemory (
 ;   VOID
 ;   );
 ;------------------------------------------------------------------------------
-global ASM_PFX(EnableSMAP)
-ASM_PFX(EnableSMAP):
+global ASM_PFX(ForbidSupervisorAccessToUserMemory)
+ASM_PFX(ForbidSupervisorAccessToUserMemory):
     pushfq
     pop     r10
     and     r10, ~0x40000 ; Clear AC (bit 18)

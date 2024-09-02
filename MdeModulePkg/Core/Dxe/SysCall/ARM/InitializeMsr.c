@@ -67,7 +67,7 @@ SysCallBootService (
     return Status;
   }
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   //
   // First 3 arguments are passed through R1-R3 and copied to SysCall Stack.
   //
@@ -76,7 +76,7 @@ SysCallBootService (
   // All remaining arguments are on User Stack.
   //
   CopyMem ((VOID *)((UINTN)Physical + 5 * sizeof (UINTN)), (VOID *)UserRsp, 4 * sizeof (UINTN));
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
              Type,
@@ -110,12 +110,9 @@ InitializeMsr (
   InitializeSysCallHandler (SysCallBootService);
 }
 
-//
-// TODO: Refactoring.
-//
 VOID
 EFIAPI
-DisableSMAP (
+AllowSupervisorAccessToUserMemory (
   VOID
   )
 {
@@ -126,7 +123,7 @@ DisableSMAP (
 
 VOID
 EFIAPI
-EnableSMAP (
+ForbidSupervisorAccessToUserMemory (
   VOID
   )
 {

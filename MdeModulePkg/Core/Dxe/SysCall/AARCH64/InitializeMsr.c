@@ -70,7 +70,7 @@ SysCallBootService (
     return Status;
   }
 
-  DisableSMAP ();
+  AllowSupervisorAccessToUserMemory ();
   CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)UserRsp, 8 * sizeof (UINTN));
 
   SetUefiImageMemoryAttributes (
@@ -78,7 +78,7 @@ SysCallBootService (
     EFI_PAGE_SIZE,
     EFI_MEMORY_XP
     );
-  EnableSMAP ();
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
              Type,
@@ -180,7 +180,7 @@ InitializeMsr (
 
 VOID
 EFIAPI
-DisableSMAP (
+AllowSupervisorAccessToUserMemory (
   VOID
   )
 {
@@ -191,7 +191,7 @@ DisableSMAP (
 
 VOID
 EFIAPI
-EnableSMAP (
+ForbidSupervisorAccessToUserMemory (
   VOID
   )
 {
