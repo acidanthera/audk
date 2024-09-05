@@ -22,6 +22,7 @@
 [LibraryClasses]
   BaseLib
   IoLib
+  PcdLib
 
 [Sources]
   SerialPortLib.c

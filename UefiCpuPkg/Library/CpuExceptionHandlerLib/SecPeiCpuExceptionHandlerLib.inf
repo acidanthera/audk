@@ -65,6 +65,8 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
+  PcAtChipsetPkg/PcAtChipsetPkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses.common]
@@ -87,6 +89,8 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard
   gUefiCpuPkgTokenSpaceGuid.PcdCpuStackSwitchExceptionList
   gUefiCpuPkgTokenSpaceGuid.PcdCpuKnownGoodStackSize
+  gPcAtChipsetPkgTokenSpaceGuid.PcdUartIoPortBaseAddress           ## CONSUMES
+  gUefiOvmfPkgTokenSpaceGuid.PcdDebugIoPort                        ## CONSUMES
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
