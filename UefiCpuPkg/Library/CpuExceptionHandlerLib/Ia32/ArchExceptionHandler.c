@@ -229,12 +229,15 @@ ArchSetupExceptionStack (
   Tss->SS0              = AsmReadSs ();
   Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
   //
-  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06
+  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06;
+  // and DebugIoPort = 0x402.
   //
   IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
   for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
-    if ((Index * 8) == 0x3F8) {
+    if ((Index * 8) == FixedPcdGet16 (PcdUartBase)) {
       *IOBitMap = 0x84;
+    } else if ((Index * 8) == (FixedPcdGet16 (PcdDebugIoPort) - 2)) {
+      *IOBitMap = 0xFB;
     } else {
       *IOBitMap = 0xFF;
     }
