@@ -208,21 +208,23 @@ ArchSetupExceptionStack (
   // be filled by processor during task switching.
   //
   TssBase = (UINTN)Tss;
-
+  //
+  // Last byte of bitmap must be followed by a byte with all bits set.
+  //
   TssDesc->Uint128.Uint64   = 0;
   TssDesc->Uint128.Uint64_1 = 0;
-  TssDesc->Bits.LimitLow    = (UINT16)(CPU_TSS_SIZE - 1);
+  TssDesc->Bits.LimitLow    = (UINT16)(CPU_TSS_SIZE - 2);
   TssDesc->Bits.BaseLow     = (UINT16)TssBase;
   TssDesc->Bits.BaseMidl    = (UINT8)(TssBase >> 16);
   TssDesc->Bits.Type        = IA32_GDT_TYPE_TSS;
   TssDesc->Bits.DPL         = 3;
   TssDesc->Bits.P           = 1;
-  TssDesc->Bits.LimitHigh   = (CPU_TSS_SIZE - 1) >> 16;
+  TssDesc->Bits.LimitHigh   = (CPU_TSS_SIZE - 2) >> 16;
   TssDesc->Bits.BaseMidh    = (UINT8)(TssBase >> 24);
   TssDesc->Bits.BaseHigh    = (UINT32)(TssBase >> 32);
 
   //
-  // Fixup exception task descriptor and task-state segment
+  // Set I/O Permission Bit Map
   //
   ZeroMem (Tss, sizeof (*Tss));
   //
@@ -230,6 +232,26 @@ ArchSetupExceptionStack (
   //
   StackTop = StackTop - CPU_STACK_ALIGNMENT + 1;
   StackTop = (UINTN)ALIGN_POINTER (StackTop, CPU_STACK_ALIGNMENT);
+
+  Tss->RSP0             = StackTop;
+  Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
+  //
+  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06
+  //
+  IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
+  for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
+    if ((Index * 8) == 0x3F8) {
+      *IOBitMap = 0x84;
+    } else {
+      *IOBitMap = 0xFF;
+    }
+
+    ++IOBitMap;
+  }
+
+  //
+  // Fixup IST and task-state segment
+  //
   IdtTable = (IA32_IDT_GATE_DESCRIPTOR  *)Idtr.Base;
   for (Index = 0; Index < CPU_STACK_SWITCH_EXCEPTION_NUMBER; ++Index) {
     //
@@ -255,24 +277,6 @@ ArchSetupExceptionStack (
   // Publish GDT
   //
   AsmWriteGdtr (&Gdtr);
-
-  //
-  // Set I/O Permission Bit Map
-  //
-  Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
-  //
-  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06
-  //
-  IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
-  for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
-    if ((Index * 8) == 0x3F8) {
-      *IOBitMap = 0x84;
-    } else {
-      *IOBitMap = 0xFF;
-    }
-
-    ++IOBitMap;
-  }
 
   //
   // Load current task
