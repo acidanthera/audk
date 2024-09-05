@@ -5716,10 +5716,10 @@ typedef struct {
 } IA32_DESCRIPTOR;
   #pragma pack ()
 
-#define IA32_IDT_GATE_TYPE_TASK          0x85
+#define IA32_IDT_GATE_TYPE_TASK          0xE5
 #define IA32_IDT_GATE_TYPE_INTERRUPT_16  0x86
 #define IA32_IDT_GATE_TYPE_TRAP_16       0x87
-#define IA32_IDT_GATE_TYPE_INTERRUPT_32  0x8E
+#define IA32_IDT_GATE_TYPE_INTERRUPT_32  0xEE
 #define IA32_IDT_GATE_TYPE_TRAP_32       0x8F
 
 #define IA32_GDT_TYPE_TSS   0x9

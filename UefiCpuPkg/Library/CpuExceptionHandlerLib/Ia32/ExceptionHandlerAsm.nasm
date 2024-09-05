@@ -208,7 +208,7 @@ ErrorCodeAndVectorOnStack:
     jz      sameCPL_0
     mov     ecx, [ecx]
 sameCPL_0:
-    push    ecx                          ; ESP
+    push    ecx                      ; ESP
     push    dword [ebp]              ; EBP
     push    esi
     push    edi
@@ -390,7 +390,7 @@ sameCPL_1:
     pop     ds
     pop     dword [ebp + 4 * 4]
     ; Check whether Ring0 process was interrupted.
-    mov     ecx, ss
+    mov     ecx, ds
     and     ecx, 3
     jz      sameCPL_2
     pop     dword [ebp + 7 * 4]
@@ -413,9 +413,8 @@ continue:
     push    ecx
     mov     ecx, ds
     and     ecx, 3
-    cmp     ecx, 3
     pop     ecx
-    je      ReturnToRing3
+    jnz     ReturnToRing3
 
     pop     dword [ebp - 8]
     pop     dword [ebp - 4]
