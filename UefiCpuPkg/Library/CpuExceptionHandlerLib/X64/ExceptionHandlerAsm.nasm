@@ -207,20 +207,11 @@ HasErrorCode:
     mov     rax, gs
     push    rax
 
-    ; Check whether Ring3 process was interrupted.
-    and     rax, 3
-    cmp     rax, 3
-    jne     SkipHook
-    mov     rax, cr2
-    cmp     rax, 0xFFFFFFFFFFFFFFF8
-    jne     SkipHook
-    mov     rcx, 32
-SkipHook:
-    mov     rax, ss
-    mov     ds, rax
-    mov     es, rax
-    mov     fs, rax
-    mov     gs, rax
+    mov     ax, ss
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
 
     mov     [rbp + 8], rcx               ; save vector number
 
@@ -426,7 +417,7 @@ CetDone:
 ;; UINT64  R8, R9, R10, R11, R12, R13, R14, R15;
     pop     rdi
     pop     rsi
-    add     rsp, 8               ; not for rbp
+    add     rsp, 8           ; not for rbp
     pop     qword [rbp + 48] ; for rsp
     pop     rbx
     pop     rdx
@@ -445,9 +436,8 @@ CetDone:
     push    rcx
     mov     rcx, ds
     and     rcx, 3
-    cmp     rcx, 3
     pop     rcx
-    je      ReturnToRing3
+    jnz     ReturnToRing3
 
     mov     rsp, rbp
     pop     rbp
