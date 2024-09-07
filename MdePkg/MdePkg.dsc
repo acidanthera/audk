@@ -151,6 +151,8 @@
   MdePkg/Library/DynamicStackCookieEntryPointLib/UefiApplicationEntryPoint.inf
   MdePkg/Library/DynamicStackCookieEntryPointLib/UefiDriverEntryPoint.inf
 
+  MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
+
 [Components.IA32, Components.X64, Components.ARM, Components.AARCH64]
   #
   # Add UEFI Target Based Unit Tests

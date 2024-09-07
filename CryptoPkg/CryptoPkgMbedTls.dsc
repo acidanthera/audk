@@ -77,7 +77,7 @@
   IoLib|MdePkg/Library/BaseIoLibIntrinsic/BaseIoLibIntrinsic.inf
   MbedTlsLib|CryptoPkg/Library/MbedTlsLib/MbedTlsLib.inf
   OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLib.inf
-  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  IntrinsicLib|MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
   SafeIntLib|MdePkg/Library/BaseSafeIntLib/BaseSafeIntLib.inf
 
 [LibraryClasses.common.PEIM]
