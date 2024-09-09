@@ -68,7 +68,7 @@
   UnitTestLib|UnitTestFrameworkPkg/Library/UnitTestLib/UnitTestLib.inf
   UnitTestPersistenceLib|UnitTestFrameworkPkg/Library/UnitTestPersistenceLibNull/UnitTestPersistenceLibNull.inf
   UnitTestResultReportLib|UnitTestFrameworkPkg/Library/UnitTestResultReportLib/UnitTestResultReportLibDebugLib.inf
-  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  IntrinsicLib|MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
   CpuArchLib|UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
 
 [LibraryClasses.common.SEC]
@@ -131,7 +131,7 @@
   UefiCpuPkg/MicrocodeMeasurementDxe/MicrocodeMeasurementDxe.inf
 
 [Components.IA32]
-  CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
 
 [Components.IA32, Components.X64]
   UefiCpuPkg/CpuFeatures/CpuFeaturesPei.inf {
