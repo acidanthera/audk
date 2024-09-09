@@ -236,7 +236,7 @@ ProtectUefiImage (
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    if (PcdGetBool (PcdEnableUserSpace) && (PdbPointer != NULL)) {
+    if (PcdGetBool (PcdEnableUserSpace) && (!RETURN_ERROR (PdbStatus))) {
       if (AsciiStrStr (PdbPointer, "Fat") != NULL) {
         SetUefiImageProtectionAttributes (ImageRecord, TRUE);
         *IsUserImage = TRUE;
