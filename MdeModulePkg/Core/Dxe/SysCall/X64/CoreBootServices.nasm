@@ -132,10 +132,6 @@ ASM_PFX(CoreBootServices):
     mov     fs, ax
     mov     gs, ax
 
-    ; Special case for SysCallReturnToCore.
-    cmp     r10, 0
-    je      coreReturnAddress
-
     ; Save User Stack pointers and switch to Core SysCall Stack.
     mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
     sub     rax, 8
@@ -228,7 +224,15 @@ ASM_PFX(CallRing3):
     ; Pass control to user image
 o64 sysret
 
-coreReturnAddress:
+;------------------------------------------------------------------------------
+; VOID
+; EFIAPI
+; ReturnToCore (
+;   IN EFI_STATUS Status
+;   );
+;------------------------------------------------------------------------------
+global ASM_PFX(ReturnToCore)
+ASM_PFX(ReturnToCore):
     mov     rsp, [ASM_PFX(CoreRsp)]
     pop     r15
     pop     r14
@@ -239,7 +243,7 @@ coreReturnAddress:
     pop     rbp
     pop     rbx
 
-    mov     rax, rdx
+    mov     rax, rcx
     sti
     ret
 

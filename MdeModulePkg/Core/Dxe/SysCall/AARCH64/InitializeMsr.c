@@ -45,6 +45,9 @@ SysCallBootService (
   EFI_PHYSICAL_ADDRESS    Physical;
 
   if (Type == SysCallReturnToCore) {
+    //
+    // TODO: Refactoring
+    //
     ReturnToCore (*(EFI_STATUS *)CoreRbp, mCoreSp);
   }
 
