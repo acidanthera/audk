@@ -151,6 +151,8 @@ ASM_PFX(CoreBootServices):
     push    r8
     push    rdx
     mov     rbp, rsp
+    ; Reserve space on stack for 3 CallBootService arguments (NOOPT prerequisite).
+    sub     rsp, 8*3
 
     ; Prepare CallBootService arguments.
     mov     rcx, r10
@@ -166,8 +168,8 @@ ASM_PFX(CoreBootServices):
 
     pop     rax
 
-    ; Step over Arguments [1..3].
-    add     rsp, 8*3
+    ; Step over Arguments [1..3] and NOOPT buffer.
+    add     rsp, 8*6
 
     ; Prepare SYSRET arguments.
     pop     r11
