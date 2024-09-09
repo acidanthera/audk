@@ -126,10 +126,6 @@ ASM_PFX(CoreBootServices):
     mov     fs, ax
     mov     gs, ax
 
-    ; Special case for SysCallReturnToCore.
-    cmp     ecx, 0
-    je      coreReturnAddress
-
     ; Prepare CallBootService arguments.
     call ASM_PFX(AllowSupervisorAccessToUserMemory)
     mov     eax, [edx + 4 * 4] ; User Argument 3
@@ -202,18 +198,22 @@ ASM_PFX(CallRing3):
     sti
     sysexit
 
-coreReturnAddress:
+;------------------------------------------------------------------------------
+; VOID
+; EFIAPI
+; ReturnToCore (
+;   IN EFI_STATUS Status
+;   );
+;------------------------------------------------------------------------------
+global ASM_PFX(ReturnToCore)
+ASM_PFX(ReturnToCore):
+    mov     eax, [esp + 4]
+
     mov     esp, [ASM_PFX(CoreEsp)]
     pop     esi
     pop     edi
     pop     ebp
     pop     ebx
-
-    call ASM_PFX(AllowSupervisorAccessToUserMemory)
-    mov     eax, [edx + 2 * 4] ; User Argument 1
-    push    eax
-    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
-    pop     eax
 
     sti
     ret

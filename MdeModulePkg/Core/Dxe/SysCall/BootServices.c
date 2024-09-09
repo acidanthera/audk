@@ -67,6 +67,12 @@ CallInstallMultipleProtocolInterfaces (
 
 VOID
 EFIAPI
+ReturnToCore (
+  IN EFI_STATUS Status
+  );
+  
+VOID
+EFIAPI
 FreeProtocolsList (
   VOID
   )
@@ -318,6 +324,9 @@ CallBootService (
   DEBUG ((DEBUG_VERBOSE, "Type: %a\n", SysCallNames[Type]));
 
   switch (Type) {
+    case SysCallReturnToCore:
+      ReturnToCore (CoreRbp->Argument1);
+      break;
     case SysCallLocateProtocol:
       //
       // Argument 1: EFI_GUID  *Protocol
