@@ -234,6 +234,7 @@ ArchSetupExceptionStack (
   StackTop = (UINTN)ALIGN_POINTER (StackTop, CPU_STACK_ALIGNMENT);
 
   Tss->RSP0             = StackTop;
+  StackTop             -= CPU_KNOWN_GOOD_STACK_SIZE;
   Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
   //
   // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06;

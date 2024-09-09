@@ -226,6 +226,7 @@ ArchSetupExceptionStack (
   StackTop = (UINTN)ALIGN_POINTER (StackTop, CPU_STACK_ALIGNMENT);
 
   Tss->ESP0             = StackTop;
+  StackTop             -= CPU_KNOWN_GOOD_STACK_SIZE;
   Tss->SS0              = AsmReadSs ();
   Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
   //
