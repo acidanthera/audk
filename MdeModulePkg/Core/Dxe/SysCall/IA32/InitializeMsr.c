@@ -29,10 +29,19 @@ InitializeMsr (
   // Forbid supervisor-mode accesses to any user-mode pages.
   //
   AsmCpuidEx (0x07, 0x0, NULL, &Ebx, NULL, NULL);
-  if (((Ebx & BIT20) != 0) && ((Ebx & BIT7) != 0)) {
+  if ((Ebx & BIT7) != 0) {
+    Cr4.UintN     = AsmReadCr4 ();
+    Cr4.Bits.SMEP = 1;
+    AsmWriteCr4 (Cr4.UintN);
+
+    Eflags.UintN   = AsmReadEflags ();
+    Eflags.Bits.AC = 0;
+    AsmWriteEflags (Eflags.UintN);
+  }
+
+  if ((Ebx & BIT20) != 0) {
     Cr4.UintN     = AsmReadCr4 ();
     Cr4.Bits.SMAP = 1;
-    Cr4.Bits.SMEP = 1;
     AsmWriteCr4 (Cr4.UintN);
 
     Eflags.UintN   = AsmReadEflags ();
