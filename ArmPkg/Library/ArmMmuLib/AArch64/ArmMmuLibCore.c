@@ -488,7 +488,12 @@ GcdAttributeToPageAttribute (
       PageAttributes |= TT_AP_RW_RW;
     }
   } else {
-    PageAttributes |= TT_UXN_MASK;
+    if (ArmReadCurrentEL () == AARCH64_EL1) {
+      //
+      // TODO: Add EL2&0 support.
+      //
+      PageAttributes |= TT_UXN_MASK;
+    }
 
     if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
       PageAttributes |= TT_AP_NO_RO;
