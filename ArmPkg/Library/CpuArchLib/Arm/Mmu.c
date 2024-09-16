@@ -78,7 +78,10 @@ SectionToGcdAttributes (
   }
 
   // now process eXectue Never attribute
-  if ((SectionAttributes & TT_DESCRIPTOR_SECTION_XN_MASK) != 0) {
+  if ((((SectionAttributes & TT_DESCRIPTOR_SECTION_XN_MASK) != 0)
+      && ((*GcdAttributes & EFI_MEMORY_USER) != 0))
+    || (((SectionAttributes & TT_DESCRIPTOR_SECTION_PXN_MASK) != 0)
+      && ((*GcdAttributes & EFI_MEMORY_USER) == 0))) {
     *GcdAttributes |= EFI_MEMORY_XP;
   }
 
@@ -159,20 +162,24 @@ PageToGcdAttributes (
   // determine protection attributes
   switch (PageAttributes & TT_DESCRIPTOR_PAGE_AP_MASK) {
     case TT_DESCRIPTOR_PAGE_AP_NO_RW:
+      break;
     case TT_DESCRIPTOR_PAGE_AP_RW_RW:
-      // normal read/write access, do not add additional attributes
+      *GcdAttributes |= EFI_MEMORY_USER;
       break;
 
     // read only cases map to write-protect
     case TT_DESCRIPTOR_PAGE_AP_NO_RO:
-    case TT_DESCRIPTOR_PAGE_AP_RO_RO:
       *GcdAttributes |= EFI_MEMORY_RO;
+      break;
+    case TT_DESCRIPTOR_PAGE_AP_RO_RO:
+      *GcdAttributes |= EFI_MEMORY_RO | EFI_MEMORY_USER;
       break;
   }
 
   // now process eXectue Never attribute
-  if ((PageAttributes & TT_DESCRIPTOR_PAGE_XN_MASK) != 0) {
-    *GcdAttributes |= EFI_MEMORY_XP;
+  if (((PageAttributes & TT_DESCRIPTOR_PAGE_XN_MASK) != 0)
+    && ((*GcdAttributes & EFI_MEMORY_USER) != 0)) {
+      *GcdAttributes |= EFI_MEMORY_XP;
   }
 
   if ((PageAttributes & TT_DESCRIPTOR_PAGE_AF) == 0) {
@@ -472,6 +479,11 @@ EfiAttributeToArmAttribute (
 
   // Determine protection attributes
   if ((EfiAttributes & EFI_MEMORY_USER) != 0) {
+    // Determine eXecute Never attribute
+    if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_XN_MASK;
+    }
+
     //
     // TODO: Add PXN for Translation table descriptors.
     //
@@ -481,16 +493,16 @@ EfiAttributeToArmAttribute (
       ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
     }
   } else {
+    // Determine eXecute Never attribute
+    if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_PXN_MASK;
+    }
+
     if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
       ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RO;
     } else {
       ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RW;
     }
-  }
-
-  // Determine eXecute Never attribute
-  if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_XN_MASK;
   }
 
   if ((EfiAttributes & EFI_MEMORY_RP) == 0) {

@@ -295,14 +295,30 @@ UpdateSectionEntries (
     return EFI_UNSUPPORTED;
   }
 
-  if ((Attributes & EFI_MEMORY_RO) != 0) {
-    EntryValue |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
-  } else {
-    EntryValue |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
-  }
+  if ((Attributes & EFI_MEMORY_USER) != 0) {
+    EntryValue |= TT_DESCRIPTOR_SECTION_PXN_MASK;
 
-  if ((Attributes & EFI_MEMORY_XP) != 0) {
+    if ((Attributes & EFI_MEMORY_RO) != 0) {
+      EntryValue |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
+    } else {
+      EntryValue |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
+    }
+
+    if ((Attributes & EFI_MEMORY_XP) != 0) {
+      EntryValue |= TT_DESCRIPTOR_SECTION_XN_MASK;
+    }
+  } else {
     EntryValue |= TT_DESCRIPTOR_SECTION_XN_MASK;
+
+    if ((Attributes & EFI_MEMORY_RO) != 0) {
+      EntryValue |= TT_DESCRIPTOR_SECTION_AP_NO_RO;
+    } else {
+      EntryValue |= TT_DESCRIPTOR_SECTION_AP_NO_RW;
+    }
+
+    if ((Attributes & EFI_MEMORY_XP) != 0) {
+      EntryValue |= TT_DESCRIPTOR_SECTION_PXN_MASK;
+    }
   }
 
   if ((Attributes & EFI_MEMORY_RP) == 0) {
@@ -549,7 +565,7 @@ ArmSetMemoryAttributes (
     }
 
     if ((AttributeMask & EFI_MEMORY_XP) != 0) {
-      TtEntryMask |= TT_DESCRIPTOR_SECTION_XN_MASK;
+      TtEntryMask |= TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK;
     }
   } else {
     ASSERT (AttributeMask == 0);
@@ -559,6 +575,7 @@ ArmSetMemoryAttributes (
 
     TtEntryMask = TT_DESCRIPTOR_SECTION_TYPE_MASK |
                   TT_DESCRIPTOR_SECTION_XN_MASK |
+                  TT_DESCRIPTOR_SECTION_PXN_MASK |
                   TT_DESCRIPTOR_SECTION_AP_MASK |
                   TT_DESCRIPTOR_SECTION_AF;
   }
