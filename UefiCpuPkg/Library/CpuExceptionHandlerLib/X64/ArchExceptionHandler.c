@@ -140,6 +140,8 @@ ArchSetupExceptionStack (
   UINT8                     *StackSwitchExceptions;
   UINTN                     NeedBufferSize;
   UINT8                     *IOBitMap;
+  UINT8                     *IOBitMapPointer;
+  UINT8                     Offset;
 
   if (BufferSize == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -241,17 +243,17 @@ ArchSetupExceptionStack (
   // and DebugIoPort = 0x402.
   //
   IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
-  for (Index = 0; Index < IO_BIT_MAP_SIZE; ++Index) {
-    if ((Index * 8) == FixedPcdGet16 (PcdUartBase)) {
-      *IOBitMap = 0x84;
-    } else if ((Index * 8) == (FixedPcdGet16 (PcdDebugIoPort) - 2)) {
-      *IOBitMap = 0xFB;
-    } else {
-      *IOBitMap = 0xFF;
-    }
+  SetMem (IOBitMap, IO_BIT_MAP_SIZE, 0xFF);
 
-    ++IOBitMap;
-  }
+  IOBitMapPointer             = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdUartBase) / 8);
+  Offset                      = (UINT8)(FixedPcdGet16 (PcdUartBase) & 0x7U);
+  *(UINT16 *)IOBitMapPointer &= ~((1U << Offset) | (1U << (Offset + 1))
+                                | (1U << (Offset + 3)) | (1U << (Offset + 4))
+                                | (1U << (Offset + 5)) | (1U << (Offset + 6)));
+
+  IOBitMapPointer   = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdDebugIoPort) / 8);
+  Offset            = (UINT8)(FixedPcdGet16 (PcdDebugIoPort) & 0x7U);
+  *IOBitMapPointer &= ~(1U << Offset);
 
   //
   // Fixup IST and task-state segment
