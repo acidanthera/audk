@@ -37,5 +37,5 @@ typedef struct {
 } RESERVED_VECTORS_DATA;
 
 #define CPU_TSS_DESC_SIZE  sizeof (IA32_TSS_DESCRIPTOR)
-#define IO_BIT_MAP_SIZE    (ALIGN_VALUE (FixedPcdGet16 (PcdDebugIoPort) / 8 + 1, 16))
+#define IO_BIT_MAP_SIZE    (ALIGN_VALUE (MAX (FixedPcdGet16 (PcdUartIoPortBaseAddress) ,FixedPcdGet16 (PcdDebugIoPort)) / 8 + 1, 16))
 #define CPU_TSS_SIZE       (sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE)
