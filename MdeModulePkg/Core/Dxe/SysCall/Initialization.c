@@ -5,6 +5,8 @@
 
 **/
 
+#include <Guid/EarlyPL011BaseAddress.h>
+
 #include "DxeMain.h"
 
 VOID        *gCoreSysCallStackTop;
@@ -14,6 +16,7 @@ VOID        *gRing3CallStackBase;
 VOID        *gRing3EntryPoint;
 RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
+UINTN       gUartBaseAddress;
 
 VOID
 EFIAPI
@@ -29,12 +32,13 @@ InitializeRing3 (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
-  EFI_STATUS              Status;
-  VOID                    *TopOfStack;
-  UINTN                   SizeOfStack;
-  EFI_PHYSICAL_ADDRESS    Physical;
-  UINTN                   Index;
-  EFI_CONFIGURATION_TABLE *Conf;
+  EFI_STATUS               Status;
+  VOID                     *TopOfStack;
+  UINTN                    SizeOfStack;
+  EFI_PHYSICAL_ADDRESS     Physical;
+  UINTN                    Index;
+  EFI_CONFIGURATION_TABLE  *Conf;
+  EARLY_PL011_BASE_ADDRESS *UartBase;
 
   //
   // Set Ring3 EntryPoint and BootServices.
@@ -54,27 +58,41 @@ InitializeRing3 (
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (gRing3Data->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE)),
-             &Physical
-             );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3 ConfigurationTable.\n"));
-    return Status;
+  if (FixedPcdGetBool (PcdSerialUseMmio)) {
+    Status = CoreAllocatePages (
+               AllocateAnyPages,
+               EfiRing3MemoryType,
+               EFI_SIZE_TO_PAGES ((gRing3Data->SystemTable.NumberOfTableEntries + 1) * sizeof (EFI_CONFIGURATION_TABLE)),
+               &Physical
+               );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3 ConfigurationTable.\n"));
+      return Status;
+    }
+
+    Conf = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+
+    for (Index = 0; Index < gRing3Data->SystemTable.NumberOfTableEntries; ++Index) {
+      CopyGuid (&(Conf->VendorGuid), &gRing3Data->SystemTable.ConfigurationTable[Index].VendorGuid);
+
+      Conf->VendorTable = gRing3Data->SystemTable.ConfigurationTable[Index].VendorTable;
+
+      if (CompareGuid (&gEfiHobListGuid, &(Conf->VendorGuid))) {
+        UartBase         = GET_GUID_HOB_DATA (Conf->VendorTable);
+        gUartBaseAddress = UartBase->DebugAddress;
+      }
+
+      ++Conf;
+    }
+
+    CopyGuid (&(Conf->VendorGuid), &gEarlyPL011BaseAddressGuid);
+    Conf->VendorTable = (VOID *)gUartBaseAddress;
+    ++gRing3Data->SystemTable.NumberOfTableEntries;
+
+    DEBUG ((DEBUG_ERROR, "Core: gUartBaseAddress = %p\n", gUartBaseAddress));
+
+    gRing3Data->SystemTable.ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
   }
-
-  Conf = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
-
-  for (Index = 0; Index < gRing3Data->SystemTable.NumberOfTableEntries; ++Index) {
-    Conf->VendorGuid  = gRing3Data->SystemTable.ConfigurationTable[Index].VendorGuid;
-    Conf->VendorTable = gRing3Data->SystemTable.ConfigurationTable[Index].VendorTable;
-    ++Conf;
-  }
-
-  gRing3Data->SystemTable.ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
-
   //
   // Initialize DxeRing3 with Supervisor privileges.
   //

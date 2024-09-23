@@ -224,6 +224,7 @@
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                           ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES
