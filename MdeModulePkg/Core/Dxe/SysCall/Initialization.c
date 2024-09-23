@@ -58,7 +58,7 @@ InitializeRing3 (
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
-  if (FixedPcdGetBool (PcdSerialUseMmio)) {
+  if (PcdGetBool (PcdSerialUseMmio)) {
     Status = CoreAllocatePages (
                AllocateAnyPages,
                EfiRing3MemoryType,
@@ -79,7 +79,7 @@ InitializeRing3 (
 
       if (CompareGuid (&gEfiHobListGuid, &(Conf->VendorGuid))) {
         UartBase         = GET_GUID_HOB_DATA (Conf->VendorTable);
-        gUartBaseAddress = UartBase->DebugAddress;
+        gUartBaseAddress = (UINTN)UartBase->DebugAddress;
       }
 
       ++Conf;

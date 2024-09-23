@@ -238,23 +238,25 @@ ArchSetupExceptionStack (
   Tss->RSP0             = StackTop;
   StackTop             -= CPU_KNOWN_GOOD_STACK_SIZE;
   Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
-  //
-  // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06;
-  // and DebugIoPort = 0x402.
-  //
+
   IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
   SetMem (IOBitMap, IO_BIT_MAP_SIZE, 0xFF);
 
-  IOBitMapPointer             = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdUartBase) / 8);
-  Offset                      = (UINT8)(FixedPcdGet16 (PcdUartBase) & 0x7U);
-  *(UINT16 *)IOBitMapPointer &= ~((1U << Offset) | (1U << (Offset + 1))
-                                | (1U << (Offset + 3)) | (1U << (Offset + 4))
-                                | (1U << (Offset + 5)) | (1U << (Offset + 6)));
+  if (!PcdGetBool (PcdSerialUseMmio)) {
+    //
+    // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06;
+    // and DebugIoPort = 0x402.
+    //
+    IOBitMapPointer             = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdUartBase) / 8);
+    Offset                      = (UINT8)(FixedPcdGet16 (PcdUartBase) & 0x7U);
+    *(UINT16 *)IOBitMapPointer &= ~((1U << Offset) | (1U << (Offset + 1))
+                                  | (1U << (Offset + 3)) | (1U << (Offset + 4))
+                                  | (1U << (Offset + 5)) | (1U << (Offset + 6)));
 
-  IOBitMapPointer   = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdDebugIoPort) / 8);
-  Offset            = (UINT8)(FixedPcdGet16 (PcdDebugIoPort) & 0x7U);
-  *IOBitMapPointer &= ~(1U << Offset);
-
+    IOBitMapPointer   = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdDebugIoPort) / 8);
+    Offset            = (UINT8)(FixedPcdGet16 (PcdDebugIoPort) & 0x7U);
+    *IOBitMapPointer &= ~(1U << Offset);
+  }
   //
   // Fixup IST and task-state segment
   //

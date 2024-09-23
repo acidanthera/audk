@@ -60,6 +60,7 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuKnownGoodStackSize
   gUefiOvmfPkgTokenSpaceGuid.PcdUartBase                           ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdDebugIoPort                        ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                  ## CONSUMES
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
