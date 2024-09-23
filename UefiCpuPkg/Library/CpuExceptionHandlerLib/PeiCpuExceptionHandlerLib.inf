@@ -62,6 +62,7 @@
   gUefiCpuPkgTokenSpaceGuid.PcdCpuStackSwitchExceptionList
   gPcAtChipsetPkgTokenSpaceGuid.PcdUartIoPortBaseAddress           ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdDebugIoPort                        ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                  ## CONSUMES
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmStackGuard                    ## CONSUMES
