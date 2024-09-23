@@ -99,9 +99,7 @@ GoToRing3 (
   // and can be used for translation table later.
   //
   AllowSupervisorAccessToUserMemory ();
-  //
-  // Problem 3: QEMU ramdomly breaks GP registers' context.
-  //
+
   SetUefiImageMemoryAttributes (
     gUartBaseAddress,
     EFI_PAGE_SIZE,

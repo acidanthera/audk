@@ -392,6 +392,8 @@ DEFINE FD_SIZE_IN_MB    = 3
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD5
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio|TRUE
 
 [Components.common]
   #
@@ -453,7 +455,12 @@ DEFINE FD_SIZE_IN_MB    = 3
   MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
   MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
-  FatPkg/EnhancedFatDxe/Fat.inf
+  FatPkg/EnhancedFatDxe/Fat.inf {
+    <LibraryClasses>
+    !if $(TARGET) != RELEASE
+      DebugLib|ArmVirtPkg/Library/DebugLibFdtPL011Uart/DebugLibFdtPL011UartUser.inf
+    !endif
+  }
   MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
 !if $(ENABLE_VIRTIO) && $(PLAT_KVMTOOL) == FALSE
   OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
