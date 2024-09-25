@@ -13,7 +13,7 @@ EFI_FILE_PROTOCOL                mRing3FileProtocol;
 
 EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
 
-#if defined (MDE_CPU_AARCH64)
+#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
 extern UINTN  gUartBaseAddress;
 #endif
 
@@ -73,7 +73,7 @@ GoToRing3 (
       EFI_MEMORY_XP | EFI_MEMORY_USER
       );
   }
-#elif defined (MDE_CPU_AARCH64)
+#elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
   //
   // Necessary fix for DEBUG printings.
   //
@@ -93,7 +93,7 @@ GoToRing3 (
       EFI_MEMORY_XP
       );
   }
-#elif defined (MDE_CPU_AARCH64)
+#elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
   //
   // Problem 2: Uart memory maped page is not allocated at the very beginnig
   // and can be used for translation table later.
