@@ -11,6 +11,7 @@
 #include "DxeMain.h"
 
 STATIC UINTN  mCoreSp;
+extern UINTN  gUartBaseAddress;
 
 EFI_STATUS
 EFIAPI
@@ -64,6 +65,12 @@ SysCallBootService (
   // All remaining arguments are on User Stack.
   //
   CopyMem ((VOID *)((UINTN)Physical + 5 * sizeof (UINTN)), (VOID *)UserRsp, 4 * sizeof (UINTN));
+
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP
+    );
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
@@ -71,6 +78,12 @@ SysCallBootService (
              (CORE_STACK *)CoreRbp,
              (RING3_STACK *)(UINTN)Physical
              );
+
+  SetUefiImageMemoryAttributes (
+    gUartBaseAddress,
+    EFI_PAGE_SIZE,
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
 
@@ -84,10 +97,6 @@ InitializeMsr (
   IN     UINTN                   NumberOfEntries
   )
 {
-  //
-  // TODO: EFI_CONFIGURATION_TABLE, HOB_DATA, Uart are accessible to User.
-  // Fix PageTable initialization.
-  //
   if (ArmHasPan ()) {
     //
     // Enable Privileged Access Never feature.
