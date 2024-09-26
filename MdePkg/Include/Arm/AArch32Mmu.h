@@ -46,11 +46,11 @@
 #define TRANSLATION_TABLE_ENTRY_FOR_VIRTUAL_ADDRESS(table, address)  ((UINT32 *)(table) + (((UINTN)(address)) >> 20))
 
 // Translation table descriptor types
-#define TT_DESCRIPTOR_SECTION_TYPE_MASK          ((1UL << 18) | (3UL << 0))
+#define TT_DESCRIPTOR_SECTION_TYPE_MASK          ((1UL << 18) | (1UL << 1))
 #define TT_DESCRIPTOR_SECTION_TYPE_FAULT         (0UL << 0)
 #define TT_DESCRIPTOR_SECTION_TYPE_PAGE_TABLE    (1UL << 0)
-#define TT_DESCRIPTOR_SECTION_TYPE_SECTION       ((0UL << 18) | (2UL << 0))
-#define TT_DESCRIPTOR_SECTION_TYPE_SUPERSECTION  ((1UL << 18) | (2UL << 0))
+#define TT_DESCRIPTOR_SECTION_TYPE_SECTION       ((0UL << 18) | (1UL << 1))
+#define TT_DESCRIPTOR_SECTION_TYPE_SUPERSECTION  ((1UL << 18) | (1UL << 1))
 #define TT_DESCRIPTOR_SECTION_TYPE_IS_PAGE_TABLE(Desc)  (((Desc) & 3UL) == TT_DESCRIPTOR_SECTION_TYPE_PAGE_TABLE)
 
 // Translation table descriptor types
