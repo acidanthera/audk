@@ -39,6 +39,7 @@ InitializeRing3 (
   UINTN                    Index;
   EFI_CONFIGURATION_TABLE  *Conf;
   EARLY_PL011_BASE_ADDRESS *UartBase;
+  CONST VOID               *Hob;
 
   //
   // Set Ring3 EntryPoint and BootServices.
@@ -77,19 +78,18 @@ InitializeRing3 (
 
       Conf->VendorTable = gRing3Data->SystemTable.ConfigurationTable[Index].VendorTable;
 
-      if (CompareGuid (&gEfiHobListGuid, &(Conf->VendorGuid))) {
-        UartBase         = GET_GUID_HOB_DATA (Conf->VendorTable);
-        gUartBaseAddress = (UINTN)UartBase->DebugAddress;
-      }
-
       ++Conf;
     }
+
+    Hob              = GetFirstGuidHob (&gEarlyPL011BaseAddressGuid);
+    UartBase         = GET_GUID_HOB_DATA (Hob);
+    gUartBaseAddress = (UINTN)UartBase->DebugAddress;
 
     CopyGuid (&(Conf->VendorGuid), &gEarlyPL011BaseAddressGuid);
     Conf->VendorTable = (VOID *)gUartBaseAddress;
     ++gRing3Data->SystemTable.NumberOfTableEntries;
 
-    DEBUG ((DEBUG_ERROR, "Core: gUartBaseAddress = %p\n", gUartBaseAddress));
+    DEBUG ((DEBUG_ERROR, "Core: gUartBaseAddress = 0x%p\n", gUartBaseAddress));
 
     gRing3Data->SystemTable.ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
   }

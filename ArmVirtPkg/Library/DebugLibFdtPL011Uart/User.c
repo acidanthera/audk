@@ -29,11 +29,10 @@ DebugLibFdtPL011UartUserConstructor (
   for (Index = 0; Index < SystemTable->NumberOfTableEntries; ++Index) {
     if (CompareGuid (&gEarlyPL011BaseAddressGuid, &(SystemTable->ConfigurationTable[Index].VendorGuid))) {
       mDebugLibFdtPL011UartAddress = (UINTN)SystemTable->ConfigurationTable[Index].VendorTable;
-      return EFI_SUCCESS;
     }
   }
 
-  return EFI_NOT_FOUND;
+  return EFI_SUCCESS;
 }
 
 /**
