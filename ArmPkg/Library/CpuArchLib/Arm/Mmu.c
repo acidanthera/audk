@@ -78,10 +78,8 @@ SectionToGcdAttributes (
   }
 
   // now process eXectue Never attribute
-  if ((((SectionAttributes & TT_DESCRIPTOR_SECTION_XN_MASK) != 0)
-      && ((*GcdAttributes & EFI_MEMORY_USER) != 0))
-    || (((SectionAttributes & TT_DESCRIPTOR_SECTION_PXN_MASK) != 0)
-      && ((*GcdAttributes & EFI_MEMORY_USER) == 0))) {
+  if ((SectionAttributes & (TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK))
+    == (TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK)) {
     *GcdAttributes |= EFI_MEMORY_XP;
   }
 

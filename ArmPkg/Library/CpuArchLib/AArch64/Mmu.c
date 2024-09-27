@@ -91,7 +91,7 @@ PageAttributeToGcdAttribute (
   }
 
   // Process eXecute Never attribute
-  if ((PageAttributes & (TT_PXN_MASK | TT_UXN_MASK)) != 0) {
+  if ((PageAttributes & (TT_PXN_MASK | TT_UXN_MASK)) == (TT_PXN_MASK | TT_UXN_MASK)) {
     GcdAttributes |= EFI_MEMORY_XP;
   }
 
