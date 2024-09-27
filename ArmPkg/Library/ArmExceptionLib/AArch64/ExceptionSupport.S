@@ -294,7 +294,7 @@ ASM_PFX(CommonExceptionEntry):
   ldp      x24, x25, [sp, #0xc0]
   ldp      x26, x27, [sp, #0xd0]
   // Preserve return value for SVC.
-  mrs      x1, esr_el1
+  ldr      x1, [x28, #(FP_CONTEXT_SIZE + 0x18)] // Exception syndrome register
   lsr      x1, x1, #26
   and      x1, x1, #0x3F
   cmp      x1, #0x15

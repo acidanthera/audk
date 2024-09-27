@@ -141,6 +141,9 @@ CommonCExceptionHandler (
   if ((UINTN)ExceptionType <= gMaxExceptionNumber) {
     if (gExceptionHandlers[ExceptionType]) {
       gExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
+#if defined (MDE_CPU_AARCH64)
+      SystemContext.SystemContextAArch64->ESR = 0;
+#endif
       return EFI_SUCCESS;
     }
   } else {
