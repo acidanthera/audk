@@ -154,10 +154,12 @@ ASM_FUNC (ArmGetPhysicalAddressBits)
 
 ASM_FUNC(ArmSetPan)
   setpan #1
+  isb
   bx     LR
 
 ASM_FUNC(ArmClearPan)
   setpan #0
+  isb
   bx     LR
 
 ASM_FUNCTION_REMOVE_IF_UNREFERENCED

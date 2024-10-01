@@ -402,10 +402,12 @@ ASM_FUNC(ArmReadIdAA64Pfr1)
 
 ASM_FUNC(ArmSetPan)
   msr   pan, #1
+  isb
   ret
 
 ASM_FUNC(ArmClearPan)
   msr   pan, #0
+  isb
   ret
 
 ASM_FUNCTION_REMOVE_IF_UNREFERENCED
