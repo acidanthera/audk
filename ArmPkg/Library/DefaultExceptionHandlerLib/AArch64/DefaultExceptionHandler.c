@@ -255,8 +255,6 @@ DefaultExceptionHandler (
     DEBUG ((DEBUG_ERROR, "PC 0x%012lx\n", SystemContext.SystemContextAArch64->ELR));
   }
 
-  ArmClearPan ();
-
   if ((UINT64 *)SystemContext.SystemContextAArch64->FP != 0) {
     Idx = 0;
 
