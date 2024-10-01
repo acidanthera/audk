@@ -269,6 +269,10 @@ CommonCExceptionHandler (
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
   )
 {
+  if (ArmHasPan ()) {
+    ArmClearPan ();
+  }
+
   if ((UINTN)ExceptionType <= mMaxExceptionNumber) {
     if (mExceptionHandlers[ExceptionType] != NULL) {
       mExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
@@ -354,8 +358,6 @@ DumpCpuContext (
   } else {
     DEBUG ((DEBUG_ERROR, "PC 0x%012lx\n", SystemContext.SystemContextAArch64->ELR));
   }
-
-  ArmClearPan ();
 
   if ((UINT64 *)SystemContext.SystemContextAArch64->FP != 0) {
     Idx = 0;

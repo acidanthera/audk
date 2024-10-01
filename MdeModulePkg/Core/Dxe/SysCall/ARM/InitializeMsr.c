@@ -79,13 +79,13 @@ SysCallBootService (
              (RING3_STACK *)(UINTN)Physical
              );
 
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
+
   SetUefiImageMemoryAttributes (
     gUartBaseAddress,
     EFI_PAGE_SIZE,
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
-
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
 
   return Status;
 }

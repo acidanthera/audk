@@ -94,12 +94,7 @@ GoToRing3 (
       );
   }
 #elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
-  //
-  // Problem 2: Uart memory maped page is not allocated at the very beginnig
-  // and can be used for translation table later.
-  //
   AllowSupervisorAccessToUserMemory ();
-
   SetUefiImageMemoryAttributes (
     gUartBaseAddress,
     EFI_PAGE_SIZE,
