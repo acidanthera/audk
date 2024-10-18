@@ -26,10 +26,19 @@ ArmCallRing3 (
 
 VOID
 EFIAPI
-ReturnToCore (
+ArmReturnToCore (
   IN EFI_STATUS Status,
   IN UINTN      CoreSp
   );
+
+VOID
+EFIAPI
+ReturnToCore (
+  IN EFI_STATUS Status
+  )
+{
+  ArmReturnToCore (Status, mCoreSp);
+}
 
 STATIC
 EFI_STATUS
@@ -42,13 +51,6 @@ SysCallBootService (
 {
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    Physical;
-
-  if (Type == SysCallReturnToCore) {
-    //
-    // TODO: Refactoring
-    //
-    ReturnToCore (*(EFI_STATUS *)CoreRbp, mCoreSp);
-  }
 
   Status = CoreAllocatePages (
              AllocateAnyPages,

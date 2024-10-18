@@ -102,11 +102,13 @@ ASM_FUNC(ArmCallRing3)
 // VOID
 // EFIAPI
 // ReturnToCore (
-//   IN EFI_STATUS Status,
-//   IN UINTN      CoreSp
+//   IN EFI_STATUS Status
 //   );
+//
+//   (r0) Status
+//   (r1) mCoreSp
 //------------------------------------------------------------------------------
-ASM_FUNC(ReturnToCore)
+ASM_FUNC(ArmReturnToCore)
   // Switch to Core Stack.
   mov   SP, R1
 
