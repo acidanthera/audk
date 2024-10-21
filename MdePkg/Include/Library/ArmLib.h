@@ -444,7 +444,7 @@ ArmEnableVFP (
   VOID
   );
 
-UINT32
+UINTN
 EFIAPI
 ArmReadSctlr (
   VOID
@@ -453,7 +453,7 @@ ArmReadSctlr (
 VOID
 EFIAPI
 ArmWriteSctlr (
-  IN  UINT32  Value
+  IN  UINTN  Value
   );
 
 UINTN

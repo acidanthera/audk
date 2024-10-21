@@ -88,24 +88,23 @@ ASM_FUNC(ArmCallRing3)
   // Disable interrupts.
   msr  daifset, #0xf
   isb
+  // Copy PSTATE to SPSR.
+  mrs  x6, nzcv
+  mrs  x7, pan
+  orr  x6, x6, x7
   // Prepare Ring3 SP and EntryPoint.
   msr  sp_el0, x1
-  msr  elr_el1, x2
+  EL1_OR_EL2(x1)
+1:msr  elr_el1, x2
+  msr  spsr_el1, x6
+  b    3f
+2:msr  elr_el2, x2
+  msr  spsr_el2, x6
   // Save Core SP and switch to CoreSysCall Stack.
-  mov  x5, sp
+3:mov  x5, sp
   str  x5, [x4]
   mov  sp, x3
-  // Copy PSTATE to SPSR.
-  mrs  x1, nzcv
-  mrs  x2, pan
-  orr  x1, x1, x2
-  //
-  // M[3:0], bits [3:0] AArch64 Exception level and selected Stack Pointer.
-  // 0b0000 - EL0.
-  // 0b0100 - EL1 with SP_EL0 (ELt).
-  // 0b0101 - EL1 with SP_EL1 (EL1h).
-  //
-  msr  spsr_el1, x1
+
   isb
   eret
 

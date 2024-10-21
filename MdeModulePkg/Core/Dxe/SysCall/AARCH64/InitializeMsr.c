@@ -97,6 +97,7 @@ InitializeMsr (
   )
 {
   UINTN  Tcr;
+  UINTN  Sctlr;
   //
   // If HCR_EL2.NV is 1 and the current Exception level is EL1,
   // then EL1 read accesses to the CurrentEL register return a value of 0x2 in bits[3:2].
@@ -115,6 +116,10 @@ InitializeMsr (
     //
     // Enable Privileged Access Never feature.
     //
+    Sctlr  = ArmReadSctlr ();
+    Sctlr |= SCTLR_EPAN;
+    ArmWriteSctlr (Sctlr);
+
     ArmSetPan ();
   }
 
