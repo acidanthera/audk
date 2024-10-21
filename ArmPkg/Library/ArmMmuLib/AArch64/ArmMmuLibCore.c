@@ -63,6 +63,7 @@ ArmMemoryAttributeToPageAttribute (
       }
 
       break;
+
     default:
       Permissions = 0;
       break;
@@ -488,12 +489,7 @@ GcdAttributeToPageAttribute (
       PageAttributes |= TT_AP_RW_RW;
     }
   } else {
-    if (ArmReadCurrentEL () == AARCH64_EL1) {
-      //
-      // TODO: Add EL2&0 support.
-      //
-      PageAttributes |= TT_UXN_MASK;
-    }
+    PageAttributes |= TT_UXN_MASK;
 
     if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
       PageAttributes |= TT_AP_NO_RO;
@@ -603,6 +599,7 @@ ArmConfigureMmu (
   UINTN       RootTableEntryCount;
   UINT64      TCR;
   EFI_STATUS  Status;
+  UINTN       Hcr;
 
   ASSERT (ArmReadCurrentEL () < AARCH64_EL3);
   if (ArmReadCurrentEL () == AARCH64_EL3) {
@@ -626,6 +623,19 @@ ArmConfigureMmu (
 
   T0SZ                = 64 - MaxAddressBits;
   RootTableEntryCount = GetRootTableEntryCount (T0SZ);
+
+  if (ArmReadCurrentEL () == AARCH64_EL2) {
+    //
+    // Switch to EL2&0 translation regime.
+    //
+    Hcr  = ArmReadHcr ();
+    Hcr |= ARM_HCR_E2H | ARM_HCR_TGE;
+    ArmWriteHcr (Hcr);
+    //
+    // Allow access to the Advanced SIMD and floating-point registers.
+    //
+    ArmWriteCptr (AARCH64_CPTR_FPEN);
+  }
 
   //
   // Set TCR that allows us to retrieve T0SZ in the subsequent functions
