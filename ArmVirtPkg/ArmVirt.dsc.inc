@@ -392,7 +392,7 @@ DEFINE FD_SIZE_IN_MB    = 3
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD5
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
-  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE
   gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio|TRUE
 
 [Components.common]

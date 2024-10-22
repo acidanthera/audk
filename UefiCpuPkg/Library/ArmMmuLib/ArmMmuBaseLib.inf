@@ -23,6 +23,7 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
@@ -30,6 +31,10 @@
   CacheMaintenanceLib
   HobLib
   MemoryAllocationLib
+  PcdLib
 
 [Guids]
   gArmMmuReplaceLiveTranslationEntryFuncGuid
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace          ## CONSUMES
