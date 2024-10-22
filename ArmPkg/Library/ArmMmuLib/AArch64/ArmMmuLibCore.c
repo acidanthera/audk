@@ -20,6 +20,8 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/HobLib.h>
+#include <Library/PcdLib.h>
+
 #include "ArmMmuLibInternal.h"
 
 STATIC  ARM_REPLACE_LIVE_TRANSLATION_ENTRY  mReplaceLiveEntryFunc = ArmReplaceLiveTranslationEntry;
@@ -489,7 +491,9 @@ GcdAttributeToPageAttribute (
       PageAttributes |= TT_AP_RW_RW;
     }
   } else {
-    PageAttributes |= TT_UXN_MASK;
+    if (PcdGetBool (PcdEnableUserSpace) || (ArmReadCurrentEL () == AARCH64_EL1)) {
+      PageAttributes |= TT_UXN_MASK;
+    }
 
     if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
       PageAttributes |= TT_AP_NO_RO;
@@ -624,7 +628,12 @@ ArmConfigureMmu (
   T0SZ                = 64 - MaxAddressBits;
   RootTableEntryCount = GetRootTableEntryCount (T0SZ);
 
-  if (ArmReadCurrentEL () == AARCH64_EL2) {
+  //
+  // Set TCR that allows us to retrieve T0SZ in the subsequent functions
+  //
+  // Ideally we will be running at EL2, but should support EL1 as well.
+  // UEFI should not run at EL3.
+  if (PcdGetBool (PcdEnableUserSpace) && (ArmReadCurrentEL () == AARCH64_EL2)) {
     //
     // Switch to EL2&0 translation regime.
     //
