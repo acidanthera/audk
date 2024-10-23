@@ -23,6 +23,21 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/Tpm2CommandLib.h>
 #include <Library/HashLib.h>
 
+STATIC
+EFI_STATUS
+EFIAPI
+UifiImageHashUpdate (
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN HASH_HANDLE                      HashHandle
+  )
+{
+  return UefiImageHashImageDefault (
+           ImageContext,
+           (VOID *)HashHandle,
+           (UEFI_IMAGE_LOADER_HASH_UPDATE)HashUpdate
+           ) ? EFI_SUCCESS : EFI_ABORTED;
+}
+
 /**
   Measure UEFI image into TPM log based on its default image hashing.
 
@@ -49,11 +64,11 @@ MeasureUefiImageAndExtend (
   OUT TPML_DIGEST_VALUES    *DigestList
   )
 {
-  EFI_STATUS                           Status;
-  VOID                                 *HashHandle;
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT      ImageContext;
+  EFI_STATUS                       Status;
+  HASH_HANDLE                      HashHandle;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
-  Status        = EFI_UNSUPPORTED;
+  Status = EFI_UNSUPPORTED;
 
   // FIXME: Can this somehow be abstracted away?
   //
@@ -63,7 +78,8 @@ MeasureUefiImageAndExtend (
              &ImageContext,
              (VOID *) (UINTN) ImageAddress,
              (UINT32) ImageSize,
-             UEFI_IMAGE_SOURCE_ALL
+             UEFI_IMAGE_SOURCE_ALL,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     //
@@ -85,7 +101,7 @@ MeasureUefiImageAndExtend (
   }
 
   // FIXME: This is just an ugly wrapper, the types should match (UINTN <-> VOID *), fix the libs
-  UefiImageHashImageDefault (&ImageContext, HashHandle, HashUpdate);
+  Status = UifiImageHashUpdate (&ImageContext, HashHandle);
   if (EFI_ERROR (Status)) {
     return Status;
   }

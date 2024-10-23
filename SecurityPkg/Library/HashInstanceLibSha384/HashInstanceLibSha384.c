@@ -56,7 +56,9 @@ Sha384HashInit (
 
   CtxSize   = Sha384GetContextSize ();
   Sha384Ctx = AllocatePool (CtxSize);
-  ASSERT (Sha384Ctx != NULL);
+  if (Sha384Ctx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Sha384Init (Sha384Ctx);
 
@@ -106,12 +108,10 @@ Sha384HashFinal (
   )
 {
   UINT8  Digest[SHA384_DIGEST_SIZE];
-  VOID   *Sha384Ctx;
 
-  Sha384Ctx = (VOID *)HashHandle;
-  Sha384Final (Sha384Ctx, Digest);
+  Sha384Final ((VOID *)HashHandle, Digest);
 
-  FreePool (Sha384Ctx);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSha384ToDigestList (DigestList, Digest);
 

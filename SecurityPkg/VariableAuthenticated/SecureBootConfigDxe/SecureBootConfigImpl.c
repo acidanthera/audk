@@ -1983,7 +1983,8 @@ EnrollImageSignatureToSigDB (
              &ImageContext,
              ImageBase,
              (UINT32)ImageSize,
-             UEFI_IMAGE_SOURCE_NON_FV
+             UEFI_IMAGE_SOURCE_NON_FV,
+             UefiImageOriginOptionROM
              );
   if (EFI_ERROR (Status)) {
     goto ON_EXIT;
