@@ -59,13 +59,13 @@ CheckSupportedHashMaskMismatch (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashStart (
-  OUT VOID  **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
-  VOID         **HashCtx;
+  HASH_HANDLE  *HashCtx;
   UINTN        Index;
   UINT32       HashMask;
 
@@ -76,7 +76,9 @@ HashStart (
   CheckSupportedHashMaskMismatch ();
 
   HashCtx = AllocatePool (sizeof (*HashCtx) * mHashInterfaceCount);
-  ASSERT (HashCtx != NULL);
+  if (HashCtx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&mHashInterface[Index].HashGuid);
@@ -85,9 +87,9 @@ HashStart (
     }
   }
 
-  *HashHandle = HashCtx;
+  *HashHandle = (HASH_HANDLE)HashCtx;
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -99,15 +101,15 @@ HashStart (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 HashUpdate (
-  IN VOID        *HashHandle,
-  IN CONST VOID  *DataToHash,
+  IN HASH_HANDLE  HashHandle,
+  IN VOID         *DataToHash,
   IN UINTN       DataToHashLen
   )
 {
-  VOID         **HashCtx;
+  HASH_HANDLE  *HashCtx;
   UINTN        Index;
   UINT32       HashMask;
 
@@ -117,7 +119,7 @@ HashUpdate (
 
   CheckSupportedHashMaskMismatch ();
 
-  HashCtx = (VOID **)HashHandle;
+  HashCtx = (HASH_HANDLE *)HashHandle;
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&mHashInterface[Index].HashGuid);
@@ -126,7 +128,7 @@ HashUpdate (
     }
   }
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -186,7 +188,7 @@ Tpm2ExtendNvIndex (
 EFI_STATUS
 EFIAPI
 HashCompleteAndExtend (
-  IN VOID                *HashHandle,
+  IN HASH_HANDLE          HashHandle,
   IN TPMI_DH_PCR          PcrIndex,
   IN VOID                 *DataToHash,
   IN UINTN                DataToHashLen,
@@ -194,7 +196,7 @@ HashCompleteAndExtend (
   )
 {
   TPML_DIGEST_VALUES               Digest;
-  VOID                             **HashCtx;
+  HASH_HANDLE                      *HashCtx;
   UINTN                            Index;
   EFI_STATUS                       Status;
   UINT32                           HashMask;
@@ -210,7 +212,7 @@ HashCompleteAndExtend (
 
   CheckSupportedHashMaskMismatch ();
 
-  HashCtx = (VOID **)HashHandle;
+  HashCtx = (HASH_HANDLE *)HashHandle;
   ZeroMem (DigestList, sizeof (*DigestList));
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
@@ -269,7 +271,7 @@ HashAndExtend (
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
-  VOID        *HashHandle;
+  HASH_HANDLE HashHandle;
   EFI_STATUS  Status;
 
   if (mHashInterfaceCount == 0) {

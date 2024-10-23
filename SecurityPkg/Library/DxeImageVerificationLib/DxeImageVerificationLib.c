@@ -595,15 +595,15 @@ IsCertHashFoundInDbx (
       goto Done;
     }
 
-    if (!mHash[HashAlg].HashInit (HashCtx)) {
+    if (EFI_ERROR(mHash[HashAlg].HashInit (HashCtx))) {
       goto Done;
     }
 
-    if (!mHash[HashAlg].HashUpdate (HashCtx, TBSCert, TBSCertSize)) {
+    if (EFI_ERROR(mHash[HashAlg].HashUpdate (HashCtx, TBSCert, TBSCertSize))) {
       goto Done;
     }
 
-    if (!mHash[HashAlg].HashFinal (HashCtx, CertDigest)) {
+    if (EFI_ERROR(mHash[HashAlg].HashFinal (HashCtx, CertDigest))) {
       goto Done;
     }
 
