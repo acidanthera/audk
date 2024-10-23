@@ -44,10 +44,10 @@ Tpm2SetSm3ToDigestList (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sm3HashInit (
-  OUT VOID           **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
   VOID   *Sm3Ctx;
@@ -56,14 +56,14 @@ Sm3HashInit (
   CtxSize = Sm3GetContextSize ();
   Sm3Ctx  = AllocatePool (CtxSize);
   if (Sm3Ctx == NULL) {
-    return FALSE;
+    return EFI_OUT_OF_RESOURCES;
   }
 
   Sm3Init (Sm3Ctx);
 
-  *HashHandle = Sm3Ctx;
+  *HashHandle = (HASH_HANDLE)Sm3Ctx;
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -75,17 +75,17 @@ Sm3HashInit (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sm3HashUpdate (
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
-  IN UINTN        DataToHashLen
+  IN HASH_HANDLE    HashHandle,
+  IN VOID           *DataToHash,
+  IN UINTN          DataToHashLen
   )
 {
-  Sm3Update (HashHandle, DataToHash, DataToHashLen);
+  Sm3Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -96,22 +96,22 @@ Sm3HashUpdate (
 
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sm3HashFinal (
-  IN VOID                *HashHandle,
+  IN  HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SM3_256_DIGEST_SIZE];
 
-  Sm3Final (HashHandle, Digest);
+  Sm3Final ((VOID *)HashHandle, Digest);
 
-  FreePool (HashHandle);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSm3ToDigestList (DigestList, Digest);
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 HASH_INTERFACE  mSm3InternalHashInstance = {

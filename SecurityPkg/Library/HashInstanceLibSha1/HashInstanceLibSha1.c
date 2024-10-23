@@ -45,10 +45,10 @@ Tpm2SetSha1ToDigestList (
   @retval EFI_SUCCESS          Hash sequence start and HandleHandle returned.
   @retval EFI_OUT_OF_RESOURCES No enough resource to start hash.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha1HashInit (
-  OUT VOID           **HashHandle
+  OUT HASH_HANDLE  *HashHandle
   )
 {
   VOID   *Sha1Ctx;
@@ -56,13 +56,15 @@ Sha1HashInit (
 
   CtxSize = Sha1GetContextSize ();
   Sha1Ctx = AllocatePool (CtxSize);
-  ASSERT (Sha1Ctx != NULL);
+  if (Sha1Ctx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Sha1Init (Sha1Ctx);
 
-  *HashHandle = Sha1Ctx;
+  *HashHandle = (HASH_HANDLE)Sha1Ctx;
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -74,17 +76,17 @@ Sha1HashInit (
 
   @retval EFI_SUCCESS     Hash sequence updated.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha1HashUpdate (
-  IN VOID           *HashHandle,
-  IN CONST VOID     *DataToHash,
+  IN HASH_HANDLE    HashHandle,
+  IN VOID           *DataToHash,
   IN UINTN        DataToHashLen
   )
 {
-  Sha1Update (HashHandle, DataToHash, DataToHashLen);
+  Sha1Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 /**
@@ -95,28 +97,28 @@ Sha1HashUpdate (
 
   @retval EFI_SUCCESS     Hash sequence complete and DigestList is returned.
 **/
-BOOLEAN
+EFI_STATUS
 EFIAPI
 Sha1HashFinal (
-  IN VOID                *HashHandle,
+  IN  HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SHA1_DIGEST_SIZE];
 
-  Sha1Final (HashHandle, Digest);
+  Sha1Final ((VOID *)HashHandle, Digest);
 
-  FreePool (HashHandle);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSha1ToDigestList (DigestList, Digest);
 
-  return TRUE;
+  return EFI_SUCCESS;
 }
 
 HASH_INTERFACE  mSha1InternalHashInstance = {
   HASH_ALGORITHM_SHA1_GUID,
   Sha1HashInit,
-  Sha1Update,
+  Sha1HashUpdate,
   Sha1HashFinal,
 };
 
