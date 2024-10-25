@@ -181,6 +181,8 @@ APRIORI DXE {
 !if $(SMM_REQUIRE) == FALSE && $(QEMU_PV_VARS) == FALSE
   INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
 !endif
+  # The driver responsible for UserSpace initialization (DxeRing3.inf)
+  # must be the first USER driver in APRIORI list.
   INF  MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
 }
 
@@ -264,8 +266,8 @@ INF  MdeModulePkg/Universal/Acpi/BootScriptExecutorDxe/BootScriptExecutorDxe.inf
 !endif
 INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
 
-INF  FatPkg/EnhancedFatDxe/Fat.inf
-INF  MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
+INF USER FatPkg/EnhancedFatDxe/Fat.inf
+INF USER MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
 INF  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
 INF  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
 

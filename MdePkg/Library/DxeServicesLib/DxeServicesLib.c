@@ -565,6 +565,7 @@ GetSectionFromFfs (
                                         that is abstracted to the file buffer.
   @param[out]      FileSize             The pointer to the size of the abstracted
                                         file buffer.
+  @param[out]      FileAttributes       Pointer to the attributes of the file that is abstracted to the file buffer.
   @param[out]      AuthenticationStatus Pointer to the authentication status.
 
   @retval NULL   FilePath is NULL, or FileSize is NULL, or AuthenticationStatus is NULL, or the file can't be found.
@@ -576,6 +577,7 @@ GetFileBufferByFilePath (
   IN BOOLEAN                         BootPolicy,
   IN CONST EFI_DEVICE_PATH_PROTOCOL  *FilePath,
   OUT      UINTN                     *FileSize,
+  OUT      EFI_FV_FILE_ATTRIBUTES    *FileAttributes,
   OUT UINT32                         *AuthenticationStatus
   )
 {
@@ -589,7 +591,6 @@ GetFileBufferByFilePath (
   UINT8                            *ImageBuffer;
   UINTN                            ImageBufferSize;
   EFI_FV_FILETYPE                  Type;
-  EFI_FV_FILE_ATTRIBUTES           Attrib;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *Volume;
   EFI_FILE_HANDLE                  FileHandle;
   EFI_FILE_HANDLE                  LastHandle;
@@ -646,15 +647,26 @@ GetFileBufferByFilePath (
       if (!EFI_ERROR (Status)) {
         SectionType = EFI_SECTION_PE32;
         ImageBuffer = NULL;
-        Status      = FwVol->ReadSection (
-                               FwVol,
-                               FvNameGuid,
-                               SectionType,
-                               0,
-                               (VOID **)&ImageBuffer,
-                               &ImageBufferSize,
-                               AuthenticationStatus
-                               );
+
+        Status = FwVol->ReadFile (
+                          FwVol,
+                          FvNameGuid,
+                          NULL,
+                          &ImageBufferSize,
+                          &Type,
+                          FileAttributes,
+                          AuthenticationStatus
+                          );
+
+        Status = FwVol->ReadSection (
+                          FwVol,
+                          FvNameGuid,
+                          SectionType,
+                          0,
+                          (VOID **)&ImageBuffer,
+                          &ImageBufferSize,
+                          AuthenticationStatus
+                          );
         if (EFI_ERROR (Status)) {
           //
           // Try a raw file, since a PE32 SECTION does not exist
@@ -671,7 +683,7 @@ GetFileBufferByFilePath (
                                  (VOID **)&ImageBuffer,
                                  &ImageBufferSize,
                                  &Type,
-                                 &Attrib,
+                                 FileAttributes,
                                  AuthenticationStatus
                                  );
         }

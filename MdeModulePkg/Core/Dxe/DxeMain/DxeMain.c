@@ -333,7 +333,7 @@ DxeMain (
 
   CoreInitializeMemoryProtection ();
 
-  ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext, &mCurrentImage->IsUserImage, &mCurrentImage->IsRing3EntryPoint);
+  ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext, mCurrentImage->IsUserImage);
 
   //
   // Call constructor for all libraries
