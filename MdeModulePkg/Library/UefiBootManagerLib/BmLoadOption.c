@@ -1246,6 +1246,7 @@ BmGetNextLoadOptionBuffer (
   EFI_DEVICE_PATH_PROTOCOL  *CurFullPath;
   UINTN                     LocalFileSize;
   UINT32                    AuthenticationStatus;
+  EFI_FV_FILE_ATTRIBUTES    FileAttributes;
 
   LocalFileSize = 0;
   FileBuffer    = NULL;
@@ -1264,7 +1265,7 @@ BmGetNextLoadOptionBuffer (
       break;
     }
 
-    FileBuffer = GetFileBufferByFilePath (TRUE, CurFullPath, &LocalFileSize, &AuthenticationStatus);
+    FileBuffer = GetFileBufferByFilePath (TRUE, CurFullPath, &LocalFileSize, &FileAttributes, &AuthenticationStatus);
   } while (FileBuffer == NULL);
 
   if (FileBuffer == NULL) {

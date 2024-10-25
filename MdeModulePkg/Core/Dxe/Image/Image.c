@@ -67,8 +67,7 @@ LOADED_IMAGE_PRIVATE_DATA  mCorePrivateImage = {
   NULL,                       // LoadedImageDevicePath
   EFI_SUCCESS,                // LoadImageStatus
   NULL,                       // HiiData
-  FALSE,                      // IsUserImage
-  FALSE                       // IsRing3EntryPoint
+  FALSE                       // IsUserImage
 };
 //
 // The field is define for Loading modules at fixed address feature to tracker the PEI code
@@ -1108,6 +1107,7 @@ CoreLoadImageCommon (
   BOOLEAN                         ImageIsFromLoadFile;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
+  EFI_FV_FILE_ATTRIBUTES          FileAttributes;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1138,6 +1138,7 @@ CoreLoadImageCommon (
   AuthenticationStatus = 0;
   ImageIsFromFv        = FALSE;
   ImageIsFromLoadFile  = FALSE;
+  FileAttributes       = 0;
 
   //
   // If the caller passed a copy of the file, then just use it
@@ -1209,6 +1210,7 @@ CoreLoadImageCommon (
                      BootPolicy,
                      FilePath,
                      &FHand.SourceSize,
+                     &FileAttributes,
                      &AuthenticationStatus
                      );
     if (FHand.Source == NULL) {
@@ -1344,6 +1346,7 @@ CoreLoadImageCommon (
   Image->Info.Revision     = EFI_LOADED_IMAGE_PROTOCOL_REVISION;
   Image->Info.FilePath     = DuplicateDevicePath (FilePath);
   Image->Info.ParentHandle = ParentImageHandle;
+  Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
 
   if (NumberOfPages != NULL) {
     Image->NumberOfPages = *NumberOfPages;
@@ -1439,7 +1442,7 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, &Image->IsUserImage, &Image->IsRing3EntryPoint);
+  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
@@ -1689,18 +1692,20 @@ CoreStartImage (
     //
     Image->Started = TRUE;
 
-    if (Image->IsRing3EntryPoint) {
-      Image->Status = InitializeRing3 (ImageHandle, Image);
-    } else if (Image->IsUserImage) {
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+    if (PcdGetBool (PcdEnableUserSpace) && (Image->IsUserImage)) {
+      if (gRing3Data == NULL) {
+        Image->Status = InitializeRing3 (ImageHandle, Image);
+      } else {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      Image->Status = GoToRing3 (
-                        2,
-                        (VOID *)Image->EntryPoint,
-                        ImageHandle,
-                        gRing3Data
-                        );
+        Image->Status = GoToRing3 (
+          2,
+          (VOID *)Image->EntryPoint,
+          ImageHandle,
+          gRing3Data
+        );
+      }
     } else {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
     }

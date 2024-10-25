@@ -584,6 +584,8 @@
   #
   # Security measures for memory protection.
   #
+  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
   !if $(LEGACY_WINDOWS_LOADER) == TRUE
     # Allow execution of EfiLoaderData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFFD1
@@ -596,9 +598,8 @@
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
     gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x70000000
+    gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE
   !endif
-  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
-  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
 
   #
   # Firmware volume supports UE, and may require PE.

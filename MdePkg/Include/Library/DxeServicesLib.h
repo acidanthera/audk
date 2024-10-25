@@ -230,6 +230,7 @@ GetSectionFromFfs (
   @param[in]       FilePath             Pointer to the device path of the file that is abstracted to
                                         the file buffer.
   @param[out]      FileSize             Pointer to the size of the abstracted file buffer.
+  @param[out]      FileAttributes       Pointer to the attributes of the file that is abstracted to the file buffer.
   @param[out]      AuthenticationStatus Pointer to the authentication status.
 
   @retval NULL   FilePath is NULL, or FileSize is NULL, or AuthenticationStatus is NULL, or the file can't be found.
@@ -241,6 +242,7 @@ GetFileBufferByFilePath (
   IN BOOLEAN                         BootPolicy,
   IN CONST EFI_DEVICE_PATH_PROTOCOL  *FilePath,
   OUT      UINTN                     *FileSize,
+  OUT      EFI_FV_FILE_ATTRIBUTES    *FileAttributes,
   OUT UINT32                         *AuthenticationStatus
   );
 

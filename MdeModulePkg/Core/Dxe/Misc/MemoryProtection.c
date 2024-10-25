@@ -166,16 +166,14 @@ IsMemoryProtectionSectionAligned (
   @param[in]  LoadedImage              The loaded image protocol
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
-  @param[out] IsUserImage              Whether the loaded image is in user space.
-  @param[out] IsRing3EntryPoint        Whether the loaded image is a wrapper for Ring3 calls.
+  @param[in]  IsUserImage              Whether the loaded image is in user space.
 **/
 VOID
 ProtectUefiImage (
-  IN  EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
-  IN  UINT8                            ImageOrigin,
-  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT BOOLEAN                          *IsUserImage,
-  OUT BOOLEAN                          *IsRing3EntryPoint
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UINT8                            ImageOrigin,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN BOOLEAN                          IsUserImage
   )
 {
   RETURN_STATUS      PdbStatus;
@@ -230,27 +228,14 @@ ProtectUefiImage (
   //
   InsertTailList (&mProtectedImageRecordList, &ImageRecord->Link);
 
-  *IsRing3EntryPoint = FALSE;
-
   if (gCpu != NULL) {
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    if (PcdGetBool (PcdEnableUserSpace) && (!RETURN_ERROR (PdbStatus))) {
-      if (AsciiStrStr (PdbPointer, "Fat") != NULL) {
-        SetUefiImageProtectionAttributes (ImageRecord, TRUE);
-        *IsUserImage = TRUE;
-      } else if (AsciiStrStr (PdbPointer, "Ring3") != NULL) {
-        SetUefiImageProtectionAttributes (ImageRecord, TRUE);
-        *IsUserImage       = TRUE;
-        *IsRing3EntryPoint = TRUE;
-      } else {
-        SetUefiImageProtectionAttributes (ImageRecord, FALSE);
-        *IsUserImage = FALSE;
-      }
+    if (PcdGetBool (PcdEnableUserSpace)) {
+      SetUefiImageProtectionAttributes (ImageRecord, IsUserImage);
     } else {
       SetUefiImageProtectionAttributes (ImageRecord, FALSE);
-      *IsUserImage = FALSE;
     }
   }
 

@@ -88,6 +88,7 @@ typedef UINT8  EFI_FFS_FILE_STATE;
 #define FFS_ATTRIB_FIXED             0x04
 #define FFS_ATTRIB_DATA_ALIGNMENT    0x38
 #define FFS_ATTRIB_CHECKSUM          0x40
+#define FFS_ATTRIB_USER              0x80
 
 ///
 /// FFS File State Bits.

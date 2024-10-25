@@ -1204,8 +1204,8 @@
   # @Prompt Defines the page allocation for the MM communication buffer; default is 128 pages (512KB).
   gEfiMdeModulePkgTokenSpaceGuid.PcdMmCommBufferPages|128|UINT32|0x30001061
 
-  ## Indicates whether some DXE drivers will be loaded in user memory.
-  #   TRUE  - Some DXE drivers will be loaded in user memory.<BR>
+  ## Indicates whether DXE drivers marked in .fdf file as USER will be loaded in user memory.
+  #   TRUE  - USER DXE drivers will be loaded in user memory.<BR>
   #   FALSE - All DXE drivers will be loaded in supervisor memory.<BR>
   # @Prompt Enable User Space.
   gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062
