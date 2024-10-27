@@ -309,6 +309,17 @@ EhcClearLegacySupport (
   PciIo->Pci.Read (PciIo, EfiPciIoWidthUint32, ExtendCap, 1, &Value);
   PciIo->Pci.Read (PciIo, EfiPciIoWidthUint32, ExtendCap + 0x4, 1, &Value);
 
+  //
+  // Disable the SMI in USBLEGCTLSTS firstly
+  // Not doing this may result in a hardlock soon after
+  //
+  PciIo->Pci.Read (PciIo, EfiPciIoWidthUint32, ExtendCap + 0x4, 1, &Value);
+  Value &= 0xFFFF0000;
+  PciIo->Pci.Write (PciIo, EfiPciIoWidthUint32, ExtendCap + 0x4, 1, &Value);
+
+  //
+  // Get EHCI Ownership from legacy bios
+  //
   PciIo->Pci.Read (PciIo, EfiPciIoWidthUint32, ExtendCap, 1, &Value);
   Value |= (0x1 << 24);
   PciIo->Pci.Write (PciIo, EfiPciIoWidthUint32, ExtendCap, 1, &Value);
