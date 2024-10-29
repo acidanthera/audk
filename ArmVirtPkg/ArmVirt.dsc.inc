@@ -382,7 +382,9 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xC000000000007FD5
 
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
-  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE
+!ifdef $(USER_SPACE)
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
+!endif
   gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio|TRUE
 
 [Components.common]
