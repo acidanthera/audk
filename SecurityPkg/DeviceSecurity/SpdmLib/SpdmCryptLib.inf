@@ -43,3 +43,8 @@
   BaseCryptLib
   RngLib
   MemLibWrapper
+
+[BuildOptions]
+  CLANGPDB:*_*_*_CC_FLAGS = -Wno-non-literal-null-conversion
+  GCC:*_*_*_CC_FLAGS      = -Wno-non-literal-null-conversion
+  XCODE:*_*_*_CC_FLAGS    = -Wno-non-literal-null-conversion
