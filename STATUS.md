@@ -61,7 +61,7 @@
 | $${\color{lightblue}RedfishPkg/}$$ |
 | RedfishPkg.dsc | IA32 X64 ARM AARCH64 RISCV64 | DEBUG RELEASE NOOPT | ❓ | ❌ |
 | $${\color{lightblue}SecurityPkg/}$$ |
-| SecurityPkg.dsc | IA32 X64 EBC ARM AARCH64 RISCV64 LOONGARCH64 | DEBUG RELEASE NOOPT | ❓ | ❌ |
+| SecurityPkg.dsc | IA32 X64 EBC ARM AARCH64 RISCV64 LOONGARCH64 | DEBUG RELEASE NOOPT | GCC CLANGDWARF CLANGPDB VS2019 XCODE5 | ❌ |
 | Test/SecurityPkgHostTest.dsc | IA32 X64 | NOOPT | ❓ | ❌ |
 | $${\color{lightblue}ShellPkg/}$$ |
 | ShellPkg.dsc | IA32 X64 EBC ARM AARCH64 RISCV64 LOONGARCH64 | DEBUG RELEASE NOOPT | ❓ | ❌ |

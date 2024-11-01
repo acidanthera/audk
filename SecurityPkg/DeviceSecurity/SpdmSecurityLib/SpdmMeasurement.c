@@ -209,9 +209,9 @@ ExtendMeasurement (
 
   EventLog = NULL;
   ZeroMem (&Parameter, sizeof (Parameter));
-  Parameter.location = SpdmDataLocationConnection;
+  Parameter.location = (libspdm_data_location_t)SpdmDataLocationConnection;
   DataSize           = sizeof (MeasurementHashAlgo);
-  Status             = SpdmGetData (SpdmContext, SpdmDataMeasurementHashAlgo, &Parameter, &MeasurementHashAlgo, &DataSize);
+  Status             = SpdmGetData (SpdmContext, (libspdm_data_type_t)SpdmDataMeasurementHashAlgo, &Parameter, &MeasurementHashAlgo, &DataSize);
   ASSERT_EFI_ERROR (Status);
 
   if (MeasurementRecord != NULL) {
@@ -531,9 +531,9 @@ DoDeviceMeasurement (
   SpdmContext = SpdmDeviceContext->SpdmContext;
 
   ZeroMem (&Parameter, sizeof (Parameter));
-  Parameter.location = SpdmDataLocationConnection;
+  Parameter.location = (libspdm_data_location_t)SpdmDataLocationConnection;
   DataSize           = sizeof (CapabilityFlags);
-  SpdmGetData (SpdmContext, SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
+  SpdmGetData (SpdmContext, (libspdm_data_type_t)SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
 
   if ((CapabilityFlags & SPDM_GET_CAPABILITIES_RESPONSE_FLAGS_MEAS_CAP_SIG) == 0) {
     AuthState                       = TCG_DEVICE_SECURITY_EVENT_DATA_DEVICE_AUTH_STATE_FAIL_NO_SIG;
