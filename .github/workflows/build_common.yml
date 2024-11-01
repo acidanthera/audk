@@ -135,6 +135,15 @@ jobs:
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
 
+      - name: Build SecurityPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: SecurityPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
   build-windows:
     name: Windows VS2019
     runs-on: windows-latest
@@ -245,6 +254,15 @@ jobs:
         run: ./efibuild.sh
         env:
           SELFPKG: NetworkPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: SecurityPkg
           ARCHS: IA32,X64
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
@@ -367,6 +385,18 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
           TOOLCHAINS: CLANGPDB
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
@@ -497,6 +527,18 @@ jobs:
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
 
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
   build-linux-gcc5:
     name: Linux GCC
     runs-on: ubuntu-22.04
@@ -615,6 +657,18 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
           TOOLCHAINS: GCC
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG,NOOPT
