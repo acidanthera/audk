@@ -5905,6 +5905,7 @@ typedef struct {
   UINT16    Reserved_98;
   UINT16    T;
   UINT16    IOMapBaseAddress;
+  UINT32    SSP;
 } IA32_TASK_STATE_SEGMENT;
 
 typedef union {
