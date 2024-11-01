@@ -99,6 +99,9 @@ SetUefiImageProtectionAttributes (
   UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
   UINTN                      SectionAddress;
   UINT32                     Index;
+  UINT32                     Attribute;
+
+  Attribute = IsUser ? EFI_MEMORY_USER : 0;
 
   SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumSegments; Index++) {
@@ -106,7 +109,7 @@ SetUefiImageProtectionAttributes (
     SetUefiImageMemoryAttributes (
       SectionAddress,
       ImageRecordSegment->Size,
-      IsUser ? ImageRecordSegment->Attributes | (UINT32)EFI_MEMORY_USER : ImageRecordSegment->Attributes
+      ImageRecordSegment->Attributes | Attribute
       );
 
     SectionAddress += ImageRecordSegment->Size;
