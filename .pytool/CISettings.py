@@ -231,8 +231,6 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
         rs.append(RequiredSubmodule(
             "RedfishPkg/Library/JsonLib/jansson", False))
         rs.append(RequiredSubmodule(
-            "UnitTestFrameworkPkg/Library/SubhookLib/subhook", False))
-        rs.append(RequiredSubmodule(
             "MdePkg/Library/BaseFdtLib/libfdt", False))
         rs.append(RequiredSubmodule(
             "MdePkg/Library/MipiSysTLib/mipisyst", False))
