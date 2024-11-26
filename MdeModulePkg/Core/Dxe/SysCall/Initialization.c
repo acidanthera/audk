@@ -59,6 +59,12 @@ InitializeRing3 (
 
   CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
+  SetUefiImageMemoryAttributes (
+    (UINTN)gRing3Data,
+    ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
   if (PcdGetBool (PcdSerialUseMmio)) {
     Status = CoreAllocatePages (
                AllocateAnyPages,
@@ -124,6 +130,12 @@ InitializeRing3 (
 
   gRing3Interfaces = (VOID *)(UINTN)Physical;
 
+  SetUefiImageMemoryAttributes (
+    (UINTN)gRing3Interfaces,
+    EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
   SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
 
   //
@@ -141,6 +153,9 @@ InitializeRing3 (
   gCoreSysCallStackTop = TopOfStack;
 
   SetUefiImageMemoryAttributes ((UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
+  //
+  // gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, (UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
+  //
   DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
 
   //

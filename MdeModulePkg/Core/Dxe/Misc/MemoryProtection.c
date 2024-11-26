@@ -82,6 +82,10 @@ SetUefiImageMemoryAttributes (
 
   ASSERT (gCpu != NULL);
   gCpu->SetMemoryAttributes (gCpu, BaseAddress, Length, FinalAttributes);
+
+  if ((Attributes & EFI_MEMORY_USER) != 0) {
+    gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, BaseAddress, Length, FinalAttributes);
+  }
 }
 
 /**

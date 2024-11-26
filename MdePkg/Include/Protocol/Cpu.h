@@ -258,6 +258,16 @@ EFI_STATUS
   OUT UINT64                            *Attributes
   );
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_CPU_SET_USER_MEMORY_ATTRIBUTES)(
+  IN  EFI_CPU_ARCH_PROTOCOL             *This,
+  IN  UINTN                             UserPageTable,
+  IN  EFI_PHYSICAL_ADDRESS              BaseAddress,
+  IN  UINT64                            Length,
+  IN  UINT64                            Attributes
+  );
+
 ///
 /// The EFI_CPU_ARCH_PROTOCOL is used to abstract processor-specific functions from the DXE
 /// Foundation. This includes flushing caches, enabling and disabling interrupts, hooking interrupt
@@ -288,6 +298,7 @@ struct _EFI_CPU_ARCH_PROTOCOL {
   ///
   UINT32                                DmaBufferAlignment;
   EFI_CPU_GET_MEMORY_ATTRIBUTES         GetMemoryAttributes;
+  EFI_CPU_SET_USER_MEMORY_ATTRIBUTES    SetUserMemoryAttributes;
 };
 
 extern EFI_GUID  gEfiCpuArchProtocolGuid;

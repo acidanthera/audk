@@ -151,6 +151,7 @@
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
   gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
   gEarlyPL011BaseAddressGuid                    ## CONSUMES
+  gEfiHobPageTableInfoGuid                      ## CONSUMES             ## HOB
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB

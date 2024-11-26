@@ -123,8 +123,13 @@ copy:
 ;
 ;   (On User Stack) Argument 4, 5, ...
 ;------------------------------------------------------------------------------
+ALIGN   4096
+
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
+    mov     rax, [ASM_PFX(gCorePageTable)]
+    mov     cr3, rax
+
     ; Switch from User to Core data segment selectors.
     mov     ax, ss
     mov     ds, ax
@@ -175,6 +180,8 @@ ASM_PFX(CoreBootServices):
     pop     rbp
     pop     rsp
 
+    mov     rdx, [ASM_PFX(gUserPageTable)]
+    mov     cr3, rdx
     ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
 o64 sysret
     ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
@@ -190,9 +197,9 @@ o64 sysret
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
+    cli
     pushfq
     pop     r11
-    cli
     ; Save nonvolatile registers RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15.
     push    rbx
     push    rbp
@@ -221,6 +228,8 @@ ASM_PFX(CallRing3):
     mov     rsp, r8
     mov     rbp, rsp
 
+    mov     r8, [ASM_PFX(gUserPageTable)]
+    mov     cr3, r8
     ; Pass control to user image
 o64 sysret
 
@@ -248,5 +257,15 @@ ASM_PFX(ReturnToCore):
     ret
 
 SECTION .data
+ALIGN   4096
+
+global ASM_PFX(gCorePageTable)
+ASM_PFX(gCorePageTable):
+  resq 1
+
+global ASM_PFX(gUserPageTable)
+ASM_PFX(gUserPageTable):
+  resq 1
+
 ASM_PFX(CoreRsp):
   resq 1

@@ -1108,6 +1108,7 @@ CoreLoadImageCommon (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
   EFI_FV_FILE_ATTRIBUTES          FileAttributes;
+  VOID                            *UserPageTable;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1347,6 +1348,14 @@ CoreLoadImageCommon (
   Image->Info.FilePath     = DuplicateDevicePath (FilePath);
   Image->Info.ParentHandle = ParentImageHandle;
   Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
+
+  if ((gRing3Data != NULL) && Image->IsUserImage) {
+    UserPageTable = AllocatePages (EFI_SIZE_TO_PAGES (gUserPageTableTemplateSize));
+    CopyMem (UserPageTable, gUserPageTableTemplate, gUserPageTableTemplateSize);
+
+    Image->UserPageTable = (UINTN)UserPageTable;
+    gUserPageTable       = Image->UserPageTable;
+  }
 
   if (NumberOfPages != NULL) {
     Image->NumberOfPages = *NumberOfPages;
