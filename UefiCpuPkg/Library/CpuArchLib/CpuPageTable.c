@@ -429,6 +429,35 @@ CpuGetMemoryAttributes (
   return EFI_SUCCESS;
 }
 
+EFI_STATUS
+EFIAPI
+CpuSetUserMemoryAttributes (
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN UINTN                  UserPageTable,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 Attributes
+  )
+{
+  UINT64                         MemoryAttributes;
+  PAGE_TABLE_LIB_PAGING_CONTEXT  PagingContext;
+
+  MemoryAttributes = Attributes & EFI_MEMORY_ATTRIBUTE_MASK;
+
+  GetCurrentPagingContext (&PagingContext);
+
+  if (PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) {
+    PagingContext.ContextData.Ia32.PageTableBase = (UINT32)UserPageTable;
+  } else {
+    PagingContext.ContextData.X64.PageTableBase = (UINT64)UserPageTable;
+  }
+
+  //
+  // Set memory attribute by page table
+  //
+  return AssignMemoryPageAttributes (&PagingContext, BaseAddress, Length, MemoryAttributes, AllocatePages);
+}
+
 /**
   Modify memory attributes of page entry.
 

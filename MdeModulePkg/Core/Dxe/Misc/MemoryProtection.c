@@ -176,6 +176,10 @@ SetUefiImageMemoryAttributes (
       }
     }
 
+    if ((Attributes & EFI_MEMORY_USER) != 0) {
+      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, CurrentAddress, CurrentLength, FinalAttributes);
+    }
+
     // we may have started in the middle of a descriptor, so we need to move to the beginning of the next descriptor,
     // or the end of the image, whichever is smaller
     CurrentAddress += CurrentLength;
