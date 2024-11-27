@@ -32,9 +32,11 @@ WITHOUT WARRANTIES OR REPRESENTATIONS OF ANY KIND, EITHER EXPRESS OR IMPLIED.
 #define BASE_TYPE_ALIGNED(Type, Ptr)  (BASE_POT_ALIGNED (BASE_ALIGNOF (Type), Ptr))
 
 //
-// Force member alignment for the structure.
+// Force alignment for structure member or variable definition.
 //
-#if (defined (__STDC__) && __STDC_VERSION__ >= 201112L) || defined (__GNUC__) || defined (__clang__)
+#if defined (_MSC_VER)
+#define BASE_ALIGNAS(Alignment)  __declspec(align(Alignment))
+#elif (defined (__STDC__) && __STDC_VERSION__ >= 201112L) || defined (__GNUC__) || defined (__clang__)
 #define BASE_ALIGNAS(Alignment)  _Alignas(Alignment)
 #else
 #define BASE_ALIGNAS(Alignment)
