@@ -22,6 +22,14 @@ EFI_STATUS
   IN  VOID              *UserRsp
   );
 
+typedef struct {
+  UINTN  ExceptionStackBase;
+  UINTN  ExceptionStackSize;
+  UINTN  ExceptionHandlerBase;
+  UINTN  ExceptionHandlerSize;
+  UINTN  ExceptionDataBase;
+} EXCEPTION_ADDRESSES;
+
 /**
   Initializes all CPU exceptions entries and provides the default exception handlers.
 
@@ -112,4 +120,10 @@ VOID
 EFIAPI
 InitializeSysCallHandler (
   IN EFI_SYS_CALL_BOOT_SERVICE  Handler
+  );
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
   );

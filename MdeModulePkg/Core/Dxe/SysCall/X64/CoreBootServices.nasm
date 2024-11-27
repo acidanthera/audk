@@ -106,6 +106,10 @@ copy:
     mov     gs, ax
 %endmacro
 
+ALIGN   4096
+global ASM_PFX(SysCallBase)
+ASM_PFX(SysCallBase):
+
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
 ; EFIAPI
@@ -123,8 +127,6 @@ copy:
 ;
 ;   (On User Stack) Argument 4, 5, ...
 ;------------------------------------------------------------------------------
-ALIGN   4096
-
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
     mov     rax, [ASM_PFX(gCorePageTable)]
@@ -233,6 +235,10 @@ ASM_PFX(CallRing3):
     ; Pass control to user image
 o64 sysret
 
+ALIGN   4096
+global ASM_PFX(SysCallEnd)
+ASM_PFX(SysCallEnd):
+
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
@@ -267,5 +273,6 @@ global ASM_PFX(gUserPageTable)
 ASM_PFX(gUserPageTable):
   resq 1
 
+ALIGN   4096
 ASM_PFX(CoreRsp):
   resq 1

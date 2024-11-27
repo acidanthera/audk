@@ -61,13 +61,29 @@ extern ASM_PFX(mDoFarReturnFlag)  ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
 SECTION .data
+ALIGN   4096
+
+global ASM_PFX(CorePageTable)
+ASM_PFX(CorePageTable):
+  resq 1
+
+global ASM_PFX(UserPageTable)
+ASM_PFX(UserPageTable):
+  resq 1
+
+ALIGN   4096
+global ASM_PFX(mSwitchCr3Flag)
+ASM_PFX(mSwitchCr3Flag):
+  db 0x0
 
 DEFAULT REL
 %ifndef SEC_PEI_NO_ABSOLUTE_RELOCS_IN_TEXT
 SECTION .text
 %endif
 
-ALIGN   8
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerBase)
+ASM_PFX(ExceptionHandlerBase):
 
 ; Generate NUM_VECTORS IDT vectors.
 AsmIdtVectorBegin:
@@ -134,6 +150,14 @@ HookAfterStubHeaderEnd:
 global ASM_PFX(CommonInterruptEntry)
 ASM_PFX(CommonInterruptEntry):
     cli
+    cmp     byte [ASM_PFX(mSwitchCr3Flag)], 0
+    jz      NoCr3Switch
+    mov     rax, cr3
+    mov     [ASM_PFX(UserPageTable)], rax
+    mov     rax, [ASM_PFX(CorePageTable)]
+    mov     cr3, rax
+
+NoCr3Switch:
     pop     rax
     ;
     ; All interrupt handlers are invoked through interrupt gates, so
@@ -449,8 +473,8 @@ CetDone:
     push    rcx
     mov     rcx, ds
     and     rcx, 3
-    pop     rcx
     jnz     ReturnToRing3
+    pop     rcx
 
     mov     rsp, rbp
     pop     rbp
@@ -479,10 +503,17 @@ DoReturn:
 DoIret:
     iretq
 ReturnToRing3:
+    mov     rcx, [ASM_PFX(UserPageTable)]
+    mov     cr3, rcx
+    pop     rcx
     mov     rsp, rbp
     pop     rbp
     add     rsp, 16
     iretq
+
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerEnd)
+ASM_PFX(ExceptionHandlerEnd):
 
 ;-------------------------------------------------------------------------------------
 ;  GetTemplateAddressMap (&AddressMap);

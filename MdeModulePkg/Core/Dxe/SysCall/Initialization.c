@@ -18,9 +18,13 @@ RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
 UINTN       gUartBaseAddress;
 
-UEFI_IMAGE_RECORD  *mDxeRing3;
-VOID               *mUserPageTableTemplate;
-UINTN              mUserPageTableTemplateSize;
+UEFI_IMAGE_RECORD    *mDxeRing3;
+VOID                 *mUserPageTableTemplate;
+UINTN                mUserPageTableTemplateSize;
+EXCEPTION_ADDRESSES  *mExceptionAddresses;
+
+extern UINTN         SysCallBase;
+extern UINTN         SysCallEnd;
 
 VOID
 EFIAPI
@@ -193,6 +197,8 @@ InitializeRing3 (
 
   MakeUserPageTableTemplate (&mUserPageTableTemplate, &mUserPageTableTemplateSize);
 
+  mExceptionAddresses = GetExceptionAddresses ();
+
   return Status;
 }
 
@@ -255,32 +261,59 @@ InitializeUserPageTable (
   }
 
   //
-  // Map CoreBootServices
+  // Map CoreBootServices, gCoreSysCallStackBase, ExceptionHandlers, ExceptionStacks
   //
   gCpu->SetUserMemoryAttributes (
     gCpu,
     UserPageTable,
-    (EFI_PHYSICAL_ADDRESS)(UINTN)CoreBootServices,
-    SIZE_4KB,
+    (UINTN)&SysCallBase,
+    (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
     EFI_MEMORY_RO
     );
 
   gCpu->SetUserMemoryAttributes (
     gCpu,
     UserPageTable,
-    (EFI_PHYSICAL_ADDRESS)(UINTN)&gCorePageTable,
+    (UINTN)&gCorePageTable,
     SIZE_4KB,
     EFI_MEMORY_RO | EFI_MEMORY_XP
     );
-  //
-  // Map ExceptionHandlerAsm: AsmIdtVectorBegin - AsmGetTemplateAddressMap
-  //  mCorePageTable, gCoreSysCallStackTop
-  //
-  // gCpu->SetUserMemoryAttributes (gCpu, (UINTN)PageMap, BaseAddress, SIZE_4KB, EFI_MEMORY_RO);
-  //
-  // gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, (UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
-  //
 
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (UINTN)gCoreSysCallStackBase,
+    EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+    EFI_MEMORY_XP
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    mExceptionAddresses->ExceptionStackBase,
+    mExceptionAddresses->ExceptionStackSize,
+    EFI_MEMORY_XP
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    mExceptionAddresses->ExceptionHandlerBase,
+    mExceptionAddresses->ExceptionHandlerSize,
+    EFI_MEMORY_RO
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    mExceptionAddresses->ExceptionDataBase,
+    SIZE_4KB,
+    EFI_MEMORY_XP
+    );
+
+  //
+  // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
+  //
   gCpu->SetUserMemoryAttributes (
     gCpu,
     UserPageTable,
