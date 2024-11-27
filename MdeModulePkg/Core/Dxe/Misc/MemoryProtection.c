@@ -82,10 +82,6 @@ SetUefiImageMemoryAttributes (
 
   ASSERT (gCpu != NULL);
   gCpu->SetMemoryAttributes (gCpu, BaseAddress, Length, FinalAttributes);
-
-  if ((Attributes & EFI_MEMORY_USER) != 0) {
-    gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, BaseAddress, Length, FinalAttributes);
-  }
 }
 
 /**
@@ -291,22 +287,13 @@ UnprotectUefiImage (
   }
 }
 
-/**
-  Change UEFI image owner: Supervisor / Privileged or User / Unprivileged.
-
-  @param[in]  LoadedImage              The loaded image protocol
-  @param[in]  LoadedImageDevicePath    The loaded image device path protocol
-  @param[in]  IsUser                   Whether UEFI image record is User Image.
-**/
-VOID
-ChangeUefiImageRing (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath,
-  IN BOOLEAN                    IsUser
+UEFI_IMAGE_RECORD *
+GetUefiImageRecord (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
-  UEFI_IMAGE_RECORD          *ImageRecord;
-  LIST_ENTRY                 *ImageRecordLink;
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  LIST_ENTRY         *ImageRecordLink;
 
   for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
         ImageRecordLink != &mProtectedImageRecordList;
@@ -319,14 +306,12 @@ ChangeUefiImageRing (
                     UEFI_IMAGE_RECORD_SIGNATURE
                     );
 
-    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)LoadedImage->ImageBase) {
-      ASSERT (gCpu != NULL);
-
-      SetUefiImageProtectionAttributes (ImageRecord, IsUser);
-
-      return;
+    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)Image->Info.ImageBase) {
+      return ImageRecord;
     }
   }
+
+  return NULL;
 }
 
 /**

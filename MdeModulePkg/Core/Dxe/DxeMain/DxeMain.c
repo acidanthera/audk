@@ -248,7 +248,7 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
   gRing3Data = NULL;
-  
+
   //
   // Setup Stack Guard
   //
@@ -335,8 +335,6 @@ DxeMain (
   CoreInitializeMemoryProtection ();
 
   ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext, mCurrentImage->IsUserImage);
-
-  MakeUserPageTableTemplate ();
 
   //
   // Call constructor for all libraries

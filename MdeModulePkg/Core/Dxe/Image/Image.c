@@ -1108,7 +1108,6 @@ CoreLoadImageCommon (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
   EFI_FV_FILE_ATTRIBUTES          FileAttributes;
-  VOID                            *UserPageTable;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1349,14 +1348,6 @@ CoreLoadImageCommon (
   Image->Info.ParentHandle = ParentImageHandle;
   Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
 
-  if ((gRing3Data != NULL) && Image->IsUserImage) {
-    UserPageTable = AllocatePages (EFI_SIZE_TO_PAGES (gUserPageTableTemplateSize));
-    CopyMem (UserPageTable, gUserPageTableTemplate, gUserPageTableTemplateSize);
-
-    Image->UserPageTable = (UINTN)UserPageTable;
-    gUserPageTable       = Image->UserPageTable;
-  }
-
   if (NumberOfPages != NULL) {
     Image->NumberOfPages = *NumberOfPages;
   } else {
@@ -1452,6 +1443,11 @@ CoreLoadImageCommon (
 
   Status = EFI_SUCCESS;
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
+
+  if ((gRing3Data != NULL) && Image->IsUserImage) {
+    Image->UserPageTable = InitializeUserPageTable (Image);
+    gUserPageTable       = Image->UserPageTable;
+  }
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,

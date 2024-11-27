@@ -290,8 +290,6 @@ extern VOID                              *gCoreSysCallStackTop;
 extern VOID                              *gRing3CallStackBase;
 extern VOID                              *gRing3CallStackTop;
 extern VOID                              *gRing3EntryPoint;
-extern VOID                              *gUserPageTableTemplate;
-extern UINTN                             gUserPageTableTemplateSize;
 extern UINTN                             gUserPageTable;
 extern UINTN                             gCorePageTable;
 
@@ -2651,18 +2649,9 @@ UnprotectUefiImage (
   IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
   );
 
-/**
-  Change UEFI image owner: Supervisor / Privileged or User / Unprivileged.
-
-  @param[in]  LoadedImage              The loaded image protocol
-  @param[in]  LoadedImageDevicePath    The loaded image device path protocol
-  @param[in]  IsUser                   Whether UEFI image record is User Image.
-**/
-VOID
-ChangeUefiImageRing (
-  IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath,
-  IN BOOLEAN                    IsUser
+UEFI_IMAGE_RECORD *
+GetUefiImageRecord (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
 /**
@@ -2740,6 +2729,18 @@ SetUefiImageMemoryAttributes (
   IN UINT64  Attributes
   );
 
+/**
+  Set UEFI image protection attributes.
+
+  @param[in]  ImageRecord    A UEFI image record
+  @param[in]  IsUser         Whether UEFI image record is User Image.
+**/
+VOID
+SetUefiImageProtectionAttributes (
+  IN UEFI_IMAGE_RECORD  *ImageRecord,
+  IN BOOLEAN            IsUser
+  );
+
 EFI_STATUS
 EFIAPI
 CoreBootServices (
@@ -2794,10 +2795,10 @@ FreeProtocolsList (
   VOID
   );
 
-VOID
+UINTN
 EFIAPI
-MakeUserPageTableTemplate (
-  VOID
+InitializeUserPageTable (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
 #endif
