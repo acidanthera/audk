@@ -13,6 +13,14 @@
 #include <Ppi/VectorHandoffInfo.h>
 #include <Protocol/Cpu.h>
 
+typedef struct {
+  UINTN  ExceptionStackBase;
+  UINTN  ExceptionStackSize;
+  UINTN  ExceptionHandlerBase;
+  UINTN  ExceptionHandlerSize;
+  UINTN  ExceptionDataBase;
+} EXCEPTION_ADDRESSES;
+
 /**
   Initializes all CPU exceptions entries and provides the default exception handlers.
 
@@ -97,6 +105,12 @@ EFIAPI
 DumpCpuContext (
   IN EFI_EXCEPTION_TYPE  ExceptionType,
   IN EFI_SYSTEM_CONTEXT  SystemContext
+  );
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
   );
 
 #endif

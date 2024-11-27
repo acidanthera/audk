@@ -62,18 +62,7 @@ GoToRing3 (
   VA_END (Marker);
   ForbidSupervisorAccessToUserMemory ();
 
-#if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
-  if (Number == 2) {
-    //
-    // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
-    //
-    SetUefiImageMemoryAttributes (
-      FixedPcdGet32 (PcdOvmfWorkAreaBase),
-      FixedPcdGet32 (PcdOvmfWorkAreaSize),
-      EFI_MEMORY_XP | EFI_MEMORY_USER
-      );
-  }
-#elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
+#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
   //
   // Necessary fix for DEBUG printings.
   //
@@ -85,15 +74,7 @@ GoToRing3 (
 #endif
   Status = CallRing3 (Input);
 
-#if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
-  if (Number == 2) {
-    SetUefiImageMemoryAttributes (
-      FixedPcdGet32 (PcdOvmfWorkAreaBase),
-      FixedPcdGet32 (PcdOvmfWorkAreaSize),
-      EFI_MEMORY_XP
-      );
-  }
-#elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
+#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
   AllowSupervisorAccessToUserMemory ();
   SetUefiImageMemoryAttributes (
     gUartBaseAddress,

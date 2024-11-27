@@ -30,6 +30,13 @@ UINT8  mBuffer[CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE
 
 STATIC CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTable = NULL;
 
+EXCEPTION_ADDRESSES  mAddresses;
+
+extern UINTN         ExceptionHandlerBase;
+extern UINTN         ExceptionHandlerEnd;
+extern UINT8         mSwitchCr3Flag;
+extern UINTN         CorePageTable;
+
 /**
   Common exception handler.
 
@@ -129,13 +136,17 @@ InitializeSeparateExceptionStacks (
   UINTN       LocalBufferSize;
   EFI_STATUS  Status;
 
+  mAddresses.ExceptionStackSize = CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE;
+
   if ((Buffer == NULL) && (BufferSize == NULL)) {
     SetMem (mBuffer, sizeof (mBuffer), 0);
     LocalBufferSize = sizeof (mBuffer);
     Status          = ArchSetupExceptionStack (mBuffer, &LocalBufferSize);
     ASSERT_EFI_ERROR (Status);
+    mAddresses.ExceptionStackBase = (UINTN)mBuffer;
     return Status;
   } else {
+    mAddresses.ExceptionStackBase = (UINTN)Buffer;
     return ArchSetupExceptionStack (Buffer, BufferSize);
   }
 }
@@ -188,4 +199,21 @@ GetImageInfoByIp (
   }
 
   return FALSE;
+}
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
+  )
+{
+  mSwitchCr3Flag = 1;
+
+  mAddresses.ExceptionHandlerBase = (UINTN)&ExceptionHandlerBase;
+  mAddresses.ExceptionHandlerSize = (UINTN)&ExceptionHandlerEnd - mAddresses.ExceptionHandlerBase;
+  mAddresses.ExceptionDataBase    = (UINTN)&CorePageTable;
+
+  CorePageTable = AsmReadCr3 ();
+
+  return &mAddresses;
 }

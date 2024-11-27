@@ -297,8 +297,7 @@ GetUefiImageRecord (
 
   for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
         ImageRecordLink != &mProtectedImageRecordList;
-        ImageRecordLink = ImageRecordLink->ForwardLink)
-    {
+        ImageRecordLink = ImageRecordLink->ForwardLink) {
     ImageRecord = CR (
                     ImageRecordLink,
                     UEFI_IMAGE_RECORD,
