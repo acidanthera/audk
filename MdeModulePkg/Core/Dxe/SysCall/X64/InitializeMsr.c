@@ -10,13 +10,11 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 #include <IndustryStandard/PageTable.h>
 
-VOID   *gUserPageTableTemplate;
-UINTN  gUserPageTableTemplateSize;
-
 VOID
 EFIAPI
 MakeUserPageTableTemplate (
-  VOID
+  OUT VOID   **UserPageTableTemplate,
+  OUT UINTN  *UserPageTableTemplateSize
   )
 {
   EFI_HOB_GUID_TYPE               *GuidHob;
@@ -167,42 +165,10 @@ MakeUserPageTableTemplate (
     ZeroMem (PageMapLevel5Entry, (512 - IndexOfPml5Entries) * sizeof (PAGE_MAP_AND_DIRECTORY_POINTER));
   }
 
-  gUserPageTableTemplate     = (VOID *)PageMap;
-  gUserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (PageTableInfo->TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
-  gUserPageTable             = (UINTN)gUserPageTableTemplate;
+  *UserPageTableTemplate     = (VOID *)PageMap;
+  *UserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (PageTableInfo->TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
 
-  SetUefiImageMemoryAttributes ((UINT64)PageMap, gUserPageTableTemplateSize, EFI_MEMORY_XP);
-  //
-  // Map CoreBootServices
-  //
-  gCpu->SetUserMemoryAttributes (
-    gCpu,
-    (UINTN)PageMap,
-    (EFI_PHYSICAL_ADDRESS)(UINTN)CoreBootServices,
-    SIZE_4KB,
-    EFI_MEMORY_RO
-    );
-
-  gCpu->SetUserMemoryAttributes (
-    gCpu,
-    (UINTN)PageMap,
-    (EFI_PHYSICAL_ADDRESS)(UINTN)&gCorePageTable,
-    SIZE_4KB,
-    EFI_MEMORY_RO | EFI_MEMORY_XP
-    );
-  //
-  // Map ExceptionHandlerAsm: AsmIdtVectorBegin - AsmGetTemplateAddressMap
-  //  mCorePageTable, gCoreSysCallStackTop
-  //
-  // gCpu->SetUserMemoryAttributes (gCpu, (UINTN)PageMap, BaseAddress, SIZE_4KB, EFI_MEMORY_RO);
-
-  gCpu->SetUserMemoryAttributes (
-    gCpu,
-    (UINTN)PageMap,
-    FixedPcdGet32 (PcdOvmfWorkAreaBase),
-    FixedPcdGet32 (PcdOvmfWorkAreaSize),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+  SetUefiImageMemoryAttributes ((UINT64)PageMap, *UserPageTableTemplateSize, EFI_MEMORY_XP);
 }
 
 VOID

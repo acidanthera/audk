@@ -18,6 +18,17 @@ RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
 UINTN       gUartBaseAddress;
 
+UEFI_IMAGE_RECORD  *mDxeRing3;
+VOID               *mUserPageTableTemplate;
+UINTN              mUserPageTableTemplateSize;
+
+VOID
+EFIAPI
+MakeUserPageTableTemplate (
+  OUT VOID   **UserPageTableTemplate,
+  OUT UINTN  *UserPageTableTemplateSize
+  );
+
 VOID
 EFIAPI
 InitializeMsr (
@@ -102,11 +113,14 @@ InitializeRing3 (
   //
   // Initialize DxeRing3 with Supervisor privileges.
   //
-  ChangeUefiImageRing (&Image->Info, Image->LoadedImageDevicePath, FALSE);
+  mDxeRing3 = GetUefiImageRecord (Image);
+  ASSERT (mDxeRing3 != NULL);
+
+  SetUefiImageProtectionAttributes (mDxeRing3, FALSE);
 
   Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gRing3Data);
 
-  ChangeUefiImageRing (&Image->Info, Image->LoadedImageDevicePath, TRUE);
+  SetUefiImageProtectionAttributes (mDxeRing3, TRUE);
 
   gRing3EntryPoint = gRing3Data->EntryPoint;
 
@@ -153,9 +167,6 @@ InitializeRing3 (
   gCoreSysCallStackTop = TopOfStack;
 
   SetUefiImageMemoryAttributes ((UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
-  //
-  // gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, (UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
-  //
   DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
 
   //
@@ -180,5 +191,124 @@ InitializeRing3 (
     gRing3Data->SystemTable.NumberOfTableEntries
     );
 
+  MakeUserPageTableTemplate (&mUserPageTableTemplate, &mUserPageTableTemplateSize);
+
   return Status;
+}
+
+UINTN
+EFIAPI
+InitializeUserPageTable (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  )
+{
+  UINTN                      UserPageTable;
+  UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
+  UINTN                      SectionAddress;
+  UINT32                     Index;
+  UEFI_IMAGE_RECORD          *UserImageRecord;
+
+  UserPageTable = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (mUserPageTableTemplateSize));
+
+  CopyMem ((VOID *)UserPageTable, mUserPageTableTemplate, mUserPageTableTemplateSize);
+
+  //
+  // Map gRing3Data, gRing3Interfaces, gRing3CallStackBase, DxeRing3
+  //
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (UINTN)gRing3Data,
+    ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (UINTN)gRing3Interfaces,
+    EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (UINTN)gRing3CallStackBase,
+    EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
+  SectionAddress = mDxeRing3->StartAddress;
+  for (Index = 0; Index < mDxeRing3->NumSegments; Index++) {
+    ImageRecordSegment = &mDxeRing3->Segments[Index];
+
+    gCpu->SetUserMemoryAttributes (
+      gCpu,
+      UserPageTable,
+      SectionAddress,
+      ImageRecordSegment->Size,
+      ImageRecordSegment->Attributes | EFI_MEMORY_USER
+      );
+
+    SectionAddress += ImageRecordSegment->Size;
+  }
+
+  //
+  // Map CoreBootServices
+  //
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (EFI_PHYSICAL_ADDRESS)(UINTN)CoreBootServices,
+    SIZE_4KB,
+    EFI_MEMORY_RO
+    );
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    (EFI_PHYSICAL_ADDRESS)(UINTN)&gCorePageTable,
+    SIZE_4KB,
+    EFI_MEMORY_RO | EFI_MEMORY_XP
+    );
+  //
+  // Map ExceptionHandlerAsm: AsmIdtVectorBegin - AsmGetTemplateAddressMap
+  //  mCorePageTable, gCoreSysCallStackTop
+  //
+  // gCpu->SetUserMemoryAttributes (gCpu, (UINTN)PageMap, BaseAddress, SIZE_4KB, EFI_MEMORY_RO);
+  //
+  // gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, (UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
+  //
+
+  gCpu->SetUserMemoryAttributes (
+    gCpu,
+    UserPageTable,
+    FixedPcdGet32 (PcdOvmfWorkAreaBase),
+    FixedPcdGet32 (PcdOvmfWorkAreaSize),
+    EFI_MEMORY_XP | EFI_MEMORY_USER
+    );
+
+  //
+  // Map User Image
+  //
+  UserImageRecord = GetUefiImageRecord (Image);
+  ASSERT (UserImageRecord != NULL);
+
+  SectionAddress = UserImageRecord->StartAddress;
+  for (Index = 0; Index < UserImageRecord->NumSegments; Index++) {
+    ImageRecordSegment = &UserImageRecord->Segments[Index];
+
+    gCpu->SetUserMemoryAttributes (
+      gCpu,
+      UserPageTable,
+      SectionAddress,
+      ImageRecordSegment->Size,
+      ImageRecordSegment->Attributes | EFI_MEMORY_USER
+      );
+
+    SectionAddress += ImageRecordSegment->Size;
+  }
+
+  return UserPageTable;
 }
