@@ -128,7 +128,7 @@ Ring3AllocatePages (
   Status = SysCall (
              SysCallAllocatePages,
              Type,
-             MemoryType,
+             EfiRing3MemoryType,
              NumberOfPages,
              Memory
              );
