@@ -63,9 +63,12 @@ global ASM_PFX(UserPageTable)
 ASM_PFX(UserPageTable):
   resq 1
 
-ALIGN   4096
 global ASM_PFX(mSwitchCr3Flag)
 ASM_PFX(mSwitchCr3Flag):
+  db 0x0
+
+ALIGN   4096
+Padding:
   db 0x0
 
 DEFAULT REL

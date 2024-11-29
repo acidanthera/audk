@@ -111,7 +111,7 @@ MakeUserPageTableTemplate (
           //
           PageDirectory1GEntry->Uint64         = (UINT64)PageAddress | PageTableInfo->AddressEncMask;
           PageDirectory1GEntry->Bits.ReadWrite = 1;
-          PageDirectory1GEntry->Bits.Present   = 1;
+          PageDirectory1GEntry->Bits.Present   = 0;
           PageDirectory1GEntry->Bits.MustBe1   = 1;
         }
       } else {
