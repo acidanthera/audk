@@ -222,40 +222,40 @@ InitializeUserPageTable (
   // Map gRing3Data, gRing3Interfaces, gRing3CallStackBase, DxeRing3
   //
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)gRing3Data,
-    ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)gRing3Data,
+          ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)gRing3Interfaces,
-    EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)gRing3Interfaces,
+          EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)gRing3CallStackBase,
-    EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)gRing3CallStackBase,
+          EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
 
   SectionAddress = mDxeRing3->StartAddress;
   for (Index = 0; Index < mDxeRing3->NumSegments; Index++) {
     ImageRecordSegment = &mDxeRing3->Segments[Index];
 
     gCpu->SetUserMemoryAttributes (
-      gCpu,
-      UserPageTable,
-      SectionAddress,
-      ImageRecordSegment->Size,
-      ImageRecordSegment->Attributes | EFI_MEMORY_USER
-      );
+            gCpu,
+            UserPageTable,
+            SectionAddress,
+            ImageRecordSegment->Size,
+            ImageRecordSegment->Attributes | EFI_MEMORY_USER
+            );
 
     SectionAddress += ImageRecordSegment->Size;
   }
@@ -264,63 +264,63 @@ InitializeUserPageTable (
   // Map CoreBootServices, gCoreSysCallStackBase, ExceptionHandlers, ExceptionStacks
   //
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)&SysCallBase,
-    (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
-    EFI_MEMORY_RO
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)&SysCallBase,
+          (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
+          EFI_MEMORY_RO
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)&gCorePageTable,
-    SIZE_4KB,
-    EFI_MEMORY_RO | EFI_MEMORY_XP
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)&gCorePageTable,
+          SIZE_4KB,
+          EFI_MEMORY_RO | EFI_MEMORY_XP
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    (UINTN)gCoreSysCallStackBase,
-    EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
-    EFI_MEMORY_XP
-    );
+          gCpu,
+          UserPageTable,
+          (UINTN)gCoreSysCallStackBase,
+          EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+          EFI_MEMORY_XP
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    mExceptionAddresses->ExceptionStackBase,
-    mExceptionAddresses->ExceptionStackSize,
-    EFI_MEMORY_XP
-    );
+          gCpu,
+          UserPageTable,
+          mExceptionAddresses->ExceptionStackBase,
+          mExceptionAddresses->ExceptionStackSize,
+          EFI_MEMORY_XP
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    mExceptionAddresses->ExceptionHandlerBase,
-    mExceptionAddresses->ExceptionHandlerSize,
-    EFI_MEMORY_RO
-    );
+          gCpu,
+          UserPageTable,
+          mExceptionAddresses->ExceptionHandlerBase,
+          mExceptionAddresses->ExceptionHandlerSize,
+          EFI_MEMORY_RO
+          );
 
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    mExceptionAddresses->ExceptionDataBase,
-    SIZE_4KB,
-    EFI_MEMORY_XP
-    );
+          gCpu,
+          UserPageTable,
+          mExceptionAddresses->ExceptionDataBase,
+          SIZE_4KB,
+          EFI_MEMORY_XP
+          );
 
   //
   // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
   //
   gCpu->SetUserMemoryAttributes (
-    gCpu,
-    UserPageTable,
-    FixedPcdGet32 (PcdOvmfWorkAreaBase),
-    FixedPcdGet32 (PcdOvmfWorkAreaSize),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+          gCpu,
+          UserPageTable,
+          FixedPcdGet32 (PcdOvmfWorkAreaBase),
+          FixedPcdGet32 (PcdOvmfWorkAreaSize),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
 
   //
   // Map User Image
@@ -333,12 +333,12 @@ InitializeUserPageTable (
     ImageRecordSegment = &UserImageRecord->Segments[Index];
 
     gCpu->SetUserMemoryAttributes (
-      gCpu,
-      UserPageTable,
-      SectionAddress,
-      ImageRecordSegment->Size,
-      ImageRecordSegment->Attributes | EFI_MEMORY_USER
-      );
+            gCpu,
+            UserPageTable,
+            SectionAddress,
+            ImageRecordSegment->Size,
+            ImageRecordSegment->Attributes | EFI_MEMORY_USER
+            );
 
     SectionAddress += ImageRecordSegment->Size;
   }
