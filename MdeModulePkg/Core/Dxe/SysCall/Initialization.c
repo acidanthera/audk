@@ -213,6 +213,7 @@ InitializeUserPageTable (
   UINTN                      SectionAddress;
   UINT32                     Index;
   UEFI_IMAGE_RECORD          *UserImageRecord;
+  IA32_DESCRIPTOR            IdtDescriptor;
 
   UserPageTable = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (mUserPageTableTemplateSize));
 
@@ -261,7 +262,7 @@ InitializeUserPageTable (
   }
 
   //
-  // Map CoreBootServices, gCoreSysCallStackBase, ExceptionHandlers, ExceptionStacks
+  // Map CoreBootServices, gCoreSysCallStackBase
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
@@ -287,6 +288,9 @@ InitializeUserPageTable (
           EFI_MEMORY_XP
           );
 
+  //
+  // Map ExceptionHandlers, ExceptionStacks, Idt
+  //
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
@@ -309,6 +313,15 @@ InitializeUserPageTable (
           mExceptionAddresses->ExceptionDataBase,
           SIZE_4KB,
           EFI_MEMORY_XP
+          );
+
+  AsmReadIdtr (&IdtDescriptor);
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          IdtDescriptor.Base,
+          SIZE_4KB,
+          EFI_MEMORY_RO | EFI_MEMORY_XP
           );
 
   //
