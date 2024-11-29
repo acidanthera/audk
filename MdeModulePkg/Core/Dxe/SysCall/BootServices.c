@@ -605,6 +605,14 @@ CallBootService (
       *(EFI_PHYSICAL_ADDRESS *)UserRsp->Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
       ForbidSupervisorAccessToUserMemory ();
 
+      gCpu->SetUserMemoryAttributes (
+              gCpu,
+              gUserPageTable,
+              Argument4,
+              EFI_PAGES_TO_SIZE (CoreRbp->Argument3),
+              EFI_MEMORY_USER
+              );
+
       return Status;
 
     case SysCallFreePages:
@@ -616,6 +624,14 @@ CallBootService (
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + CoreRbp->Argument1 * EFI_PAGE_SIZE - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      gCpu->SetUserMemoryAttributes (
+              gCpu,
+              gUserPageTable,
+              CoreRbp->Argument2,
+              EFI_PAGES_TO_SIZE (CoreRbp->Argument1),
+              EFI_MEMORY_RP
+              );
 
       return gBS->FreePages (
                     *(EFI_PHYSICAL_ADDRESS *)&CoreRbp->Argument2,
