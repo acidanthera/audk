@@ -136,17 +136,13 @@ InitializeSeparateExceptionStacks (
   UINTN       LocalBufferSize;
   EFI_STATUS  Status;
 
-  mAddresses.ExceptionStackSize = CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE;
-
   if ((Buffer == NULL) && (BufferSize == NULL)) {
     SetMem (mBuffer, sizeof (mBuffer), 0);
     LocalBufferSize = sizeof (mBuffer);
     Status          = ArchSetupExceptionStack (mBuffer, &LocalBufferSize);
     ASSERT_EFI_ERROR (Status);
-    mAddresses.ExceptionStackBase = (UINTN)mBuffer;
     return Status;
   } else {
-    mAddresses.ExceptionStackBase = (UINTN)Buffer;
     return ArchSetupExceptionStack (Buffer, BufferSize);
   }
 }
@@ -209,11 +205,21 @@ GetExceptionAddresses (
 {
   mSwitchCr3Flag = 1;
 
+  return &mAddresses;
+}
+
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  mAddresses.ExceptionStackBase   = (UINTN)Buffer;
+  mAddresses.ExceptionStackSize   = BufferSize;
   mAddresses.ExceptionHandlerBase = (UINTN)&ExceptionHandlerBase;
   mAddresses.ExceptionHandlerSize = (UINTN)&ExceptionHandlerEnd - mAddresses.ExceptionHandlerBase;
   mAddresses.ExceptionDataBase    = (UINTN)&CorePageTable;
 
   CorePageTable = AsmReadCr3 ();
-
-  return &mAddresses;
 }

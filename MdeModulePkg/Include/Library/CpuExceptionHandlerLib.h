@@ -113,4 +113,11 @@ GetExceptionAddresses (
   VOID
   );
 
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  );
+
 #endif
