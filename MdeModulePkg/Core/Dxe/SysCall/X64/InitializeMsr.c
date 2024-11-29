@@ -188,8 +188,12 @@ InitializeMsr (
   Ebx = 0;
   Edx = 0;
 
-  // The Intel-64 and IA-32 architectures also allow for global pages when the PGE flag (bit 7) is 1 in CR4.
-  // PGE must be zero.
+  //
+  // Forbid global pages.
+  //
+  Cr4.UintN    = AsmReadCr4 ();
+  Cr4.Bits.PGE = 0;
+  AsmWriteCr4 (Cr4.UintN);
 
   //
   // Forbid supervisor-mode accesses to any user-mode pages.
