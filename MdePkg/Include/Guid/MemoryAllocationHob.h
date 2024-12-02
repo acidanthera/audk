@@ -21,12 +21,8 @@
 #define EFI_HOB_MEMORY_ALLOC_MODULE_GUID  \
   {0xf8e21975, 0x899, 0x4f58, {0xa4, 0xbe, 0x55, 0x25, 0xa9, 0xc6, 0xd7, 0x7a} }
 
-#define EFI_HOB_PAGE_TABLE_INFO_GUID  \
-  {0xac992fe9, 0xb0cc, 0x45df, {0xae, 0xcf, 0x51, 0x5a, 0xd2, 0xc4, 0xe8, 0xb3} }
-
 extern EFI_GUID  gEfiHobMemoryAllocBspStoreGuid;
 extern EFI_GUID  gEfiHobMemoryAllocStackGuid;
 extern EFI_GUID  gEfiHobMemoryAllocModuleGuid;
-extern EFI_GUID  gEfiHobPageTableInfoGuid;
 
 #endif

@@ -708,7 +708,6 @@ CreateIdentityMappingPageTables (
   PAGE_TABLE_1G_ENTRY                          *PageDirectory1GEntry;
   UINT64                                       AddressEncMask;
   IA32_CR4                                     Cr4;
-  EFI_PAGE_TABLE_INFO                          PageTableInfo;
 
   //
   // Set PageMapLevel5Entry to suppress incorrect compiler/analyzer warnings
@@ -831,16 +830,6 @@ CreateIdentityMappingPageTables (
     NumberOfPdpEntriesNeeded,
     (UINT64)TotalPagesNum
     ));
-
-  PageTableInfo.NumberOfPml5EntriesNeeded = NumberOfPml5EntriesNeeded;
-  PageTableInfo.NumberOfPml4EntriesNeeded = NumberOfPml4EntriesNeeded;
-  PageTableInfo.NumberOfPdpEntriesNeeded  = NumberOfPdpEntriesNeeded;
-  PageTableInfo.TotalPagesNum             = TotalPagesNum;
-  PageTableInfo.Page5LevelEnabled         = Page5LevelEnabled;
-  PageTableInfo.Page1GSupport             = Page1GSupport;
-  PageTableInfo.AddressEncMask            = AddressEncMask;
-
-  BuildGuidDataHob (&gEfiHobPageTableInfoGuid, &PageTableInfo, sizeof (EFI_PAGE_TABLE_INFO));
 
   BigPageAddress = (UINTN)AllocatePageTableMemory (TotalPagesNum);
   ASSERT (BigPageAddress != 0);

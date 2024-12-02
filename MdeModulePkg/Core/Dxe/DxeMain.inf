@@ -151,7 +151,6 @@
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
   gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
   gEarlyPL011BaseAddressGuid                    ## CONSUMES
-  gEfiHobPageTableInfoGuid                      ## CONSUMES             ## HOB
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
@@ -224,9 +223,14 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace                         ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask                        ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                           ## CONSUMES
+
+[Pcd.IA32,Pcd.X64]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUse1GPageTable                          ## SOMETIMES_CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUse5LevelPageTable                      ## SOMETIMES_CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask        ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                           ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES

@@ -8,6 +8,7 @@
 #include "DxeMain.h"
 
 #include <Register/Intel/ArchitecturalMsr.h>
+#include <Register/Intel/Cpuid.h>
 #include <IndustryStandard/PageTable.h>
 
 VOID
@@ -17,30 +18,144 @@ MakeUserPageTableTemplate (
   OUT UINTN  *UserPageTableTemplateSize
   )
 {
-  EFI_HOB_GUID_TYPE               *GuidHob;
-  EFI_PAGE_TABLE_INFO             *PageTableInfo;
-  UINTN                           BigPageAddress;
-  EFI_PHYSICAL_ADDRESS            PageAddress;
-  UINTN                           IndexOfPml5Entries;
-  UINTN                           IndexOfPml4Entries;
-  UINTN                           IndexOfPdpEntries;
-  UINTN                           IndexOfPageDirectoryEntries;
-  PAGE_MAP_AND_DIRECTORY_POINTER  *PageMapLevel5Entry;
-  PAGE_MAP_AND_DIRECTORY_POINTER  *PageMapLevel4Entry;
-  PAGE_MAP_AND_DIRECTORY_POINTER  *PageMap;
-  PAGE_MAP_AND_DIRECTORY_POINTER  *PageDirectoryPointerEntry;
-  PAGE_TABLE_ENTRY                *PageDirectoryEntry;
-  PAGE_TABLE_1G_ENTRY             *PageDirectory1GEntry;
+  UINT32                                       RegEax;
+  CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_ECX  EcxFlags;
+  UINT32                                       RegEdx;
+  UINT8                                        PhysicalAddressBits;
+  UINT32                                       NumberOfPml5EntriesNeeded;
+  UINT32                                       NumberOfPml4EntriesNeeded;
+  UINT32                                       NumberOfPdpEntriesNeeded;
+  VOID                                         *Hob;
+  BOOLEAN                                      Page5LevelEnabled;
+  BOOLEAN                                      Page1GSupport;
+  UINT64                                       AddressEncMask;
+  IA32_CR4                                     Cr4;
+  UINTN                                        TotalPagesNum;
+  UINTN                                        BigPageAddress;
+  EFI_PHYSICAL_ADDRESS                         PageAddress;
+  UINTN                                        IndexOfPml5Entries;
+  UINTN                                        IndexOfPml4Entries;
+  UINTN                                        IndexOfPdpEntries;
+  UINTN                                        IndexOfPageDirectoryEntries;
+  PAGE_MAP_AND_DIRECTORY_POINTER               *PageMapLevel5Entry;
+  PAGE_MAP_AND_DIRECTORY_POINTER               *PageMapLevel4Entry;
+  PAGE_MAP_AND_DIRECTORY_POINTER               *PageMap;
+  PAGE_MAP_AND_DIRECTORY_POINTER               *PageDirectoryPointerEntry;
+  PAGE_TABLE_ENTRY                             *PageDirectoryEntry;
+  PAGE_TABLE_1G_ENTRY                          *PageDirectory1GEntry;
 
-  GuidHob  = GetFirstGuidHob (&gEfiHobPageTableInfoGuid);
-  if (GuidHob == NULL) {
-    DEBUG ((DEBUG_ERROR, "Core: Could not retrieve PageTableInfo HOB.\n"));
-    CpuDeadLoop ();
+  //
+  // Set PageMapLevel5Entry to suppress incorrect compiler/analyzer warnings
+  //
+  PageMapLevel5Entry = NULL;
+
+  //
+  // Make sure AddressEncMask is contained to smallest supported address field
+  //
+  AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask) & PAGING_1G_ADDRESS_MASK_64;
+
+  Page1GSupport = FALSE;
+  if (PcdGetBool (PcdUse1GPageTable)) {
+    AsmCpuid (0x80000000, &RegEax, NULL, NULL, NULL);
+    if (RegEax >= 0x80000001) {
+      AsmCpuid (0x80000001, NULL, NULL, NULL, &RegEdx);
+      if ((RegEdx & BIT26) != 0) {
+        Page1GSupport = TRUE;
+      }
+    }
   }
 
-  PageTableInfo = (EFI_PAGE_TABLE_INFO *)(GET_GUID_HOB_DATA (GuidHob));
+  //
+  // Get physical address bits supported.
+  //
+  Hob = GetFirstHob (EFI_HOB_TYPE_CPU);
+  if (Hob != NULL) {
+    PhysicalAddressBits = ((EFI_HOB_CPU *)Hob)->SizeOfMemorySpace;
+  } else {
+    AsmCpuid (0x80000000, &RegEax, NULL, NULL, NULL);
+    if (RegEax >= 0x80000008) {
+      AsmCpuid (0x80000008, &RegEax, NULL, NULL, NULL);
+      PhysicalAddressBits = (UINT8)RegEax;
+    } else {
+      PhysicalAddressBits = 36;
+    }
+  }
 
-  BigPageAddress = (UINTN)AllocateAlignedPages (PageTableInfo->TotalPagesNum, PAGE_TABLE_POOL_ALIGNMENT);
+  if (sizeof (UINTN) == sizeof (UINT64)) {
+    //
+    // If cpu has already run in 64bit long mode PEI, Page table Level in DXE must align with previous level.
+    //
+    Cr4.UintN         = AsmReadCr4 ();
+    Page5LevelEnabled = (Cr4.Bits.LA57 != 0);
+    if (Page5LevelEnabled) {
+      ASSERT (PcdGetBool (PcdUse5LevelPageTable));
+    }
+  } else {
+    //
+    // If cpu runs in 32bit protected mode PEI, Page table Level in DXE is decided by PCD and feature capability.
+    //
+    Page5LevelEnabled = FALSE;
+    if (PcdGetBool (PcdUse5LevelPageTable)) {
+      AsmCpuidEx (
+        CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS,
+        CPUID_STRUCTURED_EXTENDED_FEATURE_FLAGS_SUB_LEAF_INFO,
+        NULL,
+        NULL,
+        &EcxFlags.Uint32,
+        NULL
+        );
+      if (EcxFlags.Bits.FiveLevelPage != 0) {
+        Page5LevelEnabled = TRUE;
+      }
+    }
+  }
+
+  //
+  // IA-32e paging translates 48-bit linear addresses to 52-bit physical addresses
+  //  when 5-Level Paging is disabled,
+  //  due to either unsupported by HW, or disabled by PCD.
+  //
+  ASSERT (PhysicalAddressBits <= 52);
+  if (!Page5LevelEnabled && (PhysicalAddressBits > 48)) {
+    PhysicalAddressBits = 48;
+  }
+
+  //
+  // Calculate the table entries needed.
+  //
+  NumberOfPml5EntriesNeeded = 1;
+  if (PhysicalAddressBits > 48) {
+    NumberOfPml5EntriesNeeded = (UINT32)LShiftU64 (1, PhysicalAddressBits - 48);
+    PhysicalAddressBits       = 48;
+  }
+
+  NumberOfPml4EntriesNeeded = 1;
+  if (PhysicalAddressBits > 39) {
+    NumberOfPml4EntriesNeeded = (UINT32)LShiftU64 (1, PhysicalAddressBits - 39);
+    PhysicalAddressBits       = 39;
+  }
+
+  NumberOfPdpEntriesNeeded = 1;
+  ASSERT (PhysicalAddressBits > 30);
+  NumberOfPdpEntriesNeeded = (UINT32)LShiftU64 (1, PhysicalAddressBits - 30);
+
+  //
+  // Pre-allocate big pages to avoid later allocations.
+  //
+  if (!Page1GSupport) {
+    TotalPagesNum = ((NumberOfPdpEntriesNeeded + 1) * NumberOfPml4EntriesNeeded + 1) * NumberOfPml5EntriesNeeded + 1;
+  } else {
+    TotalPagesNum = (NumberOfPml4EntriesNeeded + 1) * NumberOfPml5EntriesNeeded + 1;
+  }
+
+  //
+  // Substract the one page occupied by PML5 entries if 5-Level Paging is disabled.
+  //
+  if (!Page5LevelEnabled) {
+    TotalPagesNum--;
+  }
+
+  BigPageAddress = (UINTN)AllocateAlignedPages (TotalPagesNum, PAGE_TABLE_POOL_ALIGNMENT);
   if (BigPageAddress == 0) {
     DEBUG ((DEBUG_ERROR, "Core: Could not allocate buffer for User page table.\n"));
     CpuDeadLoop ();
@@ -50,7 +165,7 @@ MakeUserPageTableTemplate (
   // By architecture only one PageMapLevel4 exists - so lets allocate storage for it.
   //
   PageMap = (VOID *)BigPageAddress;
-  if (PageTableInfo->Page5LevelEnabled) {
+  if (Page5LevelEnabled) {
     //
     // By architecture only one PageMapLevel5 exists - so lets allocate storage for it.
     //
@@ -61,7 +176,7 @@ MakeUserPageTableTemplate (
   PageAddress = 0;
 
   for ( IndexOfPml5Entries = 0
-        ; IndexOfPml5Entries < PageTableInfo->NumberOfPml5EntriesNeeded
+        ; IndexOfPml5Entries < NumberOfPml5EntriesNeeded
         ; IndexOfPml5Entries++)
   {
     //
@@ -72,11 +187,11 @@ MakeUserPageTableTemplate (
     PageMapLevel4Entry = (VOID *)BigPageAddress;
     BigPageAddress    += SIZE_4KB;
 
-    if (PageTableInfo->Page5LevelEnabled) {
+    if (Page5LevelEnabled) {
       //
       // Make a PML5 Entry
       //
-      PageMapLevel5Entry->Uint64              = (UINT64)(UINTN)PageMapLevel4Entry | PageTableInfo->AddressEncMask;
+      PageMapLevel5Entry->Uint64              = (UINT64)(UINTN)PageMapLevel4Entry | AddressEncMask;
       PageMapLevel5Entry->Bits.ReadWrite      = 1;
       PageMapLevel5Entry->Bits.UserSupervisor = 1;
       PageMapLevel5Entry->Bits.Present        = 1;
@@ -84,7 +199,7 @@ MakeUserPageTableTemplate (
     }
 
     for ( IndexOfPml4Entries = 0
-          ; IndexOfPml4Entries < (PageTableInfo->NumberOfPml5EntriesNeeded == 1 ? PageTableInfo->NumberOfPml4EntriesNeeded : 512)
+          ; IndexOfPml4Entries < (NumberOfPml5EntriesNeeded == 1 ? NumberOfPml4EntriesNeeded : 512)
           ; IndexOfPml4Entries++, PageMapLevel4Entry++)
     {
       //
@@ -97,26 +212,26 @@ MakeUserPageTableTemplate (
       //
       // Make a PML4 Entry
       //
-      PageMapLevel4Entry->Uint64              = (UINT64)(UINTN)PageDirectoryPointerEntry | PageTableInfo->AddressEncMask;
+      PageMapLevel4Entry->Uint64              = (UINT64)(UINTN)PageDirectoryPointerEntry | AddressEncMask;
       PageMapLevel4Entry->Bits.ReadWrite      = 1;
       PageMapLevel4Entry->Bits.UserSupervisor = 1;
       PageMapLevel4Entry->Bits.Present        = 1;
 
-      if (PageTableInfo->Page1GSupport) {
+      if (Page1GSupport) {
         PageDirectory1GEntry = (VOID *)PageDirectoryPointerEntry;
 
         for (IndexOfPageDirectoryEntries = 0; IndexOfPageDirectoryEntries < 512; IndexOfPageDirectoryEntries++, PageDirectory1GEntry++, PageAddress += SIZE_1GB) {
           //
           // Fill in the Page Directory entries
           //
-          PageDirectory1GEntry->Uint64         = (UINT64)PageAddress | PageTableInfo->AddressEncMask;
+          PageDirectory1GEntry->Uint64         = (UINT64)PageAddress | AddressEncMask;
           PageDirectory1GEntry->Bits.ReadWrite = 1;
           PageDirectory1GEntry->Bits.Present   = 0;
           PageDirectory1GEntry->Bits.MustBe1   = 1;
         }
       } else {
         for ( IndexOfPdpEntries = 0
-              ; IndexOfPdpEntries < (PageTableInfo->NumberOfPml4EntriesNeeded == 1 ? PageTableInfo->NumberOfPdpEntriesNeeded : 512)
+              ; IndexOfPdpEntries < (NumberOfPml4EntriesNeeded == 1 ? NumberOfPdpEntriesNeeded : 512)
               ; IndexOfPdpEntries++, PageDirectoryPointerEntry++)
         {
           //
@@ -129,7 +244,7 @@ MakeUserPageTableTemplate (
           //
           // Fill in a Page Directory Pointer Entries
           //
-          PageDirectoryPointerEntry->Uint64              = (UINT64)(UINTN)PageDirectoryEntry | PageTableInfo->AddressEncMask;
+          PageDirectoryPointerEntry->Uint64              = (UINT64)(UINTN)PageDirectoryEntry | AddressEncMask;
           PageDirectoryPointerEntry->Bits.ReadWrite      = 1;
           PageDirectoryPointerEntry->Bits.UserSupervisor = 1;
           PageDirectoryPointerEntry->Bits.Present        = 1;
@@ -138,7 +253,7 @@ MakeUserPageTableTemplate (
             //
             // Fill in the Page Directory entries
             //
-            PageDirectoryEntry->Uint64         = (UINT64)PageAddress | PageTableInfo->AddressEncMask;
+            PageDirectoryEntry->Uint64         = (UINT64)PageAddress | AddressEncMask;
             PageDirectoryEntry->Bits.ReadWrite = 1;
             PageDirectoryEntry->Bits.Present   = 0;
             PageDirectoryEntry->Bits.MustBe1   = 1;
@@ -158,7 +273,7 @@ MakeUserPageTableTemplate (
     ZeroMem (PageMapLevel4Entry, (512 - IndexOfPml4Entries) * sizeof (PAGE_MAP_AND_DIRECTORY_POINTER));
   }
 
-  if (PageTableInfo->Page5LevelEnabled) {
+  if (Page5LevelEnabled) {
     //
     // For the PML5 entries we are not using fill in a null entry.
     //
@@ -166,7 +281,7 @@ MakeUserPageTableTemplate (
   }
 
   *UserPageTableTemplate     = (VOID *)PageMap;
-  *UserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (PageTableInfo->TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
+  *UserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
 
   SetUefiImageMemoryAttributes ((UINT64)PageMap, *UserPageTableTemplateSize, EFI_MEMORY_XP);
 }
