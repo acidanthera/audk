@@ -199,9 +199,9 @@ o64 sysret
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
-    cli
     pushfq
     pop     r11
+    cli
     ; Save nonvolatile registers RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15.
     push    rbx
     push    rbp
