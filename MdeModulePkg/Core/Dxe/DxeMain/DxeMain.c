@@ -247,7 +247,8 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO         *VectorInfoList;
   EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
-  gRing3Data = NULL;
+  gRing3Data     = NULL;
+  gUserPageTable = 0;
 
   //
   // Setup Stack Guard

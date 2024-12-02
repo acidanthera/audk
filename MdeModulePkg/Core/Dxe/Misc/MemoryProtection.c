@@ -909,6 +909,7 @@ ApplyMemoryProtectionPolicy (
 {
   UINT64  OldAttributes;
   UINT64  NewAttributes;
+  UINT64  CurrentAttributes;
 
   //
   // The policy configured in PcdDxeNxMemoryProtectionPolicy
@@ -964,10 +965,26 @@ ApplyMemoryProtectionPolicy (
   NewAttributes = GetPermissionAttributeForMemoryType (NewType);
 
   if (OldType != EfiMaxMemoryType) {
+    //
+    // AllocatePages
+    //
     OldAttributes = GetPermissionAttributeForMemoryType (OldType);
     if (OldAttributes == NewAttributes) {
       // policy is the same between OldType and NewType
       return EFI_SUCCESS;
+    }
+
+    if ((gUserPageTable != 0) && (NewType == EfiRing3MemoryType)) {
+      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, NewAttributes);
+    }
+  } else {
+    //
+    // FreePages
+    //
+    gCpu->GetMemoryAttributes (gCpu, Memory, &CurrentAttributes);
+
+    if ((gUserPageTable != 0) && ((CurrentAttributes & EFI_MEMORY_USER) != 0)) {
+      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
     }
   }
 

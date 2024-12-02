@@ -421,6 +421,7 @@ CpuGetMemoryAttributes (
 
   PageEntry = GetPageTableEntry (&PagingContext, Address, &PageAttribute);
   if (PageEntry == NULL) {
+    *Attributes = 0;
     return EFI_NOT_FOUND;
   }
 
