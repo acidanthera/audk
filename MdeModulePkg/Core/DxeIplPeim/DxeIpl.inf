@@ -90,7 +90,6 @@
   ## SOMETIMES_PRODUCES ## HOB
   gEfiMemoryTypeInformationGuid
   gUefiImageLoaderImageContextGuid
-  gEfiHobPageTableInfoGuid
 
 [FeaturePcd.IA32]
   gEfiMdeModulePkgTokenSpaceGuid.PcdDxeIplSwitchToLongMode      ## CONSUMES

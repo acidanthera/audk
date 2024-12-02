@@ -13,16 +13,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #pragma once
 
-typedef struct {
-  UINT32   NumberOfPml5EntriesNeeded;
-  UINT32   NumberOfPml4EntriesNeeded;
-  UINT32   NumberOfPdpEntriesNeeded;
-  UINTN    TotalPagesNum;
-  BOOLEAN  Page5LevelEnabled;
-  BOOLEAN  Page1GSupport;
-  UINT64   AddressEncMask;
-} EFI_PAGE_TABLE_INFO;
-
 /**
   Allocates one or more 4KB pages of type EfiBootServicesData.
 
