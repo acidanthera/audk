@@ -98,6 +98,10 @@ copy:
     pop     eax
 %endmacro
 
+ALIGN   4096
+global ASM_PFX(SysCallBase)
+ASM_PFX(SysCallBase):
+
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
 ; EFIAPI
@@ -118,6 +122,9 @@ ASM_PFX(CoreBootServices):
     push    edx
     push    ebp
     push    eax
+
+    mov     eax, [ASM_PFX(gCorePageTable)]
+    mov     cr3, eax
 
     ; Switch from User to Core data segment selectors.
     mov     ax, ss
@@ -146,6 +153,9 @@ ASM_PFX(CoreBootServices):
     cli
 
     SetRing3DataSegmentSelectors
+
+    mov     eax, [ASM_PFX(gUserPageTable)]
+    mov     cr3, eax
 
     pop     eax
 
@@ -194,9 +204,16 @@ ASM_PFX(CallRing3):
     ; Switch to User Stack.
     mov     ebp, ecx
 
+    mov     ebx, [ASM_PFX(gUserPageTable)]
+    mov     cr3, ebx
+
     ; Pass control to user image
     sti
     sysexit
+
+ALIGN   4096
+global ASM_PFX(SysCallEnd)
+ASM_PFX(SysCallEnd):
 
 ;------------------------------------------------------------------------------
 ; VOID
@@ -219,5 +236,16 @@ ASM_PFX(ReturnToCore):
     ret
 
 SECTION .data
+ALIGN   4096
+
+global ASM_PFX(gCorePageTable)
+ASM_PFX(gCorePageTable):
+  resd 1
+
+global ASM_PFX(gUserPageTable)
+ASM_PFX(gUserPageTable):
+  resd 1
+
+ALIGN   4096
 ASM_PFX(CoreEsp):
   resd 1

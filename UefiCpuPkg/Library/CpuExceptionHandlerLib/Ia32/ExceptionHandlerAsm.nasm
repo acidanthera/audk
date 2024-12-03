@@ -23,16 +23,33 @@
 ;
 ; CommonExceptionHandler()
 ;
+extern ASM_PFX(mErrorCodeFlag)            ; Error code flags for exceptions
+extern ASM_PFX(mDoFarReturnFlag)          ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
 SECTION .data
+ALIGN   4096
 
-extern ASM_PFX(mErrorCodeFlag)            ; Error code flags for exceptions
-extern ASM_PFX(mDoFarReturnFlag)          ; Do far return flag
+global ASM_PFX(CorePageTable)
+ASM_PFX(CorePageTable):
+  resq 1
+
+global ASM_PFX(UserPageTable)
+ASM_PFX(UserPageTable):
+  resq 1
+
+global ASM_PFX(mSwitchCr3Flag)
+ASM_PFX(mSwitchCr3Flag):
+  db 0x0
+
+ALIGN   4096
+Padding:
+  db 0x0
 
 SECTION .text
-
-ALIGN   8
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerBase)
+ASM_PFX(ExceptionHandlerBase):
 
 ;
 ; exception handler stub table
@@ -88,6 +105,14 @@ HookAfterStubHeaderEnd:
 global ASM_PFX(CommonInterruptEntry)
 ASM_PFX(CommonInterruptEntry):
     cli
+    cmp     byte [ASM_PFX(mSwitchCr3Flag)], 0
+    jz      NoCr3Switch
+    mov     eax, cr3
+    mov     [ASM_PFX(UserPageTable)], eax
+    mov     eax, [ASM_PFX(CorePageTable)]
+    mov     cr3, eax
+
+NoCr3Switch:
     pop    eax
     ;
     ; All interrupt handlers are invoked through interrupt gates, so
@@ -413,8 +438,8 @@ continue:
     push    ecx
     mov     ecx, ds
     and     ecx, 3
-    pop     ecx
     jnz     ReturnToRing3
+    pop     ecx
 
     pop     dword [ebp - 8]
     pop     dword [ebp - 4]
@@ -444,10 +469,17 @@ DoReturn:
 DoIret:
     iretd
 ReturnToRing3:
+    mov     ecx, [ASM_PFX(UserPageTable)]
+    mov     cr3, ecx
+    pop     ecx
     mov     esp, ebp
     pop     ebp
     add     esp, 8
     iretd
+
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerEnd)
+ASM_PFX(ExceptionHandlerEnd):
 
 ;---------------------------------------;
 ; _AsmGetTemplateAddressMap                  ;
