@@ -158,6 +158,4 @@ typedef union {
 #define PTE_OFFSET(x)   ( (x >> 12) & PAGETABLE_ENTRY_MASK)
 #define PAGING_1G_ADDRESS_MASK_64  0x000FFFFFC0000000ull
 
-#define PAGE_TABLE_POOL_ALIGNMENT   BASE_2MB
-
 #endif
