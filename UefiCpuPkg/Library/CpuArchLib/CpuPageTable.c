@@ -417,7 +417,15 @@ CpuGetMemoryAttributes (
   PAGE_ATTRIBUTE                 PageAttribute;
   UINT64                         *PageEntry;
 
+  ASSERT (Attributes != NULL);
+
   GetCurrentPagingContext (&PagingContext);
+
+  if ((PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) &&
+    ((PagingContext.ContextData.Ia32.Attributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) == 0)) {
+    *Attributes = 0;
+    return EFI_UNSUPPORTED;
+  }
 
   PageEntry = GetPageTableEntry (&PagingContext, Address, &PageAttribute);
   if (PageEntry == NULL) {
