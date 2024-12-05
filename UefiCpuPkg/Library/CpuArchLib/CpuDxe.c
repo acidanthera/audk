@@ -728,9 +728,9 @@ InitInterruptDescriptorTable (
     //
     // Increase Interrupt Descriptor Table and Copy the old IDT table in
     //
-    IdtTable = AllocatePages (1);
+    IdtTable = AllocatePages (EFI_SIZE_TO_PAGES (sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM));
     ASSERT (IdtTable != NULL);
-    SetMem (IdtTable, EFI_PAGE_SIZE, 0);
+    SetMem (IdtTable, sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM, 0);
     CopyMem (IdtTable, (VOID *)IdtDescriptor.Base, sizeof (IA32_IDT_GATE_DESCRIPTOR) * IdtEntryCount);
 
     //
