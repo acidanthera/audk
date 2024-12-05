@@ -155,7 +155,7 @@ MakeUserPageTableTemplate (
     TotalPagesNum--;
   }
 
-  BigPageAddress = (UINTN)AllocateAlignedPages (TotalPagesNum, PAGE_TABLE_POOL_ALIGNMENT);
+  BigPageAddress = (UINTN)AllocatePages (TotalPagesNum);
   if (BigPageAddress == 0) {
     DEBUG ((DEBUG_ERROR, "Core: Could not allocate buffer for User page table.\n"));
     CpuDeadLoop ();
@@ -281,9 +281,7 @@ MakeUserPageTableTemplate (
   }
 
   *UserPageTableTemplate     = (VOID *)PageMap;
-  *UserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
-
-  SetUefiImageMemoryAttributes ((UINT64)PageMap, *UserPageTableTemplateSize, EFI_MEMORY_XP);
+  *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
 }
 
 VOID

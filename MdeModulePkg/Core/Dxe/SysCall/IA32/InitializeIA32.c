@@ -42,7 +42,7 @@ MakeUserPageTableTemplate (
   NumberOfPdpEntriesNeeded = (UINT32)LShiftU64 (1, (PhysicalAddressBits - 30));
 
   TotalPagesNum = NumberOfPdpEntriesNeeded + 1;
-  PageAddress   = (UINTN)AllocateAlignedPages (TotalPagesNum, PAGE_TABLE_POOL_ALIGNMENT);
+  PageAddress   = (UINTN)AllocatePages (TotalPagesNum);
   ASSERT (PageAddress != 0);
 
   PageMap      = (VOID *)PageAddress;
@@ -84,9 +84,7 @@ MakeUserPageTableTemplate (
   }
 
   *UserPageTableTemplate     = (VOID *)PageMap;
-  *UserPageTableTemplateSize = ALIGN_VALUE (EFI_PAGES_TO_SIZE (TotalPagesNum), PAGE_TABLE_POOL_ALIGNMENT);
-
-  SetUefiImageMemoryAttributes ((UINT64)(UINTN)PageMap, *UserPageTableTemplateSize, EFI_MEMORY_XP);
+  *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
 }
 
 VOID
