@@ -522,6 +522,7 @@ GetMemoryRegionRec (
                                     updated to the end address of the retrieved region.
   @param[out]     RegionLength      The length of the retrieved memory region.
   @param[out]     RegionAttributes  The attributes of the retrieved memory region.
+  @param[in]      UserPageTable     The base address of the User page table.
 
   @retval EFI_STATUS              Returns EFI_SUCCESS if the memory region is
                                   retrieved successfully, or the status of the
@@ -535,7 +536,8 @@ EFI_STATUS
 GetMemoryRegion (
   IN OUT UINTN  *BaseAddress,
   OUT    UINTN  *RegionLength,
-  OUT    UINTN  *RegionAttributes
+  OUT    UINTN  *RegionAttributes,
+  IN     UINTN  UserPageTable  OPTIONAL
   )
 {
   EFI_STATUS  Status;
@@ -549,7 +551,12 @@ GetMemoryRegion (
     return EFI_INVALID_PARAMETER;
   }
 
-  TranslationTable = ArmGetTTBR0BaseAddress ();
+  if (UserPageTable == 0) {
+    TranslationTable = ArmGetTTBR0BaseAddress ();
+  } else {
+    TranslationTable = (UINT64 *)UserPageTable;
+  }
+
 
   // Initialize the output parameters. These paramaters are only valid if the
   // result is EFI_SUCCESS.

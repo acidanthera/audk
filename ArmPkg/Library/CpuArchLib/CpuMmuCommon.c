@@ -254,14 +254,14 @@ CpuSetMemoryAttributes (
 
   // Get the region starting from 'BaseAddress' and its 'Attribute'
   RegionBaseAddress = BaseAddress;
-  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes);
+  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, 0);
 
   // Data & Instruction Caches are flushed when we set new memory attributes.
   // So, we only set the attributes if the new region is different.
   if (EFI_ERROR (Status) || (RegionArmAttributes != ArmAttributes) ||
       ((BaseAddress + Length) > (RegionBaseAddress + RegionLength)))
   {
-    return ArmSetMemoryAttributes (BaseAddress, Length, EfiAttributes, 0);
+    return ArmSetMemoryAttributes (BaseAddress, Length, EfiAttributes, 0, 0);
   } else {
     return EFI_SUCCESS;
   }
@@ -281,7 +281,7 @@ CpuGetMemoryAttributes (
   UINTN       RegionArmAttributes;
 
   RegionBaseAddress = Address;
-  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes);
+  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, 0);
 
   if (EFI_ERROR (Status)) {
     return EFI_NOT_FOUND;
@@ -290,4 +290,44 @@ CpuGetMemoryAttributes (
   *Attributes = RegionAttributeToGcdAttribute (RegionArmAttributes);
 
   return Status;
+}
+
+EFI_STATUS
+EFIAPI
+CpuSetUserMemoryAttributes (
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN UINTN                  UserPageTable,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 EfiAttributes
+  )
+{
+  EFI_STATUS  Status;
+  UINTN       ArmAttributes;
+  UINTN       RegionBaseAddress;
+  UINTN       RegionLength;
+  UINTN       RegionArmAttributes;
+
+  if ((BaseAddress & (SIZE_4KB - 1)) != 0) {
+    // Minimum granularity is SIZE_4KB (4KB on ARM)
+    DEBUG ((DEBUG_PAGE, "CpuSetMemoryAttributes(%lx, %lx, %lx): Minimum granularity is SIZE_4KB\n", BaseAddress, Length, EfiAttributes));
+    return EFI_UNSUPPORTED;
+  }
+
+  // Convert the 'Attribute' into ARM Attribute
+  ArmAttributes = EfiAttributeToArmAttribute (EfiAttributes);
+
+  // Get the region starting from 'BaseAddress' and its 'Attribute'
+  RegionBaseAddress = BaseAddress;
+  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, UserPageTable);
+
+  // Data & Instruction Caches are flushed when we set new memory attributes.
+  // So, we only set the attributes if the new region is different.
+  if (EFI_ERROR (Status) || (RegionArmAttributes != ArmAttributes) ||
+      ((BaseAddress + Length) > (RegionBaseAddress + RegionLength)))
+  {
+    return ArmSetMemoryAttributes (BaseAddress, Length, EfiAttributes, 0, UserPageTable);
+  } else {
+    return EFI_SUCCESS;
+  }
 }

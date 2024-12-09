@@ -105,6 +105,16 @@ CpuGetMemoryAttributes (
   );
 
 EFI_STATUS
+EFIAPI
+CpuSetUserMemoryAttributes (
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN UINTN                  UserPageTable,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 EfiAttributes
+  );
+
+EFI_STATUS
 InitializeExceptions (
   VOID
   );
@@ -124,7 +134,8 @@ EFI_STATUS
 GetMemoryRegion (
   IN OUT UINTN  *BaseAddress,
   OUT    UINTN  *RegionLength,
-  OUT    UINTN  *RegionAttributes
+  OUT    UINTN  *RegionAttributes,
+  IN     UINTN  UserPageTable  OPTIONAL
   );
 
 EFI_STATUS
