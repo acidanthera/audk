@@ -14,7 +14,7 @@
 VOID
 EFIAPI
 MakeUserPageTableTemplate (
-  OUT VOID   **UserPageTableTemplate,
+  OUT UINTN  *UserPageTableTemplate,
   OUT UINTN  *UserPageTableTemplateSize
   )
 {
@@ -280,7 +280,7 @@ MakeUserPageTableTemplate (
     ZeroMem (PageMapLevel5Entry, (512 - IndexOfPml5Entries) * sizeof (PAGE_MAP_AND_DIRECTORY_POINTER));
   }
 
-  *UserPageTableTemplate     = (VOID *)PageMap;
+  *UserPageTableTemplate     = (UINTN)PageMap;
   *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
 }
 

@@ -19,8 +19,6 @@ VOID        *gRing3Interfaces;
 UINTN       gUartBaseAddress;
 
 UEFI_IMAGE_RECORD    *mDxeRing3;
-VOID                 *mUserPageTableTemplate;
-UINTN                mUserPageTableTemplateSize;
 EXCEPTION_ADDRESSES  *mExceptionAddresses;
 
 extern UINTN         SysCallBase;
@@ -29,7 +27,7 @@ extern UINTN         SysCallEnd;
 VOID
 EFIAPI
 MakeUserPageTableTemplate (
-  OUT VOID   **UserPageTableTemplate,
+  OUT UINTN  *UserPageTableTemplate,
   OUT UINTN  *UserPageTableTemplateSize
   );
 
@@ -195,8 +193,6 @@ InitializeRing3 (
     gRing3Data->SystemTable.NumberOfTableEntries
     );
 
-  MakeUserPageTableTemplate (&mUserPageTableTemplate, &mUserPageTableTemplateSize);
-
   mExceptionAddresses = GetExceptionAddresses ();
 
   return Status;
@@ -209,15 +205,17 @@ InitializeUserPageTable (
   )
 {
   UINTN                      UserPageTable;
+  UINTN                      UserPageTableSize;
   UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
   UINTN                      SectionAddress;
   UINT32                     Index;
   UEFI_IMAGE_RECORD          *UserImageRecord;
   IA32_DESCRIPTOR            IdtDescriptor;
 
-  UserPageTable = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (mUserPageTableTemplateSize));
-
-  CopyMem ((VOID *)UserPageTable, mUserPageTableTemplate, mUserPageTableTemplateSize);
+  //
+  // TODO: Remove ASSERTs, add proper checks and return status.
+  //
+  MakeUserPageTableTemplate (&UserPageTable, &UserPageTableSize);
 
   //
   // Map gRing3Data, gRing3Interfaces, gRing3CallStackBase, DxeRing3
