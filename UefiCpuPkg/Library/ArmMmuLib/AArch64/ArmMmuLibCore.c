@@ -667,6 +667,7 @@ GcdAttributeToPageAttribute (
   @param[in]  Length          The size in bytes of the memory region.
   @param[in]  Attributes      Mask of memory attributes to set.
   @param[in]  AttributeMask   Mask of memory attributes to take into account.
+  @param[in]  UserPageTable   The base address of the User page table.
 
   @retval EFI_SUCCESS           The attributes were set for the memory region.
   @retval EFI_INVALID_PARAMETER BaseAddress or Length is not suitably aligned.
@@ -681,7 +682,8 @@ ArmSetMemoryAttributes (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,
   IN UINT64                Length,
   IN UINT64                Attributes,
-  IN UINT64                AttributeMask
+  IN UINT64                AttributeMask,
+  IN UINTN                 UserPageTable  OPTIONAL
   )
 {
   UINT64  PageAttributes;
@@ -716,16 +718,29 @@ ArmSetMemoryAttributes (
     }
   }
 
-  return UpdateRegionMapping (
-           BaseAddress,
-           Length,
-           PageAttributes,
-           PageAttributeMask,
-           ArmGetTTBR0BaseAddress (),
-           TRUE,
-           ArmLpa2Enabled (),
-           0
-           );
+  if (UserPageTable == 0) {
+    return UpdateRegionMapping (
+             BaseAddress,
+             Length,
+             PageAttributes,
+             PageAttributeMask,
+             ArmGetTTBR0BaseAddress (),
+             TRUE,
+             ArmLpa2Enabled (),
+             0
+             );
+  } else {
+    return UpdateRegionMapping (
+             BaseAddress,
+             Length,
+             PageAttributes,
+             PageAttributeMask,
+             (UINT64 *)UserPageTable,
+             FALSE,
+             ArmLpa2Enabled (),
+             0
+             );
+  }
 }
 
 EFI_STATUS

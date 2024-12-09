@@ -74,7 +74,8 @@ GetMemoryAttributes (
     Status = GetMemoryRegion (
                &RegionAddress,
                &RegionLength,
-               &RegionAttributes
+               &RegionAttributes,
+               0
                );
 
     DEBUG ((
@@ -172,7 +173,7 @@ SetMemoryAttributes (
     return EFI_INVALID_PARAMETER;
   }
 
-  return ArmSetMemoryAttributes (BaseAddress, Length, Attributes, Attributes);
+  return ArmSetMemoryAttributes (BaseAddress, Length, Attributes, Attributes, 0);
 }
 
 /**
@@ -262,7 +263,7 @@ ClearMemoryAttributes (
     }
   }
 
-  return ArmSetMemoryAttributes (BaseAddress, Length, 0, Attributes);
+  return ArmSetMemoryAttributes (BaseAddress, Length, 0, Attributes, 0);
 }
 
 EFI_MEMORY_ATTRIBUTE_PROTOCOL  mMemoryAttribute = {
