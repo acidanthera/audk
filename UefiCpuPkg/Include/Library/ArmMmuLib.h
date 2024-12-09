@@ -20,6 +20,14 @@ ArmConfigureMmu (
   OUT UINTN                         *TranslationTableSize  OPTIONAL
   );
 
+EFI_STATUS
+EFIAPI
+ArmMakeUserPageTableTemplate (
+  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable,
+  OUT UINTN                         *TranslationTableBase,
+  OUT UINTN                         *TranslationTableSize
+  );
+
 VOID
 EFIAPI
 ArmReplaceLiveTranslationEntry (
