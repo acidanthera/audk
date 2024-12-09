@@ -152,6 +152,9 @@
   gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
   gEarlyPL011BaseAddressGuid                    ## CONSUMES
 
+[Guids.ARM, Guids.AARCH64]
+  gArmVirtSystemMemorySizeGuid                  ## CONSUMES
+
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
 
@@ -231,6 +234,9 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask        ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
+
+[Pcd.ARM, Pcd.AARCH64]
+  gArmTokenSpaceGuid.PcdSystemMemoryBase                                    ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES

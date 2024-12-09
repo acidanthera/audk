@@ -786,6 +786,53 @@ FreeTranslationTable:
   return Status;
 }
 
+EFI_STATUS
+EFIAPI
+ArmMakeUserPageTableTemplate (
+  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable,
+  OUT UINTN                         *TranslationTableBase,
+  OUT UINTN                         *TranslationTableSize
+  )
+{
+  VOID        *TranslationTable;
+  UINTN       MaxAddressBits;
+  UINT64      MaxAddress;
+  UINTN       T0SZ;
+  UINTN       RootTableEntryCount;
+  EFI_STATUS  Status;
+
+  MaxAddressBits = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
+  MaxAddress     = LShiftU64 (1ULL, MaxAddressBits) - 1;
+
+  T0SZ                = 64 - MaxAddressBits;
+  RootTableEntryCount = GetRootTableEntryCount (T0SZ);
+
+  TranslationTable = AllocatePages (1);
+  if (TranslationTable == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  ZeroMem (TranslationTable, RootTableEntryCount * sizeof (UINT64));
+
+  Status = UpdateRegionMapping (
+             MemoryTable->VirtualBase,
+             MemoryTable->Length,
+             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes),
+             0,
+             TranslationTable,
+             FALSE
+             );
+  if (EFI_ERROR (Status)) {
+    FreePages (TranslationTable, 1);
+    return Status;
+  }
+
+  *TranslationTableBase = (UINTN)TranslationTable;
+  *TranslationTableSize = RootTableEntryCount * sizeof (UINT64);
+
+  return EFI_SUCCESS;
+}
+
 RETURN_STATUS
 EFIAPI
 ArmMmuBaseLibConstructor (
