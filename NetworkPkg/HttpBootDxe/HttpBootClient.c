@@ -186,7 +186,8 @@ HttpBootUpdateDevicePath (
 **/
 EFI_STATUS
 HttpBootDhcp4ExtractUriInfo (
-  IN     HTTP_BOOT_PRIVATE_DATA  *Private
+  IN     HTTP_BOOT_PRIVATE_DATA  *Private,
+  IN     BOOLEAN                 UseDhcp
   )
 {
   HTTP_BOOT_DHCP4_PACKET_CACHE  *SelectOffer;
@@ -198,19 +199,23 @@ HttpBootDhcp4ExtractUriInfo (
   EFI_STATUS                    Status;
 
   ASSERT (Private != NULL);
-  ASSERT (Private->SelectIndex != 0);
-  SelectIndex = Private->SelectIndex - 1;
-  ASSERT (SelectIndex < HTTP_BOOT_OFFER_MAX_NUM);
 
-  DnsServerIndex = 0;
+  if (UseDhcp) {
+    ASSERT (Private->SelectIndex != 0);
+    SelectIndex = Private->SelectIndex - 1;
+    ASSERT (SelectIndex < HTTP_BOOT_OFFER_MAX_NUM);
+
+    //
+    // SelectOffer contains the IP address configuration and name server configuration.
+    // HttpOffer contains the boot file URL.
+    //
+    SelectOffer = &Private->OfferBuffer[SelectIndex].Dhcp4;
+  } else {
+    ASSERT (Private->FilePathUri != NULL);
+  }
 
   Status = EFI_SUCCESS;
 
-  //
-  // SelectOffer contains the IP address configuration and name server configuration.
-  // HttpOffer contains the boot file URL.
-  //
-  SelectOffer = &Private->OfferBuffer[SelectIndex].Dhcp4;
   if (Private->FilePathUri == NULL) {
     //
     // In Corporate environment, we need a HttpOffer.
@@ -251,9 +256,12 @@ HttpBootDhcp4ExtractUriInfo (
     return Status;
   }
 
-  if ((SelectOffer->OfferType == HttpOfferTypeDhcpNameUriDns) ||
+  if (UseDhcp && (
+      (SelectOffer->OfferType == HttpOfferTypeDhcpNameUriDns) ||
       (SelectOffer->OfferType == HttpOfferTypeDhcpDns) ||
-      (SelectOffer->OfferType == HttpOfferTypeDhcpIpUriDns))
+      (SelectOffer->OfferType == HttpOfferTypeDhcpIpUriDns)
+      )
+     )
   {
     Option = SelectOffer->OptList[HTTP_BOOT_DHCP4_TAG_INDEX_DNS_SERVER];
     ASSERT (Option != NULL);
@@ -540,19 +548,127 @@ HttpBootDiscoverBootInfo (
   IN OUT HTTP_BOOT_PRIVATE_DATA  *Private
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS                      Status;
+  EFI_IP4_CONFIG2_PROTOCOL        *Ip4Config2;
+  EFI_IP4_CONFIG2_POLICY          Policy;
+  EFI_IP4_CONFIG2_MANUAL_ADDRESS  Ip4ManualAddress;
+  EFI_IPv4_ADDRESS                Ip4Gateway;
+  EFI_IPv4_ADDRESS                *DnsList;
+  UINTN                           DataSize;
+  BOOLEAN                         UseDhcp;
+  UINTN                           DnsServerIndex;
+
+  UseDhcp = TRUE;
+
+  //
+  // Allow user configured static IPv4 address, if already present, but only if boot file is also specified.
+  //
+  if (!Private->UsingIpv6 && Private->FilePathUri != NULL) {
+    Ip4Config2 = Private->Ip4Config2;
+
+    DataSize = sizeof (EFI_IP4_CONFIG2_POLICY);
+    Status   = Ip4Config2->GetData (
+                            Ip4Config2,
+                            Ip4Config2DataTypePolicy,
+                            &DataSize,
+                            &Policy
+                            );
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
+
+    if (Policy == Ip4Config2PolicyStatic) {
+      DataSize = sizeof (EFI_IP4_CONFIG2_MANUAL_ADDRESS);
+      Status   = Ip4Config2->GetData (
+                              Ip4Config2,
+                              Ip4Config2DataTypeManualAddress,
+                              &DataSize,
+                              &Ip4ManualAddress
+                              );
+      if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
+        return Status;
+      }
+    }
+
+    if ((Policy == Ip4Config2PolicyStatic) && (Status != EFI_NOT_FOUND)) {
+      DataSize = sizeof (EFI_IPv4_ADDRESS);
+      Status   = Ip4Config2->GetData (
+                              Ip4Config2,
+                              Ip4Config2DataTypeGateway,
+                              &DataSize,
+                              &Ip4Gateway
+                              );
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
+
+      DataSize = 0;
+      Status   = Ip4Config2->GetData (
+                              Ip4Config2,
+                              Ip4Config2DataTypeDnsServer,
+                              &DataSize,
+                              NULL
+                              );
+      if (Status == EFI_BUFFER_TOO_SMALL) {
+        DnsList = AllocatePool (DataSize);
+        if (DnsList == NULL) {
+          return EFI_OUT_OF_RESOURCES;
+        }
+        Status   = Ip4Config2->GetData (
+                                Ip4Config2,
+                                Ip4Config2DataTypeDnsServer,
+                                &DataSize,
+                                DnsList
+                                );
+        if (EFI_ERROR (Status)) {
+          FreePool (DnsList);
+          return Status;
+        }
+      }
+      if (EFI_ERROR (Status) && (Status != EFI_NOT_FOUND)) {
+        return Status;
+      }
+
+      CopyMem (&Private->StationIp, &Ip4ManualAddress.Address, sizeof (EFI_IPv4_ADDRESS));
+      CopyMem (&Private->SubnetMask, &Ip4ManualAddress.SubnetMask, sizeof (EFI_IPv4_ADDRESS));
+      CopyMem (&Private->GatewayIp, &Ip4Gateway, sizeof (EFI_IPv4_ADDRESS));
+
+      if (DataSize > 0) {
+        Private->DnsServerCount = (UINT32)(DataSize / sizeof (EFI_IPv4_ADDRESS));
+
+        Private->DnsServerIp = AllocateZeroPool (Private->DnsServerCount * sizeof (EFI_IP_ADDRESS));
+        if (Private->DnsServerIp == NULL) {
+          FreePool (DnsList);
+          return EFI_OUT_OF_RESOURCES;
+        }
+
+        for (DnsServerIndex = 0; DnsServerIndex < Private->DnsServerCount; DnsServerIndex++) {
+          CopyMem (&(Private->DnsServerIp[DnsServerIndex].v4), &DnsList[DnsServerIndex], sizeof (EFI_IPv4_ADDRESS));
+        }
+        FreePool (DnsList);
+      }
+
+      AsciiPrint ("\n  Static IP address is ");
+      HttpBootShowIp4Addr (&Private->StationIp.v4);
+      AsciiPrint ("\n");
+
+      UseDhcp = FALSE;
+    }
+  }
 
   //
   // Start D.O.R.A/S.A.R.R exchange to acquire station ip address and
   // other Http boot information.
   //
-  Status = HttpBootDhcp (Private);
-  if (EFI_ERROR (Status)) {
-    return Status;
+  if (UseDhcp) {
+    Status = HttpBootDhcp (Private);
+    if (EFI_ERROR (Status)) {
+      return Status;
+    }
   }
 
   if (!Private->UsingIpv6) {
-    Status = HttpBootDhcp4ExtractUriInfo (Private);
+    Status = HttpBootDhcp4ExtractUriInfo (Private, UseDhcp);
   } else {
     Status = HttpBootDhcp6ExtractUriInfo (Private);
   }
