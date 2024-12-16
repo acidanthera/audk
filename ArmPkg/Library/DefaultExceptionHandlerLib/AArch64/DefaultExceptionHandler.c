@@ -232,6 +232,10 @@ DefaultExceptionHandler (
   // gets reused.
   UnicodeSPrintAsciiFormat (UnicodeBuffer, MAX_PRINT_CHARS, Buffer);
 
+  if (ArmHasPan ()) {
+    ArmClearPan ();
+  }
+
   DEBUG_CODE_BEGIN ();
   CONST CHAR8  *Pdb, *PrevPdb;
   UINTN        ImageBase;

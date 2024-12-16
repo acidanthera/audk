@@ -13,10 +13,6 @@ EFI_FILE_PROTOCOL                mRing3FileProtocol;
 
 EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
 
-#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
-extern UINTN  gUartBaseAddress;
-#endif
-
 typedef struct {
   EFI_FILE_PROTOCOL  Protocol;
   EFI_FILE_PROTOCOL  *Ring3File;
@@ -62,27 +58,7 @@ GoToRing3 (
   VA_END (Marker);
   ForbidSupervisorAccessToUserMemory ();
 
-#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
-  //
-  // Necessary fix for DEBUG printings.
-  //
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
-#endif
   Status = CallRing3 (Input);
-
-#if defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
-  AllowSupervisorAccessToUserMemory ();
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP
-    );
-  ForbidSupervisorAccessToUserMemory ();
-#endif
 
   CoreFreePages (Ring3Pages, PagesNumber);
 

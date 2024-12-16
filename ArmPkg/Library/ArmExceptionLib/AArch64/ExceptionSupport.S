@@ -101,6 +101,8 @@ GCC_ASM_EXPORT(CommonCExceptionHandler)
 #define FP_CONTEXT_SIZE    (32 * 16)
 #define SYS_CONTEXT_SIZE   ( 6 *  8) // 5 SYS regs + Alignment requirement (ie: the stack must be aligned on 0x10)
 
+ASM_FUNC_ALIGN(ExceptionHandlerBase, 4096)
+
 //
 // There are two methods for installing AArch64 exception vectors:
 //  1. Install a copy of the vectors to a location specified by a PCD
@@ -264,6 +266,28 @@ ASM_PFX(CommonExceptionEntry):
   stp      q28, q29, [x28, #0x1c0]
   stp      q30, q31, [x28, #0x1e0]
 
+  ldr      x2, [x28, #(FP_CONTEXT_SIZE + 0x8)] // Saved Processor Status Register
+  and      x2, x2, #0xF
+  cmp      x2, 0           // Check whether EL0 process was interrupted
+  b.ne     NoTTBR0Switch
+  adrp     x1, ASM_PFX(CorePageTable)
+  EL1_OR_EL2(x3)
+1:mrs      x4, ttbr0_el1
+  str      x4, [x1, #0x8]  // UserPageTable
+  ldr      x4, [x1]        // CorePageTable
+  msr      ttbr0_el1, x4
+  tlbi     vmalle1
+  b        3f
+2:mrs      x4, ttbr0_el2
+  str      x4, [x1, #0x8]  // UserPageTable
+  ldr      x4, [x1]        // CorePageTable
+  msr      ttbr0_el2, x4
+  tlbi     alle2
+3:dsb      sy
+  isb
+
+NoTTBR0Switch:
+
   // x0 still holds the exception type.
   // Set x1 to point to the top of our struct on the Stack
   mov      x1, sp
@@ -278,6 +302,24 @@ ASM_PFX(CommonExceptionEntry):
   // For now we spin in the handler if we received an abort of some kind.
   // We do not try to recover.
   bl       ASM_PFX(CommonCExceptionHandler) // Call exception handler
+
+  ldr      x2, [x28, #(FP_CONTEXT_SIZE + 0x8)] // Saved Processor Status Register
+  and      x2, x2, #0xF
+  cmp      x2, 0           // Check whether EL0 process was interrupted
+  b.ne     NoTTBR0Switch2
+  adrp     x1, ASM_PFX(CorePageTable)
+  EL1_OR_EL2(x3)
+1:ldr      x4, [x1, #0x8]  // UserPageTable
+  msr      ttbr0_el1, x4
+  tlbi     vmalle1
+  b        3f
+2:ldr      x4, [x1, #0x8]  // UserPageTable
+  msr      ttbr0_el2, x4
+  tlbi     alle2
+3:dsb      sy
+  isb
+
+NoTTBR0Switch2:
 
   // Pop as many GP regs as we can before entering the critical section below
   ldp      x2,  x3,  [sp, #0x10]
@@ -356,6 +398,22 @@ continue:
 
   eret
 
+ASM_FUNC_ALIGN(ExceptionHandlerFinal, 4096)
+
 ASM_FUNC(RegisterEl0Stack)
   msr     sp_el0, x0
   ret
+
+.data
+
+.global ASM_PFX(CorePageTable)
+.balign 4096
+ASM_PFX(CorePageTable):
+.ds.d 1
+
+UserPageTable:
+.ds.d 1
+
+.balign 4096
+Padding:
+.ds.b 1

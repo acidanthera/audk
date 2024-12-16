@@ -20,6 +20,8 @@ UINTN       gUartBaseAddress;
 
 UEFI_IMAGE_RECORD    *mDxeRing3;
 EXCEPTION_ADDRESSES  *mExceptionAddresses;
+UINTN                mConfigurationTable;
+UINTN                mConfigurationTableSize;
 
 extern UINTN         SysCallBase;
 extern UINTN         SysCallEnd;
@@ -79,10 +81,12 @@ InitializeRing3 (
     );
 
   if (PcdGetBool (PcdSerialUseMmio)) {
+    mConfigurationTableSize = (gRing3Data->SystemTable.NumberOfTableEntries + 1) * sizeof (EFI_CONFIGURATION_TABLE);
+
     Status = CoreAllocatePages (
                AllocateAnyPages,
                EfiRing3MemoryType,
-               EFI_SIZE_TO_PAGES ((gRing3Data->SystemTable.NumberOfTableEntries + 1) * sizeof (EFI_CONFIGURATION_TABLE)),
+               EFI_SIZE_TO_PAGES (mConfigurationTableSize),
                &Physical
                );
     if (EFI_ERROR (Status)) {
@@ -111,6 +115,7 @@ InitializeRing3 (
     DEBUG ((DEBUG_ERROR, "Core: gUartBaseAddress = 0x%p\n", gUartBaseAddress));
 
     gRing3Data->SystemTable.ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+    mConfigurationTable                        = (UINTN)Physical;
   }
   //
   // Initialize DxeRing3 with Supervisor privileges.
@@ -210,7 +215,6 @@ InitializeUserPageTable (
   UINTN                      SectionAddress;
   UINT32                     Index;
   UEFI_IMAGE_RECORD          *UserImageRecord;
-  IA32_DESCRIPTOR            IdtDescriptor;
 
   //
   // TODO: Remove ASSERTs, add proper checks and return status.
@@ -273,14 +277,6 @@ InitializeUserPageTable (
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          (UINTN)&gCorePageTable,
-          SIZE_4KB,
-          EFI_MEMORY_RO | EFI_MEMORY_XP
-          );
-
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
           (UINTN)gCoreSysCallStackBase,
           EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
           EFI_MEMORY_XP
@@ -289,14 +285,6 @@ InitializeUserPageTable (
   //
   // Map ExceptionHandlers, ExceptionStacks, Idt
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mExceptionAddresses->ExceptionStackBase,
-          mExceptionAddresses->ExceptionStackSize,
-          EFI_MEMORY_XP
-          );
-
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
@@ -310,6 +298,25 @@ InitializeUserPageTable (
           UserPageTable,
           mExceptionAddresses->ExceptionDataBase,
           SIZE_4KB,
+          EFI_MEMORY_XP
+          );
+
+#if defined (MDE_CPU_X64) || defined (MDE_CPU_IA32)
+  IA32_DESCRIPTOR  IdtDescriptor;
+
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          (UINTN)&gCorePageTable,
+          SIZE_4KB,
+          EFI_MEMORY_RO | EFI_MEMORY_XP
+          );
+
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          mExceptionAddresses->ExceptionStackBase,
+          mExceptionAddresses->ExceptionStackSize,
           EFI_MEMORY_XP
           );
 
@@ -332,6 +339,25 @@ InitializeUserPageTable (
           FixedPcdGet32 (PcdOvmfWorkAreaSize),
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
+#elif defined (MDE_CPU_AARCH64) || defined (MDE_CPU_ARM)
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          mConfigurationTable,
+          ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
+  //
+  // Necessary fix for DEBUG printings.
+  //
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          gUartBaseAddress,
+          SIZE_4KB,
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
+#endif
 
   //
   // Map User Image
