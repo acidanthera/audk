@@ -32,6 +32,19 @@
 UINTN                   mMaxExceptionNumber                           = MAX_AARCH64_EXCEPTION;
 EFI_EXCEPTION_CALLBACK  mExceptionHandlers[MAX_AARCH64_EXCEPTION + 1] = { 0 };
 PHYSICAL_ADDRESS        mExceptionVectorAlignmentMask                 = ARM_VECTOR_TABLE_ALIGNMENT;
+EXCEPTION_ADDRESSES     mAddresses;
+
+VOID
+ExceptionHandlerBase (
+  VOID
+  );
+
+VOID
+ExceptionHandlerFinal (
+  VOID
+  );
+
+extern UINTN  CorePageTable;
 
 #define EL0_STACK_SIZE  EFI_PAGES_TO_SIZE(2)
 STATIC UINTN  mNewStackBase[EL0_STACK_SIZE / sizeof (UINTN)];
@@ -269,10 +282,6 @@ CommonCExceptionHandler (
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
   )
 {
-  if (ArmHasPan ()) {
-    ArmClearPan ();
-  }
-
   if ((UINTN)ExceptionType <= mMaxExceptionNumber) {
     if (mExceptionHandlers[ExceptionType] != NULL) {
       mExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
@@ -335,6 +344,10 @@ DumpCpuContext (
   // Prepare a unicode buffer for ConOut, if applicable, in case the buffer
   // gets reused.
   UnicodeSPrintAsciiFormat (UnicodeBuffer, MAX_PRINT_CHARS, Buffer);
+
+  if (ArmHasPan ()) {
+    ArmClearPan ();
+  }
 
   DEBUG_CODE_BEGIN ();
   CONST CHAR8  *Pdb, *PrevPdb;
@@ -580,4 +593,29 @@ InitializeSeparateExceptionStacks (
   )
 {
   return EFI_SUCCESS;
+}
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
+  )
+{
+  return &mAddresses;
+}
+
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  mAddresses.ExceptionStackBase   = (UINTN)Buffer;
+  mAddresses.ExceptionStackSize   = BufferSize;
+  mAddresses.ExceptionHandlerBase = (UINTN)ExceptionHandlerBase;
+  mAddresses.ExceptionHandlerSize = (UINTN)ExceptionHandlerFinal - mAddresses.ExceptionHandlerBase;
+  mAddresses.ExceptionDataBase    = (UINTN)&CorePageTable;
+
+  CorePageTable = (UINTN)ArmGetTTBR0BaseAddress ();
 }

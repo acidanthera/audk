@@ -22,7 +22,7 @@ CHAR8 *SysCallNames[] = {
   //
   // BootServices
   //
-  "SysCallReturnToCore",     // Must always be zero for CoreBootServices.nasm.
+  "SysCallReturnToCore",
   "SysCallLocateProtocol",
   "SysCallOpenProtocol",
   "SysCallInstallMultipleProtocolInterfaces",

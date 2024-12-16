@@ -13,7 +13,7 @@
 #include "DxeMain.h"
 
 STATIC UINTN  mCoreSp;
-extern UINTN  gUartBaseAddress;
+UINTN         gUserPageTable;
 
 EFI_STATUS
 EFIAPI
@@ -22,7 +22,8 @@ ArmCallRing3 (
   IN VOID            *StackPointer,
   IN VOID            *EntryPoint,
   IN VOID            *SysCallStack,
-  IN VOID            *CoreStack
+  IN VOID            *CoreStack,
+  IN UINTN           UserPageTable
   );
 
 VOID
@@ -65,12 +66,6 @@ SysCallBootService (
 
   AllowSupervisorAccessToUserMemory ();
   CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)UserRsp, 8 * sizeof (UINTN));
-
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP
-    );
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
@@ -80,12 +75,6 @@ SysCallBootService (
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
-
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
 
   return Status;
 }
@@ -128,13 +117,6 @@ InitializeMsr (
   UINTN  Tcr;
   UINTN  Sctlr;
   //
-  // If HCR_EL2.NV is 1 and the current Exception level is EL1,
-  // then EL1 read accesses to the CurrentEL register return a value of 0x2 in bits[3:2].
-  // CurrentEL == 1 -> HCR_EL2.NV == 0
-  //
-  // If stage 1 is enabled and stage 1 Base permissions use Direct permissions,
-  // then GCS access is not permitted and UnprivGCS and PrivGCS are not present.
-  //
   // Disable Hierarchical permissions just in case.
   //
   Tcr = ArmGetTCR ();
@@ -153,6 +135,7 @@ InitializeMsr (
   }
 
   InitializeSysCallHandler ((VOID *)SysCallBootService);
+  SetExceptionAddresses (NULL, 0);
 }
 
 VOID
@@ -183,5 +166,5 @@ CallRing3 (
   IN RING3_CALL_DATA *Data
   )
 {
-  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp);
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp, gUserPageTable);
 }

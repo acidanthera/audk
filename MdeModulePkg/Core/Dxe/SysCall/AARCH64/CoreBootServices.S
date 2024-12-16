@@ -55,6 +55,7 @@ call:
     add	 sp, sp, #0x10
     ret
 
+ASM_FUNC_ALIGN(SysCallBase, 4096)
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
@@ -67,6 +68,7 @@ call:
 //   (x2) gRing3EntryPoint
 //   (x3) gCoreSysCallStackTop
 //   (x4) &CoreSp
+//   (x5) gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
@@ -88,6 +90,10 @@ ASM_FUNC(ArmCallRing3)
   // Disable interrupts.
   msr  daifset, #0xf
   isb
+  // Save Core SP and switch to CoreSysCall Stack.
+  mov  x6, sp
+  str  x6, [x4]
+  mov  sp, x3
   // Copy PSTATE to SPSR.
   mrs  x6, nzcv
   mrs  x7, pan
@@ -97,17 +103,18 @@ ASM_FUNC(ArmCallRing3)
   EL1_OR_EL2(x1)
 1:msr  elr_el1, x2
   msr  spsr_el1, x6
+  msr  ttbr0_el1, x5
+  tlbi vmalle1
   b    3f
 2:msr  elr_el2, x2
   msr  spsr_el2, x6
-  // Save Core SP and switch to CoreSysCall Stack.
-3:mov  x5, sp
-  str  x5, [x4]
-  mov  sp, x3
-
+  msr  ttbr0_el2, x5
+  tlbi alle2
+3:dsb   sy
   isb
   eret
 
+ASM_FUNC_ALIGN(SysCallEnd, 4096)
 //------------------------------------------------------------------------------
 // VOID
 // EFIAPI
