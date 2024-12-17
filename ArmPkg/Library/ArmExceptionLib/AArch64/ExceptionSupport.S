@@ -89,7 +89,7 @@
   UINT64  FPSR;   0x310   // Floating Point Status Register
   UINT64  ESR;    0x318   // Exception syndrome register
   UINT64  FAR;    0x320   // Fault Address Register
-  UINT64  Padding;0x328   // Required for stack alignment
+  UINT64  Type;   0x328   // Exception Type
 */
 
 GCC_ASM_EXPORT(ExceptionHandlersEnd)
@@ -246,7 +246,7 @@ ASM_PFX(CommonExceptionEntry):
   // Save the SYS regs
   stp      x2,  x3,  [x28, #-SYS_CONTEXT_SIZE]!
   stp      x4,  x5,  [x28, #0x10]
-  str      x6,  [x28, #0x20]
+  stp      x6,  x0,  [x28, #0x20]
 
   // Push FP regs to Stack.
   stp      q0,  q1,  [x28, #-FP_CONTEXT_SIZE]!
@@ -336,12 +336,9 @@ NoTTBR0Switch2:
   ldp      x24, x25, [sp, #0xc0]
   ldp      x26, x27, [sp, #0xd0]
   // Preserve return value for SVC.
-  ldr      x1, [x28, #(FP_CONTEXT_SIZE + 0x18)] // Exception syndrome register
-  lsr      x1, x1, #26
-  and      x1, x1, #0x3F
-  cmp      x1, #0x15
+  ldr      x1, [x28, #(FP_CONTEXT_SIZE + 0x28)] // Exception type
+  cmp      x1, #EXCEPT_AARCH64_SYNCHRONOUS_EXCEPTIONS
   b.eq     is_SVC
-
   ldp      x0,  x1,  [sp], #0xe0
   b        continue
 is_SVC:
