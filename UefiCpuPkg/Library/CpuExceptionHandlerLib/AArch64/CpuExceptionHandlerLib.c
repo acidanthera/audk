@@ -285,7 +285,6 @@ CommonCExceptionHandler (
   if ((UINTN)ExceptionType <= mMaxExceptionNumber) {
     if (mExceptionHandlers[ExceptionType] != NULL) {
       mExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
-      SystemContext.SystemContextAArch64->ESR = 0;
       return EFI_SUCCESS;
     }
   } else {
