@@ -54,6 +54,8 @@ SysCallBootService (
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    Physical;
 
+  ArmEnableInterrupts ();
+
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
@@ -75,6 +77,8 @@ SysCallBootService (
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
+
+  ArmDisableInterrupts ();
 
   return Status;
 }
