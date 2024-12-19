@@ -6,6 +6,7 @@
 **/
 
 #include <Library/ArmLib.h>
+#include <Library/ArmMmuLib.h>
 #include <Library/DefaultExceptionHandlerLib.h>
 
 #include "DxeMain.h"
@@ -95,6 +96,34 @@ SysCallBootService (
     );
 
   return Status;
+}
+
+VOID
+EFIAPI
+MakeUserPageTableTemplate (
+  OUT UINTN  *UserPageTableTemplate,
+  OUT UINTN  *UserPageTableTemplateSize
+  )
+{
+  ARM_MEMORY_REGION_DESCRIPTOR  Descriptor;
+  VOID                          *MemorySizeHob;
+
+  MemorySizeHob = GetFirstGuidHob (&gArmVirtSystemMemorySizeGuid);
+  ASSERT (MemorySizeHob != NULL);
+  if (MemorySizeHob == NULL) {
+    return;
+  }
+
+  Descriptor.PhysicalBase = PcdGet64 (PcdSystemMemoryBase);
+  Descriptor.VirtualBase  = Descriptor.PhysicalBase;
+  Descriptor.Length       = *(UINT64 *)GET_GUID_HOB_DATA (MemorySizeHob);
+  Descriptor.Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK;
+
+  ArmMakeUserPageTableTemplate (
+    &Descriptor,
+    UserPageTableTemplate,
+    UserPageTableTemplateSize
+    );
 }
 
 VOID

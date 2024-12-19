@@ -162,8 +162,7 @@
                                         TT_DESCRIPTOR_SECTION_NG_GLOBAL    | \
                                         TT_DESCRIPTOR_SECTION_S_SHARED     | \
                                         TT_DESCRIPTOR_SECTION_DOMAIN(0)    | \
-                                        TT_DESCRIPTOR_SECTION_AP_NO_RW     | \
-                                        TT_DESCRIPTOR_SECTION_AF)
+                                        TT_DESCRIPTOR_SECTION_AP_NO_RW)
 
 #define TT_DESCRIPTOR_SECTION_WRITE_BACK  (TT_DESCRIPTOR_SECTION_DEFAULT | \
                                            TT_DESCRIPTOR_SECTION_CACHE_POLICY_WRITE_BACK_ALLOC)
@@ -179,8 +178,7 @@
 
 #define TT_DESCRIPTOR_PAGE_DEFAULT  (TT_DESCRIPTOR_PAGE_TYPE_PAGE | \
                                      TT_DESCRIPTOR_PAGE_NG_GLOBAL | \
-                                     TT_DESCRIPTOR_PAGE_AP_NO_RW  | \
-                                     TT_DESCRIPTOR_PAGE_AF)
+                                     TT_DESCRIPTOR_PAGE_AP_NO_RW)
 
 #define TT_DESCRIPTOR_PAGE_WRITE_BACK     (TT_DESCRIPTOR_PAGE_DEFAULT  | \
                                            TT_DESCRIPTOR_PAGE_S_SHARED | \
