@@ -11,6 +11,7 @@
 #------------------------------------------------------------------------------
 
 #include <Library/PcdLib.h>
+#include <AsmMacroIoLib.h>
 
 /*
 
@@ -59,8 +60,10 @@ GCC_ASM_EXPORT(CommonCExceptionHandler)
 #if !defined(__APPLE__)
 .fpu neon    @ makes vpush/vpop assemble
 #endif
-.align 5
 
+ASM_FUNC_ALIGN(ExceptionHandlerBase, 4096)
+
+.align 5
 
 //
 // This code gets copied to the ARM vector table
@@ -117,6 +120,8 @@ ASM_PFX(UndefinedInstructionEntry):
   bx        R1
 
 ASM_PFX(SoftwareInterruptEntry):
+  cpsid     if
+  isb
   srsdb     #0x13!                    @ Store return state on SVC stack
                                       @ We are already in SVC mode
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
@@ -250,6 +255,24 @@ NoAdjustNeeded:
   vpush     {d0-d15}                @ save vstm registers in case they are used in optimizations
 #endif
 
+  ldr       R5, [SP, #0x40]         @ Saved Processor Status Register
+  and       R5, R5, #0xF
+  cmp       R5, 0                   @ Check whether EL0 process was interrupted
+  bne       NoTTBR0Switch
+  mrc       p15,0,R5,c2,c0,0        @ R5 == TTBR0
+  ADRL      (R6, UserPageTable)
+  str       R5, [R6]
+  and       R5, R5, #0x7F           @ Preserve TTBR0 attributes
+  LDRL      (R6, ASM_PFX(CorePageTable))
+  orr       R6, R6, R5              @ Assign TTBR0 attributes
+  mcr       p15,0,R6,c2,c0,0        @ TTBR0 == R6
+  mcr       p15,0,r0,c8,c7,0        @ TLBIALL, TLB Invalidate All.
+  mcr       p15,0,r0,c7,c5,6        @ BPIALL, Branch Predictor Invalidate All.
+  dsb
+  isb
+
+NoTTBR0Switch:
+
   mov       R4, SP                  @ Save current SP
   tst       R4, #4
   subne     SP, SP, #4              @ Adjust SP if not 8-byte aligned
@@ -268,6 +291,19 @@ CommonCExceptionHandler (
   blx       ASM_PFX(CommonCExceptionHandler)  @ Call exception handler
 
   mov       SP, R4                  @ Restore SP
+
+  ldr       R4, [SP, #0x40]         @ Saved Processor Status Register
+  and       R4, R4, #0xF
+  cmp       R4, 0                   @ Check whether EL0 process was interrupted
+  bne       NoTTBR0Switch2
+  LDRL      (R4, UserPageTable)
+  mcr       p15,0,R4,c2,c0,0        @ TTBR0 == R4
+  mcr       p15,0,r0,c8,c7,0        @ TLBIALL, TLB Invalidate All.
+  mcr       p15,0,r0,c7,c5,6        @ BPIALL, Branch Predictor Invalidate All.
+  dsb
+  isb
+
+NoTTBR0Switch2:
 
 #if (FixedPcdGet32(PcdVFPEnabled))
   vpop      {d0-d15}
@@ -290,3 +326,19 @@ CommonCExceptionHandler (
   add       SP,SP,#0x20             @ Clear out the remaining stack space
   ldmfd     SP!,{LR}                @ restore the link register for this context
   rfefd     SP!                     @ return from exception via srsfd stack slot
+
+ASM_FUNC_ALIGN(ExceptionHandlerFinal, 4096)
+
+.data
+
+.global ASM_PFX(CorePageTable)
+.balign 4096
+ASM_PFX(CorePageTable):
+.ds.l 1
+
+UserPageTable:
+.ds.l 1
+
+.balign 4096
+Padding:
+.ds.b 1
