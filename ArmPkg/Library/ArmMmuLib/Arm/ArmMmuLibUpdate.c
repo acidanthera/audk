@@ -31,7 +31,8 @@
 STATIC
 EFI_STATUS
 ConvertSectionToPages (
-  IN EFI_PHYSICAL_ADDRESS  BaseAddress
+  IN EFI_PHYSICAL_ADDRESS                 BaseAddress,
+  IN volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable
   )
 {
   UINT32  FirstLevelIdx;
@@ -40,13 +41,9 @@ ConvertSectionToPages (
   UINT32  PageDescriptor;
   UINT32  Index;
 
-  volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable;
-  volatile ARM_PAGE_TABLE_ENTRY        *PageTable;
+  volatile ARM_PAGE_TABLE_ENTRY  *PageTable;
 
   DEBUG ((DEBUG_PAGE, "Converting section at 0x%x to pages\n", (UINTN)BaseAddress));
-
-  // Obtain page table base
-  FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
 
   // Calculate index into first level translation table for start of modification
   FirstLevelIdx = TT_DESCRIPTOR_SECTION_BASE_ADDRESS (BaseAddress) >> TT_DESCRIPTOR_SECTION_BASE_SHIFT;
@@ -79,11 +76,12 @@ ConvertSectionToPages (
 STATIC
 EFI_STATUS
 UpdatePageEntries (
-  IN  EFI_PHYSICAL_ADDRESS  BaseAddress,
-  IN  UINT64                Length,
-  IN  UINT64                Attributes,
-  IN  UINT32                EntryMask,
-  OUT BOOLEAN               *FlushTlbs OPTIONAL
+  IN  EFI_PHYSICAL_ADDRESS                 BaseAddress,
+  IN  UINT64                               Length,
+  IN  UINT64                               Attributes,
+  IN  UINT32                               EntryMask,
+  OUT BOOLEAN                              *FlushTlbs OPTIONAL,
+  IN  volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable
   )
 {
   EFI_STATUS  Status;
@@ -98,8 +96,7 @@ UpdatePageEntries (
   UINT32      CurrentPageTableEntry;
   VOID        *Mva;
 
-  volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable;
-  volatile ARM_PAGE_TABLE_ENTRY        *PageTable;
+  volatile ARM_PAGE_TABLE_ENTRY  *PageTable;
 
   Status = EFI_SUCCESS;
 
@@ -163,9 +160,6 @@ UpdatePageEntries (
     EntryValue |= TT_DESCRIPTOR_PAGE_XN_MASK;
   }
 
-  // Obtain page table base
-  FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
-
   // Calculate number of 4KB page table entries to change
   NumPageEntries = (UINT32)(Length / TT_DESCRIPTOR_PAGE_SIZE);
 
@@ -193,7 +187,10 @@ UpdatePageEntries (
         continue;
       }
 
-      Status = ConvertSectionToPages (FirstLevelIdx << TT_DESCRIPTOR_SECTION_BASE_SHIFT);
+      Status = ConvertSectionToPages (
+                 FirstLevelIdx << TT_DESCRIPTOR_SECTION_BASE_SHIFT,
+                 FirstLevelTable
+                 );
       if (EFI_ERROR (Status)) {
         // Exit for loop
         break;
@@ -240,21 +237,21 @@ UpdatePageEntries (
 STATIC
 EFI_STATUS
 UpdateSectionEntries (
-  IN EFI_PHYSICAL_ADDRESS  BaseAddress,
-  IN UINT64                Length,
-  IN UINT64                Attributes,
-  IN UINT32                EntryMask
+  IN EFI_PHYSICAL_ADDRESS                 BaseAddress,
+  IN UINT64                               Length,
+  IN UINT64                               Attributes,
+  IN UINT32                               EntryMask,
+  IN volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable
   )
 {
-  EFI_STATUS                           Status;
-  UINT32                               EntryValue;
-  UINT32                               FirstLevelIdx;
-  UINT32                               NumSections;
-  UINT32                               i;
-  UINT32                               CurrentDescriptor;
-  UINT32                               Descriptor;
-  VOID                                 *Mva;
-  volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable;
+  EFI_STATUS  Status;
+  UINT32      EntryValue;
+  UINT32      FirstLevelIdx;
+  UINT32      NumSections;
+  UINT32      i;
+  UINT32      CurrentDescriptor;
+  UINT32      Descriptor;
+  VOID        *Mva;
 
   Status = EFI_SUCCESS;
 
@@ -325,9 +322,6 @@ UpdateSectionEntries (
     EntryValue |= TT_DESCRIPTOR_SECTION_AF;
   }
 
-  // obtain page table base
-  FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
-
   // calculate index into first level translation table for start of modification
   FirstLevelIdx = TT_DESCRIPTOR_SECTION_BASE_ADDRESS (BaseAddress) >> TT_DESCRIPTOR_SECTION_BASE_SHIFT;
   ASSERT (FirstLevelIdx < TRANSLATION_TABLE_SECTION_COUNT);
@@ -347,7 +341,8 @@ UpdateSectionEntries (
                  TT_DESCRIPTOR_SECTION_SIZE,
                  Attributes,
                  ConvertSectionAttributesToPageAttributes (EntryMask),
-                 NULL
+                 NULL,
+                 FirstLevelTable
                  );
     } else {
       // still a section entry
@@ -385,6 +380,7 @@ UpdateSectionEntries (
   @param  Attributes            A mask of EFI_MEMORY_xx constants.
   @param  SectionMask           A mask of short descriptor section attributes
                                 describing which descriptor bits to update.
+  @param  UserPageTable         The base address of the User page table.
 
   @retval EFI_SUCCESS           The attributes were set successfully.
   @retval EFI_OUT_OF_RESOURCES  The operation failed due to insufficient memory.
@@ -396,12 +392,14 @@ SetMemoryAttributes (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,
   IN UINT64                Length,
   IN UINT64                Attributes,
-  IN UINT32                SectionMask
+  IN UINT32                SectionMask,
+  IN UINTN                 UserPageTable  OPTIONAL
   )
 {
-  EFI_STATUS  Status;
-  UINT64      ChunkLength;
-  BOOLEAN     FlushTlbs;
+  EFI_STATUS                           Status;
+  UINT64                               ChunkLength;
+  BOOLEAN                              FlushTlbs;
+  volatile ARM_FIRST_LEVEL_DESCRIPTOR  *FirstLevelTable;
 
   if (BaseAddress > (UINT64)MAX_ADDRESS) {
     DEBUG ((
@@ -417,6 +415,13 @@ SetMemoryAttributes (
   Length = MIN (Length, (UINT64)MAX_ADDRESS - BaseAddress + 1);
   if (Length == 0) {
     return EFI_SUCCESS;
+  }
+
+  // Obtain page table base
+  if (UserPageTable == 0) {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
+  } else {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)UserPageTable;
   }
 
   FlushTlbs = FALSE;
@@ -438,7 +443,8 @@ SetMemoryAttributes (
                  BaseAddress,
                  ChunkLength,
                  Attributes,
-                 SectionMask
+                 SectionMask,
+                 FirstLevelTable
                  );
 
       FlushTlbs = TRUE;
@@ -466,7 +472,8 @@ SetMemoryAttributes (
                  ChunkLength,
                  Attributes,
                  ConvertSectionAttributesToPageAttributes (SectionMask),
-                 &FlushTlbs
+                 &FlushTlbs,
+                 FirstLevelTable
                  );
     }
 
@@ -517,6 +524,7 @@ SetMemoryAttributes (
   @param[in]  Length          The size in bytes of the memory region.
   @param[in]  Attributes      Mask of memory attributes to set.
   @param[in]  AttributeMask   Mask of memory attributes to take into account.
+  @param[in]  UserPageTable   The base address of the User page table.
 
   @retval EFI_SUCCESS           The attributes were set for the memory region.
   @retval EFI_INVALID_PARAMETER BaseAddress or Length is not suitably aligned.
@@ -531,7 +539,8 @@ ArmSetMemoryAttributes (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,
   IN UINT64                Length,
   IN UINT64                Attributes,
-  IN UINT64                AttributeMask
+  IN UINT64                AttributeMask,
+  IN UINTN                 UserPageTable  OPTIONAL
   )
 {
   UINT32  TtEntryMask;
@@ -584,6 +593,7 @@ ArmSetMemoryAttributes (
            BaseAddress,
            Length,
            Attributes,
-           TtEntryMask
+           TtEntryMask,
+           UserPageTable
            );
 }

@@ -584,6 +584,7 @@ GetMemoryRegionPage (
                                       On output, the base address of the region found.
   @param[out]       RegionLength      The length of the region found.
   @param[out]       RegionAttributes  The attributes of the region found.
+  @param[in]        UserPageTable     The base address of the User page table.
 
   @retval   EFI_SUCCESS             Region found
   @retval   EFI_NOT_FOUND           Region not found
@@ -596,7 +597,8 @@ EFI_STATUS
 GetMemoryRegion (
   IN OUT UINTN  *BaseAddress,
   OUT    UINTN  *RegionLength,
-  OUT    UINTN  *RegionAttributes
+  OUT    UINTN  *RegionAttributes,
+  IN     UINTN  UserPageTable  OPTIONAL
   )
 {
   EFI_STATUS                  Status;
@@ -612,7 +614,11 @@ GetMemoryRegion (
   *RegionLength = 0;
 
   // Obtain page table base
-  FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
+  if (UserPageTable == 0) {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
+  } else {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)UserPageTable;
+  }
 
   // Calculate index into first level translation table for start of modification
   TableIndex = TT_DESCRIPTOR_SECTION_BASE_ADDRESS (*BaseAddress) >> TT_DESCRIPTOR_SECTION_BASE_SHIFT;
