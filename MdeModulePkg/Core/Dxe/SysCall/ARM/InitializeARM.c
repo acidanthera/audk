@@ -12,7 +12,7 @@
 #include "DxeMain.h"
 
 STATIC UINTN  mCoreSp;
-extern UINTN  gUartBaseAddress;
+UINTN         gUserPageTable;
 
 EFI_STATUS
 EFIAPI
@@ -21,7 +21,8 @@ ArmCallRing3 (
   IN VOID            *StackPointer,
   IN VOID            *EntryPoint,
   IN VOID            *SysCallStack,
-  IN VOID            *CoreStack
+  IN VOID            *CoreStack,
+  IN UINTN           UserPageTable
   );
 
 VOID
@@ -52,6 +53,8 @@ SysCallBootService (
   EFI_STATUS              Status;
   EFI_PHYSICAL_ADDRESS    Physical;
 
+  ArmEnableInterrupts ();
+
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
@@ -71,12 +74,6 @@ SysCallBootService (
   // All remaining arguments are on User Stack.
   //
   CopyMem ((VOID *)((UINTN)Physical + 5 * sizeof (UINTN)), (VOID *)UserRsp, 4 * sizeof (UINTN));
-
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP
-    );
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
@@ -89,11 +86,7 @@ SysCallBootService (
   //
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
 
-  SetUefiImageMemoryAttributes (
-    gUartBaseAddress,
-    EFI_PAGE_SIZE,
-    EFI_MEMORY_XP | EFI_MEMORY_USER
-    );
+  ArmDisableInterrupts ();
 
   return Status;
 }
@@ -141,6 +134,7 @@ InitializeMsr (
   }
 
   InitializeSysCallHandler (SysCallBootService);
+  SetExceptionAddresses (NULL, 0);
 }
 
 VOID
@@ -171,5 +165,5 @@ CallRing3 (
   IN RING3_CALL_DATA *Data
   )
 {
-  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp);
+  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp, gUserPageTable);
 }

@@ -51,6 +51,7 @@ call:
   pop   {R4-R8, LR}
   bx    LR
 
+ASM_FUNC_ALIGN(SysCallBase, 4096)
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
@@ -63,13 +64,15 @@ call:
 //   (r2) gRing3EntryPoint
 //   (r3) gCoreSysCallStackTop
 //
-//   (On Core Stack) &CoreSp
+//   (On Core Stack) &CoreSp, gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
   push  {R4-R12, LR}
   // R6 is &CoreSp
   ldr   R6, [SP, #0x28]
+  // R7 is gUserPageTable
+  ldr   R7, [SP, #0x2C]
 
 #if (FixedPcdGet32(PcdVFPEnabled))
   // Save vstm registers in case they are used in optimizations.
@@ -94,10 +97,21 @@ ASM_FUNC(ArmCallRing3)
   str   R5, [R6]
   mov   SP, R3
 
+  // Switch to UserPageTable.
+  mrc   p15,0,R8,c2,c0,0   // R8 == TTBR0
+  and   R8, R8, #0x7F      // Preserve Core TTBR0 attributes.
+  orr   R7, R7, R8         // Assign Core attributes to UserPageTable.
+  mcr   p15,0,R7,c2,c0,0   // TTBR0 == UserPageTable
+  mcr   p15,0,r0,c8,c7,0   // TLBIALL, TLB Invalidate All.
+  mcr   p15,0,r0,c7,c5,6   // BPIALL, Branch Predictor Invalidate All.
+  dsb
+  isb
+
   push  {R4}
   push  {R2}
   rfefd SP
 
+ASM_FUNC_ALIGN(SysCallEnd, 4096)
 //------------------------------------------------------------------------------
 // VOID
 // EFIAPI
