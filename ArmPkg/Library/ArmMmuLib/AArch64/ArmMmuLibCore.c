@@ -809,14 +809,11 @@ ArmMakeUserPageTableTemplate (
 {
   VOID        *TranslationTable;
   UINTN       MaxAddressBits;
-  UINT64      MaxAddress;
   UINTN       T0SZ;
   UINTN       RootTableEntryCount;
   EFI_STATUS  Status;
 
-  MaxAddressBits = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
-  MaxAddress     = LShiftU64 (1ULL, MaxAddressBits) - 1;
-
+  MaxAddressBits      = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
   T0SZ                = 64 - MaxAddressBits;
   RootTableEntryCount = GetRootTableEntryCount (T0SZ);
 

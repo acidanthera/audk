@@ -284,7 +284,8 @@ CpuGetMemoryAttributes (
   Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, 0);
 
   if (EFI_ERROR (Status)) {
-    return EFI_NOT_FOUND;
+    *Attributes = 0;
+    return Status;
   }
 
   *Attributes = RegionAttributeToGcdAttribute (RegionArmAttributes);
