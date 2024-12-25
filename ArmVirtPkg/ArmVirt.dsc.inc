@@ -282,21 +282,13 @@
 [PcdsFeatureFlag.common]
   gEfiMdeModulePkgTokenSpaceGuid.PcdHiiOsRuntimeSupport|FALSE
 
+  gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob|TRUE
+
 [PcdsFeatureFlag.AARCH64]
   #
   # Activate AcpiSdtProtocol
   #
   gEfiMdeModulePkgTokenSpaceGuid.PcdInstallAcpiSdtProtocol|TRUE
-
-  #
-  # FIXME: The PcdPrePiProduceMemoryTypeInformationHob on ARM breaks Linux efistub boot.
-  # The efistub for arm32 uncompresses Linux kernel into memory ranges which occupied
-  # by DXE-phase drivers which leads to 'permission denied'-error during page write. 
-  #
-  # So as a temporary solution we use PcdPrePiProduceMemoryTypeInformationHob 
-  # only for AARCH64
-  #
-  gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob|TRUE
 
 [PcdsFixedAtBuild.common]
 !ifdef $(FIRMWARE_VER)
