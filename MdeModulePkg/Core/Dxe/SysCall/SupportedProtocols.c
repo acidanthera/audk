@@ -1,22 +1,14 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
 
 #include "DxeMain.h"
+#include "SupportedProtocols.h"
 
-EFI_DRIVER_BINDING_PROTOCOL      mRing3DriverBindingProtocol;
-EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mRing3SimpleFileSystemProtocol;
-EFI_FILE_PROTOCOL                mRing3FileProtocol;
-
-EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
-
-typedef struct {
-  EFI_FILE_PROTOCOL  Protocol;
-  EFI_FILE_PROTOCOL  *Ring3File;
-} RING3_EFI_FILE_PROTOCOL;
+LIST_ENTRY mUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (mUserSpaceDriversHead);
 
 EFI_STATUS
 EFIAPI
@@ -66,31 +58,24 @@ GoToRing3 (
 }
 
 STATIC
-VOID *
+USER_SPACE_DRIVER *
 EFIAPI
-Ring3Copy (
-  IN VOID    *Core,
-  IN UINT32  Size
+FindUserSpaceDriver (
+  IN VOID  *CoreWrapper
   )
 {
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Ring3;
+  LIST_ENTRY         *Link;
+  USER_SPACE_DRIVER  *UserDriver;
 
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             1,
-             &Ring3
-             );
-  if (EFI_ERROR (Status)) {
-    return NULL;
+  for (Link = mUserSpaceDriversHead.ForwardLink; Link != &mUserSpaceDriversHead; Link = Link->ForwardLink) {
+    UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
+
+    if (UserDriver->CoreWrapper == CoreWrapper) {
+      return UserDriver;
+    }
   }
 
-  AllowSupervisorAccessToUserMemory ();
-  CopyMem ((VOID *)(UINTN)Ring3, Core, Size);
-  ForbidSupervisorAccessToUserMemory ();
-
-  return (VOID *)(UINTN)Ring3;
+  return NULL;
 }
 
 EFI_STATUS
@@ -101,22 +86,27 @@ CoreDriverBindingSupported (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS         Status;
+  USER_SPACE_DRIVER  *UserDriver;
+  VOID               *EntryPoint;
 
-  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
-  if (This == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->Supported;
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              3,
-             (VOID *)mRing3DriverBindingProtocol.Supported,
+             EntryPoint,
              This,
              ControllerHandle,
              RemainingDevicePath
              );
-
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -129,22 +119,27 @@ CoreDriverBindingStart (
   IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS         Status;
+  USER_SPACE_DRIVER  *UserDriver;
+  VOID               *EntryPoint;
 
-  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
-  if (This == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->Start;
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              3,
-             (VOID *)mRing3DriverBindingProtocol.Start,
+             EntryPoint,
              This,
              ControllerHandle,
              RemainingDevicePath
              );
-
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -158,23 +153,28 @@ CoreDriverBindingStop (
   IN EFI_HANDLE                  *ChildHandleBuffer OPTIONAL
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS         Status;
+  USER_SPACE_DRIVER  *UserDriver;
+  VOID               *EntryPoint;
 
-  This = Ring3Copy (This, sizeof (EFI_DRIVER_BINDING_PROTOCOL));
-  if (This == NULL) {
-    return EFI_OUT_OF_RESOURCES;
-  }
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->Stop;
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              4,
-             (VOID *)mRing3DriverBindingProtocol.Stop,
+             EntryPoint,
              This,
              ControllerHandle,
              NumberOfChildren,
              ChildHandleBuffer
              );
-
-  CoreFreePages ((EFI_PHYSICAL_ADDRESS)(UINTN)This, 1);
 
   return Status;
 }
@@ -186,18 +186,27 @@ CoreFileClose (
   IN EFI_FILE_PROTOCOL  *This
   )
 {
-  EFI_STATUS              Status;
-  RING3_EFI_FILE_PROTOCOL *File;
+  EFI_STATUS         Status;
+  USER_SPACE_DRIVER  *UserDriver;
+  VOID               *EntryPoint;
 
-  File = (RING3_EFI_FILE_PROTOCOL *)This;
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->Close;
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              1,
-             (VOID *)mRing3FileProtocol.Close,
-             File->Ring3File
+             EntryPoint,
+             This
              );
 
-  FreePool (This);
+  FreePool (UserDriver->CoreWrapper);
 
   return Status;
 }
@@ -221,21 +230,20 @@ CoreFileRead (
   OUT VOID                    *Buffer
   )
 {
-  EFI_STATUS              Status;
-  RING3_EFI_FILE_PROTOCOL *File;
-  UINTN                   *Ring3BufferSize;
-  VOID                    *Ring3Buffer;
-  EFI_PHYSICAL_ADDRESS    Ring3Pages;
-  UINT32                  PagesNumber;
+  EFI_STATUS            Status;
+  UINTN                 *Ring3BufferSize;
+  VOID                  *Ring3Buffer;
+  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  UINT32                PagesNumber;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
 
   if ((This == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  File        = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3Buffer = NULL;
   Ring3Pages  = 0;
-
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
 
   Status = CoreAllocatePages (
@@ -250,8 +258,15 @@ CoreFileRead (
 
   Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
   AllowSupervisorAccessToUserMemory ();
   *Ring3BufferSize = *BufferSize;
+  EntryPoint       = (VOID *)This->Read;
   ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
@@ -260,8 +275,8 @@ CoreFileRead (
 
   Status = GoToRing3 (
              3,
-             (VOID *)mRing3FileProtocol.Read,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3BufferSize,
              Ring3Buffer
              );
@@ -299,15 +314,24 @@ CoreFileSetPosition (
   IN UINT64                   Position
   )
 {
-  RING3_EFI_FILE_PROTOCOL *File;
+  USER_SPACE_DRIVER  *UserDriver;
+  VOID               *EntryPoint;
 
-  File = (RING3_EFI_FILE_PROTOCOL *)This;
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->SetPosition;
+  ForbidSupervisorAccessToUserMemory ();
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   return GoToRing3 (
            2,
-           (VOID *)mRing3FileProtocol.SetPosition,
-           File->Ring3File,
+           EntryPoint,
+           This,
            Position
            );
 #elif defined (MDE_CPU_IA32)
@@ -316,8 +340,8 @@ CoreFileSetPosition (
   //
   return GoToRing3 (
            3,
-           (VOID *)mRing3FileProtocol.SetPosition,
-           File->Ring3File,
+           EntryPoint,
+           This,
            Position
            );
 #elif defined (MDE_CPU_ARM)
@@ -327,8 +351,8 @@ CoreFileSetPosition (
   //
   return GoToRing3 (
            4,
-           (VOID *)mRing3FileProtocol.SetPosition,
-           File->Ring3File,
+           EntryPoint,
+           This,
            Position
            );
 #endif
@@ -343,16 +367,14 @@ CoreFileGetPosition (
   OUT UINT64                  *Position
   )
 {
-  EFI_STATUS              Status;
-  RING3_EFI_FILE_PROTOCOL *File;
-  EFI_PHYSICAL_ADDRESS    Ring3Position;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  Ring3Position;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
 
   if ((This == NULL) || (Position == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
-
-  File          = (RING3_EFI_FILE_PROTOCOL *)This;
-  Ring3Position = 0;
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -364,14 +386,21 @@ CoreFileGetPosition (
     return Status;
   }
 
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
   AllowSupervisorAccessToUserMemory ();
   *(UINT64 *)(UINTN)Ring3Position = *Position;
+  EntryPoint                      = (VOID *)This->GetPosition;
   ForbidSupervisorAccessToUserMemory ();
 
   Status = GoToRing3 (
              2,
-             (VOID *)mRing3FileProtocol.GetPosition,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3Position
              );
 
@@ -394,19 +423,19 @@ CoreFileGetInfo (
   OUT VOID                    *Buffer
   )
 {
-  EFI_STATUS              Status;
-  RING3_EFI_FILE_PROTOCOL *File;
-  EFI_GUID                *Ring3InformationType;
-  UINTN                   *Ring3BufferSize;
-  VOID                    *Ring3Buffer;
-  EFI_PHYSICAL_ADDRESS    Ring3Pages;
-  UINT32                  PagesNumber;
+  EFI_STATUS            Status;
+  EFI_GUID              *Ring3InformationType;
+  UINTN                 *Ring3BufferSize;
+  VOID                  *Ring3Buffer;
+  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  UINT32                PagesNumber;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
 
   if ((This == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  File                 = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3Buffer          = NULL;
   Ring3InformationType = NULL;
   Ring3Pages           = 0;
@@ -425,8 +454,15 @@ CoreFileGetInfo (
 
   Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
 
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
   AllowSupervisorAccessToUserMemory ();
   *Ring3BufferSize = *BufferSize;
+  EntryPoint       = (VOID *)This->GetInfo;
   ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
@@ -443,8 +479,8 @@ CoreFileGetInfo (
 
   Status = GoToRing3 (
              4,
-             (VOID *)mRing3FileProtocol.GetInfo,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3InformationType,
              Ring3BufferSize,
              Ring3Buffer
@@ -545,19 +581,19 @@ CoreFileOpen (
   IN UINT64                   Attributes
   )
 {
-  EFI_STATUS              Status;
-  RING3_EFI_FILE_PROTOCOL *File;
-  RING3_EFI_FILE_PROTOCOL *NewFile;
-  EFI_FILE_PROTOCOL       **Ring3NewHandle;
-  CHAR16                  *Ring3FileName;
-  EFI_PHYSICAL_ADDRESS    Ring3Pages;
-  UINT32                  PagesNumber;
+  EFI_STATUS            Status;
+  EFI_FILE_PROTOCOL     *NewFile;
+  EFI_FILE_PROTOCOL     **Ring3NewHandle;
+  CHAR16                *Ring3FileName;
+  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  UINT32                PagesNumber;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
 
   if ((This == NULL) || (NewHandle == NULL) || (FileName == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  File           = (RING3_EFI_FILE_PROTOCOL *)This;
   Ring3NewHandle = NULL;
   Ring3FileName  = NULL;
   Ring3Pages     = 0;
@@ -578,8 +614,15 @@ CoreFileOpen (
   Ring3NewHandle = (EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages;
   Ring3FileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages + 1);
 
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
   AllowSupervisorAccessToUserMemory ();
-  Status = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
+  Status     = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
+  EntryPoint = (VOID *)This->Open;
   ForbidSupervisorAccessToUserMemory ();
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
@@ -590,8 +633,8 @@ CoreFileOpen (
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   Status = GoToRing3 (
              5,
-             (VOID *)mRing3FileProtocol.Open,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3NewHandle,
              Ring3FileName,
              OpenMode,
@@ -603,8 +646,8 @@ CoreFileOpen (
   //
   Status = GoToRing3 (
              7,
-             (VOID *)mRing3FileProtocol.Open,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3NewHandle,
              Ring3FileName,
              OpenMode,
@@ -619,8 +662,8 @@ CoreFileOpen (
   //
   Status = GoToRing3 (
              8,
-             (VOID *)mRing3FileProtocol.Open,
-             File->Ring3File,
+             EntryPoint,
+             This,
              Ring3NewHandle,
              Ring3FileName,
              OpenMode,
@@ -633,32 +676,38 @@ CoreFileOpen (
     return Status;
   }
 
-  NewFile = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
+  NewFile = AllocatePool (sizeof (EFI_FILE_PROTOCOL));
   if (NewFile == NULL) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
     return EFI_OUT_OF_RESOURCES;
   }
 
-  NewFile->Protocol.Revision    = mRing3FileProtocol.Revision;
-  NewFile->Protocol.Open        = CoreFileOpen;
-  NewFile->Protocol.Close       = CoreFileClose;
-  NewFile->Protocol.Delete      = CoreFileDelete;
-  NewFile->Protocol.Read        = CoreFileRead;
-  NewFile->Protocol.Write       = CoreFileWrite;
-  NewFile->Protocol.GetPosition = CoreFileGetPosition;
-  NewFile->Protocol.SetPosition = CoreFileSetPosition;
-  NewFile->Protocol.GetInfo     = CoreFileGetInfo;
-  NewFile->Protocol.SetInfo     = CoreFileSetInfo;
-  NewFile->Protocol.Flush       = CoreFileFlush;
-  NewFile->Protocol.OpenEx      = CoreFileOpenEx;
-  NewFile->Protocol.ReadEx      = CoreFileReadEx;
-  NewFile->Protocol.WriteEx     = CoreFileWriteEx;
-  NewFile->Protocol.FlushEx     = CoreFileFlushEx;
+  UserDriver                = AllocatePool (sizeof (USER_SPACE_DRIVER));
+  UserDriver->CoreWrapper   = NewFile;
+  UserDriver->UserPageTable = gUserPageTable;
 
   AllowSupervisorAccessToUserMemory ();
-  NewFile->Ring3File = *Ring3NewHandle;
+  UserDriver->UserSpaceDriver = *Ring3NewHandle;
+  NewFile->Revision           = (*Ring3NewHandle)->Revision;
   ForbidSupervisorAccessToUserMemory ();
+
+  InsertTailList (&mUserSpaceDriversHead, &UserDriver->Link);
+
+  NewFile->Open        = CoreFileOpen;
+  NewFile->Close       = CoreFileClose;
+  NewFile->Delete      = CoreFileDelete;
+  NewFile->Read        = CoreFileRead;
+  NewFile->Write       = CoreFileWrite;
+  NewFile->GetPosition = CoreFileGetPosition;
+  NewFile->SetPosition = CoreFileSetPosition;
+  NewFile->GetInfo     = CoreFileGetInfo;
+  NewFile->SetInfo     = CoreFileSetInfo;
+  NewFile->Flush       = CoreFileFlush;
+  NewFile->OpenEx      = CoreFileOpenEx;
+  NewFile->ReadEx      = CoreFileReadEx;
+  NewFile->WriteEx     = CoreFileWriteEx;
+  NewFile->FlushEx     = CoreFileFlushEx;
 
   *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
 
@@ -674,14 +723,26 @@ CoreOpenVolume (
   OUT EFI_FILE_PROTOCOL               **Root
   )
 {
-  EFI_STATUS              Status;
-  EFI_FILE_PROTOCOL       **Ring3Root;
-  RING3_EFI_FILE_PROTOCOL *File;
-  EFI_PHYSICAL_ADDRESS    Physical;
+  EFI_STATUS            Status;
+  EFI_FILE_PROTOCOL     **Ring3Root;
+  EFI_FILE_PROTOCOL     *File;
+  EFI_PHYSICAL_ADDRESS  Physical;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
 
   if (Root == NULL) {
     return EFI_INVALID_PARAMETER;
   }
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  AllowSupervisorAccessToUserMemory ();
+  EntryPoint = (VOID *)This->OpenVolume;
+  ForbidSupervisorAccessToUserMemory ();
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -698,8 +759,8 @@ CoreOpenVolume (
 
   Status = GoToRing3 (
              2,
-             (VOID *)mRing3SimpleFileSystemProtocol.OpenVolume,
-             mRing3SimpleFileSystemPointer,
+             EntryPoint,
+             This,
              Ring3Root
              );
   if (EFI_ERROR (Status)) {
@@ -708,48 +769,38 @@ CoreOpenVolume (
     return Status;
   }
 
-  File = AllocatePool (sizeof (RING3_EFI_FILE_PROTOCOL));
+  File = AllocatePool (sizeof (EFI_FILE_PROTOCOL));
   if (File == NULL) {
     *Root = NULL;
     CoreFreePages (Physical, 1);
     return EFI_OUT_OF_RESOURCES;
   }
 
-  AllowSupervisorAccessToUserMemory ();
-  mRing3FileProtocol.Revision    = (*Ring3Root)->Revision;
-  mRing3FileProtocol.Open        = (*Ring3Root)->Open;
-  mRing3FileProtocol.Close       = (*Ring3Root)->Close;
-  mRing3FileProtocol.Delete      = (*Ring3Root)->Delete;
-  mRing3FileProtocol.Read        = (*Ring3Root)->Read;
-  mRing3FileProtocol.Write       = (*Ring3Root)->Write;
-  mRing3FileProtocol.GetPosition = (*Ring3Root)->GetPosition;
-  mRing3FileProtocol.SetPosition = (*Ring3Root)->SetPosition;
-  mRing3FileProtocol.GetInfo     = (*Ring3Root)->GetInfo;
-  mRing3FileProtocol.SetInfo     = (*Ring3Root)->SetInfo;
-  mRing3FileProtocol.Flush       = (*Ring3Root)->Flush;
-  mRing3FileProtocol.OpenEx      = (*Ring3Root)->OpenEx;
-  mRing3FileProtocol.ReadEx      = (*Ring3Root)->ReadEx;
-  mRing3FileProtocol.WriteEx     = (*Ring3Root)->WriteEx;
-  mRing3FileProtocol.FlushEx     = (*Ring3Root)->FlushEx;
+  UserDriver                = AllocatePool (sizeof (USER_SPACE_DRIVER));
+  UserDriver->CoreWrapper   = File;
+  UserDriver->UserPageTable = gUserPageTable;
 
-  File->Ring3File = *Ring3Root;
+  AllowSupervisorAccessToUserMemory ();
+  UserDriver->UserSpaceDriver = *Ring3Root;
+  File->Revision              = (*Ring3Root)->Revision;
   ForbidSupervisorAccessToUserMemory ();
 
-  File->Protocol.Revision    = mRing3FileProtocol.Revision;
-  File->Protocol.Open        = CoreFileOpen;
-  File->Protocol.Close       = CoreFileClose;
-  File->Protocol.Delete      = CoreFileDelete;
-  File->Protocol.Read        = CoreFileRead;
-  File->Protocol.Write       = CoreFileWrite;
-  File->Protocol.GetPosition = CoreFileGetPosition;
-  File->Protocol.SetPosition = CoreFileSetPosition;
-  File->Protocol.GetInfo     = CoreFileGetInfo;
-  File->Protocol.SetInfo     = CoreFileSetInfo;
-  File->Protocol.Flush       = CoreFileFlush;
-  File->Protocol.OpenEx      = CoreFileOpenEx;
-  File->Protocol.ReadEx      = CoreFileReadEx;
-  File->Protocol.WriteEx     = CoreFileWriteEx;
-  File->Protocol.FlushEx     = CoreFileFlushEx;
+  InsertTailList (&mUserSpaceDriversHead, &UserDriver->Link);
+
+  File->Open        = CoreFileOpen;
+  File->Close       = CoreFileClose;
+  File->Delete      = CoreFileDelete;
+  File->Read        = CoreFileRead;
+  File->Write       = CoreFileWrite;
+  File->GetPosition = CoreFileGetPosition;
+  File->SetPosition = CoreFileSetPosition;
+  File->GetInfo     = CoreFileGetInfo;
+  File->SetInfo     = CoreFileSetInfo;
+  File->Flush       = CoreFileFlush;
+  File->OpenEx      = CoreFileOpenEx;
+  File->ReadEx      = CoreFileReadEx;
+  File->WriteEx     = CoreFileWriteEx;
+  File->FlushEx     = CoreFileFlushEx;
 
   *Root = (EFI_FILE_PROTOCOL *)File;
 

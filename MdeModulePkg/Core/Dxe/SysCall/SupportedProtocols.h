@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -11,9 +11,14 @@
 #include <Protocol/DiskIo.h>
 #include <Protocol/UnicodeCollation.h>
 
-extern EFI_DRIVER_BINDING_PROTOCOL      mRing3DriverBindingProtocol;
-extern EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  mRing3SimpleFileSystemProtocol;
-extern EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *mRing3SimpleFileSystemPointer;
+typedef struct {
+  VOID        *CoreWrapper;
+  VOID        *UserSpaceDriver;
+  UINTN       UserPageTable;
+  LIST_ENTRY  Link;
+} USER_SPACE_DRIVER;
+
+extern LIST_ENTRY mUserSpaceDriversHead;
 
 EFI_STATUS
 EFIAPI

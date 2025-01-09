@@ -1446,7 +1446,6 @@ CoreLoadImageCommon (
 
   if ((gRing3Data != NULL) && Image->IsUserImage) {
     Image->UserPageTable = InitializeUserPageTable (Image);
-    gUserPageTable       = Image->UserPageTable;
   }
 
   RegisterMemoryProfileImage (
@@ -1703,6 +1702,8 @@ CoreStartImage (
       } else {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        gUserPageTable = Image->UserPageTable;
 
         Image->Status = GoToRing3 (
           2,
