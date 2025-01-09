@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -302,6 +302,7 @@ CallBootService (
   EFI_HANDLE           CoreHandle;
   UINT32               PagesNumber;
   EFI_PHYSICAL_ADDRESS Ring3Pages;
+  USER_SPACE_DRIVER    *UserDriver;
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
@@ -465,6 +466,15 @@ CallBootService (
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
+        //
+        // TODO: Check everywhere that Allocated != NULL
+        //
+        UserDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        UserDriver->CoreWrapper     = CoreArgList[Index + 1];
+        UserDriver->UserSpaceDriver = UserArgList[Index + 1];
+        UserDriver->UserPageTable   = gUserPageTable;
+
+        InsertTailList (&mUserSpaceDriversHead, &UserDriver->Link);
 
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] + sizeof (VOID *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -478,23 +488,13 @@ CallBootService (
         if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiDriverBindingProtocolGuid)) {
           CoreDriverBinding = (EFI_DRIVER_BINDING_PROTOCOL *)CoreArgList[Index + 1];
 
-          mRing3DriverBindingProtocol.Supported = CoreDriverBinding->Supported;
-          mRing3DriverBindingProtocol.Start     = CoreDriverBinding->Start;
-          mRing3DriverBindingProtocol.Stop      = CoreDriverBinding->Stop;
-
           CoreDriverBinding->Supported = CoreDriverBindingSupported;
           CoreDriverBinding->Start     = CoreDriverBindingStart;
           CoreDriverBinding->Stop      = CoreDriverBindingStop;
         } else if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiSimpleFileSystemProtocolGuid)) {
           CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
 
-          mRing3SimpleFileSystemProtocol.OpenVolume = CoreSimpleFileSystem->OpenVolume;
-
           CoreSimpleFileSystem->OpenVolume = CoreOpenVolume;
-
-          AllowSupervisorAccessToUserMemory ();
-          mRing3SimpleFileSystemPointer = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)UserArgList[Index + 1];
-          ForbidSupervisorAccessToUserMemory ();
         }
       }
 
