@@ -808,3 +808,316 @@ CoreOpenVolume (
 
   return Status;
 }
+
+INTN
+EFIAPI
+CoreUnicodeCollationStriColl (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *Str1,
+  IN CHAR16                          *Str2
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+  UINTN                 Size1;
+  UINTN                 Size2;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Size1 = StrSize (Str1);
+  Size2 = StrSize (Str2);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (Size1 + Size2),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return 0;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)Str1, Size1);
+  CopyMem ((VOID *)((UINTN)UserMem + Size1), (VOID *)Str2, Size2);
+  EntryPoint = (VOID *)This->StriColl;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             3,
+             EntryPoint,
+             This,
+             (UINTN)UserMem,
+             (UINTN)UserMem + Size1
+             );
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1 + Size2));
+
+  return (INTN)Status;
+}
+
+BOOLEAN
+EFIAPI
+CoreUnicodeCollationMetaiMatch (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *String,
+  IN CHAR16                          *Pattern
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+  UINTN                 Size1;
+  UINTN                 Size2;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Size1 = StrSize (String);
+  Size2 = StrSize (Pattern);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (Size1 + Size2),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return FALSE;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)String, Size1);
+  CopyMem ((VOID *)((UINTN)UserMem + Size1), (VOID *)Pattern, Size2);
+  EntryPoint = (VOID *)This->MetaiMatch;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             3,
+             EntryPoint,
+             This,
+             (UINTN)UserMem,
+             (UINTN)UserMem + Size1
+             );
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1 + Size2));
+
+  return (BOOLEAN)Status;
+}
+
+VOID
+EFIAPI
+CoreUnicodeCollationStrLwr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                      *Str
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+  UINTN                 Size1;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Size1 = StrSize (Str);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (Size1),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)Str, Size1);
+  EntryPoint = (VOID *)This->StrLwr;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             2,
+             EntryPoint,
+             This,
+             (UINTN)UserMem
+             );
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)Str, (VOID *)(UINTN)UserMem, Size1);
+  ForbidSupervisorAccessToUserMemory ();
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1));
+}
+
+VOID
+EFIAPI
+CoreUnicodeCollationStrUpr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                      *Str
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+  UINTN                 Size1;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Size1 = StrSize (Str);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (Size1),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)Str, Size1);
+  EntryPoint = (VOID *)This->StrUpr;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             2,
+             EntryPoint,
+             This,
+             (UINTN)UserMem
+             );
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)Str, (VOID *)(UINTN)UserMem, Size1);
+  ForbidSupervisorAccessToUserMemory ();
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1));
+}
+
+VOID
+EFIAPI
+CoreUnicodeCollationFatToStr (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN UINTN                           FatSize,
+  IN CHAR8                           *Fat,
+  OUT CHAR16                         *String
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (FatSize * 3),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)Fat, FatSize);
+  EntryPoint = (VOID *)This->FatToStr;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             4,
+             EntryPoint,
+             This,
+             FatSize,
+             (UINTN)UserMem,
+             (UINTN)UserMem + FatSize
+             );
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)String, (VOID *)((UINTN)UserMem + FatSize), FatSize * 2);
+  ForbidSupervisorAccessToUserMemory ();
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (FatSize * 3));
+}
+
+BOOLEAN
+EFIAPI
+CoreUnicodeCollationStrToFat (
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *String,
+  IN UINTN                           FatSize,
+  OUT CHAR8                          *Fat
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  UserMem;
+  USER_SPACE_DRIVER     *UserDriver;
+  VOID                  *EntryPoint;
+  UINTN                 Size1;
+
+  UserDriver = FindUserSpaceDriver (This);
+  ASSERT (UserDriver != NULL);
+
+  This           = UserDriver->UserSpaceDriver;
+  gUserPageTable = UserDriver->UserPageTable;
+
+  Size1 = StrSize (String);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (FatSize + Size1),
+             &UserMem
+             );
+  if (EFI_ERROR (Status)) {
+    return FALSE;
+  }
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)(UINTN)UserMem, (VOID *)String, Size1);
+  EntryPoint = (VOID *)This->StrToFat;
+  ForbidSupervisorAccessToUserMemory ();
+
+  Status = GoToRing3 (
+             4,
+             EntryPoint,
+             This,
+             (UINTN)UserMem,
+             FatSize,
+             (UINTN)UserMem + Size1
+             );
+
+  AllowSupervisorAccessToUserMemory ();
+  CopyMem ((VOID *)Fat, (VOID *)((UINTN)UserMem + Size1), FatSize);
+  ForbidSupervisorAccessToUserMemory ();
+
+  CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (FatSize + Size1));
+
+  return (BOOLEAN)Status;
+}

@@ -190,6 +190,7 @@
   gEfiDiskIoProtocolGuid                        ## SOMETIMES_CONSUMES
   gEfiBlockIoProtocolGuid                       ## SOMETIMES_CONSUMES
   gEfiUnicodeCollationProtocolGuid              ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollation2ProtocolGuid             ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES

@@ -154,6 +154,11 @@ FindGuid (
 
     *Core     = &gEfiGlobalVariableGuid;
 
+  } else if (CompareGuid (Ring3, &gEfiUnicodeCollation2ProtocolGuid)) {
+
+    *Core     = &gEfiUnicodeCollation2ProtocolGuid;
+    *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
+
   } else {
     DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol - %g.\n", Ring3));
     return EFI_NOT_FOUND;
@@ -306,6 +311,7 @@ CallBootService (
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
+  EFI_UNICODE_COLLATION_PROTOCOL   *CoreUnicodeCollation;
 
   EFI_BLOCK_IO_PROTOCOL          *BlockIo;
   EFI_DISK_IO_PROTOCOL           *DiskIo;
@@ -495,6 +501,22 @@ CallBootService (
           CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
 
           CoreSimpleFileSystem->OpenVolume = CoreOpenVolume;
+        } else if ((CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollationProtocolGuid))
+            || (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid))) {
+          CoreUnicodeCollation = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreArgList[Index + 1];
+
+          CoreUnicodeCollation->StriColl   = CoreUnicodeCollationStriColl;
+          CoreUnicodeCollation->MetaiMatch = CoreUnicodeCollationMetaiMatch;
+          CoreUnicodeCollation->StrLwr     = CoreUnicodeCollationStrLwr;
+          CoreUnicodeCollation->StrUpr     = CoreUnicodeCollationStrUpr;
+          CoreUnicodeCollation->FatToStr   = CoreUnicodeCollationFatToStr;
+          CoreUnicodeCollation->StrToFat   = CoreUnicodeCollationStrToFat;
+          AllowSupervisorAccessToUserMemory ();
+          CoreUnicodeCollation->SupportedLanguages = AllocateCopyPool (
+                                                       AsciiStrSize (CoreUnicodeCollation->SupportedLanguages),
+                                                       (VOID *)CoreUnicodeCollation->SupportedLanguages
+                                                       );
+          ForbidSupervisorAccessToUserMemory ();
         }
       }
 
