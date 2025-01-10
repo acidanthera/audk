@@ -18,9 +18,9 @@ EFI_STATUS
 EFIAPI
 ArmCallRing3 (
   IN RING3_CALL_DATA *Data,
-  IN VOID            *StackPointer,
+  IN UINTN           StackPointer,
   IN VOID            *EntryPoint,
-  IN VOID            *SysCallStack,
+  IN UINTN           SysCallStack,
   IN VOID            *CoreStack,
   IN UINTN           UserPageTable
   );

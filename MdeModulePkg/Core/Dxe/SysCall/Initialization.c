@@ -9,10 +9,8 @@
 
 #include "DxeMain.h"
 
-VOID        *gCoreSysCallStackTop;
-VOID        *gCoreSysCallStackBase;
-VOID        *gRing3CallStackTop;
-VOID        *gRing3CallStackBase;
+UINTN       gCoreSysCallStackTop;
+UINTN       gRing3CallStackTop;
 VOID        *gRing3EntryPoint;
 RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
@@ -48,8 +46,6 @@ InitializeRing3 (
   )
 {
   EFI_STATUS               Status;
-  VOID                     *TopOfStack;
-  UINTN                    SizeOfStack;
   EFI_PHYSICAL_ADDRESS     Physical;
   UINTN                    Index;
   EFI_CONFIGURATION_TABLE  *Conf;
@@ -157,42 +153,6 @@ InitializeRing3 (
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
 
-  SizeOfStack = EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE;
-
-  //
-  // Allocate 128KB for the Core SysCall Stack.
-  //
-  gCoreSysCallStackBase = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-  ASSERT (gCoreSysCallStackBase != NULL);
-
-  //
-  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-  //
-  TopOfStack = (VOID *)((UINTN)gCoreSysCallStackBase + SizeOfStack - CPU_STACK_ALIGNMENT);
-  TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
-
-  gCoreSysCallStackTop = TopOfStack;
-
-  SetUefiImageMemoryAttributes ((UINTN)gCoreSysCallStackBase, SizeOfStack, EFI_MEMORY_XP);
-  DEBUG ((DEBUG_ERROR, "Core: gCoreSysCallStackTop = %p\n", gCoreSysCallStackTop));
-
-  //
-  // Allocate 128KB for the User Stack.
-  //
-  gRing3CallStackBase = AllocatePages (EFI_SIZE_TO_PAGES (USER_STACK_SIZE));
-  ASSERT (gRing3CallStackBase != NULL);
-
-  //
-  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-  //
-  TopOfStack = (VOID *)((UINTN)gRing3CallStackBase + SizeOfStack - CPU_STACK_ALIGNMENT);
-  TopOfStack = ALIGN_POINTER (TopOfStack, CPU_STACK_ALIGNMENT);
-
-  gRing3CallStackTop = TopOfStack;
-
-  SetUefiImageMemoryAttributes ((UINTN)gRing3CallStackBase, SizeOfStack, EFI_MEMORY_XP | EFI_MEMORY_USER);
-  DEBUG ((DEBUG_ERROR, "Core: gRing3CallStackTop = %p\n", gRing3CallStackTop));
-
   InitializeMsr (
     gRing3Data->SystemTable.ConfigurationTable,
     gRing3Data->SystemTable.NumberOfTableEntries
@@ -206,7 +166,11 @@ InitializeRing3 (
 UINTN
 EFIAPI
 InitializeUserPageTable (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
+  IN UINTN                      SysCallStackBase,
+  IN UINTN                      SysCallStackSize,
+  IN UINTN                      UserStackBase,
+  IN UINTN                      UserStackSize
   )
 {
   UINTN                      UserPageTable;
@@ -222,7 +186,7 @@ InitializeUserPageTable (
   MakeUserPageTableTemplate (&UserPageTable, &UserPageTableSize);
 
   //
-  // Map gRing3Data, gRing3Interfaces, gRing3CallStackBase, DxeRing3
+  // Map gRing3Data, gRing3Interfaces, UserStackBase, DxeRing3
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
@@ -243,8 +207,8 @@ InitializeUserPageTable (
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          (UINTN)gRing3CallStackBase,
-          EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+          UserStackBase,
+          UserStackSize,
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
 
@@ -264,7 +228,7 @@ InitializeUserPageTable (
   }
 
   //
-  // Map CoreBootServices, gCoreSysCallStackBase
+  // Map CoreBootServices, SysCallStackBase
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
@@ -277,8 +241,8 @@ InitializeUserPageTable (
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          (UINTN)gCoreSysCallStackBase,
-          EFI_SIZE_TO_PAGES (USER_STACK_SIZE) * EFI_PAGE_SIZE,
+          SysCallStackBase,
+          SysCallStackSize,
           EFI_MEMORY_XP
           );
 
