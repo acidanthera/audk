@@ -115,7 +115,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 ///
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
 
-#define USER_STACK_SIZE             0x20000
+#define STACK_SIZE                  0x20000
 #define RING3_INTERFACES_PAGES      20
 
 typedef struct {
@@ -231,6 +231,8 @@ typedef struct {
   VOID                                    *HiiData;
   BOOLEAN                                 IsUserImage;
   UINTN                                   UserPageTable;
+  UINTN                                   SysCallStackTop;
+  UINTN                                   UserStackTop;
 } LOADED_IMAGE_PRIVATE_DATA;
 
 typedef struct {
@@ -285,10 +287,8 @@ extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
 
 extern RING3_DATA                        *gRing3Data;
 extern VOID                              *gRing3Interfaces;
-extern VOID                              *gCoreSysCallStackBase;
-extern VOID                              *gCoreSysCallStackTop;
-extern VOID                              *gRing3CallStackBase;
-extern VOID                              *gRing3CallStackTop;
+extern UINTN                             gCoreSysCallStackTop;
+extern UINTN                             gRing3CallStackTop;
 extern VOID                              *gRing3EntryPoint;
 extern UINTN                             gUserPageTable;
 extern UINTN                             gCorePageTable;
@@ -2798,7 +2798,11 @@ FreeProtocolsList (
 UINTN
 EFIAPI
 InitializeUserPageTable (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
+  IN UINTN                      SysCallStackBase,
+  IN UINTN                      SysCallStackSize,
+  IN UINTN                      UserStackBase,
+  IN UINTN                      UserStackSize
   );
 
 #endif

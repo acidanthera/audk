@@ -799,16 +799,6 @@ CoreExitBootServices (
       RING3_INTERFACES_PAGES
     );
 
-    CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gCoreSysCallStackBase,
-      EFI_SIZE_TO_PAGES (USER_STACK_SIZE)
-    );
-
-    CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3CallStackBase,
-      EFI_SIZE_TO_PAGES (USER_STACK_SIZE)
-    );
-
     FreeProtocolsList ();
   }
 

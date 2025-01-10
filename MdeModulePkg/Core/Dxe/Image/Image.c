@@ -1033,6 +1033,30 @@ CoreUnloadAndCloseImage (
   CoreFreePool (Image);
 }
 
+STATIC
+UINTN
+EFIAPI
+AllocateStack (
+  IN  UINTN  Size,
+  OUT UINTN  *Base
+  )
+{
+  UINTN  TopOfStack;
+
+  ASSERT (Base != NULL);
+  ASSERT (IS_ALIGNED (Size, EFI_PAGE_SIZE));
+
+  *Base = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (Size));
+  ASSERT (*Base != 0);
+  //
+  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+  //
+  TopOfStack = *Base + Size - CPU_STACK_ALIGNMENT;
+  TopOfStack = ALIGN_VALUE (TopOfStack, CPU_STACK_ALIGNMENT);
+
+  return TopOfStack;
+}
+
 /**
   Loads an EFI image into memory and returns a handle to the image.
 
@@ -1108,6 +1132,8 @@ CoreLoadImageCommon (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
   EFI_FV_FILE_ATTRIBUTES          FileAttributes;
+  UINTN                           SysCallStackBase;
+  UINTN                           UserStackBase;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1445,7 +1471,19 @@ CoreLoadImageCommon (
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
   if ((gRing3Data != NULL) && Image->IsUserImage) {
-    Image->UserPageTable = InitializeUserPageTable (Image);
+    Image->SysCallStackTop = AllocateStack (STACK_SIZE, &SysCallStackBase);
+    SetUefiImageMemoryAttributes (SysCallStackBase, STACK_SIZE, EFI_MEMORY_XP);
+
+    Image->UserStackTop = AllocateStack (STACK_SIZE, &UserStackBase);
+    SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
+
+    Image->UserPageTable = InitializeUserPageTable (
+                             Image,
+                             SysCallStackBase,
+                             STACK_SIZE,
+                             UserStackBase,
+                             STACK_SIZE
+                             );
   }
 
   RegisterMemoryProfileImage (
@@ -1703,7 +1741,9 @@ CoreStartImage (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        gUserPageTable = Image->UserPageTable;
+        gUserPageTable       = Image->UserPageTable;
+        gRing3CallStackTop   = Image->UserStackTop;
+        gCoreSysCallStackTop = Image->SysCallStackTop;
 
         Image->Status = GoToRing3 (
           2,
