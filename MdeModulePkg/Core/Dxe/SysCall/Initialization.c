@@ -9,8 +9,6 @@
 
 #include "DxeMain.h"
 
-UINTN       gCoreSysCallStackTop;
-UINTN       gRing3CallStackTop;
 VOID        *gRing3EntryPoint;
 RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;

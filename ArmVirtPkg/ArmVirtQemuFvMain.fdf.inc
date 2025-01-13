@@ -88,9 +88,9 @@ APRIORI DXE {
   #
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
-  INF FatPkg/EnhancedFatDxe/Fat.inf
+  INF USER FatPkg/EnhancedFatDxe/Fat.inf
   INF USER MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf
-  INF USER MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
+  INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   INF MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
   INF OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
 

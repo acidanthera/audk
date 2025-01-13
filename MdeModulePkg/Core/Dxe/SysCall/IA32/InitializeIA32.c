@@ -153,8 +153,5 @@ InitializeMsr (
   Msr = (UINT64)(UINTN)CoreBootServices;
   AsmWriteMsr64 (MSR_IA32_SYSENTER_EIP, Msr);
 
-  Msr = (UINT64)(UINTN)gCoreSysCallStackTop;
-  AsmWriteMsr64 (MSR_IA32_SYSENTER_ESP, Msr);
-
   gCorePageTable = AsmReadCr3 ();
 }

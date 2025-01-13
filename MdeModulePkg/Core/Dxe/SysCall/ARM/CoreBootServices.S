@@ -56,13 +56,15 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // EFI_STATUS
 // EFIAPI
 // CallRing3 (
-//   IN RING3_CALL_DATA *Data
+//   IN RING3_CALL_DATA *Data,
+//   IN UINTN            UserStackTop,
+//   IN UINTN            SysCallStackTop
 //   );
 //
 //   (r0) Data
-//   (r1) gRing3CallStackTop
+//   (r1) UserStackTop
 //   (r2) gRing3EntryPoint
-//   (r3) gCoreSysCallStackTop
+//   (r3) SysCallStackTop
 //
 //   (On Core Stack) &CoreSp, gUserPageTable
 //------------------------------------------------------------------------------
@@ -84,7 +86,7 @@ ASM_FUNC(ArmCallRing3)
   cpsid if
   isb
 
-  // Set SP_usr to gRing3CallStackTop.
+  // Set SP_usr to UserStackTop.
   push  {R1}
   mov   R1, SP
   ldmia R1, {SP}^

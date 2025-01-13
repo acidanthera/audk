@@ -8,8 +8,6 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 
 extern ASM_PFX(CallBootService)
-extern ASM_PFX(gCoreSysCallStackTop)
-extern ASM_PFX(gRing3CallStackTop)
 extern ASM_PFX(gRing3EntryPoint)
 
 extern ASM_PFX(AsmReadMsr64)
@@ -174,7 +172,9 @@ ASM_PFX(CoreBootServices):
 ; EFI_STATUS
 ; EFIAPI
 ; CallRing3 (
-;   IN RING3_CALL_DATA *Data
+;   IN RING3_CALL_DATA *Data,
+;   IN UINTN            UserStackTop,
+;   IN UINTN            SysCallStackTop
 ;   );
 ;
 ;   (On User Stack) Data
@@ -191,8 +191,17 @@ ASM_PFX(CallRing3):
     ; Save Core Stack pointer.
     mov     [ASM_PFX(CoreEsp)], esp
 
+    mov     ebx, [esp + 4 * 6] ; UserStackTop
+    mov     [ASM_PFX(mRing3CallStackTop)], ebx
+    mov     ebx, [esp + 4 * 7] ; SysCallStackTop
+    mov     [ASM_PFX(mCoreSysCallStackTop)], ebx
+    mov     edx, 0
+    mov     eax, ebx
+    mov     ecx, MSR_IA32_SYSENTER_ESP
+    wrmsr
+
     push dword [ASM_PFX(gRing3EntryPoint)]
-    push dword [ASM_PFX(gRing3CallStackTop)]
+    push dword [ASM_PFX(mRing3CallStackTop)]
 
     SetRing3DataSegmentSelectors
 
@@ -248,4 +257,12 @@ ASM_PFX(gUserPageTable):
 
 ALIGN   4096
 ASM_PFX(CoreEsp):
+  resd 1
+
+global ASM_PFX(mRing3CallStackTop)
+ASM_PFX(mRing3CallStackTop):
+  resd 1
+
+global ASM_PFX(mCoreSysCallStackTop)
+ASM_PFX(mCoreSysCallStackTop):
   resd 1

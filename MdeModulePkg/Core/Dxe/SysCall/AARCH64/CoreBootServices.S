@@ -60,13 +60,15 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // EFI_STATUS
 // EFIAPI
 // CallRing3 (
-//   IN RING3_CALL_DATA *Data
+//   IN RING3_CALL_DATA *Data,
+//   IN UINTN            UserStackTop,
+//   IN UINTN            SysCallStackTop
 //   );
 //
 //   (x0) Data
-//   (x1) gRing3CallStackTop
+//   (x1) UserStackTop
 //   (x2) gRing3EntryPoint
-//   (x3) gCoreSysCallStackTop
+//   (x3) SysCallStackTop
 //   (x4) &CoreSp
 //   (x5) gUserPageTable
 //------------------------------------------------------------------------------

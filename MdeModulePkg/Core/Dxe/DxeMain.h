@@ -287,8 +287,6 @@ extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
 
 extern RING3_DATA                        *gRing3Data;
 extern VOID                              *gRing3Interfaces;
-extern UINTN                             gCoreSysCallStackTop;
-extern UINTN                             gRing3CallStackTop;
 extern VOID                              *gRing3EntryPoint;
 extern UINTN                             gUserPageTable;
 extern UINTN                             gCorePageTable;
@@ -2756,12 +2754,6 @@ CallBootService (
   IN RING3_STACK *UserRsp
   );
 
-EFI_STATUS
-EFIAPI
-CallRing3 (
-  IN RING3_CALL_DATA *Data
-  );
-
 VOID
 EFIAPI
 AllowSupervisorAccessToUserMemory (
@@ -2777,8 +2769,10 @@ ForbidSupervisorAccessToUserMemory (
 EFI_STATUS
 EFIAPI
 GoToRing3 (
-  IN UINT8 Number,
-  IN VOID  *EntryPoint,
+  IN UINT8  Number,
+  IN VOID   *EntryPoint,
+  IN UINTN  UserStackTop,
+  IN UINTN  SysCallStackTop,
   ...
   );
 

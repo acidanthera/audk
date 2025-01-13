@@ -1741,16 +1741,16 @@ CoreStartImage (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        gUserPageTable       = Image->UserPageTable;
-        gRing3CallStackTop   = Image->UserStackTop;
-        gCoreSysCallStackTop = Image->SysCallStackTop;
+        gUserPageTable = Image->UserPageTable;
 
         Image->Status = GoToRing3 (
-          2,
-          (VOID *)Image->EntryPoint,
-          ImageHandle,
-          gRing3Data
-        );
+                          2,
+                          (VOID *)Image->EntryPoint,
+                          Image->UserStackTop,
+                          Image->SysCallStackTop,
+                          ImageHandle,
+                          gRing3Data
+                          );
       }
     } else {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
