@@ -73,7 +73,7 @@ EFIAPI
 ReturnToCore (
   IN EFI_STATUS Status
   );
-  
+
 VOID
 EFIAPI
 FreeProtocolsList (
@@ -277,22 +277,41 @@ PrepareRing3Interface (
   return Ring3Interface;
 }
 
-//
-// Stack:
-//  rsp - User Rsp
-//  rbp - User Rbp
-//  rcx - User Rip for SYSCALL
-//  r11 - User RFLAGS for SYSCALL
-//  r9  - Argument 3
-//  r8  - Argument 2
-//  rdx - Argument 1 <- CoreRbp
-//
+STATIC
+UINTN *
+EFIAPI
+CopyUserArguments (
+  IN UINTN  NumberOfArguments,
+  IN UINTN  *UserArguments
+  )
+{
+  UINTN   *Arguments;
+  UINT64  Attributes;
+  //
+  // Check User variables.
+  //
+  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
+  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArguments + (NumberOfArguments + 1) * sizeof (UINTN) - 1), &Attributes);
+  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+  AllowSupervisorAccessToUserMemory ();
+  Arguments = AllocateCopyPool (
+                (NumberOfArguments + 1) * sizeof (UINTN),
+                (VOID *)UserArguments
+                );
+  ForbidSupervisorAccessToUserMemory ();
+
+  ASSERT (Arguments != NULL);
+
+  return Arguments;
+}
+
 EFI_STATUS
 EFIAPI
 CallBootService (
-  IN UINT8       Type,
-  IN CORE_STACK  *CoreRbp,
-  IN RING3_STACK *UserRsp
+  IN UINT8  Type,
+  IN UINTN  *UserArguments
   )
 {
   EFI_STATUS           Status;
@@ -311,6 +330,8 @@ CallBootService (
   UINT32               PagesNumber;
   EFI_PHYSICAL_ADDRESS Ring3Pages;
   USER_SPACE_DRIVER    *UserDriver;
+  UINTN                *Arguments;
+  EFI_PHYSICAL_ADDRESS PhysAddr;
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
@@ -325,17 +346,14 @@ CallBootService (
   Argument5    = 0;
   Argument6    = 0;
   Interface    = NULL;
-  //
-  // Check User variables.
-  //
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserRsp, &Attributes);
-  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
   DEBUG ((DEBUG_VERBOSE, "Type: %a\n", SysCallNames[Type]));
 
   switch (Type) {
     case SysCallReturnToCore:
-      ReturnToCore (CoreRbp->Argument1);
+      Arguments = CopyUserArguments (1, UserArguments);
+
+      ReturnToCore (Arguments[1]);
       break;
     case SysCallLocateProtocol:
       //
@@ -343,25 +361,28 @@ CallBootService (
       // Argument 2: VOID      *CoreRegistration
       // Argument 3: VOID      **Interface
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      Arguments = CopyUserArguments (3, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument1, &CoreProtocol, &MemoryCoreSize);
+      Status = FindGuid ((EFI_GUID *)Arguments[1], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
+        FreePool (Arguments);
         return Status;
       }
 
       Status = gBS->LocateProtocol (
                       CoreProtocol,
-                      (VOID *)CoreRbp->Argument2,
+                      (VOID *)Arguments[2],
                       &Interface
                       );
 
@@ -370,10 +391,11 @@ CallBootService (
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
-        *(VOID **)CoreRbp->Argument3 = Interface;
+        *(VOID **)Arguments[3] = Interface;
       }
       ForbidSupervisorAccessToUserMemory ();
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallOpenProtocol:
@@ -385,50 +407,47 @@ CallBootService (
       // Argument 5: EFI_HANDLE  CoreControllerHandle
       // Argument 6: UINT32      Attributes
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      Arguments = CopyUserArguments (6, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      if ((VOID **)CoreRbp->Argument3 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      if ((VOID **)Arguments[3] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
+      ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        ForbidSupervisorAccessToUserMemory ();
+        FreePool (Arguments);
         return Status;
       }
 
-      Argument4 = UserRsp->Arguments[4];
-      Argument5 = UserRsp->Arguments[5];
-      Argument6 = UserRsp->Arguments[6];
-      ForbidSupervisorAccessToUserMemory ();
-
       Status = gBS->OpenProtocol (
-                      (EFI_HANDLE)CoreRbp->Argument1,
+                      (EFI_HANDLE)Arguments[1],
                       CoreProtocol,
-                      ((VOID **)CoreRbp->Argument3 != NULL) ? &Interface : NULL,
-                      (EFI_HANDLE)Argument4,
-                      (EFI_HANDLE)Argument5,
-                      (UINT32)Argument6
+                      ((VOID **)Arguments[3] != NULL) ? &Interface : NULL,
+                      (EFI_HANDLE)Arguments[4],
+                      (EFI_HANDLE)Arguments[5],
+                      (UINT32)Arguments[6]
                       );
 
-      if ((VOID **)CoreRbp->Argument3 != NULL) {
+      if ((VOID **)Arguments[3] != NULL) {
         AllowSupervisorAccessToUserMemory ();
         if (Interface != NULL) {
           Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         }
 
-        *(VOID **)CoreRbp->Argument3 = Interface;
+        *(VOID **)Arguments[3] = Interface;
         ForbidSupervisorAccessToUserMemory ();
       }
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallInstallMultipleProtocolInterfaces:
@@ -436,18 +455,20 @@ CallBootService (
       // Argument 1: EFI_HANDLE  *Handle
       // ...
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      Arguments = CopyUserArguments (2, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + sizeof (EFI_HANDLE *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_HANDLE *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (VOID **) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (VOID **) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      CoreHandle  = *(EFI_HANDLE *)CoreRbp->Argument1;
-      UserArgList = (VOID **)CoreRbp->Argument2;
+      CoreHandle  = *(EFI_HANDLE *)Arguments[1];
+      UserArgList = (VOID **)Arguments[2];
 
       for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] - 1), &Attributes);
@@ -466,6 +487,7 @@ CallBootService (
             Index -= 2;
           }
 
+          FreePool (Arguments);
           return Status;
         }
 
@@ -532,6 +554,7 @@ CallBootService (
                  (VOID *)gBS->InstallMultipleProtocolInterfaces
                  );
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallCloseProtocol:
@@ -541,30 +564,29 @@ CallBootService (
       // Argument 3: EFI_HANDLE  CoreAgentHandle
       // Argument 4: EFI_HANDLE  CoreControllerHandle
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      Arguments = CopyUserArguments (4, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
+      ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        ForbidSupervisorAccessToUserMemory ();
+        FreePool (Arguments);
         return Status;
       }
 
-      Argument4 = UserRsp->Arguments[4];
-      ForbidSupervisorAccessToUserMemory ();
-
       Status = gBS->CloseProtocol (
-                      (EFI_HANDLE)CoreRbp->Argument1,
+                      (EFI_HANDLE)Arguments[1],
                       CoreProtocol,
-                      (EFI_HANDLE)CoreRbp->Argument3,
-                      (EFI_HANDLE)Argument4
+                      (EFI_HANDLE)Arguments[3],
+                      (EFI_HANDLE)Arguments[4]
                       );
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallHandleProtocol:
@@ -573,24 +595,27 @@ CallBootService (
       // Argument 2: EFI_GUID    *Protocol
       // Argument 3: VOID        **Interface
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      Arguments = CopyUserArguments (3, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (VOID *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
+        FreePool (Arguments);
         return Status;
       }
 
       Status = gBS->HandleProtocol (
-                      (EFI_HANDLE)CoreRbp->Argument1,
+                      (EFI_HANDLE)Arguments[1],
                       CoreProtocol,
                       &Interface
                       );
@@ -600,10 +625,11 @@ CallBootService (
         Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
-        *(VOID **)CoreRbp->Argument3 = Interface;
+        *(VOID **)Arguments[3] = Interface;
       }
       ForbidSupervisorAccessToUserMemory ();
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallAllocatePages:
@@ -613,25 +639,25 @@ CallBootService (
       // Argument 3: UINTN                 NumberOfPages
       // Argument 4: EFI_PHYSICAL_ADDRESS  *Memory
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      Arguments = CopyUserArguments (4, UserArguments);
 
       Status = gBS->AllocatePages (
-                      (EFI_ALLOCATE_TYPE)CoreRbp->Argument1,
-                      (EFI_MEMORY_TYPE)CoreRbp->Argument2,
-                      CoreRbp->Argument3,
+                      (EFI_ALLOCATE_TYPE)Arguments[1],
+                      (EFI_MEMORY_TYPE)Arguments[2],
+                      Arguments[3],
                       (EFI_PHYSICAL_ADDRESS *)&Argument4
                       );
 
-      AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      *(EFI_PHYSICAL_ADDRESS *)UserRsp->Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
+      AllowSupervisorAccessToUserMemory ();
+      *(EFI_PHYSICAL_ADDRESS *)Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
       ForbidSupervisorAccessToUserMemory ();
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallFreePages:
@@ -639,30 +665,39 @@ CallBootService (
       // Argument 1: UINTN                 NumberOfPages
       // Argument 2: EFI_PHYSICAL_ADDRESS  Memory
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      Arguments = CopyUserArguments (3, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[2];
+
+      gCpu->GetMemoryAttributes (gCpu, PhysAddr, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + CoreRbp->Argument1 * EFI_PAGE_SIZE - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, PhysAddr + Arguments[1] * EFI_PAGE_SIZE - 1, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      return gBS->FreePages (
-                    *(EFI_PHYSICAL_ADDRESS *)&CoreRbp->Argument2,
-                    CoreRbp->Argument1
-                    );
+      Status = gBS->FreePages (PhysAddr, Arguments[1]);
+
+      FreePool (Arguments);
+      return Status;
 
     case SysCallRaiseTpl:
       //
       // Argument 1: EFI_TPL  NewTpl
       //
-      return (EFI_STATUS)gBS->RaiseTPL (
-                                (EFI_TPL)CoreRbp->Argument1
-                                );
+      Arguments = CopyUserArguments (1, UserArguments);
+
+      Status = (EFI_STATUS)gBS->RaiseTPL ((EFI_TPL)Arguments[1]);
+
+      FreePool (Arguments);
+      return Status;
 
     case SysCallRestoreTpl:
       //
       // Argument 1: EFI_TPL  NewTpl
       //
-      gBS->RestoreTPL ((EFI_TPL)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (1, UserArguments);
 
+      gBS->RestoreTPL ((EFI_TPL)Arguments[1]);
+
+      FreePool (Arguments);
       return EFI_SUCCESS;
 
     case SysCallLocateHandleBuffer:
@@ -673,45 +708,46 @@ CallBootService (
       // Argument 4: UINTN                   *NumberHandles
       // Argument 5: EFI_HANDLE              **Buffer
       //
-      if ((EFI_GUID *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      Arguments = CopyUserArguments (5, UserArguments);
+
+      if ((EFI_GUID *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+        Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
         ForbidSupervisorAccessToUserMemory ();
         if (EFI_ERROR (Status)) {
+          FreePool (Arguments);
           return Status;
         }
       }
 
       StatusBS = gBS->LocateHandleBuffer (
-                        (EFI_LOCATE_SEARCH_TYPE)CoreRbp->Argument1,
+                        (EFI_LOCATE_SEARCH_TYPE)Arguments[1],
                         CoreProtocol,
-                        (VOID *)CoreRbp->Argument3,
+                        (VOID *)Arguments[3],
                         &Argument4,
                         (EFI_HANDLE **)&Argument5
                         );
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      AllowSupervisorAccessToUserMemory ();
-      if ((UINTN *)UserRsp->Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      if ((UINTN *)Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        *(UINTN *)UserRsp->Arguments[4] = Argument4;
+        AllowSupervisorAccessToUserMemory ();
+        *(UINTN *)Arguments[4] = Argument4;
+        ForbidSupervisorAccessToUserMemory ();
       }
 
-      if ((EFI_HANDLE **)UserRsp->Arguments[5] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      if ((EFI_HANDLE **)Arguments[5] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
@@ -723,17 +759,20 @@ CallBootService (
                    &Ring3Pages
                    );
         if (EFI_ERROR (Status)) {
+          FreePool (Arguments);
           return Status;
         }
 
+        AllowSupervisorAccessToUserMemory ();
         CopyMem ((VOID *)(UINTN)Ring3Pages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
 
         FreePool ((VOID *)Argument5);
 
-        *(EFI_HANDLE **)UserRsp->Arguments[5] = (EFI_HANDLE *)(UINTN)Ring3Pages;
+        *(EFI_HANDLE **)Arguments[5] = (EFI_HANDLE *)(UINTN)Ring3Pages;
+        ForbidSupervisorAccessToUserMemory ();
       }
-      ForbidSupervisorAccessToUserMemory ();
 
+      FreePool (Arguments);
       return StatusBS;
 
     case SysCallCalculateCrc32:
@@ -742,34 +781,38 @@ CallBootService (
       // Argument 2: UINTN   DataSize
       // Argument 3: UINT32  *Crc32
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      Arguments = CopyUserArguments (3, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + CoreRbp->Argument2 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + Arguments[2] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (UINT32 *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32 *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      Argument4 = (UINTN)AllocatePool (CoreRbp->Argument2);
+      Argument4 = (UINTN)AllocatePool (Arguments[2]);
       if ((VOID *)Argument4 == NULL) {
+        FreePool (Arguments);
         return EFI_OUT_OF_RESOURCES;
       }
 
       AllowSupervisorAccessToUserMemory ();
-      CopyMem ((VOID *)Argument4, (VOID *)CoreRbp->Argument1, CoreRbp->Argument2);
+      CopyMem ((VOID *)Argument4, (VOID *)Arguments[1], Arguments[2]);
       ForbidSupervisorAccessToUserMemory ();
 
       Status = gBS->CalculateCrc32 (
                       (VOID *)Argument4,
-                      CoreRbp->Argument2,
+                      Arguments[2],
                       (UINT32 *)&Argument5
                       );
 
       AllowSupervisorAccessToUserMemory ();
-      *(UINT32 *)CoreRbp->Argument3 = (UINT32)Argument5;
+      *(UINT32 *)Arguments[3] = (UINT32)Argument5;
       ForbidSupervisorAccessToUserMemory ();
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallGetVariable:
@@ -780,55 +823,58 @@ CallBootService (
       // Argument 4: UINTN     *DataSize
       // Argument 5: VOID      *Data           OPTIONAL
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument1, &Attributes);
+      Arguments = CopyUserArguments (5, UserArguments);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      if ((UINT32 *)CoreRbp->Argument3 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      if ((UINT32 *)Arguments[3] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + sizeof (UINT32) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument1 + StrSize ((CHAR16 *)CoreRbp->Argument1) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + StrSize ((CHAR16 *)Arguments[1]) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument1), (CHAR16 *)CoreRbp->Argument1);
+      Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[1]), (CHAR16 *)Arguments[1]);
       if ((VOID *)Argument6 == NULL) {
         ForbidSupervisorAccessToUserMemory ();
+        FreePool (Arguments);
         return EFI_OUT_OF_RESOURCES;
       }
 
-      Status = FindGuid ((EFI_GUID *)CoreRbp->Argument2, &CoreProtocol, &MemoryCoreSize);
+      Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
         ForbidSupervisorAccessToUserMemory ();
         FreePool ((VOID *)Argument6);
+        FreePool (Arguments);
         return Status;
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      Argument4 = *(UINTN *)UserRsp->Arguments[4];
+      Argument4 = *(UINTN *)Arguments[4];
 
-      if ((VOID *)UserRsp->Arguments[5] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[5], &Attributes);
+      if ((VOID *)Arguments[5] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[5] + Argument4 - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + Argument4 - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocatePool (Argument4);
         if ((VOID *)Argument5 == NULL) {
           ForbidSupervisorAccessToUserMemory ();
           FreePool ((VOID *)Argument6);
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
@@ -843,14 +889,14 @@ CallBootService (
                       );
 
       AllowSupervisorAccessToUserMemory ();
-      if ((VOID *)UserRsp->Arguments[5] != NULL) {
-        CopyMem ((VOID *)UserRsp->Arguments[5], (VOID *)Argument5, Argument4);
+      if ((VOID *)Arguments[5] != NULL) {
+        CopyMem ((VOID *)Arguments[5], (VOID *)Argument5, Argument4);
       }
 
-      *(UINTN *)UserRsp->Arguments[4] = Argument4;
+      *(UINTN *)Arguments[4] = Argument4;
 
-      if ((UINT32 *)CoreRbp->Argument3 != NULL) {
-        *(UINT32 *)CoreRbp->Argument3 = (UINT32)Attributes;
+      if ((UINT32 *)Arguments[3] != NULL) {
+        *(UINT32 *)Arguments[3] = (UINT32)Attributes;
       }
       ForbidSupervisorAccessToUserMemory ();
 
@@ -860,6 +906,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallBlockIoReset:
@@ -867,16 +914,22 @@ CallBootService (
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       // Argument 2: BOOLEAN                ExtendedVerification
       //
-      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (2, UserArguments);
+
+      BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      return BlockIo->Reset (
-                        BlockIo,
-                        (BOOLEAN)CoreRbp->Argument2
-                        );
+      Status = BlockIo->Reset (
+                          BlockIo,
+                          (BOOLEAN)Arguments[2]
+                          );
+
+      FreePool (Arguments);
+      return Status;
 
     case SysCallBlockIoRead:
       //
@@ -886,53 +939,50 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: EFI_LBA               Lba
       //
-      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
-
-      if (BlockIo == NULL) {
-        return EFI_NOT_FOUND;
-      }
-
-#if defined (MDE_CPU_ARM)
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
-#else
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-#endif
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      AllowSupervisorAccessToUserMemory ();
 #if defined (MDE_CPU_ARM)
       //
       // EFI_LBA Lba is aligned on 8 bytes.
       //
-      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+      Arguments = CopyUserArguments (7, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
 #else
-      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+      Arguments = CopyUserArguments (6, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 #endif
-      ForbidSupervisorAccessToUserMemory ();
 
-      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
+      BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
+
+      if (BlockIo == NULL) {
+        FreePool (Arguments);
+        return EFI_NOT_FOUND;
+      }
+
+      Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
+        FreePool (Arguments);
         return EFI_OUT_OF_RESOURCES;
       }
 
       Status = BlockIo->ReadBlocks (
                           BlockIo,
-                          (UINT32)CoreRbp->Argument2,
-                          (EFI_LBA)Attributes,
-                          CoreRbp->Argument3,
+                          (UINT32)Arguments[2],
+                          (EFI_LBA)PhysAddr,
+                          Arguments[3],
                           (VOID *)Argument5
                           );
-      AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
+      AllowSupervisorAccessToUserMemory ();
+      CopyMem ((VOID *)Arguments[4], (VOID *)Argument5, Arguments[3]);
       ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument5);
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallBlockIoWrite:
@@ -943,65 +993,69 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: EFI_LBA               Lba
       //
-      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
-
-      if (BlockIo == NULL) {
-        return EFI_NOT_FOUND;
-      }
-
-#if defined (MDE_CPU_ARM)
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
-#else
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-#endif
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
-      if ((VOID *)Argument5 == NULL) {
-        return EFI_OUT_OF_RESOURCES;
-      }
-
-      AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      CopyMem ((VOID *)Argument5,(VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
-
 #if defined (MDE_CPU_ARM)
       //
       // EFI_LBA Lba is aligned on 8 bytes.
       //
-      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+      Arguments = CopyUserArguments (7, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
 #else
-      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+      Arguments = CopyUserArguments (6, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 #endif
+
+      BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
+
+      if (BlockIo == NULL) {
+        FreePool (Arguments);
+        return EFI_NOT_FOUND;
+      }
+
+      Argument5 = (UINTN)AllocatePool (Arguments[3]);
+      if ((VOID *)Argument5 == NULL) {
+        FreePool (Arguments);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      AllowSupervisorAccessToUserMemory ();
+      CopyMem ((VOID *)Argument5, (VOID *)Arguments[4], Arguments[3]);
       ForbidSupervisorAccessToUserMemory ();
 
       Status = BlockIo->WriteBlocks (
                           BlockIo,
-                          (UINT32)CoreRbp->Argument2,
-                          (EFI_LBA)Attributes,
-                          CoreRbp->Argument3,
+                          (UINT32)Arguments[2],
+                          (EFI_LBA)PhysAddr,
+                          Arguments[3],
                           (VOID *)Argument5
                           );
 
       FreePool ((VOID *)Argument5);
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallBlockIoFlush:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       //
-      BlockIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (1, UserArguments);
+
+      BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      return BlockIo->FlushBlocks (BlockIo);
+      Status = BlockIo->FlushBlocks (BlockIo);
+
+      FreePool (Arguments);
+      return Status;
 
     case SysCallDiskIoRead:
       //
@@ -1011,53 +1065,50 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: UINT64                Offset
       //
-      DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
-
-      if (DiskIo == NULL) {
-        return EFI_NOT_FOUND;
-      }
-
-#if defined (MDE_CPU_ARM)
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
-#else
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-#endif
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      AllowSupervisorAccessToUserMemory ();
 #if defined (MDE_CPU_ARM)
       //
       // UINT64 Offset is aligned on 8 bytes.
       //
-      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+      Arguments = CopyUserArguments (7, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
 #else
-      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+      Arguments = CopyUserArguments (6, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 #endif
-      ForbidSupervisorAccessToUserMemory ();
 
-      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
+      DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
+
+      if (DiskIo == NULL) {
+        FreePool (Arguments);
+        return EFI_NOT_FOUND;
+      }
+
+      Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
+        FreePool (Arguments);
         return EFI_OUT_OF_RESOURCES;
       }
 
       Status = DiskIo->ReadDisk (
                          DiskIo,
-                         (UINT32)CoreRbp->Argument2,
-                         Attributes,
-                         CoreRbp->Argument3,
+                         (UINT32)Arguments[2],
+                         (UINT64)PhysAddr,
+                         Arguments[3],
                          (VOID *)Argument5
                          );
-      AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-      CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
+      AllowSupervisorAccessToUserMemory ();
+      CopyMem ((VOID *)Arguments[4], (VOID *)Argument5, Arguments[3]);
       ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument5);
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallDiskIoWrite:
@@ -1068,52 +1119,50 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: UINT64                Offset
       //
-      DiskIo = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
-
-      if (DiskIo == NULL) {
-        return EFI_NOT_FOUND;
-      }
-
-#if defined (MDE_CPU_ARM)
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 8 * sizeof (UINTN) - 1), &Attributes);
-#else
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 7 * sizeof (UINTN) - 1), &Attributes);
-#endif
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
-      if ((VOID *)Argument5 == NULL) {
-        return EFI_OUT_OF_RESOURCES;
-      }
-
-      AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      CopyMem ((VOID *)Argument5, (VOID *)UserRsp->Arguments[4], CoreRbp->Argument3);
-
 #if defined (MDE_CPU_ARM)
       //
       // UINT64 Offset is aligned on 8 bytes.
       //
-      Attributes = *(UINT64 *)&UserRsp->Arguments[6];
+      Arguments = CopyUserArguments (7, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
 #else
-      Attributes = *(UINT64 *)&UserRsp->Arguments[5];
+      Arguments = CopyUserArguments (6, UserArguments);
+      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 #endif
+
+      DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
+
+      if (DiskIo == NULL) {
+        FreePool (Arguments);
+        return EFI_NOT_FOUND;
+      }
+
+      Argument5 = (UINTN)AllocatePool (Arguments[3]);
+      if ((VOID *)Argument5 == NULL) {
+        FreePool (Arguments);
+        return EFI_OUT_OF_RESOURCES;
+      }
+
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      AllowSupervisorAccessToUserMemory ();
+      CopyMem ((VOID *)Argument5, (VOID *)Arguments[4], Arguments[3]);
       ForbidSupervisorAccessToUserMemory ();
 
       Status = DiskIo->WriteDisk (
                          DiskIo,
-                         (UINT32)CoreRbp->Argument2,
-                         Attributes,
-                         CoreRbp->Argument3,
+                         (UINT32)Arguments[2],
+                         (UINT64)PhysAddr,
+                         Arguments[3],
                          (VOID *)Argument5
                          );
 
       FreePool ((VOID *)Argument5);
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallUnicodeStriColl:
@@ -1122,42 +1171,47 @@ CallBootService (
       // Argument 2: CHAR16                          *Str1
       // Argument 3: CHAR16                          *Str2
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (3, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      if ((CHAR16 *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
 
-      if ((CHAR16 *)CoreRbp->Argument3 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      if ((CHAR16 *)Arguments[3] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
+        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[3]), (CHAR16 *)Arguments[3]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
           }
 
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
@@ -1176,6 +1230,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallUnicodeMetaiMatch:
@@ -1184,42 +1239,47 @@ CallBootService (
       // Argument 2: CHAR16                          *String
       // Argument 3: CHAR16                          *Pattern
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (3, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      if ((CHAR16 *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
 
-      if ((CHAR16 *)CoreRbp->Argument3 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      if ((CHAR16 *)Arguments[3] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + StrSize ((CHAR16 *)CoreRbp->Argument3) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument3), (CHAR16 *)CoreRbp->Argument3);
+        Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[3]), (CHAR16 *)Arguments[3]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
           }
 
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
@@ -1238,6 +1298,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
+      FreePool (Arguments);
       return Status;
 
     case SysCallUnicodeStrLwr:
@@ -1245,23 +1306,27 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (2, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      if ((CHAR16 *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
@@ -1273,12 +1338,13 @@ CallBootService (
 
       if ((VOID *)Argument4 != NULL) {
         AllowSupervisorAccessToUserMemory ();
-        Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
+        Status = StrCpyS ((CHAR16 *)Arguments[2], StrLen ((CHAR16 *)Arguments[2]) + 1, (CHAR16 *)Argument4);
         ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument4);
       }
 
+      FreePool (Arguments);
       return EFI_SUCCESS;
 
     case SysCallUnicodeStrUpr:
@@ -1286,23 +1352,27 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (2, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      if ((CHAR16 *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
@@ -1314,12 +1384,13 @@ CallBootService (
 
       if ((VOID *)Argument4 != NULL) {
         AllowSupervisorAccessToUserMemory ();
-        Status = StrCpyS ((CHAR16 *)CoreRbp->Argument2, StrLen ((CHAR16 *)CoreRbp->Argument2) + 1, (CHAR16 *)Argument4);
+        Status = StrCpyS ((CHAR16 *)Arguments[2], StrLen ((CHAR16 *)Arguments[2]) + 1, (CHAR16 *)Argument4);
         ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument4);
       }
 
+      FreePool (Arguments);
       return EFI_SUCCESS;
 
     case SysCallUnicodeFatToStr:
@@ -1329,50 +1400,50 @@ CallBootService (
       // Argument 3: CHAR8                           *Fat
       // Argument 4: CHAR16                          *String
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (4, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR8 *)CoreRbp->Argument3 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument3, &Attributes);
+      if ((CHAR8 *)Arguments[3] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument3 + CoreRbp->Argument2 - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        Argument4 = (UINTN)AllocateCopyPool (CoreRbp->Argument2, (CHAR8 *)CoreRbp->Argument3);
+        Argument4 = (UINTN)AllocateCopyPool (Arguments[2], (CHAR8 *)Arguments[3]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      AllowSupervisorAccessToUserMemory ();
-      if ((CHAR16 *)UserRsp->Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      if ((CHAR16 *)Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + 2 * (CoreRbp->Argument2 + 1) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + 2 * (Arguments[2] + 1) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocatePool (2 * (CoreRbp->Argument2 + 1));
+        Argument5 = (UINTN)AllocatePool (2 * (Arguments[2] + 1));
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
           }
 
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
-      ForbidSupervisorAccessToUserMemory ();
 
       Unicode->FatToStr (
                  Unicode,
-                 CoreRbp->Argument2,
+                 Arguments[2],
                  (CHAR8 *)Argument4,
                  (CHAR16 *)Argument5
                  );
@@ -1383,12 +1454,13 @@ CallBootService (
 
       if ((VOID *)Argument5 != NULL) {
         AllowSupervisorAccessToUserMemory ();
-        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, 2 * (CoreRbp->Argument2 + 1));
+        CopyMem ((VOID *)Arguments[4], (VOID *)Argument5, 2 * (Arguments[2] + 1));
         ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument5);
       }
 
+      FreePool (Arguments);
       return EFI_SUCCESS;
 
     case SysCallUnicodeStrToFat:
@@ -1398,52 +1470,52 @@ CallBootService (
       // Argument 3: UINTN                           FatSize
       // Argument 4: CHAR8                           *Fat
       //
-      Unicode = FindInterface (FALSE, (VOID *)CoreRbp->Argument1);
+      Arguments = CopyUserArguments (4, UserArguments);
+
+      Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
+        FreePool (Arguments);
         return EFI_NOT_FOUND;
       }
 
-      if ((CHAR16 *)CoreRbp->Argument2 != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)CoreRbp->Argument2, &Attributes);
+      if ((CHAR16 *)Arguments[2] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(CoreRbp->Argument2 + StrSize ((CHAR16 *)CoreRbp->Argument2) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)CoreRbp->Argument2), (CHAR16 *)CoreRbp->Argument2);
+        Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserRsp + 6 * sizeof (UINTN) - 1), &Attributes);
-      ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
-      AllowSupervisorAccessToUserMemory ();
-      if ((CHAR8 *)UserRsp->Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)UserRsp->Arguments[4], &Attributes);
+      if ((CHAR8 *)Arguments[4] != NULL) {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UserRsp->Arguments[4] + CoreRbp->Argument3 - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocatePool (CoreRbp->Argument3);
+        Argument5 = (UINTN)AllocatePool (Arguments[3]);
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
           }
 
+          FreePool (Arguments);
           return EFI_OUT_OF_RESOURCES;
         }
       }
-      ForbidSupervisorAccessToUserMemory ();
 
       Status = (EFI_STATUS)Unicode->StrToFat (
                                       Unicode,
                                       (CHAR16 *)Argument4,
-                                      CoreRbp->Argument3,
+                                      Arguments[3],
                                       (CHAR8 *)Argument5
                                       );
 
@@ -1453,12 +1525,13 @@ CallBootService (
 
       if ((VOID *)Argument5 != NULL) {
         AllowSupervisorAccessToUserMemory ();
-        CopyMem ((VOID *)UserRsp->Arguments[4], (VOID *)Argument5, CoreRbp->Argument3);
+        CopyMem ((VOID *)Arguments[4], (VOID *)Argument5, Arguments[3]);
         ForbidSupervisorAccessToUserMemory ();
 
         FreePool ((VOID *)Argument5);
       }
 
+      FreePool (Arguments);
       return Status;
 
     default:

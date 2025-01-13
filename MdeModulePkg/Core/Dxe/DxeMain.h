@@ -235,17 +235,6 @@ typedef struct {
   UINTN                                   UserStackTop;
 } LOADED_IMAGE_PRIVATE_DATA;
 
-typedef struct {
-  UINTN  Argument1;
-  UINTN  Argument2;
-  UINTN  Argument3;
-} CORE_STACK;
-
-typedef struct {
-  UINTN  Rip;
-  UINTN  Arguments[];
-} RING3_STACK;
-
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
           CR(a, LOADED_IMAGE_PRIVATE_DATA, Info, LOADED_IMAGE_PRIVATE_DATA_SIGNATURE)
 
@@ -2749,9 +2738,8 @@ CoreBootServices (
 EFI_STATUS
 EFIAPI
 CallBootService (
-  IN UINT8       Type,
-  IN CORE_STACK  *CoreRbp,
-  IN RING3_STACK *UserRsp
+  IN UINT8  Type,
+  IN UINTN  *UserArguments
   );
 
 VOID

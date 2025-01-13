@@ -74,8 +74,7 @@ SysCallBootService (
 
   Status = CallBootService (
              Type,
-             (CORE_STACK *)CoreRbp,
-             (RING3_STACK *)(UINTN)Physical
+             (UINTN *)((UINTN)Physical + sizeof (UINTN))
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));

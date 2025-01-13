@@ -23,9 +23,9 @@ SECTION .text
 global ASM_PFX(AllowSupervisorAccessToUserMemory)
 ASM_PFX(AllowSupervisorAccessToUserMemory):
     pushfq
-    pop     r10
-    or      r10, 0x40000 ; Set AC (bit 18)
-    push    r10
+    pop     rax
+    or      rax, 0x40000 ; Set AC (bit 18)
+    push    rax
     popfq
     ret
 
@@ -39,9 +39,9 @@ ASM_PFX(AllowSupervisorAccessToUserMemory):
 global ASM_PFX(ForbidSupervisorAccessToUserMemory)
 ASM_PFX(ForbidSupervisorAccessToUserMemory):
     pushfq
-    pop     r10
-    and     r10, ~0x40000 ; Clear AC (bit 18)
-    push    r10
+    pop     rax
+    and     rax, ~0x40000 ; Clear AC (bit 18)
+    push    rax
     popfq
     ret
 
@@ -147,18 +147,21 @@ ASM_PFX(CoreBootServices):
     push    rcx
     ; Save User RFLAGS for SYSRET.
     push    r11
-    ; Save User Arguments [1..3].
-    push    r9
-    push    r8
-    push    rdx
+    ; Save User Arguments [1..3] on User stack.
+    call ASM_PFX(AllowSupervisorAccessToUserMemory)
+    mov     rax, [rsp + 8*3]
+    mov     [rax + 8*2], rdx
+    mov     [rax + 8*3], r8
+    mov     [rax + 8*4], r9
+    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
     mov     rbp, rsp
     ; Reserve space on stack for 4 CallBootService arguments (NOOPT prerequisite).
     sub     rsp, 8*4
 
     ; Prepare CallBootService arguments.
-    mov     rcx, r10
-    mov     rdx, rbp
-    mov     r8, [rbp + 8*6]
+    mov     rcx, r10   ; Type
+    mov     rdx, [rbp + 8*3]
+    add     rdx, 8     ; User Arguments[]
 
     sti
     call ASM_PFX(CallBootService)
@@ -169,8 +172,8 @@ ASM_PFX(CoreBootServices):
 
     pop     rax
 
-    ; Step over Arguments [1..3] and NOOPT buffer.
-    add     rsp, 8*7
+    ; Step over NOOPT buffer.
+    add     rsp, 8*4
 
     ; Prepare SYSRET arguments.
     pop     r11
