@@ -80,8 +80,7 @@ SysCallBootService (
 
   Status = CallBootService (
              Type,
-             (CORE_STACK *)CoreRbp,
-             (RING3_STACK *)(UINTN)Physical
+             (UINTN *)((UINTN)Physical + sizeof (UINTN))
              );
   //
   // TODO: Fix memory leak for ReturnToCore().

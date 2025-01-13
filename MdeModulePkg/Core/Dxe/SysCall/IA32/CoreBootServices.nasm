@@ -132,18 +132,10 @@ ASM_PFX(CoreBootServices):
     mov     gs, ax
 
     ; Prepare CallBootService arguments.
-    call ASM_PFX(AllowSupervisorAccessToUserMemory)
-    mov     eax, [edx + 4 * 4] ; User Argument 3
-    push    eax
-    mov     eax, [edx + 3 * 4] ; User Argument 2
-    push    eax
-    mov     eax, [edx + 2 * 4] ; User Argument 1
-    push    eax
-    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
     mov     ebp, esp
+    add     edx, 4   ; User Arguments[]
     push    edx
-    push    ebp
-    push    ecx
+    push    ecx      ; Type
 
     sti
     call ASM_PFX(CallBootService)
@@ -157,8 +149,8 @@ ASM_PFX(CoreBootServices):
 
     pop     eax
 
-    ; Step over User Arguments [1..3] and CallBootService input.
-    add     esp, 4*6
+    ; Step over CallBootService input.
+    add     esp, 4*2
 
     ; Prepare SYSEXIT arguments.
     pop     edx ; User return address.
