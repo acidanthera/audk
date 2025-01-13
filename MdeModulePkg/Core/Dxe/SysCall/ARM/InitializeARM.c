@@ -13,6 +13,8 @@
 
 STATIC UINTN  mCoreSp;
 UINTN         gUserPageTable;
+UINTN         mRing3CallStackTop;
+UINTN         mCoreSysCallStackTop;
 
 EFI_STATUS
 EFIAPI
@@ -162,8 +164,13 @@ ForbidSupervisorAccessToUserMemory (
 EFI_STATUS
 EFIAPI
 CallRing3 (
-  IN RING3_CALL_DATA *Data
+  IN RING3_CALL_DATA *Data,
+  IN UINTN            UserStackTop,
+  IN UINTN            SysCallStackTop
   )
 {
-  return ArmCallRing3 (Data, gRing3CallStackTop, gRing3EntryPoint, gCoreSysCallStackTop, &mCoreSp, gUserPageTable);
+  mRing3CallStackTop   = UserStackTop;
+  mCoreSysCallStackTop = SysCallStackTop;
+
+  return ArmCallRing3 (Data, UserStackTop, gRing3EntryPoint, SysCallStackTop, &mCoreSp, gUserPageTable);
 }

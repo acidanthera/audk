@@ -8,6 +8,9 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
+extern UINTN  mRing3CallStackTop;
+extern UINTN  mCoreSysCallStackTop;
+
 LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
@@ -479,6 +482,8 @@ CallBootService (
         UserDriver->CoreWrapper     = CoreArgList[Index + 1];
         UserDriver->UserSpaceDriver = UserArgList[Index + 1];
         UserDriver->UserPageTable   = gUserPageTable;
+        UserDriver->SysCallStackTop = mCoreSysCallStackTop;
+        UserDriver->UserStackTop    = mRing3CallStackTop;
 
         InsertTailList (&mUserSpaceDriversHead, &UserDriver->Link);
 

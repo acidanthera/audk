@@ -8,8 +8,6 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 
 extern ASM_PFX(CallBootService)
-extern ASM_PFX(gCoreSysCallStackTop)
-extern ASM_PFX(gRing3CallStackTop)
 extern ASM_PFX(gRing3EntryPoint)
 
 DEFAULT REL
@@ -140,7 +138,7 @@ ASM_PFX(CoreBootServices):
     mov     gs, ax
 
     ; Save User Stack pointers and switch to Core SysCall Stack.
-    mov     rax, [ASM_PFX(gCoreSysCallStackTop)]
+    mov     rax, [ASM_PFX(mCoreSysCallStackTop)]
     sub     rax, 8
     mov     [rax], rsp
     mov     rsp, rax
@@ -192,10 +190,14 @@ o64 sysret
 ; EFI_STATUS
 ; EFIAPI
 ; CallRing3 (
-;   IN RING3_CALL_DATA *Data
+;   IN RING3_CALL_DATA *Data,
+;   IN UINTN            UserStackTop,
+;   IN UINTN            SysCallStackTop
 ;   );
 ;
 ;   (rcx) Data
+;   (rdx) UserStackTop
+;   (r8)  SysCallStackTop
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -216,7 +218,9 @@ ASM_PFX(CallRing3):
     mov     [ASM_PFX(CoreRsp)], rsp
 
     ; Save input Arguments.
-    mov     r8, [ASM_PFX(gRing3CallStackTop)]
+    mov     [ASM_PFX(mRing3CallStackTop)], rdx
+    mov     [ASM_PFX(mCoreSysCallStackTop)], r8
+    mov     r8, [ASM_PFX(mRing3CallStackTop)]
     mov     r9, [ASM_PFX(gRing3EntryPoint)]
     mov     r10, rcx
 
@@ -275,4 +279,12 @@ ASM_PFX(gUserPageTable):
 
 ALIGN   4096
 ASM_PFX(CoreRsp):
+  resq 1
+
+global ASM_PFX(mRing3CallStackTop)
+ASM_PFX(mRing3CallStackTop):
+  resq 1
+
+global ASM_PFX(mCoreSysCallStackTop)
+ASM_PFX(mCoreSysCallStackTop):
   resq 1

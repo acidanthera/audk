@@ -15,6 +15,8 @@ typedef struct {
   VOID        *CoreWrapper;
   VOID        *UserSpaceDriver;
   UINTN       UserPageTable;
+  UINTN       UserStackTop;
+  UINTN       SysCallStackTop;
   LIST_ENTRY  Link;
 } USER_SPACE_DRIVER;
 
