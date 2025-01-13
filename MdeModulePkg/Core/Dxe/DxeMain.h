@@ -2712,7 +2712,7 @@ EFI_STATUS
 CoreInitializeHandleServices (
   VOID
   );
-  
+
 /**
   Set UEFI image memory attributes.
 
