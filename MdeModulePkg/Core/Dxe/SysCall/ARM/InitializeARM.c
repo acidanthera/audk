@@ -12,17 +12,17 @@
 #include "DxeMain.h"
 
 STATIC UINTN  mCoreSp;
+STATIC UINTN  mUserStackTop;
+STATIC UINTN  mSysCallStackTop;
 UINTN         gUserPageTable;
-UINTN         mRing3CallStackTop;
-UINTN         mCoreSysCallStackTop;
 
 EFI_STATUS
 EFIAPI
 ArmCallRing3 (
   IN RING3_CALL_DATA *Data,
-  IN UINTN           StackPointer,
+  IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
-  IN UINTN           SysCallStack,
+  IN UINTN           SysCallStackTop,
   IN VOID            *CoreStack,
   IN UINTN           UserPageTable
   );
@@ -80,7 +80,9 @@ SysCallBootService (
 
   Status = CallBootService (
              Type,
-             (UINTN *)((UINTN)Physical + sizeof (UINTN))
+             (UINTN *)((UINTN)Physical + sizeof (UINTN)),
+             mUserStackTop,
+             mSysCallStackTop
              );
   //
   // TODO: Fix memory leak for ReturnToCore().
@@ -168,8 +170,15 @@ CallRing3 (
   IN UINTN            SysCallStackTop
   )
 {
-  mRing3CallStackTop   = UserStackTop;
-  mCoreSysCallStackTop = SysCallStackTop;
+  mUserStackTop    = UserStackTop;
+  mSysCallStackTop = SysCallStackTop;
 
-  return ArmCallRing3 (Data, UserStackTop, gRing3EntryPoint, SysCallStackTop, &mCoreSp, gUserPageTable);
+  return ArmCallRing3 (
+            Data,
+            UserStackTop,
+            gRing3EntryPoint,
+            SysCallStackTop,
+            &mCoreSp,
+            gUserPageTable
+            );
 }

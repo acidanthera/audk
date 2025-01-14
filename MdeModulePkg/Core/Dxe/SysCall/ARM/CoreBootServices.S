@@ -94,7 +94,7 @@ ASM_FUNC(ArmCallRing3)
   // Set SPSR M[3:0] bits to User mode.
   and   R4, R4, #0xFFFFFFF0
 
-  // Save Core SP and switch to CoreSysCall Stack.
+  // Save Core SP and switch to SysCallStackTop.
   mov   R5, SP
   str   R5, [R6]
   mov   SP, R3

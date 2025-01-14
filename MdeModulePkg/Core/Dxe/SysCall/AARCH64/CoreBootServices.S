@@ -92,7 +92,7 @@ ASM_FUNC(ArmCallRing3)
   // Disable interrupts.
   msr  daifset, #0xf
   isb
-  // Save Core SP and switch to CoreSysCall Stack.
+  // Save Core SP and switch to SysCallStackTop.
   mov  x6, sp
   str  x6, [x4]
   mov  sp, x3
