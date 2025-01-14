@@ -138,7 +138,7 @@ ASM_PFX(CoreBootServices):
     mov     gs, ax
 
     ; Save User Stack pointers and switch to Core SysCall Stack.
-    mov     rax, [ASM_PFX(mCoreSysCallStackTop)]
+    mov     rax, [ASM_PFX(SysCallStackTop)]
     sub     rax, 8
     mov     [rax], rsp
     mov     rsp, rax
@@ -162,6 +162,8 @@ ASM_PFX(CoreBootServices):
     mov     rcx, r10   ; Type
     mov     rdx, [rbp + 8*3]
     add     rdx, 8     ; User Arguments[]
+    mov     r8, [ASM_PFX(UserStackTop)]
+    mov     r9, [ASM_PFX(SysCallStackTop)]
 
     sti
     call ASM_PFX(CallBootService)
@@ -221,20 +223,18 @@ ASM_PFX(CallRing3):
     mov     [ASM_PFX(CoreRsp)], rsp
 
     ; Save input Arguments.
-    mov     [ASM_PFX(mRing3CallStackTop)], rdx
-    mov     [ASM_PFX(mCoreSysCallStackTop)], r8
-    mov     r8, [ASM_PFX(mRing3CallStackTop)]
-    mov     r9, [ASM_PFX(gRing3EntryPoint)]
+    mov     [ASM_PFX(UserStackTop)], rdx
+    mov     [ASM_PFX(SysCallStackTop)], r8
     mov     r10, rcx
 
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSRET arguments.
     mov     rdx, r10
-    mov     rcx, r9
+    mov     rcx, [ASM_PFX(gRing3EntryPoint)]
 
     ; Switch to User Stack.
-    mov     rsp, r8
+    mov     rsp, [ASM_PFX(UserStackTop)]
     mov     rbp, rsp
 
     mov     r8, [ASM_PFX(gUserPageTable)]
@@ -284,10 +284,8 @@ ALIGN   4096
 ASM_PFX(CoreRsp):
   resq 1
 
-global ASM_PFX(mRing3CallStackTop)
-ASM_PFX(mRing3CallStackTop):
+ASM_PFX(UserStackTop):
   resq 1
 
-global ASM_PFX(mCoreSysCallStackTop)
-ASM_PFX(mCoreSysCallStackTop):
+ASM_PFX(SysCallStackTop):
   resq 1

@@ -133,6 +133,8 @@ ASM_PFX(CoreBootServices):
 
     ; Prepare CallBootService arguments.
     mov     ebp, esp
+    push dword [ASM_PFX(SysCallStackTop)]
+    push dword [ASM_PFX(UserStackTop)]
     add     edx, 4   ; User Arguments[]
     push    edx
     push    ecx      ; Type
@@ -150,7 +152,7 @@ ASM_PFX(CoreBootServices):
     pop     eax
 
     ; Step over CallBootService input.
-    add     esp, 4*2
+    mov     esp, ebp
 
     ; Prepare SYSEXIT arguments.
     pop     edx ; User return address.
@@ -169,7 +171,7 @@ ASM_PFX(CoreBootServices):
 ;   IN UINTN            SysCallStackTop
 ;   );
 ;
-;   (On User Stack) Data
+;   (On User Stack) Data, UserStackTop, SysCallStackTop
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -183,23 +185,20 @@ ASM_PFX(CallRing3):
     ; Save Core Stack pointer.
     mov     [ASM_PFX(CoreEsp)], esp
 
-    mov     ebx, [esp + 4 * 6] ; UserStackTop
-    mov     [ASM_PFX(mRing3CallStackTop)], ebx
-    mov     ebx, [esp + 4 * 7] ; SysCallStackTop
-    mov     [ASM_PFX(mCoreSysCallStackTop)], ebx
+    mov     ebx, [esp + 4 * 6]
+    mov     [ASM_PFX(UserStackTop)], ebx
+    mov     ebx, [esp + 4 * 7]
+    mov     [ASM_PFX(SysCallStackTop)], ebx
     mov     edx, 0
     mov     eax, ebx
     mov     ecx, MSR_IA32_SYSENTER_ESP
     wrmsr
 
-    push dword [ASM_PFX(gRing3EntryPoint)]
-    push dword [ASM_PFX(mRing3CallStackTop)]
-
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSEXIT arguments.
-    pop     ecx
-    pop     edx
+    mov     ecx, [ASM_PFX(UserStackTop)]
+    mov     edx, [ASM_PFX(gRing3EntryPoint)]
     mov     eax, [esp + 4 * 5] ; Data
 
     ; Switch to User Stack.
@@ -251,10 +250,8 @@ ALIGN   4096
 ASM_PFX(CoreEsp):
   resd 1
 
-global ASM_PFX(mRing3CallStackTop)
-ASM_PFX(mRing3CallStackTop):
+ASM_PFX(UserStackTop):
   resd 1
 
-global ASM_PFX(mCoreSysCallStackTop)
-ASM_PFX(mCoreSysCallStackTop):
+ASM_PFX(SysCallStackTop):
   resd 1

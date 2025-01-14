@@ -2840,7 +2840,9 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN UINTN  *UserArguments
+  IN UINTN  *UserArguments,
+  IN UINTN  UserStackTop,
+  IN UINTN  SysCallStackTop
   );
 
 VOID
