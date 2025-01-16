@@ -8,23 +8,23 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-LIST_ENTRY mUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (mUserSpaceDriversHead);
+LIST_ENTRY gUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (gUserSpaceDriversHead);
 
 EFI_STATUS
 EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA  *Data,
   IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop
+  IN UINTN            SysCallStackTop,
+  IN UINTN            *ReturnSP
   );
 
 EFI_STATUS
 EFIAPI
 GoToRing3 (
-  IN UINT8  Number,
-  IN VOID   *EntryPoint,
-  IN UINTN  UserStackTop,
-  IN UINTN  SysCallStackTop,
+  IN UINT8              Number,
+  IN VOID               *EntryPoint,
+  IN USER_SPACE_DRIVER  *UserDriver,
   ...
   )
 {
@@ -53,16 +53,28 @@ GoToRing3 (
   Input->NumberOfArguments = Number;
   Input->EntryPoint        = EntryPoint;
 
-  VA_START (Marker, SysCallStackTop);
+  VA_START (Marker, UserDriver);
   for (Index = 0; Index < Number; ++Index) {
     Input->Arguments[Index] = VA_ARG (Marker, UINTN);
   }
   VA_END (Marker);
   ForbidSupervisorAccessToUserMemory ();
-
-  Status = CallRing3 (Input, UserStackTop, SysCallStackTop);
+  //
+  // TODO: Get(),Set() for old SysCallStackTop.
+  //
+  //
+  // TODO: Allocate new stacks (only for EFI_FILE_PROTOCOL instances?),
+  // because UserDriver can be interrupted and interrupt handler may call the same UserDriver again.
+  //
+  Status = CallRing3 (
+             Input,
+             UserDriver->UserStackTop,
+             UserDriver->SysCallStackTop,
+             &UserDriver->ReturnSP
+             );
 
   CoreFreePages (Ring3Pages, PagesNumber);
+  UserDriver->ReturnSP = 0;
 
   return Status;
 }
@@ -77,7 +89,7 @@ FindUserSpaceDriver (
   LIST_ENTRY         *Link;
   USER_SPACE_DRIVER  *UserDriver;
 
-  for (Link = mUserSpaceDriversHead.ForwardLink; Link != &mUserSpaceDriversHead; Link = Link->ForwardLink) {
+  for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
     UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
 
     if (UserDriver->CoreWrapper == CoreWrapper) {
@@ -113,8 +125,7 @@ CoreDriverBindingSupported (
   Status = GoToRing3 (
              3,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              ControllerHandle,
              RemainingDevicePath
@@ -147,8 +158,7 @@ CoreDriverBindingStart (
   Status = GoToRing3 (
              3,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              ControllerHandle,
              RemainingDevicePath
@@ -182,8 +192,7 @@ CoreDriverBindingStop (
   Status = GoToRing3 (
              4,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              ControllerHandle,
              NumberOfChildren,
@@ -216,8 +225,7 @@ CoreFileClose (
   Status = GoToRing3 (
              1,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This
              );
 
@@ -293,8 +301,7 @@ CoreFileRead (
   Status = GoToRing3 (
              3,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3BufferSize,
              Ring3Buffer
@@ -349,8 +356,7 @@ CoreFileSetPosition (
   return GoToRing3 (
            2,
            EntryPoint,
-           UserDriver->UserStackTop,
-           UserDriver->SysCallStackTop,
+           UserDriver,
            This,
            Position
            );
@@ -361,8 +367,7 @@ CoreFileSetPosition (
   return GoToRing3 (
            3,
            EntryPoint,
-           UserDriver->UserStackTop,
-           UserDriver->SysCallStackTop,
+           UserDriver,
            This,
            Position
            );
@@ -374,10 +379,11 @@ CoreFileSetPosition (
   return GoToRing3 (
            4,
            EntryPoint,
-           UserDriver->UserStackTop,
-           UserDriver->SysCallStackTop,
+           UserDriver,
            This,
-           Position
+           NULL,
+           (UINT32)Position,
+           (UINT32)(Position >> 32)
            );
 #endif
 
@@ -423,8 +429,7 @@ CoreFileGetPosition (
   Status = GoToRing3 (
              2,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3Position
              );
@@ -504,8 +509,7 @@ CoreFileGetInfo (
   Status = GoToRing3 (
              4,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3InformationType,
              Ring3BufferSize,
@@ -660,8 +664,7 @@ CoreFileOpen (
   Status = GoToRing3 (
              5,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3NewHandle,
              Ring3FileName,
@@ -675,8 +678,7 @@ CoreFileOpen (
   Status = GoToRing3 (
              7,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3NewHandle,
              Ring3FileName,
@@ -693,13 +695,15 @@ CoreFileOpen (
   Status = GoToRing3 (
              8,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3NewHandle,
              Ring3FileName,
-             OpenMode,
-             Attributes
+             NULL,
+             (UINT32)OpenMode,
+             (UINT32)(OpenMode >> 32),
+             (UINT32)Attributes,
+             (UINT32)(Attributes >> 32)
              );
 #endif
   if (EFI_ERROR (Status)) {
@@ -718,10 +722,6 @@ CoreFileOpen (
   NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
   NewDriver->CoreWrapper     = NewFile;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
-  //
-  // TODO: Allocate new stacks, because UserDriver can be interrupted
-  // and interrupt handler may call the same UserDriver again.
-  //
   NewDriver->UserStackTop    = UserDriver->UserStackTop;
   NewDriver->SysCallStackTop = UserDriver->SysCallStackTop;
 
@@ -730,7 +730,7 @@ CoreFileOpen (
   NewFile->Revision          = (*Ring3NewHandle)->Revision;
   ForbidSupervisorAccessToUserMemory ();
 
-  InsertTailList (&mUserSpaceDriversHead, &NewDriver->Link);
+  InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
 
   NewFile->Open        = CoreFileOpen;
   NewFile->Close       = CoreFileClose;
@@ -798,8 +798,7 @@ CoreOpenVolume (
   Status = GoToRing3 (
              2,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              Ring3Root
              );
@@ -827,7 +826,7 @@ CoreOpenVolume (
   File->Revision             = (*Ring3Root)->Revision;
   ForbidSupervisorAccessToUserMemory ();
 
-  InsertTailList (&mUserSpaceDriversHead, &NewDriver->Link);
+  InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
 
   File->Open        = CoreFileOpen;
   File->Close       = CoreFileClose;
@@ -893,8 +892,7 @@ CoreUnicodeCollationStriColl (
   Status = GoToRing3 (
              3,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              (UINTN)UserMem,
              (UINTN)UserMem + Size1
@@ -947,8 +945,7 @@ CoreUnicodeCollationMetaiMatch (
   Status = GoToRing3 (
              3,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              (UINTN)UserMem,
              (UINTN)UserMem + Size1
@@ -997,8 +994,7 @@ CoreUnicodeCollationStrLwr (
   Status = GoToRing3 (
              2,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              (UINTN)UserMem
              );
@@ -1048,8 +1044,7 @@ CoreUnicodeCollationStrUpr (
   Status = GoToRing3 (
              2,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              (UINTN)UserMem
              );
@@ -1098,8 +1093,7 @@ CoreUnicodeCollationFatToStr (
   Status = GoToRing3 (
              4,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              FatSize,
              (UINTN)UserMem,
@@ -1153,8 +1147,7 @@ CoreUnicodeCollationStrToFat (
   Status = GoToRing3 (
              4,
              EntryPoint,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
+             UserDriver,
              This,
              (UINTN)UserMem,
              FatSize,

@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -12,8 +12,6 @@
 
 #include "DxeMain.h"
 
-STATIC UINTN  mCoreSp;
-STATIC UINTN  mUserStackTop;
 STATIC UINTN  mSysCallStackTop;
 UINTN         gUserPageTable;
 
@@ -24,25 +22,9 @@ ArmCallRing3 (
   IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
   IN UINTN           SysCallStackTop,
-  IN VOID            *CoreStack,
+  IN UINTN           *ReturnSP,
   IN UINTN           UserPageTable
   );
-
-VOID
-EFIAPI
-ArmReturnToCore (
-  IN EFI_STATUS Status,
-  IN UINTN      CoreSp
-  );
-
-VOID
-EFIAPI
-ReturnToCore (
-  IN EFI_STATUS Status
-  )
-{
-  ArmReturnToCore (Status, mCoreSp);
-}
 
 STATIC
 EFI_STATUS
@@ -74,9 +56,7 @@ SysCallBootService (
 
   Status = CallBootService (
              Type,
-             (UINTN *)((UINTN)Physical + sizeof (UINTN)),
-             mUserStackTop,
-             mSysCallStackTop
+             (UINTN *)((UINTN)Physical + sizeof (UINTN))
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
@@ -172,10 +152,10 @@ EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data,
   IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop
+  IN UINTN            SysCallStackTop,
+  IN UINTN            *ReturnSP
   )
 {
-  mUserStackTop    = UserStackTop;
   mSysCallStackTop = SysCallStackTop;
 
   return ArmCallRing3 (
@@ -183,7 +163,7 @@ CallRing3 (
             UserStackTop,
             gRing3EntryPoint,
             SysCallStackTop,
-            &mCoreSp,
+            ReturnSP,
             gUserPageTable
             );
 }

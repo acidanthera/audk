@@ -68,7 +68,8 @@ CallInstallMultipleProtocolInterfaces (
 VOID
 EFIAPI
 ReturnToCore (
-  IN EFI_STATUS Status
+  IN EFI_STATUS Status,
+  IN UINTN      ReturnSP
   );
 
 VOID
@@ -304,13 +305,32 @@ CopyUserArguments (
   return Arguments;
 }
 
+STATIC
+USER_SPACE_DRIVER *
+EFIAPI
+FindUserInfo (
+  VOID
+  )
+{
+  LIST_ENTRY         *Link;
+  USER_SPACE_DRIVER  *UserDriver;
+
+  for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
+    UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
+
+    if ((UserDriver->UserPageTable == gUserPageTable) && (UserDriver->ReturnSP != 0)) {
+      return UserDriver;
+    }
+  }
+
+  return NULL;
+}
+
 EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN UINTN  *UserArguments,
-  IN UINTN  UserStackTop,
-  IN UINTN  SysCallStackTop
+  IN UINTN  *UserArguments
   )
 {
   EFI_STATUS           Status;
@@ -329,6 +349,7 @@ CallBootService (
   UINT32               PagesNumber;
   EFI_PHYSICAL_ADDRESS Ring3Pages;
   USER_SPACE_DRIVER    *UserDriver;
+  USER_SPACE_DRIVER    *NewDriver;
   UINTN                *Arguments;
   EFI_PHYSICAL_ADDRESS PhysAddr;
 
@@ -350,9 +371,11 @@ CallBootService (
 
   switch (Type) {
     case SysCallReturnToCore:
-      Arguments = CopyUserArguments (1, UserArguments);
+      Arguments  = CopyUserArguments (1, UserArguments);
+      UserDriver = FindUserInfo ();
+      ASSERT (UserDriver != NULL);
 
-      ReturnToCore (Arguments[1]);
+      ReturnToCore (Arguments[1], UserDriver->ReturnSP);
       break;
     case SysCallLocateProtocol:
       //
@@ -496,17 +519,21 @@ CallBootService (
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
+
+        UserDriver = FindUserInfo ();
+        ASSERT (UserDriver != NULL);
         //
         // TODO: Check everywhere that Allocated != NULL
         //
-        UserDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
-        UserDriver->CoreWrapper     = CoreArgList[Index + 1];
-        UserDriver->UserSpaceDriver = UserArgList[Index + 1];
-        UserDriver->UserPageTable   = gUserPageTable;
-        UserDriver->UserStackTop    = UserStackTop;
-        UserDriver->SysCallStackTop = SysCallStackTop;
+        NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        NewDriver->CoreWrapper     = CoreArgList[Index + 1];
+        NewDriver->UserSpaceDriver = UserArgList[Index + 1];
+        NewDriver->UserPageTable   = UserDriver->UserPageTable;
+        NewDriver->UserStackTop    = UserDriver->UserStackTop;
+        NewDriver->SysCallStackTop = UserDriver->SysCallStackTop;
+        NewDriver->ReturnSP        = 0;
 
-        InsertTailList (&mUserSpaceDriversHead, &UserDriver->Link);
+        InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
 
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] + sizeof (VOID *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);

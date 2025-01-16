@@ -237,6 +237,16 @@ typedef struct {
   UINTN                                   UserStackTop;
 } LOADED_IMAGE_PRIVATE_DATA;
 
+typedef struct {
+  VOID        *CoreWrapper;
+  VOID        *UserSpaceDriver;
+  UINTN       UserPageTable;
+  UINTN       UserStackTop;
+  UINTN       SysCallStackTop;
+  UINTN       ReturnSP;
+  LIST_ENTRY  Link;
+} USER_SPACE_DRIVER;
+
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
           CR(a, LOADED_IMAGE_PRIVATE_DATA, Info, LOADED_IMAGE_PRIVATE_DATA_SIGNATURE)
 
@@ -286,6 +296,7 @@ extern VOID        *gRing3Interfaces;
 extern VOID        *gRing3EntryPoint;
 extern UINTN       gUserPageTable;
 extern UINTN       gCorePageTable;
+extern LIST_ENTRY  gUserSpaceDriversHead;
 
 //
 // Service Initialization Functions
@@ -2840,9 +2851,7 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN UINTN  *UserArguments,
-  IN UINTN  UserStackTop,
-  IN UINTN  SysCallStackTop
+  IN UINTN  *UserArguments
   );
 
 VOID
@@ -2860,10 +2869,9 @@ ForbidSupervisorAccessToUserMemory (
 EFI_STATUS
 EFIAPI
 GoToRing3 (
-  IN UINT8  Number,
-  IN VOID   *EntryPoint,
-  IN UINTN  UserStackTop,
-  IN UINTN  SysCallStackTop,
+  IN UINT8              Number,
+  IN VOID               *EntryPoint,
+  IN USER_SPACE_DRIVER  *UserDriver,
   ...
   );
 

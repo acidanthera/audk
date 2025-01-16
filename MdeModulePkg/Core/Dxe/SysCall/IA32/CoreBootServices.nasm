@@ -1,6 +1,6 @@
 ;------------------------------------------------------------------------------
 ;
-; Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+; Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
 ;------------------------------------------------------------------------------
@@ -133,8 +133,6 @@ ASM_PFX(CoreBootServices):
 
     ; Prepare CallBootService arguments.
     mov     ebp, esp
-    push dword [ASM_PFX(SysCallStackTop)]
-    push dword [ASM_PFX(UserStackTop)]
     add     edx, 4   ; User Arguments[]
     push    edx
     push    ecx      ; Type
@@ -168,10 +166,11 @@ ASM_PFX(CoreBootServices):
 ; CallRing3 (
 ;   IN RING3_CALL_DATA *Data,
 ;   IN UINTN            UserStackTop,
-;   IN UINTN            SysCallStackTop
+;   IN UINTN            SysCallStackTop,
+;   IN UINTN            *ReturnSP
 ;   );
 ;
-;   (On User Stack) Data, UserStackTop, SysCallStackTop
+;   (On User Stack) Data, UserStackTop, SysCallStackTop, ReturnSP
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -183,10 +182,9 @@ ASM_PFX(CallRing3):
     push    esi
 
     ; Save Core Stack pointer.
-    mov     [ASM_PFX(CoreEsp)], esp
+    mov     ebx, [esp + 4 * 8] ; ReturnSP
+    mov     [ebx], esp
 
-    mov     ebx, [esp + 4 * 6]
-    mov     [ASM_PFX(UserStackTop)], ebx
     mov     ebx, [esp + 4 * 7]
     mov     [ASM_PFX(SysCallStackTop)], ebx
     mov     edx, 0
@@ -197,7 +195,7 @@ ASM_PFX(CallRing3):
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSEXIT arguments.
-    mov     ecx, [ASM_PFX(UserStackTop)]
+    mov     ecx, [esp + 4 * 6] ; UserStackTop
     mov     edx, [ASM_PFX(gRing3EntryPoint)]
     mov     eax, [esp + 4 * 5] ; Data
 
@@ -219,14 +217,14 @@ ASM_PFX(SysCallEnd):
 ; VOID
 ; EFIAPI
 ; ReturnToCore (
-;   IN EFI_STATUS Status
+;   IN EFI_STATUS Status,
+;   IN UINTN      ReturnSP
 ;   );
 ;------------------------------------------------------------------------------
 global ASM_PFX(ReturnToCore)
 ASM_PFX(ReturnToCore):
-    mov     eax, [esp + 4]
-
-    mov     esp, [ASM_PFX(CoreEsp)]
+    mov     eax, [esp + 4]   ; Status
+    mov     esp, [esp + 4*2] ; ReturnSP
     pop     esi
     pop     edi
     pop     ebp
@@ -247,11 +245,5 @@ ASM_PFX(gUserPageTable):
   resd 1
 
 ALIGN   4096
-ASM_PFX(CoreEsp):
-  resd 1
-
-ASM_PFX(UserStackTop):
-  resd 1
-
 ASM_PFX(SysCallStackTop):
   resd 1

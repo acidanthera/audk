@@ -1,6 +1,6 @@
 ;------------------------------------------------------------------------------
 ;
-; Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+; Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 ; SPDX-License-Identifier: BSD-3-Clause
 ;
 ;------------------------------------------------------------------------------
@@ -162,8 +162,6 @@ ASM_PFX(CoreBootServices):
     mov     rcx, r10   ; Type
     mov     rdx, [rbp + 8*3]
     add     rdx, 8     ; User Arguments[]
-    mov     r8, [ASM_PFX(UserStackTop)]
-    mov     r9, [ASM_PFX(SysCallStackTop)]
 
     sti
     call ASM_PFX(CallBootService)
@@ -175,7 +173,7 @@ ASM_PFX(CoreBootServices):
     pop     rax
 
     ; Step over NOOPT buffer.
-    add     rsp, 8*4
+    mov     rsp, rbp
 
     ; Prepare SYSRET arguments.
     pop     r11
@@ -197,12 +195,14 @@ o64 sysret
 ; CallRing3 (
 ;   IN RING3_CALL_DATA *Data,
 ;   IN UINTN            UserStackTop,
-;   IN UINTN            SysCallStackTop
+;   IN UINTN            SysCallStackTop,
+;   IN UINTN            *ReturnSP
 ;   );
 ;
 ;   (rcx) Data
 ;   (rdx) UserStackTop
 ;   (r8)  SysCallStackTop
+;   (r9)  ReturnSP
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -220,10 +220,10 @@ ASM_PFX(CallRing3):
     push    r15
 
     ; Save Core Stack pointer.
-    mov     [ASM_PFX(CoreRsp)], rsp
+    mov     [r9], rsp
 
     ; Save input Arguments.
-    mov     [ASM_PFX(UserStackTop)], rdx
+    mov     rbx, rdx
     mov     [ASM_PFX(SysCallStackTop)], r8
     mov     r10, rcx
 
@@ -234,7 +234,7 @@ ASM_PFX(CallRing3):
     mov     rcx, [ASM_PFX(gRing3EntryPoint)]
 
     ; Switch to User Stack.
-    mov     rsp, [ASM_PFX(UserStackTop)]
+    mov     rsp, rbx
     mov     rbp, rsp
 
     mov     r8, [ASM_PFX(gUserPageTable)]
@@ -250,12 +250,16 @@ ASM_PFX(SysCallEnd):
 ; VOID
 ; EFIAPI
 ; ReturnToCore (
-;   IN EFI_STATUS Status
+;   IN EFI_STATUS Status,
+;   IN UINTN      ReturnSP
 ;   );
+;
+;   (rcx) Status
+;   (rdx) ReturnSP
 ;------------------------------------------------------------------------------
 global ASM_PFX(ReturnToCore)
 ASM_PFX(ReturnToCore):
-    mov     rsp, [ASM_PFX(CoreRsp)]
+    mov     rsp, rdx
     pop     r15
     pop     r14
     pop     r13
@@ -281,11 +285,5 @@ ASM_PFX(gUserPageTable):
   resq 1
 
 ALIGN   4096
-ASM_PFX(CoreRsp):
-  resq 1
-
-ASM_PFX(UserStackTop):
-  resq 1
-
 ASM_PFX(SysCallStackTop):
   resq 1
