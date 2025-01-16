@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+// Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 //
 //------------------------------------------------------------------------------
@@ -62,14 +62,15 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data,
 //   IN UINTN            UserStackTop,
-//   IN UINTN            SysCallStackTop
+//   IN UINTN            SysCallStackTop,
+//   IN UINTN            *ReturnSP
 //   );
 //
 //   (x0) Data
 //   (x1) UserStackTop
 //   (x2) gRing3EntryPoint
 //   (x3) SysCallStackTop
-//   (x4) &CoreSp
+//   (x4) ReturnSP
 //   (x5) gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
@@ -121,13 +122,14 @@ ASM_FUNC_ALIGN(SysCallEnd, 4096)
 // VOID
 // EFIAPI
 // ReturnToCore (
-//   IN EFI_STATUS Status
+//   IN EFI_STATUS Status,
+//   IN UINTN      ReturnSP
 //   );
 //
 //   (x0) Status
-//   (x1) mCoreSp
+//   (x1) ReturnSP
 //------------------------------------------------------------------------------
-ASM_FUNC(ArmReturnToCore)
+ASM_FUNC(ReturnToCore)
   // Switch to Core Stack.
   mov  sp, x1
   // Restore registers and Stack.

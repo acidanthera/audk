@@ -11,17 +11,6 @@
 #include <Protocol/DiskIo.h>
 #include <Protocol/UnicodeCollation.h>
 
-typedef struct {
-  VOID        *CoreWrapper;
-  VOID        *UserSpaceDriver;
-  UINTN       UserPageTable;
-  UINTN       UserStackTop;
-  UINTN       SysCallStackTop;
-  LIST_ENTRY  Link;
-} USER_SPACE_DRIVER;
-
-extern LIST_ENTRY mUserSpaceDriversHead;
-
 EFI_STATUS
 EFIAPI
 CoreDriverBindingSupported (

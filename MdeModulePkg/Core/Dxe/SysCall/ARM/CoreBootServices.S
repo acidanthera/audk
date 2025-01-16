@@ -1,6 +1,6 @@
 //------------------------------------------------------------------------------
 //
-// Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+// Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 //
 //------------------------------------------------------------------------------
@@ -58,7 +58,8 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data,
 //   IN UINTN            UserStackTop,
-//   IN UINTN            SysCallStackTop
+//   IN UINTN            SysCallStackTop,
+//   IN UINTN            *ReturnSP
 //   );
 //
 //   (r0) Data
@@ -66,12 +67,12 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 //   (r2) gRing3EntryPoint
 //   (r3) SysCallStackTop
 //
-//   (On Core Stack) &CoreSp, gUserPageTable
+//   (On Core Stack) ReturnSP, gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
   push  {R4-R12, LR}
-  // R6 is &CoreSp
+  // R6 is ReturnSP
   ldr   R6, [SP, #0x28]
   // R7 is gUserPageTable
   ldr   R7, [SP, #0x2C]
@@ -118,13 +119,14 @@ ASM_FUNC_ALIGN(SysCallEnd, 4096)
 // VOID
 // EFIAPI
 // ReturnToCore (
-//   IN EFI_STATUS Status
+//   IN EFI_STATUS Status,
+//   IN UINTN      ReturnSP
 //   );
 //
 //   (r0) Status
-//   (r1) mCoreSp
+//   (r1) ReturnSP
 //------------------------------------------------------------------------------
-ASM_FUNC(ArmReturnToCore)
+ASM_FUNC(ReturnToCore)
   // Switch to Core Stack.
   mov   SP, R1
 

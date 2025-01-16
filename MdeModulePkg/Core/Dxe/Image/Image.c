@@ -1642,6 +1642,7 @@ CoreStartImage (
   UINTN                      SetJumpFlag;
   EFI_HANDLE                 Handle;
   UINT64                     Attributes;
+  USER_SPACE_DRIVER          *UserDriver;
 
   Handle = ImageHandle;
 
@@ -1743,11 +1744,19 @@ CoreStartImage (
 
         gUserPageTable = Image->UserPageTable;
 
+        UserDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        UserDriver->CoreWrapper     = NULL;
+        UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
+        UserDriver->UserPageTable   = Image->UserPageTable;
+        UserDriver->UserStackTop    = Image->UserStackTop;
+        UserDriver->SysCallStackTop = Image->SysCallStackTop;
+
+        InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
+
         Image->Status = GoToRing3 (
                           2,
                           (VOID *)Image->EntryPoint,
-                          Image->UserStackTop,
-                          Image->SysCallStackTop,
+                          UserDriver,
                           ImageHandle,
                           gRing3Data
                           );
