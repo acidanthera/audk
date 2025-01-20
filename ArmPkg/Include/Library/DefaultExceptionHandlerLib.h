@@ -12,9 +12,7 @@
 typedef
 EFI_STATUS
 (EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
-  IN  UINT8  Type,
-  IN  VOID   *CoreRbp,
-  IN  VOID   *UserRsp
+  IN EFI_SYSTEM_CONTEXT  Context
   );
 
 /**

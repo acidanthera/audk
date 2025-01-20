@@ -222,11 +222,7 @@ DefaultExceptionHandler (
   BOOLEAN  DfsrWrite;
 
   if (ExceptionType == EXCEPT_ARM_SOFTWARE_INTERRUPT) {
-    return mSysCallHandler (
-             SystemContext.SystemContextArm->R0,
-             &(SystemContext.SystemContextArm->R1),
-             (VOID *)SystemContext.SystemContextArm->SP
-             );
+    return mSysCallHandler (SystemContext);
   }
 
   CharCount = AsciiSPrint (

@@ -318,7 +318,7 @@ FindUserInfo (
   for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
     UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
 
-    if ((UserDriver->UserPageTable == gUserPageTable) && (UserDriver->ReturnSP != 0)) {
+    if (UserDriver->UserPageTable == gUserPageTable) {
       return UserDriver;
     }
   }
@@ -330,7 +330,8 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN UINTN  *UserArguments
+  IN UINTN  *UserArguments,
+  IN UINTN  ReturnSP
   )
 {
   EFI_STATUS           Status;
@@ -372,10 +373,8 @@ CallBootService (
   switch (Type) {
     case SysCallReturnToCore:
       Arguments  = CopyUserArguments (1, UserArguments);
-      UserDriver = FindUserInfo ();
-      ASSERT (UserDriver != NULL);
 
-      ReturnToCore (Arguments[1], UserDriver->ReturnSP);
+      ReturnToCore (Arguments[1], ReturnSP);
       break;
     case SysCallLocateProtocol:
       //
@@ -531,7 +530,6 @@ CallBootService (
         NewDriver->UserPageTable   = UserDriver->UserPageTable;
         NewDriver->UserStackTop    = UserDriver->UserStackTop;
         NewDriver->SysCallStackTop = UserDriver->SysCallStackTop;
-        NewDriver->ReturnSP        = 0;
 
         InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
 

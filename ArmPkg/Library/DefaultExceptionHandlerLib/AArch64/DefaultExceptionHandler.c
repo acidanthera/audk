@@ -210,11 +210,7 @@ DefaultExceptionHandler (
   INT32   Offset;
 
   if (AARCH64_ESR_EC (SystemContext.SystemContextAArch64->ESR) == AARCH64_ESR_EC_SVC64) {
-    return mSysCallHandler (
-             SystemContext.SystemContextAArch64->X0,
-             &(SystemContext.SystemContextAArch64->X1),
-             &(SystemContext.SystemContextAArch64->X0)
-             );
+    return mSysCallHandler (SystemContext);
   }
 
   if (mRecursiveException) {

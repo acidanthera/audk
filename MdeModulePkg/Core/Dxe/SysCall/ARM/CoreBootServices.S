@@ -58,8 +58,7 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data,
 //   IN UINTN            UserStackTop,
-//   IN UINTN            SysCallStackTop,
-//   IN UINTN            *ReturnSP
+//   IN UINTN            SysCallStackTop
 //   );
 //
 //   (r0) Data
@@ -67,15 +66,13 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 //   (r2) gRing3EntryPoint
 //   (r3) SysCallStackTop
 //
-//   (On Core Stack) ReturnSP, gUserPageTable
+//   (On Core Stack) gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
   push  {R4-R12, LR}
-  // R6 is ReturnSP
-  ldr   R6, [SP, #0x28]
   // R7 is gUserPageTable
-  ldr   R7, [SP, #0x2C]
+  ldr   R7, [SP, #0x28]
   // Save old SP_usr and LR_usr on Core Stack.
   sub   SP, SP, #0x8
   stmia SP, {SP, LR}^
@@ -98,10 +95,11 @@ ASM_FUNC(ArmCallRing3)
   // Set SPSR M[3:0] bits to User mode.
   and   R4, R4, #0xFFFFFFF0
 
-  // Save Core SP and switch to SysCallStackTop.
+  // Switch to SysCallStackTop and save ReturnSP on it.
   mov   R5, SP
-  str   R5, [R6]
   mov   SP, R3
+  push  {R5}
+  push  {R5} // Align stack on 8 bytes
 
   // Switch to UserPageTable.
   mrc   p15,0,R8,c2,c0,0   // R8 == TTBR0
@@ -115,7 +113,7 @@ ASM_FUNC(ArmCallRing3)
 
   push  {R4}
   push  {R2}
-  rfefd SP
+  rfefd SP!
 
 ASM_FUNC_ALIGN(SysCallEnd, 4096)
 //------------------------------------------------------------------------------

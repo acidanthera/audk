@@ -241,7 +241,6 @@ typedef struct {
   UINTN       UserPageTable;
   UINTN       UserStackTop;
   UINTN       SysCallStackTop;
-  UINTN       ReturnSP;
   LIST_ENTRY  Link;
 } USER_SPACE_DRIVER;
 
@@ -2750,7 +2749,8 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
-  IN UINTN  *UserArguments
+  IN UINTN  *UserArguments,
+  IN UINTN  ReturnSP
   );
 
 VOID

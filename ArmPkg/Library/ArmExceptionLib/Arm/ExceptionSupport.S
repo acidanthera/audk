@@ -44,7 +44,7 @@ This is the stack constructed by the exception handler (low address to high addr
   LR    0x54    # SVC Link register (we need to restore it)
 
   TTBR0 0x58
-Padding 0x5c
+ SP_EL1 0x5c
 
   LR    0x60    # pushed by srsfd
   CPSR  0x64
@@ -101,7 +101,7 @@ ASM_PFX(Fiq):
 ASM_PFX(ResetEntry):
   srsdb     #0x13!                    @ Store return state on SVC stack
                                       @ We are already in SVC mode
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -114,7 +114,7 @@ ASM_PFX(UndefinedInstructionEntry):
   sub       LR, LR, #4                @ Only -2 for Thumb, adjust in CommonExceptionEntry
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -128,7 +128,7 @@ ASM_PFX(SoftwareInterruptEntry):
   isb
   srsdb     #0x13!                    @ Store return state on SVC stack
                                       @ We are already in SVC mode
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -141,7 +141,7 @@ ASM_PFX(PrefetchAbortEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -154,7 +154,7 @@ ASM_PFX(DataAbortEntry):
   sub       LR,LR,#8
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -166,7 +166,7 @@ ASM_PFX(DataAbortEntry):
 ASM_PFX(ReservedExceptionEntry):
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -179,7 +179,7 @@ ASM_PFX(IrqEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -192,7 +192,7 @@ ASM_PFX(FiqEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
-  sub       SP, SP, #0x8              @ Save space for TTBR0
+  sub       SP, SP, #0x8              @ Save space for TTBR0 and SP_EL1
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -242,6 +242,8 @@ ASM_PFX(AsmCommonExceptionEntry):
   addne     R1, SP, #0x68           @   We pushed 0x68 bytes on the stack
   strne     R1, [SP, #0x34]         @   Store it in EFI_SYSTEM_CONTEXT_ARM.SP
 
+  add       R1, SP, #0x68           @ We pushed 0x68 bytes on the stack
+  str       R1, [SP, #0x5c]         @ Store it in EFI_SYSTEM_CONTEXT_ARM.SP_EL1
 
   ldr       R5, [SP, #0x60]         @ PC is the LR pushed by srsfd
                                     @ Check to see if we have to adjust for Thumb entry
@@ -334,7 +336,7 @@ NoTTBR0Switch2:
 
   add       SP,SP,#0x20             @ Clear out the remaining stack space
   ldmfd     SP!,{LR}                @ restore the link register for this context
-  add       SP, SP, #0x8            @ Clear out TTBR0 and Padding
+  add       SP, SP, #0x8            @ Clear out TTBR0 and SP_EL1
   rfefd     SP!                     @ return from exception via srsfd stack slot
 
 ASM_FUNC_ALIGN(ExceptionHandlerFinal, 4096)
