@@ -38,10 +38,6 @@ global ASM_PFX(UserPageTable)
 ASM_PFX(UserPageTable):
   resq 1
 
-global ASM_PFX(mSwitchCr3Flag)
-ASM_PFX(mSwitchCr3Flag):
-  db 0x0
-
 ALIGN   4096
 Padding:
   db 0x0
@@ -105,7 +101,9 @@ HookAfterStubHeaderEnd:
 global ASM_PFX(CommonInterruptEntry)
 ASM_PFX(CommonInterruptEntry):
     cli
-    cmp     byte [ASM_PFX(mSwitchCr3Flag)], 0
+    ; Check whether User Space process was interrupted.
+    mov     eax, ds
+    and     eax, 3
     jz      NoCr3Switch
     mov     eax, cr3
     mov     [ASM_PFX(UserPageTable)], eax
