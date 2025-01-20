@@ -60,9 +60,6 @@ GoToRing3 (
   VA_END (Marker);
   ForbidSupervisorAccessToUserMemory ();
   //
-  // TODO: Get(),Set() for old SysCallStackTop.
-  //
-  //
   // TODO: Allocate new stacks (only for EFI_FILE_PROTOCOL instances?),
   // because UserDriver can be interrupted and interrupt handler may call the same UserDriver again.
   //
@@ -83,16 +80,20 @@ STATIC
 USER_SPACE_DRIVER *
 EFIAPI
 FindUserSpaceDriver (
-  IN VOID  *CoreWrapper
+  IN  VOID  *CoreWrapper,
+  OUT UINTN  *OldPageTable
   )
 {
   LIST_ENTRY         *Link;
   USER_SPACE_DRIVER  *UserDriver;
 
+  ASSERT (OldPageTable != NULL);
+
   for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
     UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
 
     if (UserDriver->CoreWrapper == CoreWrapper) {
+      *OldPageTable  = gUserPageTable;
       gUserPageTable = UserDriver->UserPageTable;
       return UserDriver;
     }
@@ -112,8 +113,9 @@ CoreDriverBindingSupported (
   EFI_STATUS         Status;
   USER_SPACE_DRIVER  *UserDriver;
   VOID               *EntryPoint;
+  UINTN              OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -131,6 +133,8 @@ CoreDriverBindingSupported (
              RemainingDevicePath
              );
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -145,8 +149,9 @@ CoreDriverBindingStart (
   EFI_STATUS         Status;
   USER_SPACE_DRIVER  *UserDriver;
   VOID               *EntryPoint;
+  UINTN              OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -164,6 +169,8 @@ CoreDriverBindingStart (
              RemainingDevicePath
              );
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -179,8 +186,9 @@ CoreDriverBindingStop (
   EFI_STATUS         Status;
   USER_SPACE_DRIVER  *UserDriver;
   VOID               *EntryPoint;
+  UINTN              OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -199,6 +207,8 @@ CoreDriverBindingStop (
              ChildHandleBuffer
              );
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -212,8 +222,9 @@ CoreFileClose (
   EFI_STATUS         Status;
   USER_SPACE_DRIVER  *UserDriver;
   VOID               *EntryPoint;
+  UINTN              OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -231,6 +242,8 @@ CoreFileClose (
 
   FreePool (UserDriver->CoreWrapper);
   RemoveEntryList (&UserDriver->Link);
+
+  gUserPageTable = OldPageTable;
 
   return Status;
 }
@@ -261,6 +274,7 @@ CoreFileRead (
   UINT32                PagesNumber;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
   if ((This == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
@@ -268,7 +282,7 @@ CoreFileRead (
   //
   // gUserPageTable must be set before alloctation of EfiRing3MemoryType pages.
   //
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -284,6 +298,7 @@ CoreFileRead (
              &Ring3Pages
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -317,6 +332,8 @@ CoreFileRead (
 
   CoreFreePages (Ring3Pages, PagesNumber);
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -340,10 +357,12 @@ CoreFileSetPosition (
   IN UINT64                   Position
   )
 {
+  EFI_STATUS         Status;
   USER_SPACE_DRIVER  *UserDriver;
   VOID               *EntryPoint;
+  UINTN              OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -353,40 +372,43 @@ CoreFileSetPosition (
   ForbidSupervisorAccessToUserMemory ();
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
-  return GoToRing3 (
-           2,
-           EntryPoint,
-           UserDriver,
-           This,
-           Position
-           );
+  Status = GoToRing3 (
+             2,
+             EntryPoint,
+             UserDriver,
+             This,
+             Position
+             );
 #elif defined (MDE_CPU_IA32)
   //
   // UINT64 Position is passed as 2 double words on stack.
   //
-  return GoToRing3 (
-           3,
-           EntryPoint,
-           UserDriver,
-           This,
-           Position
-           );
+  Status = GoToRing3 (
+             3,
+             EntryPoint,
+             UserDriver,
+             This,
+             Position
+             );
 #elif defined (MDE_CPU_ARM)
   //
   // UINT64 Position is passed as 2 words in 2 registers and is aligned on 8 bytes.
   // R0 == This, R1 == NULL, R2 == Position_Low, R3 == Position_High.
   //
-  return GoToRing3 (
-           4,
-           EntryPoint,
-           UserDriver,
-           This,
-           NULL,
-           (UINT32)Position,
-           (UINT32)(Position >> 32)
-           );
+  Status = GoToRing3 (
+             4,
+             EntryPoint,
+             UserDriver,
+             This,
+             NULL,
+             (UINT32)Position,
+             (UINT32)(Position >> 32)
+             );
 #endif
 
+  gUserPageTable = OldPageTable;
+
+  return Status;
 }
 
 STATIC
@@ -401,12 +423,13 @@ CoreFileGetPosition (
   EFI_PHYSICAL_ADDRESS  Ring3Position;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
   if ((This == NULL) || (Position == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -418,6 +441,7 @@ CoreFileGetPosition (
              &Ring3Position
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -440,6 +464,8 @@ CoreFileGetPosition (
 
   CoreFreePages (Ring3Position, 1);
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -461,12 +487,13 @@ CoreFileGetInfo (
   UINT32                PagesNumber;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
   if ((This == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -484,6 +511,7 @@ CoreFileGetInfo (
              &Ring3Pages
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -525,6 +553,8 @@ CoreFileGetInfo (
   ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (Ring3Pages, PagesNumber);
+
+  gUserPageTable = OldPageTable;
 
   return Status;
 }
@@ -620,12 +650,13 @@ CoreFileOpen (
   USER_SPACE_DRIVER     *UserDriver;
   USER_SPACE_DRIVER     *NewDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
   if ((This == NULL) || (NewHandle == NULL) || (FileName == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -644,6 +675,7 @@ CoreFileOpen (
              );
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -657,6 +689,7 @@ CoreFileOpen (
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -709,6 +742,7 @@ CoreFileOpen (
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -716,6 +750,7 @@ CoreFileOpen (
   if (NewFile == NULL) {
     *NewHandle = NULL;
     CoreFreePages (Ring3Pages, PagesNumber);
+    gUserPageTable = OldPageTable;
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -751,6 +786,8 @@ CoreFileOpen (
 
   CoreFreePages (Ring3Pages, PagesNumber);
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -768,12 +805,13 @@ CoreOpenVolume (
   USER_SPACE_DRIVER     *UserDriver;
   USER_SPACE_DRIVER     *NewDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
   if (Root == NULL) {
     return EFI_INVALID_PARAMETER;
   }
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -790,6 +828,7 @@ CoreOpenVolume (
              );
   if (EFI_ERROR (Status)) {
     *Root = NULL;
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -805,6 +844,7 @@ CoreOpenVolume (
   if (EFI_ERROR (Status)) {
     *Root = NULL;
     CoreFreePages (Physical, 1);
+    gUserPageTable = OldPageTable;
     return Status;
   }
 
@@ -812,6 +852,7 @@ CoreOpenVolume (
   if (File == NULL) {
     *Root = NULL;
     CoreFreePages (Physical, 1);
+    gUserPageTable = OldPageTable;
     return EFI_OUT_OF_RESOURCES;
   }
 
@@ -847,6 +888,8 @@ CoreOpenVolume (
 
   CoreFreePages (Physical, 1);
 
+  gUserPageTable = OldPageTable;
+
   return Status;
 }
 
@@ -864,8 +907,9 @@ CoreUnicodeCollationStriColl (
   VOID                  *EntryPoint;
   UINTN                 Size1;
   UINTN                 Size2;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -880,6 +924,7 @@ CoreUnicodeCollationStriColl (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return 0;
   }
 
@@ -900,6 +945,8 @@ CoreUnicodeCollationStriColl (
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1 + Size2));
 
+  gUserPageTable = OldPageTable;
+
   return (INTN)Status;
 }
 
@@ -917,8 +964,9 @@ CoreUnicodeCollationMetaiMatch (
   VOID                  *EntryPoint;
   UINTN                 Size1;
   UINTN                 Size2;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -933,6 +981,7 @@ CoreUnicodeCollationMetaiMatch (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return FALSE;
   }
 
@@ -953,6 +1002,8 @@ CoreUnicodeCollationMetaiMatch (
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1 + Size2));
 
+  gUserPageTable = OldPageTable;
+
   return (BOOLEAN)Status;
 }
 
@@ -968,8 +1019,9 @@ CoreUnicodeCollationStrLwr (
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
   UINTN                 Size1;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -983,6 +1035,7 @@ CoreUnicodeCollationStrLwr (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return;
   }
 
@@ -1004,6 +1057,8 @@ CoreUnicodeCollationStrLwr (
   ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1));
+
+  gUserPageTable = OldPageTable;
 }
 
 VOID
@@ -1018,8 +1073,9 @@ CoreUnicodeCollationStrUpr (
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
   UINTN                 Size1;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -1033,6 +1089,7 @@ CoreUnicodeCollationStrUpr (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return;
   }
 
@@ -1054,6 +1111,8 @@ CoreUnicodeCollationStrUpr (
   ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (Size1));
+
+  gUserPageTable = OldPageTable;
 }
 
 VOID
@@ -1069,8 +1128,9 @@ CoreUnicodeCollationFatToStr (
   EFI_PHYSICAL_ADDRESS  UserMem;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -1082,6 +1142,7 @@ CoreUnicodeCollationFatToStr (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return;
   }
 
@@ -1105,6 +1166,8 @@ CoreUnicodeCollationFatToStr (
   ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (FatSize * 3));
+
+  gUserPageTable = OldPageTable;
 }
 
 BOOLEAN
@@ -1121,8 +1184,9 @@ CoreUnicodeCollationStrToFat (
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
   UINTN                 Size1;
+  UINTN                 OldPageTable;
 
-  UserDriver = FindUserSpaceDriver (This);
+  UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
@@ -1136,6 +1200,7 @@ CoreUnicodeCollationStrToFat (
              &UserMem
              );
   if (EFI_ERROR (Status)) {
+    gUserPageTable = OldPageTable;
     return FALSE;
   }
 
@@ -1159,6 +1224,8 @@ CoreUnicodeCollationStrToFat (
   ForbidSupervisorAccessToUserMemory ();
 
   CoreFreePages (UserMem, EFI_SIZE_TO_PAGES (FatSize + Size1));
+
+  gUserPageTable = OldPageTable;
 
   return (BOOLEAN)Status;
 }

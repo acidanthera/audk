@@ -90,6 +90,8 @@
   UINT64  ESR;    0x318   // Exception syndrome register
   UINT64  FAR;    0x320   // Fault Address Register
   UINT64  Type;   0x328   // Exception Type
+  UINT64  TTBR0;  0x330   // User Page Table
+  UINT64  Padding;0x338   // Alignment requirement
 */
 
 GCC_ASM_EXPORT(ExceptionHandlersEnd)
@@ -99,7 +101,7 @@ GCC_ASM_EXPORT(CommonCExceptionHandler)
 
 #define GP_CONTEXT_SIZE    (32 *  8)
 #define FP_CONTEXT_SIZE    (32 * 16)
-#define SYS_CONTEXT_SIZE   ( 6 *  8) // 5 SYS regs + Alignment requirement (ie: the stack must be aligned on 0x10)
+#define SYS_CONTEXT_SIZE   ( 8 *  8) // 7 SYS regs + Alignment requirement (ie: the stack must be aligned on 0x10)
 
 ASM_FUNC_ALIGN(ExceptionHandlerBase, 4096)
 
@@ -247,6 +249,11 @@ ASM_PFX(CommonExceptionEntry):
   stp      x2,  x3,  [x28, #-SYS_CONTEXT_SIZE]!
   stp      x4,  x5,  [x28, #0x10]
   stp      x6,  x0,  [x28, #0x20]
+  EL1_OR_EL2(x1)
+1:mrs      x2, ttbr0_el1
+  b        3f
+2:mrs      x2, ttbr0_el2
+3:stp      x2, xzr,  [x28, #0x30]
 
   // Push FP regs to Stack.
   stp      q0,  q1,  [x28, #-FP_CONTEXT_SIZE]!
@@ -271,17 +278,12 @@ ASM_PFX(CommonExceptionEntry):
   cmp      x2, 0           // Check whether EL0 process was interrupted
   b.ne     NoTTBR0Switch
   adrp     x1, ASM_PFX(CorePageTable)
+  ldr      x4, [x1]
   EL1_OR_EL2(x3)
-1:mrs      x4, ttbr0_el1
-  str      x4, [x1, #0x8]  // UserPageTable
-  ldr      x4, [x1]        // CorePageTable
-  msr      ttbr0_el1, x4
+1:msr      ttbr0_el1, x4
   tlbi     vmalle1
   b        3f
-2:mrs      x4, ttbr0_el2
-  str      x4, [x1, #0x8]  // UserPageTable
-  ldr      x4, [x1]        // CorePageTable
-  msr      ttbr0_el2, x4
+2:msr      ttbr0_el2, x4
   tlbi     alle2
 3:dsb      sy
   isb
@@ -307,14 +309,12 @@ NoTTBR0Switch:
   and      x2, x2, #0xF
   cmp      x2, 0           // Check whether EL0 process was interrupted
   b.ne     NoTTBR0Switch2
-  adrp     x1, ASM_PFX(CorePageTable)
+  ldr      x4, [x28, #(FP_CONTEXT_SIZE + 0x30)] // UserPageTable
   EL1_OR_EL2(x3)
-1:ldr      x4, [x1, #0x8]  // UserPageTable
-  msr      ttbr0_el1, x4
+1:msr      ttbr0_el1, x4
   tlbi     vmalle1
   b        3f
-2:ldr      x4, [x1, #0x8]  // UserPageTable
-  msr      ttbr0_el2, x4
+2:msr      ttbr0_el2, x4
   tlbi     alle2
 3:dsb      sy
   isb
@@ -406,9 +406,6 @@ ASM_FUNC(RegisterEl0Stack)
 .global ASM_PFX(CorePageTable)
 .balign 4096
 ASM_PFX(CorePageTable):
-.ds.d 1
-
-UserPageTable:
 .ds.d 1
 
 .balign 4096

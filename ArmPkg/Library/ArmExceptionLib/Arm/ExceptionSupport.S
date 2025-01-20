@@ -43,8 +43,11 @@ This is the stack constructed by the exception handler (low address to high addr
 
   LR    0x54    # SVC Link register (we need to restore it)
 
-  LR    0x58    # pushed by srsfd
-  CPSR  0x5c
+  TTBR0 0x58
+Padding 0x5c
+
+  LR    0x60    # pushed by srsfd
+  CPSR  0x64
 
  */
 
@@ -98,7 +101,7 @@ ASM_PFX(Fiq):
 ASM_PFX(ResetEntry):
   srsdb     #0x13!                    @ Store return state on SVC stack
                                       @ We are already in SVC mode
-
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -111,6 +114,7 @@ ASM_PFX(UndefinedInstructionEntry):
   sub       LR, LR, #4                @ Only -2 for Thumb, adjust in CommonExceptionEntry
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -124,6 +128,7 @@ ASM_PFX(SoftwareInterruptEntry):
   isb
   srsdb     #0x13!                    @ Store return state on SVC stack
                                       @ We are already in SVC mode
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -136,6 +141,7 @@ ASM_PFX(PrefetchAbortEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -148,6 +154,7 @@ ASM_PFX(DataAbortEntry):
   sub       LR,LR,#8
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -159,6 +166,7 @@ ASM_PFX(DataAbortEntry):
 ASM_PFX(ReservedExceptionEntry):
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -171,6 +179,7 @@ ASM_PFX(IrqEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -183,6 +192,7 @@ ASM_PFX(FiqEntry):
   sub       LR,LR,#4
   srsdb     #0x13!                    @ Store return state on SVC stack
   cps       #0x13                     @ Switch to SVC for common stack
+  sub       SP, SP, #0x8              @ Save space for TTBR0
   stmfd     SP!,{LR}                  @ Store the link register for the current mode
   sub       SP,SP,#0x20               @ Save space for SP, LR, PC, IFAR - CPSR
   stmfd     SP!,{R0-R12}              @ Store the register state
@@ -217,7 +227,7 @@ ASM_PFX(AsmCommonExceptionEntry):
   mrc       p15, 0, R1, c5, c0, 0   @ Read DFSR
   str       R1, [SP, #0x44]         @ Store it in EFI_SYSTEM_CONTEXT_ARM.DFSR
 
-  ldr       R1, [SP, #0x5c]         @ srsdb saved pre-exception CPSR on the stack
+  ldr       R1, [SP, #0x64]         @ srsdb saved pre-exception CPSR on the stack
   str       R1, [SP, #0x40]         @ Store it in EFI_SYSTEM_CONTEXT_ARM.CPSR
 
   add       R2, SP, #0x38           @ Make R2 point to EFI_SYSTEM_CONTEXT_ARM.LR
@@ -229,20 +239,20 @@ ASM_PFX(AsmCommonExceptionEntry):
   stmdaeq   R2, {sp}^               @   save unbanked sp
                                     @ else
   stmdane   R2, {lr}                @   save SVC lr
-  addne     R1, SP, #0x60           @   We pushed 0x60 bytes on the stack
+  addne     R1, SP, #0x68           @   We pushed 0x68 bytes on the stack
   strne     R1, [SP, #0x34]         @   Store it in EFI_SYSTEM_CONTEXT_ARM.SP
 
 
-  ldr       R5, [SP, #0x58]         @ PC is the LR pushed by srsfd
+  ldr       R5, [SP, #0x60]         @ PC is the LR pushed by srsfd
                                     @ Check to see if we have to adjust for Thumb entry
   sub       r4, r0, #1              @ if (ExceptionType == 1 || ExceptionType == 2)) {
   cmp       r4, #1                  @   // UND & SVC have different LR adjust for Thumb
   bhi       NoAdjustNeeded
 
-  ldr       R1, [SP, #0x5c]         @ srsdb saved pre-exception CPSR on the stack
+  ldr       R1, [SP, #0x64]         @ srsdb saved pre-exception CPSR on the stack
   tst       r1, #0x20               @   if ((CPSR & T)) == T) {  // Thumb Mode on entry
   addne     R5, R5, #2              @     PC += 2;
-  strne     R5,[SP,#0x58]           @ Update LR value pushed by srsfd
+  strne     R5,[SP,#0x60]           @ Update LR value pushed by srsfd
 
 NoAdjustNeeded:
 
@@ -251,17 +261,12 @@ NoAdjustNeeded:
                                     @ R0 is ExceptionType
   mov       R1,SP                   @ R1 is SystemContext
 
-#if (FixedPcdGet32(PcdVFPEnabled))
-  vpush     {d0-d15}                @ save vstm registers in case they are used in optimizations
-#endif
-
   ldr       R5, [SP, #0x40]         @ Saved Processor Status Register
   and       R5, R5, #0xF
   cmp       R5, 0                   @ Check whether EL0 process was interrupted
   bne       NoTTBR0Switch
   mrc       p15,0,R5,c2,c0,0        @ R5 == TTBR0
-  ADRL      (R6, UserPageTable)
-  str       R5, [R6]
+  str       R5, [SP, #0x58]
   and       R5, R5, #0x7F           @ Preserve TTBR0 attributes
   LDRL      (R6, ASM_PFX(CorePageTable))
   orr       R6, R6, R5              @ Assign TTBR0 attributes
@@ -272,6 +277,10 @@ NoAdjustNeeded:
   isb
 
 NoTTBR0Switch:
+
+#if (FixedPcdGet32(PcdVFPEnabled))
+  vpush     {d0-d15}                @ save vstm registers in case they are used in optimizations
+#endif
 
   mov       R4, SP                  @ Save current SP
   tst       R4, #4
@@ -292,11 +301,15 @@ CommonCExceptionHandler (
 
   mov       SP, R4                  @ Restore SP
 
+#if (FixedPcdGet32(PcdVFPEnabled))
+  vpop      {d0-d15}
+#endif
+
   ldr       R4, [SP, #0x40]         @ Saved Processor Status Register
   and       R4, R4, #0xF
   cmp       R4, 0                   @ Check whether EL0 process was interrupted
   bne       NoTTBR0Switch2
-  LDRL      (R4, UserPageTable)
+  ldr       R4, [SP, #0x58]         @ User Page Table
   mcr       p15,0,R4,c2,c0,0        @ TTBR0 == R4
   mcr       p15,0,r0,c8,c7,0        @ TLBIALL, TLB Invalidate All.
   mcr       p15,0,r0,c7,c5,6        @ BPIALL, Branch Predictor Invalidate All.
@@ -304,10 +317,6 @@ CommonCExceptionHandler (
   isb
 
 NoTTBR0Switch2:
-
-#if (FixedPcdGet32(PcdVFPEnabled))
-  vpop      {d0-d15}
-#endif
 
   ldr       R1, [SP, #0x4c]         @ Restore EFI_SYSTEM_CONTEXT_ARM.IFSR
   mcr       p15, 0, R1, c5, c0, 1   @ Write IFSR
@@ -325,6 +334,7 @@ NoTTBR0Switch2:
 
   add       SP,SP,#0x20             @ Clear out the remaining stack space
   ldmfd     SP!,{LR}                @ restore the link register for this context
+  add       SP, SP, #0x8            @ Clear out TTBR0 and Padding
   rfefd     SP!                     @ return from exception via srsfd stack slot
 
 ASM_FUNC_ALIGN(ExceptionHandlerFinal, 4096)
@@ -334,9 +344,6 @@ ASM_FUNC_ALIGN(ExceptionHandlerFinal, 4096)
 .global ASM_PFX(CorePageTable)
 .balign 4096
 ASM_PFX(CorePageTable):
-.ds.l 1
-
-UserPageTable:
 .ds.l 1
 
 .balign 4096

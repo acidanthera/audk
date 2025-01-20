@@ -82,7 +82,8 @@ ASM_FUNC(ArmCallRing3)
   stp  q12, q13, [sp, #0xa0]
   stp  q14, q15, [sp, #0x80]
 
-  stp  xzr, x16, [sp, #0x70]
+  mrs  x6, sp_el0
+  stp  x6,  x16, [sp, #0x70]
   stp  x17, x18, [sp, #0x60]
   stp  x19, x20, [sp, #0x50]
   stp  x21, x22, [sp, #0x40]
@@ -138,7 +139,7 @@ ASM_FUNC(ReturnToCore)
   ldp  q12, q13, [sp, #0xa0]
   ldp  q14, q15, [sp, #0x80]
 
-  ldr  x16, [sp, #0x78]
+  ldp  x6,  x16, [sp, #0x70]
   ldp  x17, x18, [sp, #0x60]
   ldp  x19, x20, [sp, #0x50]
   ldp  x21, x22, [sp, #0x40]
@@ -147,6 +148,7 @@ ASM_FUNC(ReturnToCore)
   ldp  x27, x28, [sp, #0x10]
   ldp  x29, x30, [sp]
   add	 sp, sp, #0x100
+  msr  sp_el0, x6
   // Enable interrupts.
   msr  daifclr, #0xf
   isb

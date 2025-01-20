@@ -11,8 +11,7 @@
 
 #include "DxeMain.h"
 
-STATIC UINTN  mSysCallStackTop;
-UINTN         gUserPageTable;
+UINTN  gUserPageTable;
 
 EFI_STATUS
 EFIAPI
@@ -151,8 +150,6 @@ CallRing3 (
   IN UINTN            *ReturnSP
   )
 {
-  mSysCallStackTop = SysCallStackTop;
-
   return ArmCallRing3 (
             Data,
             UserStackTop,

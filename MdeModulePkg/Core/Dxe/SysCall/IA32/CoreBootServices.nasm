@@ -180,24 +180,27 @@ ASM_PFX(CallRing3):
     push    ebp
     push    edi
     push    esi
+    ; Save old SysCallStackTop.
+    push dword MSR_IA32_SYSENTER_ESP
+    call ASM_PFX(AsmReadMsr64)
+    pop     ebx
+    push    eax
 
     ; Save Core Stack pointer.
-    mov     ebx, [esp + 4 * 8] ; ReturnSP
+    mov     ebx, [esp + 4 * 9] ; ReturnSP
     mov     [ebx], esp
 
-    mov     ebx, [esp + 4 * 7]
-    mov     [ASM_PFX(SysCallStackTop)], ebx
     mov     edx, 0
-    mov     eax, ebx
+    mov     eax, [esp + 4 * 8] ; SysCallStackTop
     mov     ecx, MSR_IA32_SYSENTER_ESP
     wrmsr
 
     SetRing3DataSegmentSelectors
 
     ; Prepare SYSEXIT arguments.
-    mov     ecx, [esp + 4 * 6] ; UserStackTop
+    mov     ecx, [esp + 4 * 7] ; UserStackTop
     mov     edx, [ASM_PFX(gRing3EntryPoint)]
-    mov     eax, [esp + 4 * 5] ; Data
+    mov     eax, [esp + 4 * 6] ; Data
 
     ; Switch to User Stack.
     mov     ebp, ecx
@@ -223,8 +226,15 @@ ASM_PFX(SysCallEnd):
 ;------------------------------------------------------------------------------
 global ASM_PFX(ReturnToCore)
 ASM_PFX(ReturnToCore):
-    mov     eax, [esp + 4]   ; Status
+    mov     ebx, [esp + 4]   ; Status
     mov     esp, [esp + 4*2] ; ReturnSP
+    ; Restore old SysCallStackTop.
+    mov     edx, 0
+    pop     eax
+    mov     ecx, MSR_IA32_SYSENTER_ESP
+    wrmsr
+
+    mov     eax, ebx
     pop     esi
     pop     edi
     pop     ebp
@@ -245,5 +255,5 @@ ASM_PFX(gUserPageTable):
   resd 1
 
 ALIGN   4096
-ASM_PFX(SysCallStackTop):
+Padding:
   resd 1
