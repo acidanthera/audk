@@ -76,6 +76,9 @@ ASM_FUNC(ArmCallRing3)
   ldr   R6, [SP, #0x28]
   // R7 is gUserPageTable
   ldr   R7, [SP, #0x2C]
+  // Save old SP_usr and LR_usr on Core Stack.
+  sub   SP, SP, #0x8
+  stmia SP, {SP, LR}^
 
 #if (FixedPcdGet32(PcdVFPEnabled))
   // Save vstm registers in case they are used in optimizations.
@@ -134,6 +137,10 @@ ASM_FUNC(ReturnToCore)
 #if (FixedPcdGet32(PcdVFPEnabled))
   vpop  {d0-d15}
 #endif
+
+  // Restore old SP_usr and LR_usr.
+  ldmia SP, {SP, LR}^
+  add   SP, SP, #0x8
 
   pop   {R4-R12, LR}
 

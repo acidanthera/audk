@@ -218,6 +218,7 @@ ASM_PFX(CallRing3):
     push    r13
     push    r14
     push    r15
+    push qword [ASM_PFX(SysCallStackTop)]
 
     ; Save Core Stack pointer.
     mov     [r9], rsp
@@ -260,6 +261,7 @@ ASM_PFX(SysCallEnd):
 global ASM_PFX(ReturnToCore)
 ASM_PFX(ReturnToCore):
     mov     rsp, rdx
+    pop qword [ASM_PFX(SysCallStackTop)]
     pop     r15
     pop     r14
     pop     r13
