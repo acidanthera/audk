@@ -133,6 +133,8 @@ ASM_PFX(CoreBootServices):
 
     ; Prepare CallBootService arguments.
     mov     ebp, esp
+    mov     eax, [esp + 4*3]
+    push    eax      ; ReturnSP
     add     edx, 4   ; User Arguments[]
     push    edx
     push    ecx      ; Type
@@ -166,11 +168,10 @@ ASM_PFX(CoreBootServices):
 ; CallRing3 (
 ;   IN RING3_CALL_DATA *Data,
 ;   IN UINTN            UserStackTop,
-;   IN UINTN            SysCallStackTop,
-;   IN UINTN            *ReturnSP
+;   IN UINTN            SysCallStackTop
 ;   );
 ;
-;   (On User Stack) Data, UserStackTop, SysCallStackTop, ReturnSP
+;   (On User Stack) Data, UserStackTop, SysCallStackTop
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -186,14 +187,15 @@ ASM_PFX(CallRing3):
     pop     ebx
     push    eax
 
-    ; Save Core Stack pointer.
-    mov     ebx, [esp + 4 * 9] ; ReturnSP
-    mov     [ebx], esp
-
+    ; Set new SysCallStackTop.
     mov     edx, 0
     mov     eax, [esp + 4 * 8] ; SysCallStackTop
+    sub     eax, 4
     mov     ecx, MSR_IA32_SYSENTER_ESP
     wrmsr
+
+    ; Save ReturnSP on SysCallStack.
+    mov     [eax], esp
 
     SetRing3DataSegmentSelectors
 

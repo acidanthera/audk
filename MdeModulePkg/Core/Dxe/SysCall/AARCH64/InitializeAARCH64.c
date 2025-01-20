@@ -21,7 +21,6 @@ ArmCallRing3 (
   IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
   IN UINTN           SysCallStackTop,
-  IN UINTN           *ReturnSP,
   IN UINTN           UserPageTable
   );
 
@@ -29,9 +28,7 @@ STATIC
 EFI_STATUS
 EFIAPI
 SysCallBootService (
-  IN  UINT8  Type,
-  IN  VOID   *CoreRbp,
-  IN  VOID   *UserRsp
+  IN EFI_SYSTEM_CONTEXT  Context
   )
 {
   EFI_STATUS              Status;
@@ -42,7 +39,7 @@ SysCallBootService (
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)),
+             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
              &Physical
              );
   if (EFI_ERROR (Status)) {
@@ -50,12 +47,13 @@ SysCallBootService (
   }
 
   AllowSupervisorAccessToUserMemory ();
-  CopyMem ((VOID *)((UINTN)Physical + sizeof (UINTN)), (VOID *)UserRsp, 8 * sizeof (UINTN));
+  CopyMem ((VOID *)Physical, (VOID *)&(Context.SystemContextAArch64->X0), 8 * sizeof (UINTN));
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
-             Type,
-             (UINTN *)((UINTN)Physical + sizeof (UINTN))
+             Context.SystemContextAArch64->X0,
+             (UINTN *)Physical,
+             *(UINTN *)Context.SystemContextAArch64->SP
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
@@ -151,8 +149,7 @@ EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data,
   IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop,
-  IN UINTN            *ReturnSP
+  IN UINTN            SysCallStackTop
   )
 {
   return ArmCallRing3 (
@@ -160,7 +157,6 @@ CallRing3 (
             UserStackTop,
             gRing3EntryPoint,
             SysCallStackTop,
-            ReturnSP,
             gUserPageTable
             );
 }

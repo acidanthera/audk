@@ -15,8 +15,7 @@ EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA  *Data,
   IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop,
-  IN UINTN            *ReturnSP
+  IN UINTN            SysCallStackTop
   );
 
 EFI_STATUS
@@ -66,12 +65,10 @@ GoToRing3 (
   Status = CallRing3 (
              Input,
              UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop,
-             &UserDriver->ReturnSP
+             UserDriver->SysCallStackTop
              );
 
   CoreFreePages (Ring3Pages, PagesNumber);
-  UserDriver->ReturnSP = 0;
 
   return Status;
 }

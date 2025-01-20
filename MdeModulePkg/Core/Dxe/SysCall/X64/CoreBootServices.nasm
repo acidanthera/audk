@@ -162,6 +162,8 @@ ASM_PFX(CoreBootServices):
     mov     rcx, r10   ; Type
     mov     rdx, [rbp + 8*3]
     add     rdx, 8     ; User Arguments[]
+    mov     rax, [ASM_PFX(SysCallStackTop)]
+    mov     r8, [rax]  ; ReturnSP
 
     sti
     call ASM_PFX(CallBootService)
@@ -195,14 +197,12 @@ o64 sysret
 ; CallRing3 (
 ;   IN RING3_CALL_DATA *Data,
 ;   IN UINTN            UserStackTop,
-;   IN UINTN            SysCallStackTop,
-;   IN UINTN            *ReturnSP
+;   IN UINTN            SysCallStackTop
 ;   );
 ;
 ;   (rcx) Data
 ;   (rdx) UserStackTop
 ;   (r8)  SysCallStackTop
-;   (r9)  ReturnSP
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -220,8 +220,9 @@ ASM_PFX(CallRing3):
     push    r15
     push qword [ASM_PFX(SysCallStackTop)]
 
-    ; Save Core Stack pointer.
-    mov     [r9], rsp
+    ; Save ReturnSP on SysCallStack.
+    sub     r8, 8
+    mov     [r8], rsp
 
     ; Save input Arguments.
     mov     rbx, rdx

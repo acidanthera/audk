@@ -20,7 +20,6 @@ ArmCallRing3 (
   IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
   IN UINTN           SysCallStackTop,
-  IN UINTN           *ReturnSP,
   IN UINTN           UserPageTable
   );
 
@@ -28,9 +27,7 @@ STATIC
 EFI_STATUS
 EFIAPI
 SysCallBootService (
-  IN  UINT8  Type,
-  IN  VOID   *CoreRbp,
-  IN  VOID   *UserRsp
+  IN EFI_SYSTEM_CONTEXT  Context
   )
 {
   EFI_STATUS              Status;
@@ -41,7 +38,7 @@ SysCallBootService (
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)),
+             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
              &Physical
              );
   if (EFI_ERROR (Status)) {
@@ -52,16 +49,17 @@ SysCallBootService (
   //
   // First 3 arguments are passed through R1-R3 and copied to SysCall Stack.
   //
-  CopyMem ((VOID *)((UINTN)Physical + 2 * sizeof (UINTN)), (VOID *)CoreRbp, 3 * sizeof (UINTN));
+  CopyMem ((VOID *)(UINTN)Physical, (VOID *)&(Context.SystemContextArm->R0), 4 * sizeof (UINTN));
   //
   // All remaining arguments are on User Stack.
   //
-  CopyMem ((VOID *)((UINTN)Physical + 5 * sizeof (UINTN)), (VOID *)UserRsp, 4 * sizeof (UINTN));
+  CopyMem ((VOID *)((UINTN)Physical + 4 * sizeof (UINTN)), (VOID *)Context.SystemContextArm->SP, 4 * sizeof (UINTN));
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
-             Type,
-             (UINTN *)((UINTN)Physical + sizeof (UINTN))
+             Context.SystemContextArm->R0,
+             (UINTN *)(UINTN)Physical,
+             *(UINTN *)Context.SystemContextArm->SP_EL1
              );
   //
   // TODO: Fix memory leak for ReturnToCore().
@@ -146,8 +144,7 @@ EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data,
   IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop,
-  IN UINTN            *ReturnSP
+  IN UINTN            SysCallStackTop
   )
 {
   return ArmCallRing3 (
@@ -155,7 +152,6 @@ CallRing3 (
             UserStackTop,
             gRing3EntryPoint,
             SysCallStackTop,
-            ReturnSP,
             gUserPageTable
             );
 }
