@@ -34,7 +34,6 @@ EXCEPTION_ADDRESSES  mAddresses;
 
 extern UINTN         ExceptionHandlerBase;
 extern UINTN         ExceptionHandlerEnd;
-extern UINT8         mSwitchCr3Flag;
 extern UINTN         CorePageTable;
 
 /**
@@ -203,8 +202,6 @@ GetExceptionAddresses (
   VOID
   )
 {
-  mSwitchCr3Flag = 1;
-
   return &mAddresses;
 }
 
