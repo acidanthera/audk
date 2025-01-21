@@ -14,10 +14,12 @@ RING3_DATA  *gRing3Data;
 VOID        *gRing3Interfaces;
 UINTN       gUartBaseAddress;
 
-UEFI_IMAGE_RECORD    *mDxeRing3;
-EXCEPTION_ADDRESSES  *mExceptionAddresses;
-UINTN                mConfigurationTable;
-UINTN                mConfigurationTableSize;
+UEFI_IMAGE_RECORD     *mDxeRing3;
+EXCEPTION_ADDRESSES   *mExceptionAddresses;
+UINTN                 mConfigurationTable;
+UINTN                 mConfigurationTableSize;
+EFI_PHYSICAL_ADDRESS  mCoreStackBase;
+UINT64                mCoreStackSize;
 
 extern UINTN         SysCallBase;
 extern UINTN         SysCallEnd;
@@ -43,12 +45,14 @@ InitializeRing3 (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
-  EFI_STATUS               Status;
-  EFI_PHYSICAL_ADDRESS     Physical;
-  UINTN                    Index;
-  EFI_CONFIGURATION_TABLE  *Conf;
-  EARLY_PL011_BASE_ADDRESS *UartBase;
-  CONST VOID               *Hob;
+  EFI_STATUS                 Status;
+  EFI_PHYSICAL_ADDRESS       Physical;
+  UINTN                      Index;
+  EFI_CONFIGURATION_TABLE    *Conf;
+  EARLY_PL011_BASE_ADDRESS   *UartBase;
+  CONST VOID                 *Hob;
+  EFI_PEI_HOB_POINTERS       PeiHob;
+  EFI_HOB_MEMORY_ALLOCATION  *MemoryHob;
 
   //
   // Set Ring3 EntryPoint and BootServices.
@@ -158,6 +162,18 @@ InitializeRing3 (
 
   mExceptionAddresses = GetExceptionAddresses ();
 
+  PeiHob.Raw = GetHobList ();
+  while ((PeiHob.Raw = GetNextHob (EFI_HOB_TYPE_MEMORY_ALLOCATION, PeiHob.Raw)) != NULL) {
+    MemoryHob = PeiHob.MemoryAllocation;
+    if (CompareGuid (&gEfiHobMemoryAllocStackGuid, &MemoryHob->AllocDescriptor.Name)) {
+      mCoreStackBase = MemoryHob->AllocDescriptor.MemoryBaseAddress;
+      mCoreStackSize = MemoryHob->AllocDescriptor.MemoryLength;
+      break;
+    }
+
+    PeiHob.Raw = GET_NEXT_HOB (PeiHob);
+  }
+
   return Status;
 }
 
@@ -165,8 +181,6 @@ UINTN
 EFIAPI
 InitializeUserPageTable (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN UINTN                      SysCallStackBase,
-  IN UINTN                      SysCallStackSize,
   IN UINTN                      UserStackBase,
   IN UINTN                      UserStackSize
   )
@@ -226,7 +240,7 @@ InitializeUserPageTable (
   }
 
   //
-  // Map CoreBootServices, SysCallStackBase
+  // Map CoreBootServices, CoreStackBase
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
@@ -239,8 +253,8 @@ InitializeUserPageTable (
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          SysCallStackBase,
-          SysCallStackSize,
+          mCoreStackBase,
+          mCoreStackSize,
           EFI_MEMORY_XP
           );
 

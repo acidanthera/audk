@@ -19,7 +19,6 @@ ArmCallRing3 (
   IN RING3_CALL_DATA *Data,
   IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
-  IN UINTN           SysCallStackTop,
   IN UINTN           UserPageTable
   );
 
@@ -94,7 +93,7 @@ SysCallBootService (
              Type,
              NumberOfArguments,
              (UINTN *)(UINTN)Physical,
-             *(UINTN *)Context.SystemContextArm->SP_EL1
+             Context.SystemContextArm->SP_EL1
              );
   //
   // TODO: Fix memory leak for ReturnToCore().
@@ -178,15 +177,13 @@ EFI_STATUS
 EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data,
-  IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop
+  IN UINTN            UserStackTop
   )
 {
   return ArmCallRing3 (
             Data,
             UserStackTop,
             gRing3EntryPoint,
-            SysCallStackTop,
             gUserPageTable
             );
 }

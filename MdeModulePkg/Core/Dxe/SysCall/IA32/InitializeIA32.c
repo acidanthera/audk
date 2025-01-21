@@ -144,8 +144,8 @@ InitializeMsr (
   }
 
   //
-  // Initialize MSR_IA32_SYSENTER_CS, MSR_IA32_SYSENTER_EIP and
-  // MSR_IA32_SYSENTER_ESP for SYSENTER and SYSEXIT.
+  // Initialize MSR_IA32_SYSENTER_CS, MSR_IA32_SYSENTER_EIP for SYSENTER and SYSEXIT.
+  // MSR_IA32_SYSENTER_ESP is set in CallRing3().
   //
   Msr = RING0_CODE32_SEL;
   AsmWriteMsr64 (MSR_IA32_SYSENTER_CS, Msr);

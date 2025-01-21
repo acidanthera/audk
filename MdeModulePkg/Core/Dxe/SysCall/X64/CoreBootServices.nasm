@@ -149,9 +149,8 @@ ASM_PFX(CoreBootServices):
     sub     rsp, 8*4
 
     ; Prepare CallBootService arguments.
-    mov     rcx, r10   ; Type
-    mov     rax, [ASM_PFX(SysCallStackTop)]
-    mov     r9, [rax]  ; ReturnSP
+    mov     rcx, r10                       ; Type
+    mov     r9, [ASM_PFX(SysCallStackTop)] ; ReturnSP
 
     sti
     call ASM_PFX(CallBootService)
@@ -184,13 +183,11 @@ o64 sysret
 ; EFIAPI
 ; CallRing3 (
 ;   IN RING3_CALL_DATA *Data,
-;   IN UINTN            UserStackTop,
-;   IN UINTN            SysCallStackTop
+;   IN UINTN            UserStackTop
 ;   );
 ;
 ;   (rcx) Data
 ;   (rdx) UserStackTop
-;   (r8)  SysCallStackTop
 ;------------------------------------------------------------------------------
 global ASM_PFX(CallRing3)
 ASM_PFX(CallRing3):
@@ -206,15 +203,12 @@ ASM_PFX(CallRing3):
     push    r13
     push    r14
     push    r15
+    ; Save old SysCallStackTop, set the new one.
     push qword [ASM_PFX(SysCallStackTop)]
-
-    ; Save ReturnSP on SysCallStack.
-    sub     r8, 8
-    mov     [r8], rsp
+    mov     [ASM_PFX(SysCallStackTop)], rsp
 
     ; Save input Arguments.
     mov     rbx, rdx
-    mov     [ASM_PFX(SysCallStackTop)], r8
     mov     r10, rcx
 
     SetRing3DataSegmentSelectors

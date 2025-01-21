@@ -233,7 +233,6 @@ typedef struct {
   VOID                                    *HiiData;
   BOOLEAN                                 IsUserImage;
   UINTN                                   UserPageTable;
-  UINTN                                   SysCallStackTop;
   UINTN                                   UserStackTop;
 } LOADED_IMAGE_PRIVATE_DATA;
 
@@ -242,7 +241,6 @@ typedef struct {
   VOID        *UserSpaceDriver;
   UINTN       UserPageTable;
   UINTN       UserStackTop;
-  UINTN       SysCallStackTop;
   LIST_ENTRY  Link;
 } USER_SPACE_DRIVER;
 
@@ -2893,8 +2891,6 @@ UINTN
 EFIAPI
 InitializeUserPageTable (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN UINTN                      SysCallStackBase,
-  IN UINTN                      SysCallStackSize,
   IN UINTN                      UserStackBase,
   IN UINTN                      UserStackSize
   );

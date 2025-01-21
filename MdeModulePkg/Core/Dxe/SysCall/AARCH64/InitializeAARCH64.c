@@ -20,7 +20,6 @@ ArmCallRing3 (
   IN RING3_CALL_DATA *Data,
   IN UINTN           UserStackTop,
   IN VOID            *EntryPoint,
-  IN UINTN           SysCallStackTop,
   IN UINTN           UserPageTable
   );
 
@@ -54,7 +53,7 @@ SysCallBootService (
              Context.SystemContextAArch64->X0,
              Context.SystemContextAArch64->X1,
              (UINTN *)Physical,
-             *(UINTN *)Context.SystemContextAArch64->SP
+             Context.SystemContextAArch64->SP
              );
 
   CoreFreePages (Physical, EFI_SIZE_TO_PAGES (7 * sizeof (UINTN)));
@@ -149,15 +148,13 @@ EFI_STATUS
 EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA *Data,
-  IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop
+  IN UINTN            UserStackTop
   )
 {
   return ArmCallRing3 (
             Data,
             UserStackTop,
             gRing3EntryPoint,
-            SysCallStackTop,
             gUserPageTable
             );
 }
