@@ -57,22 +57,17 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // EFIAPI
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data,
-//   IN UINTN            UserStackTop,
-//   IN UINTN            SysCallStackTop
+//   IN UINTN            UserStackTop
 //   );
 //
 //   (r0) Data
 //   (r1) UserStackTop
 //   (r2) gRing3EntryPoint
-//   (r3) SysCallStackTop
-//
-//   (On Core Stack) gUserPageTable
+//   (r3) gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
   push  {R4-R12, LR}
-  // R7 is gUserPageTable
-  ldr   R7, [SP, #0x28]
   // Save old SP_usr and LR_usr on Core Stack.
   sub   SP, SP, #0x8
   stmia SP, {SP, LR}^
@@ -95,17 +90,11 @@ ASM_FUNC(ArmCallRing3)
   // Set SPSR M[3:0] bits to User mode.
   and   R4, R4, #0xFFFFFFF0
 
-  // Switch to SysCallStackTop and save ReturnSP on it.
-  mov   R5, SP
-  mov   SP, R3
-  push  {R5}
-  push  {R5} // Align stack on 8 bytes
-
   // Switch to UserPageTable.
   mrc   p15,0,R8,c2,c0,0   // R8 == TTBR0
   and   R8, R8, #0x7F      // Preserve Core TTBR0 attributes.
-  orr   R7, R7, R8         // Assign Core attributes to UserPageTable.
-  mcr   p15,0,R7,c2,c0,0   // TTBR0 == UserPageTable
+  orr   R3, R3, R8         // Assign Core attributes to UserPageTable.
+  mcr   p15,0,R3,c2,c0,0   // TTBR0 == UserPageTable
   mcr   p15,0,r0,c8,c7,0   // TLBIALL, TLB Invalidate All.
   mcr   p15,0,r0,c7,c5,6   // BPIALL, Branch Predictor Invalidate All.
   dsb

@@ -1132,7 +1132,6 @@ CoreLoadImageCommon (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
   EFI_FV_FILE_ATTRIBUTES          FileAttributes;
-  UINTN                           SysCallStackBase;
   UINTN                           UserStackBase;
 
   SecurityStatus = EFI_SUCCESS;
@@ -1471,16 +1470,11 @@ CoreLoadImageCommon (
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
   if ((gRing3Data != NULL) && Image->IsUserImage) {
-    Image->SysCallStackTop = AllocateStack (STACK_SIZE, &SysCallStackBase);
-    SetUefiImageMemoryAttributes (SysCallStackBase, STACK_SIZE, EFI_MEMORY_XP);
-
     Image->UserStackTop = AllocateStack (STACK_SIZE, &UserStackBase);
     SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
 
     Image->UserPageTable = InitializeUserPageTable (
                              Image,
-                             SysCallStackBase,
-                             STACK_SIZE,
                              UserStackBase,
                              STACK_SIZE
                              );
@@ -1749,7 +1743,6 @@ CoreStartImage (
         UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
         UserDriver->UserPageTable   = Image->UserPageTable;
         UserDriver->UserStackTop    = Image->UserStackTop;
-        UserDriver->SysCallStackTop = Image->SysCallStackTop;
 
         InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
 

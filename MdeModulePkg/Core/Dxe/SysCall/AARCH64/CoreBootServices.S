@@ -61,15 +61,13 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // EFIAPI
 // CallRing3 (
 //   IN RING3_CALL_DATA *Data,
-//   IN UINTN            UserStackTop,
-//   IN UINTN            SysCallStackTop
+//   IN UINTN            UserStackTop
 //   );
 //
 //   (x0) Data
 //   (x1) UserStackTop
 //   (x2) gRing3EntryPoint
-//   (x3) SysCallStackTop
-//   (x4) gUserPageTable
+//   (x3) gUserPageTable
 //------------------------------------------------------------------------------
 ASM_FUNC(ArmCallRing3)
   // Save registers.
@@ -92,10 +90,6 @@ ASM_FUNC(ArmCallRing3)
   // Disable interrupts.
   msr  daifset, #0xf
   isb
-  // Switch to SysCallStackTop and save ReturnSP on it.
-  mov  x6, sp
-  mov  sp, x3
-  stp  x6, xzr, [sp, #-0x10]!
   // Copy PSTATE to SPSR.
   mrs  x6, nzcv
   mrs  x7, pan
@@ -105,12 +99,12 @@ ASM_FUNC(ArmCallRing3)
   EL1_OR_EL2(x1)
 1:msr  elr_el1, x2
   msr  spsr_el1, x6
-  msr  ttbr0_el1, x4
+  msr  ttbr0_el1, x3
   tlbi vmalle1
   b    3f
 2:msr  elr_el2, x2
   msr  spsr_el2, x6
-  msr  ttbr0_el2, x4
+  msr  ttbr0_el2, x3
   tlbi alle2
 3:dsb   sy
   isb

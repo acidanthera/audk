@@ -26,15 +26,13 @@ ASM_PFX(SysCall):
   jg      continue
   push    r9
   push    r8
-  mov     r8, rsp
-  sub     r8, 8
+  lea     r8, [rsp - 8]
   add     rsp, 8*2
   jmp     makecall
 continue:
   mov     [rsp + 8*4], r9
   mov     [rsp + 8*3], r8
-  mov     r8, rsp
-  add     r8, 8*2
+  lea     r8, [rsp + 8*2]
 makecall:
   ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
   syscall

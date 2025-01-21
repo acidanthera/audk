@@ -14,8 +14,7 @@ EFI_STATUS
 EFIAPI
 CallRing3 (
   IN RING3_CALL_DATA  *Data,
-  IN UINTN            UserStackTop,
-  IN UINTN            SysCallStackTop
+  IN UINTN            UserStackTop
   );
 
 EFI_STATUS
@@ -64,8 +63,7 @@ GoToRing3 (
   //
   Status = CallRing3 (
              Input,
-             UserDriver->UserStackTop,
-             UserDriver->SysCallStackTop
+             UserDriver->UserStackTop
              );
 
   CoreFreePages (Ring3Pages, PagesNumber);
@@ -755,7 +753,6 @@ CoreFileOpen (
   NewDriver->CoreWrapper     = NewFile;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
   NewDriver->UserStackTop    = UserDriver->UserStackTop;
-  NewDriver->SysCallStackTop = UserDriver->SysCallStackTop;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3NewHandle;
@@ -857,7 +854,6 @@ CoreOpenVolume (
   NewDriver->CoreWrapper     = File;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
   NewDriver->UserStackTop    = UserDriver->UserStackTop;
-  NewDriver->SysCallStackTop = UserDriver->SysCallStackTop;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3Root;
