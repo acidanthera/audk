@@ -117,13 +117,10 @@ ASM_PFX(SysCallBase):
 ;   );
 ;
 ;   (rcx) RIP of the next instruction saved by SYSCALL in SysCall().
-;   (rdx) Argument 1 of the called function.
-;   (r8)  Argument 2 of the called function.
-;   (r9)  Argument 3 of the called function.
+;   (rdx) Number of User Arguments.
+;   (r8)  User Arguments[].
 ;   (r10) Type.
 ;   (r11) RFLAGS saved by SYSCALL in SysCall().
-;
-;   (On User Stack) Argument 4, 5, ...
 ;------------------------------------------------------------------------------
 global ASM_PFX(CoreBootServices)
 ASM_PFX(CoreBootServices):
@@ -147,23 +144,14 @@ ASM_PFX(CoreBootServices):
     push    rcx
     ; Save User RFLAGS for SYSRET.
     push    r11
-    ; Save User Arguments [1..3] on User stack.
-    call ASM_PFX(AllowSupervisorAccessToUserMemory)
-    mov     rax, [rsp + 8*3]
-    mov     [rax + 8*2], rdx
-    mov     [rax + 8*3], r8
-    mov     [rax + 8*4], r9
-    call ASM_PFX(ForbidSupervisorAccessToUserMemory)
     mov     rbp, rsp
     ; Reserve space on stack for 4 CallBootService arguments (NOOPT prerequisite).
     sub     rsp, 8*4
 
     ; Prepare CallBootService arguments.
     mov     rcx, r10   ; Type
-    mov     rdx, [rbp + 8*3]
-    add     rdx, 8     ; User Arguments[]
     mov     rax, [ASM_PFX(SysCallStackTop)]
-    mov     r8, [rax]  ; ReturnSP
+    mov     r9, [rax]  ; ReturnSP
 
     sti
     call ASM_PFX(CallBootService)

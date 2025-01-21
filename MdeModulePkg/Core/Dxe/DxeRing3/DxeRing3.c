@@ -238,7 +238,7 @@ Ring3Call (
       break;
   }
 
-  SysCall (SysCallReturnToCore, Status);
+  SysCall (SysCallReturnToCore, 1, Status);
 }
 
 EFI_STATUS

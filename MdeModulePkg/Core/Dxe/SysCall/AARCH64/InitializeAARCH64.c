@@ -39,7 +39,7 @@ SysCallBootService (
   Status = CoreAllocatePages (
              AllocateAnyPages,
              EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (8 * sizeof (UINTN)),
+             EFI_SIZE_TO_PAGES (7 * sizeof (UINTN)),
              &Physical
              );
   if (EFI_ERROR (Status)) {
@@ -47,16 +47,17 @@ SysCallBootService (
   }
 
   AllowSupervisorAccessToUserMemory ();
-  CopyMem ((VOID *)Physical, (VOID *)&(Context.SystemContextAArch64->X0), 8 * sizeof (UINTN));
+  CopyMem ((VOID *)Physical, (VOID *)&(Context.SystemContextAArch64->X1), 7 * sizeof (UINTN));
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
              Context.SystemContextAArch64->X0,
+             Context.SystemContextAArch64->X1,
              (UINTN *)Physical,
              *(UINTN *)Context.SystemContextAArch64->SP
              );
 
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (9 * sizeof (UINTN)));
+  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (7 * sizeof (UINTN)));
 
   ArmDisableInterrupts ();
 

@@ -16,6 +16,7 @@ Ring3BlockIoReset (
 {
   return SysCall (
            SysCallBlockIoReset,
+           2,
            This,
            ExtendedVerification
            );
@@ -33,6 +34,7 @@ Ring3BlockIoRead (
 {
   return SysCall (
            SysCallBlockIoRead,
+           5,
            This,
            MediaId,
            BufferSize,
@@ -53,6 +55,7 @@ Ring3BlockIoWrite (
 {
   return SysCall (
            SysCallBlockIoWrite,
+           5,
            This,
            MediaId,
            BufferSize,
@@ -69,6 +72,7 @@ Ring3BlockIoFlush (
 {
   return SysCall (
            SysCallBlockIoFlush,
+           1,
            This
            );
 }
@@ -85,6 +89,7 @@ Ring3DiskIoRead (
 {
   return SysCall (
            SysCallDiskIoRead,
+           5,
            This,
            MediaId,
            BufferSize,
@@ -105,6 +110,7 @@ Ring3DiskIoWrite (
 {
   return SysCall (
            SysCallDiskIoWrite,
+           5,
            This,
            MediaId,
            BufferSize,
@@ -123,6 +129,7 @@ Ring3UnicodeStriColl (
 {
   return (INTN)SysCall (
                  SysCallUnicodeStriColl,
+                 3,
                  This,
                  Str1,
                  Str2
@@ -139,6 +146,7 @@ Ring3UnicodeMetaiMatch (
 {
   return (BOOLEAN)SysCall (
                     SysCallUnicodeMetaiMatch,
+                    3,
                     This,
                     String,
                     Pattern
@@ -154,6 +162,7 @@ Ring3UnicodeStrLwr (
 {
   SysCall (
     SysCallUnicodeStrLwr,
+    2,
     This,
     Str
     );
@@ -168,6 +177,7 @@ Ring3UnicodeStrUpr (
 {
   SysCall (
     SysCallUnicodeStrUpr,
+    2,
     This,
     Str
     );
@@ -184,6 +194,7 @@ Ring3UnicodeFatToStr (
 {
   SysCall (
     SysCallUnicodeFatToStr,
+    4,
     This,
     FatSize,
     Fat,
@@ -202,6 +213,7 @@ Ring3UnicodeStrToFat (
 {
   return (BOOLEAN)SysCall (
                     SysCallUnicodeStrToFat,
+                    4,
                     This,
                     String,
                     FatSize,

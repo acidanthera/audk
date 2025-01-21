@@ -2036,7 +2036,7 @@ typedef enum {
   SysCallCloseProtocol,
   SysCallHandleProtocol,
   SysCallAllocatePages,
-  SysCallFreePages,
+  SysCallFreePages = 7,
   SysCallRaiseTpl,
   SysCallRestoreTpl,
   SysCallLocateHandleBuffer,
@@ -2049,11 +2049,11 @@ typedef enum {
   // Protocols
   //
   SysCallBlockIoReset,
-  SysCallBlockIoRead,
-  SysCallBlockIoWrite,
+  SysCallBlockIoRead = 14,
+  SysCallBlockIoWrite = 15,
   SysCallBlockIoFlush,
-  SysCallDiskIoRead,
-  SysCallDiskIoWrite,
+  SysCallDiskIoRead = 17,
+  SysCallDiskIoWrite = 18,
   SysCallUnicodeStriColl,
   SysCallUnicodeMetaiMatch,
   SysCallUnicodeStrLwr,
@@ -2064,6 +2064,11 @@ typedef enum {
 } SYS_CALL_TYPE;
 
 #define MAX_LIST 32
+#define SC_FREE_PAGES     7
+#define SC_BLOCK_IO_READ  14
+#define SC_BLOCK_IO_WRITE 15
+#define SC_DISK_IO_READ   17
+#define SC_DISK_IO_WRITE  18
 
 ///
 /// Contains a set of GUID/pointer pairs comprised of the ConfigurationTable field in the

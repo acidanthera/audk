@@ -12,7 +12,8 @@ SECTION .text
 ; EFI_STATUS
 ; EFIAPI
 ; SysCall (
-;   IN  UINT8  Type,
+;   IN UINT8  Type,
+;   IN UINT8  NumberOfArguments,
 ;   ...
 ;   );
 ;------------------------------------------------------------------------------
@@ -20,7 +21,21 @@ global ASM_PFX(SysCall)
 ASM_PFX(SysCall):
   ; Save Type for CoreBootServices().
   mov     r10, rcx
-
+  ; Construct User Arguments[].
+  cmp     rdx, 2
+  jg      continue
+  push    r9
+  push    r8
+  mov     r8, rsp
+  sub     r8, 8
+  add     rsp, 8*2
+  jmp     makecall
+continue:
+  mov     [rsp + 8*4], r9
+  mov     [rsp + 8*3], r8
+  mov     r8, rsp
+  add     r8, 8*2
+makecall:
   ; SYSCALL saves RFLAGS into R11 and the RIP of the next instruction into RCX.
   syscall
   ; SYSRET copies the value in RCX into RIP and loads RFLAGS from R11.
