@@ -2850,6 +2850,7 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
+  IN UINT8  NumberOfArguments,
   IN UINTN  *UserArguments,
   IN UINTN  ReturnSP
   );

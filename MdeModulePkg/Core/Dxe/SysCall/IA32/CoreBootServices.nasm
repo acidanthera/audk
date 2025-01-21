@@ -109,6 +109,7 @@ ASM_PFX(SysCallBase):
 ;   );
 ;
 ;   (eax) User return address.
+;   (ebx) Number of User Arguments.
 ;   (ecx) Type.
 ;   (edx) User Stack Pointer.
 ;
@@ -135,8 +136,9 @@ ASM_PFX(CoreBootServices):
     mov     ebp, esp
     mov     eax, [esp + 4*3]
     push    eax      ; ReturnSP
-    add     edx, 4   ; User Arguments[]
-    push    edx
+    add     edx, 4*3
+    push    edx      ; User Arguments[]
+    push    ebx      ; NumberOfArguments
     push    ecx      ; Type
 
     sti

@@ -98,6 +98,7 @@ Ring3RaiseTpl (
 {
   return (EFI_TPL)SysCall (
                     SysCallRaiseTpl,
+                    1,
                     NewTpl
                     );
 }
@@ -110,6 +111,7 @@ Ring3RestoreTpl (
 {
   SysCall (
     SysCallRestoreTpl,
+    1,
     NewTpl
     );
 }
@@ -127,6 +129,7 @@ Ring3AllocatePages (
 
   Status = SysCall (
              SysCallAllocatePages,
+             4,
              Type,
              EfiRing3MemoryType,
              NumberOfPages,
@@ -150,6 +153,7 @@ Ring3FreePages (
 
   Status = SysCall (
              SysCallFreePages,
+             2,
              NumberOfPages,
              Memory
              );
@@ -302,6 +306,7 @@ Ring3HandleProtocol (
 
   Status = SysCall (
              SysCallHandleProtocol,
+             3,
              CoreUserHandle,
              Protocol,
              Interface
@@ -511,6 +516,7 @@ Ring3OpenProtocol (
 
   Status = SysCall (
              SysCallOpenProtocol,
+             6,
              CoreUserHandle,
              Protocol,
              Interface,
@@ -536,6 +542,7 @@ Ring3CloseProtocol (
 {
   return SysCall (
            SysCallCloseProtocol,
+           4,
            UserHandle,
            Protocol,
            AgentHandle,
@@ -587,6 +594,7 @@ Ring3LocateHandleBuffer (
 
   StatusBS = SysCall (
                SysCallLocateHandleBuffer,
+               5,
                SearchType,
                Protocol,
                SearchKey,
@@ -631,6 +639,7 @@ Ring3LocateProtocol (
 
   Status = SysCall (
              SysCallLocateProtocol,
+             3,
              Protocol,
              CoreRegistration,
              Interface
@@ -673,6 +682,7 @@ Ring3InstallMultipleProtocolInterfaces (
 
   return SysCall (
            SysCallInstallMultipleProtocolInterfaces,
+           2,
            Handle,
            ArgList
            );
@@ -700,6 +710,7 @@ Ring3CalculateCrc32 (
 {
   return SysCall (
            SysCallCalculateCrc32,
+           3,
            Data,
            DataSize,
            Crc32

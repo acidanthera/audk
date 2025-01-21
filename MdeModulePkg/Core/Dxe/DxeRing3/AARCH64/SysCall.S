@@ -11,7 +11,8 @@
 // EFI_STATUS
 // EFIAPI
 // SysCall (
-//   IN  UINT8  Type,
+//   IN UINT8  Type,
+//   IN UINT8  NumberOfArguments,
 //   ...
 //   );
 //------------------------------------------------------------------------------

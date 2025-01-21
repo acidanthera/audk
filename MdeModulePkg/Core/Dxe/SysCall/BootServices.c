@@ -279,7 +279,7 @@ STATIC
 UINTN *
 EFIAPI
 CopyUserArguments (
-  IN UINTN  NumberOfArguments,
+  IN UINT8  NumberOfArguments,
   IN UINTN  *UserArguments
   )
 {
@@ -330,6 +330,7 @@ EFI_STATUS
 EFIAPI
 CallBootService (
   IN UINT8  Type,
+  IN UINT8  NumberOfArguments,
   IN UINTN  *UserArguments,
   IN UINTN  ReturnSP
   )
@@ -367,13 +368,12 @@ CallBootService (
   Argument5    = 0;
   Argument6    = 0;
   Interface    = NULL;
+  Arguments    = CopyUserArguments (NumberOfArguments, UserArguments);
 
   DEBUG ((DEBUG_VERBOSE, "Type: %a\n", SysCallNames[Type]));
 
   switch (Type) {
     case SysCallReturnToCore:
-      Arguments  = CopyUserArguments (1, UserArguments);
-
       ReturnToCore (Arguments[1], ReturnSP);
       break;
     case SysCallLocateProtocol:
@@ -382,8 +382,6 @@ CallBootService (
       // Argument 2: VOID      *CoreRegistration
       // Argument 3: VOID      **Interface
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_GUID) - 1), &Attributes);
@@ -428,8 +426,6 @@ CallBootService (
       // Argument 5: EFI_HANDLE  CoreControllerHandle
       // Argument 6: UINT32      Attributes
       //
-      Arguments = CopyUserArguments (6, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
@@ -476,8 +472,6 @@ CallBootService (
       // Argument 1: EFI_HANDLE  *Handle
       // ...
       //
-      Arguments = CopyUserArguments (2, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_HANDLE *) - 1), &Attributes);
@@ -588,8 +582,6 @@ CallBootService (
       // Argument 3: EFI_HANDLE  CoreAgentHandle
       // Argument 4: EFI_HANDLE  CoreControllerHandle
       //
-      Arguments = CopyUserArguments (4, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
@@ -619,8 +611,6 @@ CallBootService (
       // Argument 2: EFI_GUID    *Protocol
       // Argument 3: VOID        **Interface
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
@@ -663,8 +653,6 @@ CallBootService (
       // Argument 3: UINTN                 NumberOfPages
       // Argument 4: EFI_PHYSICAL_ADDRESS  *Memory
       //
-      Arguments = CopyUserArguments (4, UserArguments);
-
       Status = gBS->AllocatePages (
                       (EFI_ALLOCATE_TYPE)Arguments[1],
                       (EFI_MEMORY_TYPE)Arguments[2],
@@ -689,8 +677,7 @@ CallBootService (
       // Argument 1: UINTN                 NumberOfPages
       // Argument 2: EFI_PHYSICAL_ADDRESS  Memory
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[2];
+      PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[2];
 
       gCpu->GetMemoryAttributes (gCpu, PhysAddr, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -706,8 +693,6 @@ CallBootService (
       //
       // Argument 1: EFI_TPL  NewTpl
       //
-      Arguments = CopyUserArguments (1, UserArguments);
-
       Status = (EFI_STATUS)gBS->RaiseTPL ((EFI_TPL)Arguments[1]);
 
       FreePool (Arguments);
@@ -717,8 +702,6 @@ CallBootService (
       //
       // Argument 1: EFI_TPL  NewTpl
       //
-      Arguments = CopyUserArguments (1, UserArguments);
-
       gBS->RestoreTPL ((EFI_TPL)Arguments[1]);
 
       FreePool (Arguments);
@@ -732,8 +715,6 @@ CallBootService (
       // Argument 4: UINTN                   *NumberHandles
       // Argument 5: EFI_HANDLE              **Buffer
       //
-      Arguments = CopyUserArguments (5, UserArguments);
-
       if ((EFI_GUID *)Arguments[2] != NULL) {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
@@ -805,8 +786,6 @@ CallBootService (
       // Argument 2: UINTN   DataSize
       // Argument 3: UINT32  *Crc32
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + Arguments[2] - 1), &Attributes);
@@ -847,8 +826,6 @@ CallBootService (
       // Argument 4: UINTN     *DataSize
       // Argument 5: VOID      *Data           OPTIONAL
       //
-      Arguments = CopyUserArguments (5, UserArguments);
-
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
@@ -938,8 +915,6 @@ CallBootService (
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       // Argument 2: BOOLEAN                ExtendedVerification
       //
-      Arguments = CopyUserArguments (2, UserArguments);
-
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
@@ -963,16 +938,7 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: EFI_LBA               Lba
       //
-#if defined (MDE_CPU_ARM)
-      //
-      // EFI_LBA Lba is aligned on 8 bytes.
-      //
-      Arguments = CopyUserArguments (7, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
-#else
-      Arguments = CopyUserArguments (6, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
-#endif
+      PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
@@ -1017,16 +983,7 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: EFI_LBA               Lba
       //
-#if defined (MDE_CPU_ARM)
-      //
-      // EFI_LBA Lba is aligned on 8 bytes.
-      //
-      Arguments = CopyUserArguments (7, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
-#else
-      Arguments = CopyUserArguments (6, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
-#endif
+      PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
@@ -1067,8 +1024,6 @@ CallBootService (
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
       //
-      Arguments = CopyUserArguments (1, UserArguments);
-
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
@@ -1089,16 +1044,7 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: UINT64                Offset
       //
-#if defined (MDE_CPU_ARM)
-      //
-      // UINT64 Offset is aligned on 8 bytes.
-      //
-      Arguments = CopyUserArguments (7, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
-#else
-      Arguments = CopyUserArguments (6, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
-#endif
+      PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 
       DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
@@ -1143,16 +1089,7 @@ CallBootService (
       // Argument 4: VOID                  *Buffer
       // Argument 5: UINT64                Offset
       //
-#if defined (MDE_CPU_ARM)
-      //
-      // UINT64 Offset is aligned on 8 bytes.
-      //
-      Arguments = CopyUserArguments (7, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[6];
-#else
-      Arguments = CopyUserArguments (6, UserArguments);
-      PhysAddr  = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
-#endif
+      PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[5];
 
       DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
@@ -1195,8 +1132,6 @@ CallBootService (
       // Argument 2: CHAR16                          *Str1
       // Argument 3: CHAR16                          *Str2
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
@@ -1263,8 +1198,6 @@ CallBootService (
       // Argument 2: CHAR16                          *String
       // Argument 3: CHAR16                          *Pattern
       //
-      Arguments = CopyUserArguments (3, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
@@ -1330,8 +1263,6 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
-      Arguments = CopyUserArguments (2, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
@@ -1376,8 +1307,6 @@ CallBootService (
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
       // Argument 2: CHAR16                          *Str
       //
-      Arguments = CopyUserArguments (2, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
@@ -1424,8 +1353,6 @@ CallBootService (
       // Argument 3: CHAR8                           *Fat
       // Argument 4: CHAR16                          *String
       //
-      Arguments = CopyUserArguments (4, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
@@ -1494,8 +1421,6 @@ CallBootService (
       // Argument 3: UINTN                           FatSize
       // Argument 4: CHAR8                           *Fat
       //
-      Arguments = CopyUserArguments (4, UserArguments);
-
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {

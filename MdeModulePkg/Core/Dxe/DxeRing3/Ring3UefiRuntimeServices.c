@@ -91,6 +91,7 @@ Ring3GetVariable (
 {
   return SysCall (
            SysCallGetVariable,
+           5,
            VariableName,
            VendorGuid,
            Attributes,
