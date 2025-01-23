@@ -237,6 +237,7 @@ CoreFileClose (
 
   FreePool (UserDriver->CoreWrapper);
   RemoveEntryList (&UserDriver->Link);
+  FreePool (UserDriver);
 
   gUserPageTable = OldPageTable;
 

@@ -659,33 +659,44 @@ Ring3InstallMultipleProtocolInterfaces (
   ...
   )
 {
-  VA_LIST Marker;
-  VOID    *Argument;
-  VOID    *ArgList[MAX_LIST];
-  UINTN   Index;
+  EFI_STATUS  Status;
+  VA_LIST     Marker;
+  VOID        **Arguments;
+  UINTN       NumberOfArguments;
+  UINTN       Index;
 
   VA_START (Marker, Handle);
-  for (Index = 0; Index < MAX_LIST; ++Index) {
-    Argument       = VA_ARG (Marker, VOID *);
-    ArgList[Index] = Argument;
-
-    if (Argument == NULL) {
-      break;
-    }
+  NumberOfArguments = 1;
+  while (VA_ARG (Marker, VOID *) != NULL) {
+    ++NumberOfArguments;
   }
   VA_END (Marker);
 
-  if (Index == MAX_LIST) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Too many arguments\n"));
-    return EFI_INVALID_PARAMETER;
+  Status = CoreAllocatePool (
+             EfiRing3MemoryType,
+             NumberOfArguments * sizeof (VOID *),
+             (VOID **)&Arguments
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
   }
 
-  return SysCall (
-           SysCallInstallMultipleProtocolInterfaces,
-           2,
-           Handle,
-           ArgList
-           );
+  VA_START (Marker, Handle);
+  for (Index = 0; Index < NumberOfArguments; ++Index) {
+    Arguments[Index] = VA_ARG (Marker, VOID *);
+  }
+  VA_END (Marker);
+
+  Status = SysCall (
+             SysCallInstallMultipleProtocolInterfaces,
+             3,
+             Handle,
+             NumberOfArguments,
+             Arguments
+             );
+
+  CoreFreePool (Arguments);
+  return Status;
 }
 
 EFI_STATUS
@@ -796,5 +807,5 @@ CoreFreePoolPagesWithGuard (
   IN UINTN                 NoPages
   )
 {
-  CoreFreePoolPagesI (PoolType, Memory, NoPages);
+  CoreFreePoolPagesI (EfiRing3MemoryType, Memory, NoPages);
 }

@@ -345,6 +345,7 @@ FreeUserSpaceDriver (
   }
 
   RemoveEntryList (&UserDriver->Link);
+  FreePool (UserDriver);
 }
 
 EFI_STATUS
@@ -367,7 +368,7 @@ CallBootService (
   UINTN                Argument6;
   UINT32               Index;
   VOID                 **UserArgList;
-  VOID                 *CoreArgList[MAX_LIST];
+  VOID                 **CoreArgList;
   EFI_HANDLE           CoreHandle;
   UINT32               PagesNumber;
   EFI_PHYSICAL_ADDRESS Ring3Pages;
@@ -491,24 +492,25 @@ CallBootService (
     case SysCallInstallMultipleProtocolInterfaces:
       //
       // Argument 1: EFI_HANDLE  *Handle
-      // ...
+      // Argument 2: UINTN       NumberOfArguments
+      // Argument 3: VOID        **UserArgList
       //
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_HANDLE *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (VOID **) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] * sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+      CoreArgList = AllocatePool (Arguments[2] * sizeof (VOID *));
 
       AllowSupervisorAccessToUserMemory ();
       CoreHandle  = *(EFI_HANDLE *)Arguments[1];
-      UserArgList = (VOID **)Arguments[2];
+      UserArgList = (VOID **)Arguments[3];
 
       for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] - 1), &Attributes);
-        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index] + sizeof (EFI_GUID) - 1), &Attributes);
@@ -524,6 +526,7 @@ CallBootService (
             Index -= 2;
           }
 
+          FreePool (CoreArgList);
           FreePool (Arguments);
           return Status;
         }
@@ -547,13 +550,10 @@ CallBootService (
         NewDriver->UserStackTop    = UserDriver->UserStackTop;
 
         InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
-
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)&UserArgList[Index + 2] + sizeof (VOID *) - 1), &Attributes);
-        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
       ForbidSupervisorAccessToUserMemory ();
 
-      ASSERT (Index < MAX_LIST);
+      ASSERT (Index == (Arguments[2] - 1));
       CoreArgList[Index] = NULL;
 
       for (Index = 0; CoreArgList[Index] != NULL; Index += 2) {
@@ -593,6 +593,7 @@ CallBootService (
                  (VOID *)gBS->InstallMultipleProtocolInterfaces
                  );
 
+      FreePool (CoreArgList);
       FreePool (Arguments);
       return Status;
 
