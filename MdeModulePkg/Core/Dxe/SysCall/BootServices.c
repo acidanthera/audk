@@ -326,6 +326,27 @@ FindUserInfo (
   return NULL;
 }
 
+STATIC
+VOID
+EFIAPI
+FreeUserSpaceDriver (
+  IN VOID  *CoreWrapper
+  )
+{
+  LIST_ENTRY         *Link;
+  USER_SPACE_DRIVER  *UserDriver;
+
+  for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
+    UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
+
+    if (UserDriver->CoreWrapper == CoreWrapper) {
+      break;
+    }
+  }
+
+  RemoveEntryList (&UserDriver->Link);
+}
+
 EFI_STATUS
 EFIAPI
 CallBootService (
@@ -498,6 +519,7 @@ CallBootService (
           ForbidSupervisorAccessToUserMemory ();
 
           while (Index > 0) {
+            FreeUserSpaceDriver (CoreArgList[Index - 1]);
             FreePool (CoreArgList[Index - 1]);
             Index -= 2;
           }
