@@ -50,7 +50,7 @@ userReturnAddress:
 ; VOID
 ; EFIAPI
 ; Ring3EntryPoint (
-;   IN RING3_CALL_DATA *Data
+;   IN RING3_CALL_DATA  *Data
 ;   );
 ;
 ;   (eax) Data

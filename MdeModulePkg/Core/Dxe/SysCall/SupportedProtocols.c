@@ -75,7 +75,7 @@ STATIC
 USER_SPACE_DRIVER *
 EFIAPI
 FindUserSpaceDriver (
-  IN  VOID  *CoreWrapper,
+  IN  VOID   *CoreWrapper,
   OUT UINTN  *OldPageTable
   )
 {
@@ -100,9 +100,9 @@ FindUserSpaceDriver (
 EFI_STATUS
 EFIAPI
 CoreDriverBindingSupported (
-  IN EFI_DRIVER_BINDING_PROTOCOL *This,
-  IN EFI_HANDLE                  ControllerHandle,
-  IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
+  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
+  IN EFI_HANDLE                   ControllerHandle,
+  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath OPTIONAL
   )
 {
   EFI_STATUS         Status;
@@ -136,9 +136,9 @@ CoreDriverBindingSupported (
 EFI_STATUS
 EFIAPI
 CoreDriverBindingStart (
-  IN EFI_DRIVER_BINDING_PROTOCOL *This,
-  IN EFI_HANDLE                  ControllerHandle,
-  IN EFI_DEVICE_PATH_PROTOCOL    *RemainingDevicePath OPTIONAL
+  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
+  IN EFI_HANDLE                   ControllerHandle,
+  IN EFI_DEVICE_PATH_PROTOCOL     *RemainingDevicePath OPTIONAL
   )
 {
   EFI_STATUS         Status;
@@ -172,10 +172,10 @@ CoreDriverBindingStart (
 EFI_STATUS
 EFIAPI
 CoreDriverBindingStop (
-  IN EFI_DRIVER_BINDING_PROTOCOL *This,
-  IN EFI_HANDLE                  ControllerHandle,
-  IN UINTN                       NumberOfChildren,
-  IN EFI_HANDLE                  *ChildHandleBuffer OPTIONAL
+  IN EFI_DRIVER_BINDING_PROTOCOL  *This,
+  IN EFI_HANDLE                   ControllerHandle,
+  IN UINTN                        NumberOfChildren,
+  IN EFI_HANDLE                   *ChildHandleBuffer OPTIONAL
   )
 {
   EFI_STATUS         Status;
@@ -257,9 +257,9 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileRead (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN OUT UINTN                *BufferSize,
-  OUT VOID                    *Buffer
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN OUT UINTN              *BufferSize,
+     OUT VOID               *Buffer
   )
 {
   EFI_STATUS            Status;
@@ -336,9 +336,9 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileWrite (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN OUT UINTN                *BufferSize,
-  IN VOID                     *Buffer
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN OUT UINTN              *BufferSize,
+  IN     VOID               *Buffer
   )
 {
   return EFI_UNSUPPORTED;
@@ -348,8 +348,8 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileSetPosition (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN UINT64                   Position
+  IN EFI_FILE_PROTOCOL  *This,
+  IN UINT64             Position
   )
 {
   EFI_STATUS         Status;
@@ -410,8 +410,8 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileGetPosition (
-  IN EFI_FILE_PROTOCOL        *This,
-  OUT UINT64                  *Position
+  IN  EFI_FILE_PROTOCOL  *This,
+  OUT UINT64             *Position
   )
 {
   EFI_STATUS            Status;
@@ -468,10 +468,10 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileGetInfo (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN EFI_GUID                 *InformationType,
-  IN OUT UINTN                *BufferSize,
-  OUT VOID                    *Buffer
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN     EFI_GUID           *InformationType,
+  IN OUT UINTN              *BufferSize,
+     OUT VOID               *Buffer
   )
 {
   EFI_STATUS            Status;
@@ -558,10 +558,10 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileSetInfo (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN EFI_GUID                 *InformationType,
-  IN UINTN                    BufferSize,
-  IN VOID                     *Buffer
+  IN EFI_FILE_PROTOCOL  *This,
+  IN EFI_GUID           *InformationType,
+  IN UINTN              BufferSize,
+  IN VOID               *Buffer
   )
 {
   return EFI_UNSUPPORTED;
@@ -581,12 +581,12 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileOpenEx (
-  IN EFI_FILE_PROTOCOL        *This,
-  OUT EFI_FILE_PROTOCOL       **NewHandle,
-  IN CHAR16                   *FileName,
-  IN UINT64                   OpenMode,
-  IN UINT64                   Attributes,
-  IN OUT EFI_FILE_IO_TOKEN    *Token
+  IN     EFI_FILE_PROTOCOL  *This,
+     OUT EFI_FILE_PROTOCOL  **NewHandle,
+  IN     CHAR16             *FileName,
+  IN     UINT64             OpenMode,
+  IN     UINT64             Attributes,
+  IN OUT EFI_FILE_IO_TOKEN  *Token
   )
 {
   return EFI_UNSUPPORTED;
@@ -596,8 +596,8 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileReadEx (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN OUT EFI_FILE_IO_TOKEN    *Token
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN OUT EFI_FILE_IO_TOKEN  *Token
   )
 {
   return EFI_UNSUPPORTED;
@@ -607,8 +607,8 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileWriteEx (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN OUT EFI_FILE_IO_TOKEN    *Token
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN OUT EFI_FILE_IO_TOKEN  *Token
   )
 {
   return EFI_UNSUPPORTED;
@@ -618,8 +618,8 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileFlushEx (
-  IN EFI_FILE_PROTOCOL        *This,
-  IN OUT EFI_FILE_IO_TOKEN    *Token
+  IN     EFI_FILE_PROTOCOL  *This,
+  IN OUT EFI_FILE_IO_TOKEN  *Token
   )
 {
   return EFI_UNSUPPORTED;
@@ -629,11 +629,11 @@ STATIC
 EFI_STATUS
 EFIAPI
 CoreFileOpen (
-  IN EFI_FILE_PROTOCOL        *This,
-  OUT EFI_FILE_PROTOCOL       **NewHandle,
-  IN CHAR16                   *FileName,
-  IN UINT64                   OpenMode,
-  IN UINT64                   Attributes
+  IN  EFI_FILE_PROTOCOL  *This,
+  OUT EFI_FILE_PROTOCOL  **NewHandle,
+  IN  CHAR16             *FileName,
+  IN  UINT64             OpenMode,
+  IN  UINT64             Attributes
   )
 {
   EFI_STATUS            Status;
@@ -787,9 +787,9 @@ CoreFileOpen (
 
 EFI_STATUS
 EFIAPI
-CoreOpenVolume (
-  IN  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *This,
-  OUT EFI_FILE_PROTOCOL               **Root
+CoreSimpleFileSystemOpenVolume (
+  IN  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *This,
+  OUT EFI_FILE_PROTOCOL                 **Root
   )
 {
   EFI_STATUS            Status;
@@ -1003,8 +1003,8 @@ CoreUnicodeCollationMetaiMatch (
 VOID
 EFIAPI
 CoreUnicodeCollationStrLwr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN OUT CHAR16                      *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   )
 {
   EFI_STATUS            Status;
@@ -1057,8 +1057,8 @@ CoreUnicodeCollationStrLwr (
 VOID
 EFIAPI
 CoreUnicodeCollationStrUpr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN OUT CHAR16                      *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   )
 {
   EFI_STATUS            Status;
@@ -1111,10 +1111,10 @@ CoreUnicodeCollationStrUpr (
 VOID
 EFIAPI
 CoreUnicodeCollationFatToStr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN UINTN                           FatSize,
-  IN CHAR8                           *Fat,
-  OUT CHAR16                         *String
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  UINTN                           FatSize,
+  IN  CHAR8                           *Fat,
+  OUT CHAR16                          *String
   )
 {
   EFI_STATUS            Status;
@@ -1166,10 +1166,10 @@ CoreUnicodeCollationFatToStr (
 BOOLEAN
 EFIAPI
 CoreUnicodeCollationStrToFat (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN CHAR16                          *String,
-  IN UINTN                           FatSize,
-  OUT CHAR8                          *Fat
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  CHAR16                          *String,
+  IN  UINTN                           FatSize,
+  OUT CHAR8                           *Fat
   )
 {
   EFI_STATUS            Status;

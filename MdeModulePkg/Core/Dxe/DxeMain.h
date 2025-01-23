@@ -2840,7 +2840,7 @@ SetUefiImageProtectionAttributes (
 EFI_STATUS
 EFIAPI
 CoreBootServices (
-  IN  UINT8  Type,
+  IN UINT8  Type,
   ...
   );
 

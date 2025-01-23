@@ -16,10 +16,10 @@ UINTN  gUserPageTable;
 EFI_STATUS
 EFIAPI
 ArmCallRing3 (
-  IN RING3_CALL_DATA *Data,
-  IN UINTN           UserStackTop,
-  IN VOID            *EntryPoint,
-  IN UINTN           UserPageTable
+  IN RING3_CALL_DATA  *Data,
+  IN UINTN            UserStackTop,
+  IN VOID             *EntryPoint,
+  IN UINTN            UserPageTable
   );
 
 STATIC
@@ -84,7 +84,7 @@ SysCallBootService (
         (VOID *)((UINTN)Physical + 3 * sizeof (UINTN)),
         (VOID *)Context.SystemContextArm->SP,
         (NumberOfArguments - 2) * sizeof (UINTN)
-        );      
+        );
     }
   }
   ForbidSupervisorAccessToUserMemory ();
@@ -136,8 +136,8 @@ MakeUserPageTableTemplate (
 VOID
 EFIAPI
 InitializeMsr (
-  IN OUT EFI_CONFIGURATION_TABLE *Table,
-  IN     UINTN                   NumberOfEntries
+  IN OUT EFI_CONFIGURATION_TABLE  *Table,
+  IN     UINTN                    NumberOfEntries
   )
 {
   if (ArmHasPan ()) {
@@ -176,7 +176,7 @@ ForbidSupervisorAccessToUserMemory (
 EFI_STATUS
 EFIAPI
 CallRing3 (
-  IN RING3_CALL_DATA *Data,
+  IN RING3_CALL_DATA  *Data,
   IN UINTN            UserStackTop
   )
 {

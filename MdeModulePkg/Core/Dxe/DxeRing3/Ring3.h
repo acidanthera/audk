@@ -68,9 +68,9 @@ Ring3RestoreTpl (
 EFI_STATUS
 EFIAPI
 Ring3AllocatePages (
-  IN EFI_ALLOCATE_TYPE         Type,
-  IN EFI_MEMORY_TYPE           MemoryType,
-  IN UINTN                     NumberOfPages,
+  IN     EFI_ALLOCATE_TYPE     Type,
+  IN     EFI_MEMORY_TYPE       MemoryType,
+  IN     UINTN                 NumberOfPages,
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   );
 
@@ -127,9 +127,9 @@ EFIAPI
 Ring3GetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
-  OUT UINTN                     *MapKey,
-  OUT UINTN                     *DescriptorSize,
-  OUT UINT32                    *DescriptorVersion
+     OUT UINTN                  *MapKey,
+     OUT UINTN                  *DescriptorSize,
+     OUT UINT32                 *DescriptorVersion
   );
 
 /**
@@ -153,11 +153,11 @@ Ring3GetMemoryMap (
 EFI_STATUS
 EFIAPI
 Ring3CreateEvent (
-  IN UINT32            Type,
-  IN EFI_TPL           NotifyTpl,
-  IN EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
-  IN VOID              *NotifyContext  OPTIONAL,
-  OUT EFI_EVENT        *Event
+  IN  UINT32            Type,
+  IN  EFI_TPL           NotifyTpl,
+  IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
+  IN  VOID              *NotifyContext  OPTIONAL,
+  OUT EFI_EVENT         *Event
   );
 
 /**
@@ -200,9 +200,9 @@ Ring3SetTimer (
 EFI_STATUS
 EFIAPI
 Ring3WaitForEvent (
-  IN UINTN      NumberOfEvents,
-  IN EFI_EVENT  *UserEvents,
-  OUT UINTN     *UserIndex
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *UserEvents,
+  OUT UINTN      *UserIndex
   );
 
 /**
@@ -268,10 +268,10 @@ Ring3CheckEvent (
 EFI_STATUS
 EFIAPI
 Ring3InstallProtocolInterface (
-  IN OUT EFI_HANDLE      *UserHandle,
-  IN EFI_GUID            *Protocol,
-  IN EFI_INTERFACE_TYPE  InterfaceType,
-  IN VOID                *Interface
+  IN OUT EFI_HANDLE          *UserHandle,
+  IN     EFI_GUID            *Protocol,
+  IN     EFI_INTERFACE_TYPE  InterfaceType,
+  IN     VOID                *Interface
   );
 
 /**
@@ -332,9 +332,9 @@ Ring3UninstallProtocolInterface (
 EFI_STATUS
 EFIAPI
 Ring3HandleProtocol (
-  IN EFI_HANDLE  UserHandle,
-  IN EFI_GUID    *Protocol,
-  OUT VOID       **Interface
+  IN  EFI_HANDLE  UserHandle,
+  IN  EFI_GUID    *Protocol,
+  OUT VOID        **Interface
   );
 
 /**
@@ -353,9 +353,9 @@ Ring3HandleProtocol (
 EFI_STATUS
 EFIAPI
 Ring3RegisterProtocolNotify (
-  IN EFI_GUID   *Protocol,
-  IN EFI_EVENT  Event,
-  OUT  VOID     **Registration
+  IN  EFI_GUID   *Protocol,
+  IN  EFI_EVENT  Event,
+  OUT VOID       **Registration
   );
 
 /**
@@ -379,11 +379,11 @@ Ring3RegisterProtocolNotify (
 EFI_STATUS
 EFIAPI
 Ring3LocateHandle (
-  IN EFI_LOCATE_SEARCH_TYPE  SearchType,
-  IN EFI_GUID                *Protocol   OPTIONAL,
-  IN VOID                    *SearchKey  OPTIONAL,
-  IN OUT UINTN               *BufferSize,
-  OUT EFI_HANDLE             *Buffer
+  IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
+  IN     EFI_GUID                *Protocol   OPTIONAL,
+  IN     VOID                    *SearchKey  OPTIONAL,
+  IN OUT UINTN                   *BufferSize,
+     OUT EFI_HANDLE              *Buffer
   );
 
 /**
@@ -404,9 +404,9 @@ Ring3LocateHandle (
 EFI_STATUS
 EFIAPI
 Ring3LocateDevicePath (
-  IN EFI_GUID                      *Protocol,
+  IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
-  OUT EFI_HANDLE                   *Device
+     OUT EFI_HANDLE                *Device
   );
 
 /**
@@ -468,12 +468,12 @@ Ring3InstallConfigurationTable (
 EFI_STATUS
 EFIAPI
 Ring3LoadImage (
-  IN BOOLEAN                   BootPolicy,
-  IN EFI_HANDLE                ParentImageHandle,
-  IN EFI_DEVICE_PATH_PROTOCOL  *FilePath,
-  IN VOID                      *SourceBuffer   OPTIONAL,
-  IN UINTN                     SourceSize,
-  OUT EFI_HANDLE               *ImageHandle
+  IN  BOOLEAN                   BootPolicy,
+  IN  EFI_HANDLE                ParentImageHandle,
+  IN  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
+  IN  VOID                      *SourceBuffer   OPTIONAL,
+  IN  UINTN                     SourceSize,
+  OUT EFI_HANDLE                *ImageHandle
   );
 
 /**
@@ -498,9 +498,9 @@ Ring3LoadImage (
 EFI_STATUS
 EFIAPI
 Ring3StartImage (
-  IN EFI_HANDLE  ImageHandle,
-  OUT UINTN      *ExitDataSize,
-  OUT CHAR16     **ExitData  OPTIONAL
+  IN  EFI_HANDLE  ImageHandle,
+  OUT UINTN       *ExitDataSize,
+  OUT CHAR16      **ExitData  OPTIONAL
   );
 
 /**
@@ -662,10 +662,10 @@ Ring3SetWatchdogTimer (
 EFI_STATUS
 EFIAPI
 Ring3ConnectController (
-  IN  EFI_HANDLE                ControllerHandle,
-  IN  EFI_HANDLE                *DriverImageHandle    OPTIONAL,
-  IN  EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
-  IN  BOOLEAN                   Recursive
+  IN EFI_HANDLE                ControllerHandle,
+  IN EFI_HANDLE                *DriverImageHandle    OPTIONAL,
+  IN EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
+  IN BOOLEAN                   Recursive
   );
 
 /**
@@ -703,9 +703,9 @@ Ring3ConnectController (
 EFI_STATUS
 EFIAPI
 Ring3DisconnectController (
-  IN  EFI_HANDLE  ControllerHandle,
-  IN  EFI_HANDLE  DriverImageHandle  OPTIONAL,
-  IN  EFI_HANDLE  ChildHandle        OPTIONAL
+  IN EFI_HANDLE  ControllerHandle,
+  IN EFI_HANDLE  DriverImageHandle  OPTIONAL,
+  IN EFI_HANDLE  ChildHandle        OPTIONAL
   );
 
 /**
@@ -767,10 +767,10 @@ Ring3OpenProtocol (
 EFI_STATUS
 EFIAPI
 Ring3CloseProtocol (
-  IN  EFI_HANDLE  UserHandle,
-  IN  EFI_GUID    *Protocol,
-  IN  EFI_HANDLE  AgentHandle,
-  IN  EFI_HANDLE  ControllerHandle
+  IN EFI_HANDLE  UserHandle,
+  IN EFI_GUID    *Protocol,
+  IN EFI_HANDLE  AgentHandle,
+  IN EFI_HANDLE  ControllerHandle
   );
 
 /**
@@ -819,9 +819,9 @@ Ring3OpenProtocolInformation (
 EFI_STATUS
 EFIAPI
 Ring3ProtocolsPerHandle (
-  IN EFI_HANDLE  UserHandle,
-  OUT EFI_GUID   ***ProtocolBuffer,
-  OUT UINTN      *ProtocolBufferCount
+  IN  EFI_HANDLE  UserHandle,
+  OUT EFI_GUID    ***ProtocolBuffer,
+  OUT UINTN       *ProtocolBufferCount
   );
 
 /**
@@ -849,11 +849,11 @@ Ring3ProtocolsPerHandle (
 EFI_STATUS
 EFIAPI
 Ring3LocateHandleBuffer (
-  IN EFI_LOCATE_SEARCH_TYPE  SearchType,
-  IN EFI_GUID                *Protocol OPTIONAL,
-  IN VOID                    *SearchKey OPTIONAL,
-  IN OUT UINTN               *NumberHandles,
-  OUT EFI_HANDLE             **Buffer
+  IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
+  IN     EFI_GUID                *Protocol OPTIONAL,
+  IN     VOID                    *SearchKey OPTIONAL,
+  IN OUT UINTN                   *NumberHandles,
+     OUT EFI_HANDLE              **Buffer
   );
 
 /**
@@ -947,9 +947,9 @@ Ring3UninstallMultipleProtocolInterfaces (
 EFI_STATUS
 EFIAPI
 Ring3CalculateCrc32 (
-  IN  VOID                              *Data,
-  IN  UINTN                             DataSize,
-  OUT UINT32                            *Crc32
+  IN  VOID    *Data,
+  IN  UINTN   DataSize,
+  OUT UINT32  *Crc32
   );
 
 /**
@@ -975,12 +975,12 @@ Ring3CalculateCrc32 (
 EFI_STATUS
 EFIAPI
 Ring3CreateEventEx (
-  IN UINT32            Type,
-  IN EFI_TPL           NotifyTpl,
-  IN EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
-  IN CONST VOID        *NotifyContext  OPTIONAL,
-  IN CONST EFI_GUID    *EventGroup     OPTIONAL,
-  OUT EFI_EVENT        *Event
+  IN  UINT32            Type,
+  IN  EFI_TPL           NotifyTpl,
+  IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
+  IN  CONST VOID        *NotifyContext  OPTIONAL,
+  IN  CONST EFI_GUID    *EventGroup     OPTIONAL,
+  OUT EFI_EVENT         *Event
   );
 
 /**
@@ -1023,11 +1023,11 @@ Ring3BlockIoReset (
 EFI_STATUS
 EFIAPI
 Ring3BlockIoRead (
-  IN EFI_BLOCK_IO_PROTOCOL  *This,
-  IN UINT32                 MediaId,
-  IN EFI_LBA                Lba,
-  IN UINTN                  BufferSize,
-  OUT VOID                  *Buffer
+  IN  EFI_BLOCK_IO_PROTOCOL  *This,
+  IN  UINT32                 MediaId,
+  IN  EFI_LBA                Lba,
+  IN  UINTN                  BufferSize,
+  OUT VOID                   *Buffer
   );
 
 /**
@@ -1096,11 +1096,11 @@ Ring3BlockIoFlush (
 EFI_STATUS
 EFIAPI
 Ring3DiskIoRead (
-  IN EFI_DISK_IO_PROTOCOL  *This,
-  IN UINT32                MediaId,
-  IN UINT64                Offset,
-  IN UINTN                 BufferSize,
-  OUT VOID                 *Buffer
+  IN  EFI_DISK_IO_PROTOCOL  *This,
+  IN  UINT32                MediaId,
+  IN  UINT64                Offset,
+  IN  UINTN                 BufferSize,
+  OUT VOID                  *Buffer
   );
 
 /**
@@ -1147,8 +1147,8 @@ Ring3DiskIoWrite (
 EFI_STATUS
 EFIAPI
 Ring3GetTime (
-  OUT  EFI_TIME                    *Time,
-  OUT  EFI_TIME_CAPABILITIES       *Capabilities OPTIONAL
+  OUT EFI_TIME               *Time,
+  OUT EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
   );
 
 /**
@@ -1164,7 +1164,7 @@ Ring3GetTime (
 EFI_STATUS
 EFIAPI
 Ring3SetTime (
-  IN  EFI_TIME                     *Time
+  IN EFI_TIME  *Time
   );
 
 /**
@@ -1185,9 +1185,9 @@ Ring3SetTime (
 EFI_STATUS
 EFIAPI
 Ring3GetWakeupTime (
-  OUT BOOLEAN                     *Enabled,
-  OUT BOOLEAN                     *Pending,
-  OUT EFI_TIME                    *Time
+  OUT BOOLEAN   *Enabled,
+  OUT BOOLEAN   *Pending,
+  OUT EFI_TIME  *Time
   );
 
 /**
@@ -1207,8 +1207,8 @@ Ring3GetWakeupTime (
 EFI_STATUS
 EFIAPI
 Ring3SetWakeupTime (
-  IN  BOOLEAN                      Enable,
-  IN  EFI_TIME                     *Time   OPTIONAL
+  IN BOOLEAN   Enable,
+  IN EFI_TIME  *Time   OPTIONAL
   );
 
 /**
@@ -1233,10 +1233,10 @@ Ring3SetWakeupTime (
 EFI_STATUS
 EFIAPI
 Ring3SetVirtualAddressMap (
-  IN  UINTN                        MemoryMapSize,
-  IN  UINTN                        DescriptorSize,
-  IN  UINT32                       DescriptorVersion,
-  IN  EFI_MEMORY_DESCRIPTOR        *VirtualMap
+  IN UINTN                  MemoryMapSize,
+  IN UINTN                  DescriptorSize,
+  IN UINT32                 DescriptorVersion,
+  IN EFI_MEMORY_DESCRIPTOR  *VirtualMap
   );
 
 /**
@@ -1257,8 +1257,8 @@ Ring3SetVirtualAddressMap (
 EFI_STATUS
 EFIAPI
 Ring3ConvertPointer (
-  IN     UINTN                      DebugDisposition,
-  IN OUT VOID                       **Address
+  IN     UINTN  DebugDisposition,
+  IN OUT VOID   **Address
   );
 
 /**
@@ -1288,11 +1288,11 @@ Ring3ConvertPointer (
 EFI_STATUS
 EFIAPI
 Ring3GetVariable (
-  IN     CHAR16                      *VariableName,
-  IN     EFI_GUID                    *VendorGuid,
-  OUT    UINT32                      *Attributes     OPTIONAL,
-  IN OUT UINTN                       *DataSize,
-  OUT    VOID                        *Data           OPTIONAL
+  IN     CHAR16    *VariableName,
+  IN     EFI_GUID  *VendorGuid,
+     OUT UINT32    *Attributes     OPTIONAL,
+  IN OUT UINTN     *DataSize,
+     OUT VOID      *Data           OPTIONAL
   );
 
 /**
@@ -1324,9 +1324,9 @@ Ring3GetVariable (
 EFI_STATUS
 EFIAPI
 Ring3GetNextVariableName (
-  IN OUT UINTN                    *VariableNameSize,
-  IN OUT CHAR16                   *VariableName,
-  IN OUT EFI_GUID                 *VendorGuid
+  IN OUT UINTN     *VariableNameSize,
+  IN OUT CHAR16    *VariableName,
+  IN OUT EFI_GUID  *VendorGuid
   );
 
 /**
@@ -1366,11 +1366,11 @@ Ring3GetNextVariableName (
 EFI_STATUS
 EFIAPI
 Ring3SetVariable (
-  IN  CHAR16                       *VariableName,
-  IN  EFI_GUID                     *VendorGuid,
-  IN  UINT32                       Attributes,
-  IN  UINTN                        DataSize,
-  IN  VOID                         *Data
+  IN CHAR16    *VariableName,
+  IN EFI_GUID  *VendorGuid,
+  IN UINT32    Attributes,
+  IN UINTN     DataSize,
+  IN VOID      *Data
   );
 
 /**
@@ -1386,7 +1386,7 @@ Ring3SetVariable (
 EFI_STATUS
 EFIAPI
 Ring3GetNextHighMonotonicCount (
-  OUT UINT32                  *HighCount
+  OUT UINT32  *HighCount
   );
 
 /**
@@ -1407,10 +1407,10 @@ Ring3GetNextHighMonotonicCount (
 VOID
 EFIAPI
 Ring3ResetSystem (
-  IN EFI_RESET_TYPE           ResetType,
-  IN EFI_STATUS               ResetStatus,
-  IN UINTN                    DataSize,
-  IN VOID                     *ResetData OPTIONAL
+  IN EFI_RESET_TYPE  ResetType,
+  IN EFI_STATUS      ResetStatus,
+  IN UINTN           DataSize,
+  IN VOID            *ResetData OPTIONAL
   );
 
 /**
@@ -1446,9 +1446,9 @@ Ring3ResetSystem (
 EFI_STATUS
 EFIAPI
 Ring3UpdateCapsule (
-  IN EFI_CAPSULE_HEADER     **CapsuleHeaderArray,
-  IN UINTN                  CapsuleCount,
-  IN EFI_PHYSICAL_ADDRESS   ScatterGatherList   OPTIONAL
+  IN EFI_CAPSULE_HEADER    **CapsuleHeaderArray,
+  IN UINTN                 CapsuleCount,
+  IN EFI_PHYSICAL_ADDRESS  ScatterGatherList   OPTIONAL
   );
 
 /**
@@ -1477,10 +1477,10 @@ Ring3UpdateCapsule (
 EFI_STATUS
 EFIAPI
 Ring3QueryCapsuleCapabilities (
-  IN  EFI_CAPSULE_HEADER     **CapsuleHeaderArray,
-  IN  UINTN                  CapsuleCount,
-  OUT UINT64                 *MaximumCapsuleSize,
-  OUT EFI_RESET_TYPE         *ResetType
+  IN  EFI_CAPSULE_HEADER  **CapsuleHeaderArray,
+  IN  UINTN               CapsuleCount,
+  OUT UINT64              *MaximumCapsuleSize,
+  OUT EFI_RESET_TYPE      *ResetType
   );
 
 /**
@@ -1508,10 +1508,10 @@ Ring3QueryCapsuleCapabilities (
 EFI_STATUS
 EFIAPI
 Ring3QueryVariableInfo (
-  IN  UINT32            Attributes,
-  OUT UINT64            *MaximumVariableStorageSize,
-  OUT UINT64            *RemainingVariableStorageSize,
-  OUT UINT64            *MaximumVariableSize
+  IN  UINT32  Attributes,
+  OUT UINT64  *MaximumVariableStorageSize,
+  OUT UINT64  *RemainingVariableStorageSize,
+  OUT UINT64  *MaximumVariableSize
   );
 
 /**
@@ -1529,9 +1529,9 @@ Ring3QueryVariableInfo (
 INTN
 EFIAPI
 Ring3UnicodeStriColl (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN CHAR16                                 *Str1,
-  IN CHAR16                                 *Str2
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *Str1,
+  IN CHAR16                          *Str2
   );
 
 /**
@@ -1549,9 +1549,9 @@ Ring3UnicodeStriColl (
 BOOLEAN
 EFIAPI
 Ring3UnicodeMetaiMatch (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN CHAR16                                 *String,
-  IN CHAR16                                 *Pattern
+  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN CHAR16                          *String,
+  IN CHAR16                          *Pattern
   );
 
 /**
@@ -1565,8 +1565,8 @@ Ring3UnicodeMetaiMatch (
 VOID
 EFIAPI
 Ring3UnicodeStrLwr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN OUT CHAR16                             *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   );
 
 /**
@@ -1580,8 +1580,8 @@ Ring3UnicodeStrLwr (
 VOID
 EFIAPI
 Ring3UnicodeStrUpr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN OUT CHAR16                             *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   );
 
 /**
@@ -1599,10 +1599,10 @@ Ring3UnicodeStrUpr (
 VOID
 EFIAPI
 Ring3UnicodeFatToStr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN UINTN                                  FatSize,
-  IN CHAR8                                  *Fat,
-  OUT CHAR16                                *String
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  UINTN                           FatSize,
+  IN  CHAR8                           *Fat,
+  OUT CHAR16                          *String
   );
 
 /**
@@ -1622,8 +1622,8 @@ Ring3UnicodeFatToStr (
 BOOLEAN
 EFIAPI
 Ring3UnicodeStrToFat (
-  IN EFI_UNICODE_COLLATION_PROTOCOL         *This,
-  IN CHAR16                                 *String,
-  IN UINTN                                  FatSize,
-  OUT CHAR8                                 *Fat
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  CHAR16                          *String,
+  IN  UINTN                           FatSize,
+  OUT CHAR8                           *Fat
   );

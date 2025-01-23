@@ -68,8 +68,8 @@ CallInstallMultipleProtocolInterfaces (
 VOID
 EFIAPI
 ReturnToCore (
-  IN EFI_STATUS Status,
-  IN UINTN      ReturnSP
+  IN EFI_STATUS  Status,
+  IN UINTN       ReturnSP
   );
 
 VOID
@@ -172,8 +172,8 @@ STATIC
 VOID *
 EFIAPI
 FindInterface (
-  IN BOOLEAN FindRing3,
-  IN VOID    *Interface
+  IN BOOLEAN  FindRing3,
+  IN VOID     *Interface
   )
 {
   LIST_ENTRY  *Link;
@@ -566,7 +566,7 @@ CallBootService (
         } else if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiSimpleFileSystemProtocolGuid)) {
           CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
 
-          CoreSimpleFileSystem->OpenVolume = CoreOpenVolume;
+          CoreSimpleFileSystem->OpenVolume = CoreSimpleFileSystemOpenVolume;
         } else if ((CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollationProtocolGuid))
             || (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid))) {
           CoreUnicodeCollation = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreArgList[Index + 1];

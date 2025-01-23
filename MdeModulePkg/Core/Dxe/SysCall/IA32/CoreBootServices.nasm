@@ -104,7 +104,7 @@ ASM_PFX(SysCallBase):
 ; EFI_STATUS
 ; EFIAPI
 ; CoreBootServices (
-;   IN  UINT8  Type,
+;   IN UINT8  Type,
 ;   ...
 ;   );
 ;
@@ -168,7 +168,7 @@ ASM_PFX(CoreBootServices):
 ; EFI_STATUS
 ; EFIAPI
 ; CallRing3 (
-;   IN RING3_CALL_DATA *Data,
+;   IN RING3_CALL_DATA  *Data,
 ;   IN UINTN            UserStackTop
 ;   );
 ;
@@ -219,8 +219,8 @@ ASM_PFX(SysCallEnd):
 ; VOID
 ; EFIAPI
 ; ReturnToCore (
-;   IN EFI_STATUS Status,
-;   IN UINTN      ReturnSP
+;   IN EFI_STATUS  Status,
+;   IN UINTN       ReturnSP
 ;   );
 ;------------------------------------------------------------------------------
 global ASM_PFX(ReturnToCore)

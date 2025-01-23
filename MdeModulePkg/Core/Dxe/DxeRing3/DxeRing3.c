@@ -94,7 +94,7 @@ EFI_RUNTIME_SERVICES  mRuntimeServices = {
 VOID
 EFIAPI
 Ring3EntryPoint (
- IN RING3_CALL_DATA *Data
+ IN RING3_CALL_DATA  *Data
  );
 
 typedef
@@ -182,7 +182,7 @@ EFI_STATUS
 VOID
 EFIAPI
 Ring3Call (
-  IN RING3_CALL_DATA *Data
+  IN RING3_CALL_DATA  *Data
   )
 {
   EFI_STATUS  Status;

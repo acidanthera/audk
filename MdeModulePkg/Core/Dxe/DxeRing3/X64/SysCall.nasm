@@ -44,7 +44,7 @@ makecall:
 ; VOID
 ; EFIAPI
 ; Ring3EntryPoint (
-;   IN RING3_CALL_DATA *Data
+;   IN RING3_CALL_DATA  *Data
 ;   );
 ;
 ;   (rcx) RIP of Ring3EntryPoint saved for SYSRET in CallRing3().
