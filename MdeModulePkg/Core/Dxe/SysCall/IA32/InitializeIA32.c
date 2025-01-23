@@ -90,8 +90,8 @@ MakeUserPageTableTemplate (
 VOID
 EFIAPI
 InitializeMsr (
-  IN OUT EFI_CONFIGURATION_TABLE *Table,
-  IN     UINTN                   NumberOfEntries
+  IN OUT EFI_CONFIGURATION_TABLE  *Table,
+  IN     UINTN                    NumberOfEntries
   )
 {
   UINT64                  Msr;

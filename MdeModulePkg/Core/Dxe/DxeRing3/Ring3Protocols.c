@@ -25,11 +25,11 @@ Ring3BlockIoReset (
 EFI_STATUS
 EFIAPI
 Ring3BlockIoRead (
-  IN EFI_BLOCK_IO_PROTOCOL  *This,
-  IN UINT32                 MediaId,
-  IN EFI_LBA                Lba,
-  IN UINTN                  BufferSize,
-  OUT VOID                  *Buffer
+  IN  EFI_BLOCK_IO_PROTOCOL  *This,
+  IN  UINT32                 MediaId,
+  IN  EFI_LBA                Lba,
+  IN  UINTN                  BufferSize,
+  OUT VOID                   *Buffer
   )
 {
   return SysCall (
@@ -80,11 +80,11 @@ Ring3BlockIoFlush (
 EFI_STATUS
 EFIAPI
 Ring3DiskIoRead (
-  IN EFI_DISK_IO_PROTOCOL  *This,
-  IN UINT32                MediaId,
-  IN UINT64                Offset,
-  IN UINTN                 BufferSize,
-  OUT VOID                 *Buffer
+  IN  EFI_DISK_IO_PROTOCOL  *This,
+  IN  UINT32                MediaId,
+  IN  UINT64                Offset,
+  IN  UINTN                 BufferSize,
+  OUT VOID                  *Buffer
   )
 {
   return SysCall (
@@ -156,8 +156,8 @@ Ring3UnicodeMetaiMatch (
 VOID
 EFIAPI
 Ring3UnicodeStrLwr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN OUT CHAR16                      *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   )
 {
   SysCall (
@@ -171,8 +171,8 @@ Ring3UnicodeStrLwr (
 VOID
 EFIAPI
 Ring3UnicodeStrUpr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN OUT CHAR16                      *Str
+  IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN OUT CHAR16                          *Str
   )
 {
   SysCall (
@@ -186,10 +186,10 @@ Ring3UnicodeStrUpr (
 VOID
 EFIAPI
 Ring3UnicodeFatToStr (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN UINTN                           FatSize,
-  IN CHAR8                           *Fat,
-  OUT CHAR16                         *String
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  UINTN                           FatSize,
+  IN  CHAR8                           *Fat,
+  OUT CHAR16                          *String
   )
 {
   SysCall (
@@ -205,10 +205,10 @@ Ring3UnicodeFatToStr (
 BOOLEAN
 EFIAPI
 Ring3UnicodeStrToFat (
-  IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
-  IN CHAR16                          *String,
-  IN UINTN                           FatSize,
-  OUT CHAR8                          *Fat
+  IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
+  IN  CHAR16                          *String,
+  IN  UINTN                           FatSize,
+  OUT CHAR8                           *Fat
   )
 {
   return (BOOLEAN)SysCall (

@@ -60,7 +60,7 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 // EFI_STATUS
 // EFIAPI
 // CallRing3 (
-//   IN RING3_CALL_DATA *Data,
+//   IN RING3_CALL_DATA  *Data,
 //   IN UINTN            UserStackTop
 //   );
 //
@@ -115,8 +115,8 @@ ASM_FUNC_ALIGN(SysCallEnd, 4096)
 // VOID
 // EFIAPI
 // ReturnToCore (
-//   IN EFI_STATUS Status,
-//   IN UINTN      ReturnSP
+//   IN EFI_STATUS  Status,
+//   IN UINTN       ReturnSP
 //   );
 //
 //   (x0) Status

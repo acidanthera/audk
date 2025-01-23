@@ -24,7 +24,7 @@ ASM_FUNC(SysCall)
 // VOID
 // EFIAPI
 // Ring3EntryPoint (
-//   IN RING3_CALL_DATA *Data
+//   IN RING3_CALL_DATA  *Data
 //   );
 //
 //   (x0) Data

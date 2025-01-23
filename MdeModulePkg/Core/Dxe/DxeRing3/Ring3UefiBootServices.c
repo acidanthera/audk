@@ -119,9 +119,9 @@ Ring3RestoreTpl (
 EFI_STATUS
 EFIAPI
 Ring3AllocatePages (
-  IN EFI_ALLOCATE_TYPE         Type,
-  IN EFI_MEMORY_TYPE           MemoryType,
-  IN UINTN                     NumberOfPages,
+  IN     EFI_ALLOCATE_TYPE     Type,
+  IN     EFI_MEMORY_TYPE       MemoryType,
+  IN     UINTN                 NumberOfPages,
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
@@ -169,9 +169,9 @@ EFIAPI
 Ring3GetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
-  OUT UINTN                     *MapKey,
-  OUT UINTN                     *DescriptorSize,
-  OUT UINT32                    *DescriptorVersion
+     OUT UINTN                  *MapKey,
+     OUT UINTN                  *DescriptorSize,
+     OUT UINT32                 *DescriptorVersion
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: GetMemoryMap is not supported\n"));
@@ -182,11 +182,11 @@ Ring3GetMemoryMap (
 EFI_STATUS
 EFIAPI
 Ring3CreateEvent (
-  IN UINT32            Type,
-  IN EFI_TPL           NotifyTpl,
-  IN EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
-  IN VOID              *NotifyContext  OPTIONAL,
-  OUT EFI_EVENT        *Event
+  IN  UINT32            Type,
+  IN  EFI_TPL           NotifyTpl,
+  IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
+  IN  VOID              *NotifyContext  OPTIONAL,
+  OUT EFI_EVENT         *Event
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: CreateEvent is not supported\n"));
@@ -210,9 +210,9 @@ Ring3SetTimer (
 EFI_STATUS
 EFIAPI
 Ring3WaitForEvent (
-  IN UINTN      NumberOfEvents,
-  IN EFI_EVENT  *UserEvents,
-  OUT UINTN     *UserIndex
+  IN  UINTN      NumberOfEvents,
+  IN  EFI_EVENT  *UserEvents,
+  OUT UINTN      *UserIndex
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: WaitForEvent is not supported\n"));
@@ -256,10 +256,10 @@ Ring3CheckEvent (
 EFI_STATUS
 EFIAPI
 Ring3InstallProtocolInterface (
-  IN OUT EFI_HANDLE      *UserHandle,
-  IN EFI_GUID            *Protocol,
-  IN EFI_INTERFACE_TYPE  InterfaceType,
-  IN VOID                *Interface
+  IN OUT EFI_HANDLE          *UserHandle,
+  IN     EFI_GUID            *Protocol,
+  IN     EFI_INTERFACE_TYPE  InterfaceType,
+  IN     VOID                *Interface
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: InstallProtocolInterface is not supported\n"));
@@ -297,9 +297,9 @@ Ring3UninstallProtocolInterface (
 EFI_STATUS
 EFIAPI
 Ring3HandleProtocol (
-  IN EFI_HANDLE  CoreUserHandle,
-  IN EFI_GUID    *Protocol,
-  OUT VOID       **Interface
+  IN  EFI_HANDLE  CoreUserHandle,
+  IN  EFI_GUID    *Protocol,
+  OUT VOID        **Interface
   )
 {
   EFI_STATUS  Status;
@@ -322,9 +322,9 @@ Ring3HandleProtocol (
 EFI_STATUS
 EFIAPI
 Ring3RegisterProtocolNotify (
-  IN EFI_GUID   *Protocol,
-  IN EFI_EVENT  Event,
-  OUT  VOID     **Registration
+  IN  EFI_GUID   *Protocol,
+  IN  EFI_EVENT  Event,
+  OUT VOID       **Registration
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: RegisterProtocolNotify is not supported\n"));
@@ -335,11 +335,11 @@ Ring3RegisterProtocolNotify (
 EFI_STATUS
 EFIAPI
 Ring3LocateHandle (
-  IN EFI_LOCATE_SEARCH_TYPE  SearchType,
-  IN EFI_GUID                *Protocol   OPTIONAL,
-  IN VOID                    *SearchKey  OPTIONAL,
-  IN OUT UINTN               *BufferSize,
-  OUT EFI_HANDLE             *Buffer
+  IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
+  IN     EFI_GUID                *Protocol   OPTIONAL,
+  IN     VOID                    *SearchKey  OPTIONAL,
+  IN OUT UINTN                   *BufferSize,
+     OUT EFI_HANDLE              *Buffer
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: LocateHandle is not supported\n"));
@@ -350,9 +350,9 @@ Ring3LocateHandle (
 EFI_STATUS
 EFIAPI
 Ring3LocateDevicePath (
-  IN EFI_GUID                      *Protocol,
+  IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
-  OUT EFI_HANDLE                   *Device
+     OUT EFI_HANDLE                *Device
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: LocateDevicePath is not supported\n"));
@@ -375,12 +375,12 @@ Ring3InstallConfigurationTable (
 EFI_STATUS
 EFIAPI
 Ring3LoadImage (
-  IN BOOLEAN                   BootPolicy,
-  IN EFI_HANDLE                ParentImageHandle,
-  IN EFI_DEVICE_PATH_PROTOCOL  *FilePath,
-  IN VOID                      *SourceBuffer   OPTIONAL,
-  IN UINTN                     SourceSize,
-  OUT EFI_HANDLE               *ImageHandle
+  IN  BOOLEAN                   BootPolicy,
+  IN  EFI_HANDLE                ParentImageHandle,
+  IN  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
+  IN  VOID                      *SourceBuffer   OPTIONAL,
+  IN  UINTN                     SourceSize,
+  OUT EFI_HANDLE                *ImageHandle
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: LoadImage is not supported\n"));
@@ -391,9 +391,9 @@ Ring3LoadImage (
 EFI_STATUS
 EFIAPI
 Ring3StartImage (
-  IN EFI_HANDLE  ImageHandle,
-  OUT UINTN      *ExitDataSize,
-  OUT CHAR16     **ExitData  OPTIONAL
+  IN  EFI_HANDLE  ImageHandle,
+  OUT UINTN       *ExitDataSize,
+  OUT CHAR16      **ExitData  OPTIONAL
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: StartImage is not supported\n"));
@@ -477,10 +477,10 @@ Ring3SetWatchdogTimer (
 EFI_STATUS
 EFIAPI
 Ring3ConnectController (
-  IN  EFI_HANDLE                ControllerHandle,
-  IN  EFI_HANDLE                *DriverImageHandle    OPTIONAL,
-  IN  EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
-  IN  BOOLEAN                   Recursive
+  IN EFI_HANDLE                ControllerHandle,
+  IN EFI_HANDLE                *DriverImageHandle    OPTIONAL,
+  IN EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
+  IN BOOLEAN                   Recursive
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: ConnectController is not supported\n"));
@@ -491,9 +491,9 @@ Ring3ConnectController (
 EFI_STATUS
 EFIAPI
 Ring3DisconnectController (
-  IN  EFI_HANDLE  ControllerHandle,
-  IN  EFI_HANDLE  DriverImageHandle  OPTIONAL,
-  IN  EFI_HANDLE  ChildHandle        OPTIONAL
+  IN EFI_HANDLE  ControllerHandle,
+  IN EFI_HANDLE  DriverImageHandle  OPTIONAL,
+  IN EFI_HANDLE  ChildHandle        OPTIONAL
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: DisconnectController is not supported\n"));
@@ -534,10 +534,10 @@ Ring3OpenProtocol (
 EFI_STATUS
 EFIAPI
 Ring3CloseProtocol (
-  IN  EFI_HANDLE  UserHandle,
-  IN  EFI_GUID    *Protocol,
-  IN  EFI_HANDLE  AgentHandle,
-  IN  EFI_HANDLE  ControllerHandle
+  IN EFI_HANDLE  UserHandle,
+  IN EFI_GUID    *Protocol,
+  IN EFI_HANDLE  AgentHandle,
+  IN EFI_HANDLE  ControllerHandle
   )
 {
   return SysCall (
@@ -567,9 +567,9 @@ Ring3OpenProtocolInformation (
 EFI_STATUS
 EFIAPI
 Ring3ProtocolsPerHandle (
-  IN EFI_HANDLE  UserHandle,
-  OUT EFI_GUID   ***ProtocolBuffer,
-  OUT UINTN      *ProtocolBufferCount
+  IN  EFI_HANDLE  UserHandle,
+  OUT EFI_GUID    ***ProtocolBuffer,
+  OUT UINTN       *ProtocolBufferCount
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: ProtocolsPerHandle is not supported\n"));
@@ -580,11 +580,11 @@ Ring3ProtocolsPerHandle (
 EFI_STATUS
 EFIAPI
 Ring3LocateHandleBuffer (
-  IN EFI_LOCATE_SEARCH_TYPE  SearchType,
-  IN EFI_GUID                *Protocol OPTIONAL,
-  IN VOID                    *SearchKey OPTIONAL,
-  IN OUT UINTN               *NumberHandles,
-  OUT EFI_HANDLE             **Buffer
+  IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
+  IN     EFI_GUID                *Protocol OPTIONAL,
+  IN     VOID                    *SearchKey OPTIONAL,
+  IN OUT UINTN                   *NumberHandles,
+     OUT EFI_HANDLE              **Buffer
   )
 {
   EFI_STATUS  Status;
@@ -703,9 +703,9 @@ Ring3UninstallMultipleProtocolInterfaces (
 EFI_STATUS
 EFIAPI
 Ring3CalculateCrc32 (
-  IN  VOID                              *Data,
-  IN  UINTN                             DataSize,
-  OUT UINT32                            *Crc32
+  IN  VOID    *Data,
+  IN  UINTN   DataSize,
+  OUT UINT32  *Crc32
   )
 {
   return SysCall (
@@ -720,12 +720,12 @@ Ring3CalculateCrc32 (
 EFI_STATUS
 EFIAPI
 Ring3CreateEventEx (
-  IN UINT32            Type,
-  IN EFI_TPL           NotifyTpl,
-  IN EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
-  IN CONST VOID        *NotifyContext  OPTIONAL,
-  IN CONST EFI_GUID    *EventGroup     OPTIONAL,
-  OUT EFI_EVENT        *Event
+  IN  UINT32            Type,
+  IN  EFI_TPL           NotifyTpl,
+  IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
+  IN  CONST VOID        *NotifyContext  OPTIONAL,
+  IN  CONST EFI_GUID    *EventGroup     OPTIONAL,
+  OUT EFI_EVENT         *Event
   )
 {
   DEBUG ((DEBUG_ERROR, "Ring3: CreateEventEx is not supported\n"));
