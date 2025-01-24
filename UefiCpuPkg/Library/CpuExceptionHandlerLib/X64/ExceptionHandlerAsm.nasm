@@ -48,7 +48,6 @@ endstruc
 
 %define VC_EXCEPTION 29
 
-extern ASM_PFX(mErrorCodeFlag)    ; Error code flags for exceptions
 extern ASM_PFX(mDoFarReturnFlag)  ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
@@ -59,9 +58,15 @@ global ASM_PFX(CorePageTable)
 ASM_PFX(CorePageTable):
   resq 1
 
-global ASM_PFX(UserPageTable)
-ASM_PFX(UserPageTable):
-  resq 1
+;
+; Error code flag indicating whether or not an error code will be
+; pushed on the stack if an exception occurs.
+;
+; 1 means an error code will be pushed, otherwise 0
+;
+global ASM_PFX(mErrorCodeFlag)
+ASM_PFX(mErrorCodeFlag):
+  dd 0x20227d00
 
 ALIGN   4096
 Padding:
@@ -136,16 +141,6 @@ HookAfterStubHeaderEnd:
 global ASM_PFX(CommonInterruptEntry)
 ASM_PFX(CommonInterruptEntry):
     cli
-    ; Check whether User Space process was interrupted.
-    mov     rax, ds
-    and     rax, 3
-    jz      NoCr3Switch
-    mov     rax, cr3
-    mov     [ASM_PFX(UserPageTable)], rax
-    mov     rax, [ASM_PFX(CorePageTable)]
-    mov     cr3, rax
-
-NoCr3Switch:
     pop     rax
     ;
     ; All interrupt handlers are invoked through interrupt gates, so
@@ -198,6 +193,21 @@ HasErrorCode:
     ; EFI_FX_SAVE_STATE_X64 of EFI_SYSTEM_CONTEXT_x64
     ; is 16-byte aligned
     ;
+
+    ; Check whether User Space process was interrupted.
+    push    rax
+    mov     rax, [rbp + 8*4] ; CS
+    and     rax, 3
+    jz      NoCr3Switch
+    mov     rax, cr3
+    push    rax              ; UserPageTable
+    mov     rax, [ASM_PFX(CorePageTable)]
+    mov     cr3, rax
+    mov     rax, [rsp + 8]   ; rax
+    push    rax
+
+NoCr3Switch:
+    pop     rax
 
 ;; UINT64  Rdi, Rsi, Rbp, Rsp, Rbx, Rdx, Rcx, Rax;
 ;; UINT64  R8, R9, R10, R11, R12, R13, R14, R15;
@@ -457,12 +467,12 @@ CetDone:
     pop     r14
     pop     r15
 
-    ; Check whether Ring3 process was interrupted.
-    push    rcx
-    mov     rcx, ds
-    and     rcx, 3
+    ; Check whether User Space process was interrupted.
+    push    rax
+    mov     rax, [rbp + 8*4] ; CS
+    and     rax, 3
+    pop     rax
     jnz     ReturnToRing3
-    pop     rcx
 
     mov     rsp, rbp
     pop     rbp
@@ -491,9 +501,9 @@ DoReturn:
 DoIret:
     iretq
 ReturnToRing3:
-    mov     rcx, [ASM_PFX(UserPageTable)]
-    mov     cr3, rcx
-    pop     rcx
+    pop     rax ; UserPageTable
+    mov     cr3, rax
+    pop     rax
     mov     rsp, rbp
     pop     rbp
     add     rsp, 16
