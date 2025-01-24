@@ -180,9 +180,7 @@ InitializeRing3 (
 UINTN
 EFIAPI
 InitializeUserPageTable (
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN UINTN                      UserStackBase,
-  IN UINTN                      UserStackSize
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
   UINTN                      UserPageTable;
@@ -198,7 +196,7 @@ InitializeUserPageTable (
   MakeUserPageTableTemplate (&UserPageTable, &UserPageTableSize);
 
   //
-  // Map gRing3Data, gRing3Interfaces, UserStackBase, DxeRing3
+  // Map gRing3Data, gRing3Interfaces, DxeRing3
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
@@ -213,14 +211,6 @@ InitializeUserPageTable (
           UserPageTable,
           (UINTN)gRing3Interfaces,
           EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
-
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          UserStackBase,
-          UserStackSize,
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
 

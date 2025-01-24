@@ -1039,30 +1039,6 @@ CoreUnloadAndCloseImage (
   CoreFreePool (Image);
 }
 
-STATIC
-UINTN
-EFIAPI
-AllocateStack (
-  IN  UINTN  Size,
-  OUT UINTN  *Base
-  )
-{
-  UINTN  TopOfStack;
-
-  ASSERT (Base != NULL);
-  ASSERT (IS_ALIGNED (Size, EFI_PAGE_SIZE));
-
-  *Base = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (Size));
-  ASSERT (*Base != 0);
-  //
-  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-  //
-  TopOfStack = *Base + Size - CPU_STACK_ALIGNMENT;
-  TopOfStack = ALIGN_VALUE (TopOfStack, CPU_STACK_ALIGNMENT);
-
-  return TopOfStack;
-}
-
 /**
   Loads an EFI image into memory and returns a handle to the image.
 
@@ -1138,7 +1114,6 @@ CoreLoadImageCommon (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
   UINT8                            ImageOrigin;
   EFI_FV_FILE_ATTRIBUTES           FileAttributes;
-  UINTN                            UserStackBase;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1482,14 +1457,7 @@ CoreLoadImageCommon (
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
   if ((gRing3Data != NULL) && Image->IsUserImage) {
-    Image->UserStackTop = AllocateStack (STACK_SIZE, &UserStackBase);
-    SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
-
-    Image->UserPageTable = InitializeUserPageTable (
-                             Image,
-                             UserStackBase,
-                             STACK_SIZE
-                             );
+    Image->UserPageTable = InitializeUserPageTable (Image);
   }
 
   RegisterMemoryProfileImage (
@@ -1754,7 +1722,6 @@ CoreStartImage (
         UserDriver->CoreWrapper     = NULL;
         UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
         UserDriver->UserPageTable   = Image->UserPageTable;
-        UserDriver->UserStackTop    = Image->UserStackTop;
         UserDriver->NumberOfCalls   = 0;
 
         InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
