@@ -19,6 +19,30 @@ CallRing3 (
   IN UINTN            UserStackTop
   );
 
+STATIC
+UINTN
+EFIAPI
+AllocateStack (
+  IN  UINTN  Size,
+  OUT UINTN  *Base
+  )
+{
+  UINTN  TopOfStack;
+
+  ASSERT (Base != NULL);
+  ASSERT (IS_ALIGNED (Size, EFI_PAGE_SIZE));
+
+  *Base = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (Size));
+  ASSERT (*Base != 0);
+  //
+  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
+  //
+  TopOfStack = *Base + Size - CPU_STACK_ALIGNMENT;
+  TopOfStack = ALIGN_VALUE (TopOfStack, CPU_STACK_ALIGNMENT);
+
+  return TopOfStack;
+}
+
 EFI_STATUS
 EFIAPI
 GoToRing3 (
@@ -28,32 +52,22 @@ GoToRing3 (
   ...
   )
 {
-  EFI_STATUS            Status;
-  RING3_CALL_DATA       *Input;
-  VA_LIST               Marker;
-  UINTN                 Index;
-  EFI_PHYSICAL_ADDRESS  Ring3Pages;
-  UINT32                PagesNumber;
+  EFI_STATUS       Status;
+  RING3_CALL_DATA  *Input;
+  VA_LIST          Marker;
+  UINTN            Index;
+  UINTN            UserStackTop;
+  UINTN            UserStackBase;
 
   if (UserDriver->NumberOfCalls > MAX_CALL) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN));
+  UserStackTop  = AllocateStack (STACK_SIZE, &UserStackBase);
+  UserStackTop -= ALIGN_VALUE (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN), CPU_STACK_ALIGNMENT);
 
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             PagesNumber,
-             &Ring3Pages
-             );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
+  Input = (RING3_CALL_DATA *)UserStackTop;
 
-  Input = (RING3_CALL_DATA *)(UINTN)Ring3Pages;
-
-  AllowSupervisorAccessToUserMemory ();
   Input->NumberOfArguments = Number;
   Input->EntryPoint        = EntryPoint;
 
@@ -62,21 +76,31 @@ GoToRing3 (
     Input->Arguments[Index] = VA_ARG (Marker, UINTN);
   }
   VA_END (Marker);
-  ForbidSupervisorAccessToUserMemory ();
-  //
-  // TODO: Allocate new stacks (only for EFI_FILE_PROTOCOL instances?),
-  // because UserDriver can be interrupted and interrupt handler may call the same UserDriver again.
-  //
+
+  SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
+
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserDriver->UserPageTable,
+          UserStackBase,
+          STACK_SIZE,
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
+
   ++UserDriver->NumberOfCalls;
+  //
+  // Reserve space on stack for 4 arguments (X64 NOOPT prerequisite).
+  //
+  UserStackTop -= ALIGN_VALUE (8*4, CPU_STACK_ALIGNMENT);
 
   Status = CallRing3 (
              Input,
-             UserDriver->UserStackTop
+             UserStackTop
              );
 
   --UserDriver->NumberOfCalls;
 
-  CoreFreePages (Ring3Pages, PagesNumber);
+  CoreFreePages (UserStackBase, EFI_SIZE_TO_PAGES (STACK_SIZE));
 
   return Status;
 }
@@ -763,7 +787,6 @@ CoreFileOpen (
   NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
   NewDriver->CoreWrapper     = NewFile;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
-  NewDriver->UserStackTop    = UserDriver->UserStackTop;
   NewDriver->NumberOfCalls   = 0;
 
   AllowSupervisorAccessToUserMemory ();
@@ -865,7 +888,6 @@ CoreSimpleFileSystemOpenVolume (
   NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
   NewDriver->CoreWrapper     = File;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
-  NewDriver->UserStackTop    = UserDriver->UserStackTop;
   NewDriver->NumberOfCalls   = 0;
 
   AllowSupervisorAccessToUserMemory ();
