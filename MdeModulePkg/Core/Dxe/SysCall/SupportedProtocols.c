@@ -8,6 +8,8 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
+#define MAX_CALL 1
+
 LIST_ENTRY gUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (gUserSpaceDriversHead);
 
 EFI_STATUS
@@ -32,6 +34,10 @@ GoToRing3 (
   UINTN                 Index;
   EFI_PHYSICAL_ADDRESS  Ring3Pages;
   UINT32                PagesNumber;
+
+  if (UserDriver->NumberOfCalls > MAX_CALL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN));
 
@@ -61,10 +67,14 @@ GoToRing3 (
   // TODO: Allocate new stacks (only for EFI_FILE_PROTOCOL instances?),
   // because UserDriver can be interrupted and interrupt handler may call the same UserDriver again.
   //
+  ++UserDriver->NumberOfCalls;
+
   Status = CallRing3 (
              Input,
              UserDriver->UserStackTop
              );
+
+  --UserDriver->NumberOfCalls;
 
   CoreFreePages (Ring3Pages, PagesNumber);
 
@@ -754,6 +764,7 @@ CoreFileOpen (
   NewDriver->CoreWrapper     = NewFile;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
   NewDriver->UserStackTop    = UserDriver->UserStackTop;
+  NewDriver->NumberOfCalls   = 0;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3NewHandle;
@@ -855,6 +866,7 @@ CoreSimpleFileSystemOpenVolume (
   NewDriver->CoreWrapper     = File;
   NewDriver->UserPageTable   = UserDriver->UserPageTable;
   NewDriver->UserStackTop    = UserDriver->UserStackTop;
+  NewDriver->NumberOfCalls   = 0;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3Root;

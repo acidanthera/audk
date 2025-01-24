@@ -548,6 +548,7 @@ CallBootService (
         NewDriver->UserSpaceDriver = UserArgList[Index + 1];
         NewDriver->UserPageTable   = UserDriver->UserPageTable;
         NewDriver->UserStackTop    = UserDriver->UserStackTop;
+        NewDriver->NumberOfCalls   = 0;
 
         InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
       }

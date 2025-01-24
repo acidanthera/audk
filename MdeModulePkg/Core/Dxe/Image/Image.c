@@ -1755,6 +1755,7 @@ CoreStartImage (
         UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
         UserDriver->UserPageTable   = Image->UserPageTable;
         UserDriver->UserStackTop    = Image->UserStackTop;
+        UserDriver->NumberOfCalls   = 0;
 
         InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
 
