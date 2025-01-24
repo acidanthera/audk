@@ -23,7 +23,6 @@
 ;
 ; CommonExceptionHandler()
 ;
-extern ASM_PFX(mErrorCodeFlag)            ; Error code flags for exceptions
 extern ASM_PFX(mDoFarReturnFlag)          ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
@@ -32,11 +31,17 @@ ALIGN   4096
 
 global ASM_PFX(CorePageTable)
 ASM_PFX(CorePageTable):
-  resq 1
+  resd 1
 
-global ASM_PFX(UserPageTable)
-ASM_PFX(UserPageTable):
-  resq 1
+;
+; Error code flag indicating whether or not an error code will be
+; pushed on the stack if an exception occurs.
+;
+; 1 means an error code will be pushed, otherwise 0
+;
+global ASM_PFX(mErrorCodeFlag)
+ASM_PFX(mErrorCodeFlag):
+  dd 0x20227d00
 
 ALIGN   4096
 Padding:
@@ -101,16 +106,6 @@ HookAfterStubHeaderEnd:
 global ASM_PFX(CommonInterruptEntry)
 ASM_PFX(CommonInterruptEntry):
     cli
-    ; Check whether User Space process was interrupted.
-    mov     eax, ds
-    and     eax, 3
-    jz      NoCr3Switch
-    mov     eax, cr3
-    mov     [ASM_PFX(UserPageTable)], eax
-    mov     eax, [ASM_PFX(CorePageTable)]
-    mov     cr3, eax
-
-NoCr3Switch:
     pop    eax
     ;
     ; All interrupt handlers are invoked through interrupt gates, so
@@ -219,14 +214,30 @@ ErrorCodeAndVectorOnStack:
     push    0            ; clear EXCEPTION_HANDLER_CONTEXT.OldIdtHandler
     push    0            ; clear EXCEPTION_HANDLER_CONTEXT.ExceptionDataFlag
 
+    ; Check whether User Space process was interrupted.
+    push    eax
+    mov     eax, [ebp + 4 * 4] ; CS
+    and     eax, 3
+    jz      NoCr3Switch
+    mov     eax, cr3
+    push    eax                ; UserPageTable
+    mov     eax, [ASM_PFX(CorePageTable)]
+    mov     cr3, eax
+    mov     eax, [esp + 4]     ; eax
+    sub     esp, 8
+    push    eax
+
+NoCr3Switch:
+    pop     eax
+
 ;; UINT32  Edi, Esi, Ebp, Esp, Ebx, Edx, Ecx, Eax;
     push    eax
     push    ecx
     push    edx
     push    ebx
     lea     ecx, [ebp + 6 * 4]
-    ; Check whether Ring0 process was interrupted.
-    mov     eax, ds
+    ; Check whether User Space process was interrupted.
+    mov     eax, [ebp + 4 * 4] ; CS
     and     eax, 3
     jz      sameCPL_0
     mov     ecx, [ecx]
@@ -238,8 +249,8 @@ sameCPL_0:
 
 ;; UINT32  Gs, Fs, Es, Ds, Cs, Ss;
     mov     eax, ss
-    ; Check whether Ring0 process was interrupted.
-    mov     ecx, ds
+    ; Check whether User Space process was interrupted.
+    mov     ecx, [ebp + 4 * 4] ; CS
     and     ecx, 3
     jz      sameCPL_1
     movzx   eax, word [ebp + 7 * 4]
@@ -412,8 +423,8 @@ sameCPL_1:
     pop     es
     pop     ds
     pop     dword [ebp + 4 * 4]
-    ; Check whether Ring0 process was interrupted.
-    mov     ecx, ds
+    ; Check whether User Space process was interrupted.
+    mov     ecx, [ebp + 4 * 4] ; CS
     and     ecx, 3
     jz      sameCPL_2
     pop     dword [ebp + 7 * 4]
@@ -432,12 +443,12 @@ continue:
     pop     ecx
     pop     eax
 
-    ; Check whether Ring3 process was interrupted.
-    push    ecx
-    mov     ecx, ds
-    and     ecx, 3
+    ; Check whether User Space process was interrupted.
+    push    eax
+    mov     eax, [ebp + 4 * 4] ; CS
+    and     eax, 3
+    pop     eax
     jnz     ReturnToRing3
-    pop     ecx
 
     pop     dword [ebp - 8]
     pop     dword [ebp - 4]
@@ -467,9 +478,10 @@ DoReturn:
 DoIret:
     iretd
 ReturnToRing3:
-    mov     ecx, [ASM_PFX(UserPageTable)]
-    mov     cr3, ecx
-    pop     ecx
+    add     esp, 8
+    pop     eax ; UserPageTable
+    mov     cr3, eax
+    pop     eax
     mov     esp, ebp
     pop     ebp
     add     esp, 8

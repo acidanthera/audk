@@ -9,14 +9,6 @@
 #include "CpuExceptionCommon.h"
 
 //
-// Error code flag indicating whether or not an error code will be
-// pushed on the stack if an exception occurs.
-//
-// 1 means an error code will be pushed, otherwise 0
-//
-CONST UINT32  mErrorCodeFlag = 0x20227d00;
-
-//
 // Define the maximum message length
 //
 #define MAX_DEBUG_MESSAGE_LENGTH  0x100
