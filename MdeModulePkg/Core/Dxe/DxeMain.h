@@ -239,6 +239,7 @@ typedef struct {
   VOID        *UserSpaceDriver;
   UINTN       UserPageTable;
   UINTN       UserStackTop;
+  UINT8       NumberOfCalls;
   LIST_ENTRY  Link;
 } USER_SPACE_DRIVER;
 
