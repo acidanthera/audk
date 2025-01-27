@@ -91,7 +91,7 @@
   UINT64  FAR;    0x320   // Fault Address Register
   UINT64  Type;   0x328   // Exception Type
   UINT64  TTBR0;  0x330   // User Page Table
-  UINT64  Padding;0x338   // Alignment requirement
+  UINT64  SP_EL0; 0x338   // User Stack Pointer
 */
 
 GCC_ASM_EXPORT(ExceptionHandlersEnd)
@@ -101,7 +101,7 @@ GCC_ASM_EXPORT(CommonCExceptionHandler)
 
 #define GP_CONTEXT_SIZE    (32 *  8)
 #define FP_CONTEXT_SIZE    (32 * 16)
-#define SYS_CONTEXT_SIZE   ( 8 *  8) // 7 SYS regs + Alignment requirement (ie: the stack must be aligned on 0x10)
+#define SYS_CONTEXT_SIZE   ( 8 *  8) // 8 SYS regs + Alignment requirement (ie: the stack must be aligned on 0x10)
 
 ASM_FUNC_ALIGN(ExceptionHandlerBase, 4096)
 
@@ -253,7 +253,8 @@ ASM_PFX(CommonExceptionEntry):
 1:mrs      x2, ttbr0_el1
   b        3f
 2:mrs      x2, ttbr0_el2
-3:stp      x2, xzr,  [x28, #0x30]
+3:mrs      x3, sp_el0
+  stp      x2, x3,   [x28, #0x30]
 
   // Push FP regs to Stack.
   stp      q0,  q1,  [x28, #-FP_CONTEXT_SIZE]!

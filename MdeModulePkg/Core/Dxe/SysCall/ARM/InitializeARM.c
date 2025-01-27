@@ -29,10 +29,10 @@ SysCallBootService (
   IN EFI_SYSTEM_CONTEXT  Context
   )
 {
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    Physical;
-  UINT8                   Type;
-  UINT8                   NumberOfArguments;
+  EFI_STATUS  Status;
+  UINT8       Type;
+  UINT8       NumberOfArguments;
+  UINTN       *UserArguments;
 
   ArmEnableInterrupts ();
 
@@ -47,16 +47,6 @@ SysCallBootService (
     ++NumberOfArguments;
   }
 
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES ((NumberOfArguments + 1) * sizeof (UINTN)),
-             &Physical
-             );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
   AllowSupervisorAccessToUserMemory ();
   if (Type == SysCallFreePages) {
     //
@@ -64,41 +54,34 @@ SysCallBootService (
     // [SP] == Memory
     // Memory is passed as 2 words on stack and aligned on 8 bytes.
     //
-    CopyMem ((VOID *)(UINTN)Physical, (VOID *)&(Context.SystemContextArm->R1), 2 * sizeof (UINTN));
+    UserArguments = (UINTN *)(Context.SystemContextArm->SP - 2 * sizeof (UINTN));
+
     CopyMem (
-      (VOID *)((UINTN)Physical + 2 * sizeof (UINTN)),
-      (VOID *)Context.SystemContextArm->SP,
+      (VOID *)UserArguments,
+      (VOID *)&(Context.SystemContextArm->R1),
       2 * sizeof (UINTN)
       );
   } else {
     //
-    // First 2 arguments are passed through R2-R3 and copied to SysCall Stack.
+    // First 2 arguments are passed through R2-R3 and copied to Core stack,
+    // all the others are on User stack.
     //
-    CopyMem ((VOID *)(UINTN)Physical, (VOID *)&(Context.SystemContextArm->R1), 3 * sizeof (UINTN));
+    UserArguments = (UINTN *)(Context.SystemContextArm->SP - 3 * sizeof (UINTN));
 
-    if (NumberOfArguments > 2) {
-      //
-      // All remaining arguments are on User Stack.
-      //
-      CopyMem (
-        (VOID *)((UINTN)Physical + 3 * sizeof (UINTN)),
-        (VOID *)Context.SystemContextArm->SP,
-        (NumberOfArguments - 2) * sizeof (UINTN)
-        );
-    }
+    CopyMem (
+      (VOID *)UserArguments,
+      (VOID *)&(Context.SystemContextArm->R1),
+      3 * sizeof (UINTN)
+      );
   }
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
              Type,
              NumberOfArguments,
-             (UINTN *)(UINTN)Physical,
+             UserArguments,
              Context.SystemContextArm->SP_EL1
              );
-  //
-  // TODO: Fix memory leak for ReturnToCore().
-  //
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES ((NumberOfArguments + 1) * sizeof (UINTN)));
 
   ArmDisableInterrupts ();
 
