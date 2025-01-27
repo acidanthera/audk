@@ -19,30 +19,6 @@ CallRing3 (
   IN UINTN            UserStackTop
   );
 
-STATIC
-UINTN
-EFIAPI
-AllocateStack (
-  IN  UINTN  Size,
-  OUT UINTN  *Base
-  )
-{
-  UINTN  TopOfStack;
-
-  ASSERT (Base != NULL);
-  ASSERT (IS_ALIGNED (Size, EFI_PAGE_SIZE));
-
-  *Base = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (Size));
-  ASSERT (*Base != 0);
-  //
-  // Compute the top of the allocated stack. Pre-allocate a UINTN for safety.
-  //
-  TopOfStack = *Base + Size - CPU_STACK_ALIGNMENT;
-  TopOfStack = ALIGN_VALUE (TopOfStack, CPU_STACK_ALIGNMENT);
-
-  return TopOfStack;
-}
-
 EFI_STATUS
 EFIAPI
 GoToRing3 (
@@ -63,8 +39,12 @@ GoToRing3 (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  UserStackTop  = AllocateStack (STACK_SIZE, &UserStackBase);
-  UserStackTop -= ALIGN_VALUE (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN), CPU_STACK_ALIGNMENT);
+  UserStackBase = (UINTN)AllocatePages (EFI_SIZE_TO_PAGES (STACK_SIZE));
+  if (UserStackBase == 0) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  UserStackTop = UserStackBase + STACK_SIZE - (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN));
 
   Input = (RING3_CALL_DATA *)UserStackTop;
 
@@ -91,7 +71,7 @@ GoToRing3 (
   //
   // Reserve space on stack for 4 arguments (X64 NOOPT prerequisite).
   //
-  UserStackTop -= ALIGN_VALUE (8*4, CPU_STACK_ALIGNMENT);
+  UserStackTop = ALIGN_VALUE (UserStackTop - 8*4 - CPU_STACK_ALIGNMENT, CPU_STACK_ALIGNMENT);
 
   Status = CallRing3 (
              Input,
@@ -784,10 +764,18 @@ CoreFileOpen (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
-  NewDriver->CoreWrapper     = NewFile;
-  NewDriver->UserPageTable   = UserDriver->UserPageTable;
-  NewDriver->NumberOfCalls   = 0;
+  NewDriver = AllocatePool (sizeof (USER_SPACE_DRIVER));
+  if (NewDriver == NULL) {
+    *NewHandle = NULL;
+    FreePool (NewFile);
+    CoreFreePages (Ring3Pages, PagesNumber);
+    gUserPageTable = OldPageTable;
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  NewDriver->CoreWrapper   = NewFile;
+  NewDriver->UserPageTable = UserDriver->UserPageTable;
+  NewDriver->NumberOfCalls = 0;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3NewHandle;
@@ -885,10 +873,18 @@ CoreSimpleFileSystemOpenVolume (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
-  NewDriver->CoreWrapper     = File;
-  NewDriver->UserPageTable   = UserDriver->UserPageTable;
-  NewDriver->NumberOfCalls   = 0;
+  NewDriver = AllocatePool (sizeof (USER_SPACE_DRIVER));
+  if (NewDriver == NULL) {
+    *Root = NULL;
+    FreePool (File);
+    CoreFreePages (Physical, 1);
+    gUserPageTable = OldPageTable;
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  NewDriver->CoreWrapper   = File;
+  NewDriver->UserPageTable = UserDriver->UserPageTable;
+  NewDriver->NumberOfCalls = 0;
 
   AllowSupervisorAccessToUserMemory ();
   NewDriver->UserSpaceDriver = *Ring3Root;

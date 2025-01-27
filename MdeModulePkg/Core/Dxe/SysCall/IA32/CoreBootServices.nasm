@@ -53,7 +53,7 @@ ASM_PFX(ForbidSupervisorAccessToUserMemory):
 ; CallInstallMultipleProtocolInterfaces (
 ;   IN EFI_HANDLE  *Handle,
 ;   IN VOID        **ArgList,
-;   IN UINT32      ArgListSize,
+;   IN UINTN       ArgListSize,
 ;   IN VOID        *Function
 ;   );
 ;------------------------------------------------------------------------------

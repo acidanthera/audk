@@ -1706,21 +1706,25 @@ CoreStartImage (
 
         gUserPageTable = Image->UserPageTable;
 
-        UserDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
-        UserDriver->CoreWrapper     = NULL;
-        UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
-        UserDriver->UserPageTable   = Image->UserPageTable;
-        UserDriver->NumberOfCalls   = 0;
+        UserDriver = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        if (UserDriver != NULL) {
+          UserDriver->CoreWrapper     = NULL;
+          UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
+          UserDriver->UserPageTable   = Image->UserPageTable;
+          UserDriver->NumberOfCalls   = 0;
 
-        InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
+          InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
 
-        Image->Status = GoToRing3 (
-                          2,
-                          (VOID *)Image->EntryPoint,
-                          UserDriver,
-                          ImageHandle,
-                          gRing3Data
-                          );
+          Image->Status = GoToRing3 (
+                            2,
+                            (VOID *)Image->EntryPoint,
+                            UserDriver,
+                            ImageHandle,
+                            gRing3Data
+                            );
+        } else {
+          Image->Status = EFI_OUT_OF_RESOURCES;
+        }
       }
     } else {
       Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
