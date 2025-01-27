@@ -1701,6 +1701,7 @@ CoreStartImage (
       if (gRing3Data == NULL) {
         Image->Status = InitializeRing3 (ImageHandle, Image);
         if (EFI_ERROR (Image->Status)) {
+          DEBUG ((DEBUG_ERROR, "Core: Failed to initialize User address space - %r.\n", Image->Status));
           CpuDeadLoop ();
         }
       } else {

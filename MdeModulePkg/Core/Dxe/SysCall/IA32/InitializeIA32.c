@@ -12,7 +12,7 @@
 
 extern EXCEPTION_ADDRESSES  *mExceptionAddresses;
 
-VOID
+EFI_STATUS
 EFIAPI
 MakeUserPageTableTemplate (
   OUT UINTN  *UserPageTableTemplate,
@@ -45,7 +45,9 @@ MakeUserPageTableTemplate (
 
   TotalPagesNum = NumberOfPdpEntriesNeeded + 1;
   PageAddress   = (UINTN)AllocatePages (TotalPagesNum);
-  ASSERT (PageAddress != 0);
+  if (PageAddress == 0) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   PageMap      = (VOID *)PageAddress;
   PageAddress += SIZE_4KB;
@@ -87,6 +89,8 @@ MakeUserPageTableTemplate (
 
   *UserPageTableTemplate     = (UINTN)PageMap;
   *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
+
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS

@@ -66,7 +66,7 @@ SysCallBootService (
   return Status;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 MakeUserPageTableTemplate (
   OUT UINTN  *UserPageTableTemplate,
@@ -77,9 +77,8 @@ MakeUserPageTableTemplate (
   VOID                          *MemorySizeHob;
 
   MemorySizeHob = GetFirstGuidHob (&gArmVirtSystemMemorySizeGuid);
-  ASSERT (MemorySizeHob != NULL);
   if (MemorySizeHob == NULL) {
-    return;
+    return EFI_NOT_FOUND;
   }
 
   Descriptor.PhysicalBase = PcdGet64 (PcdSystemMemoryBase);
@@ -87,11 +86,11 @@ MakeUserPageTableTemplate (
   Descriptor.Length       = *(UINT64 *)GET_GUID_HOB_DATA (MemorySizeHob);
   Descriptor.Attributes   = ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK;
 
-  ArmMakeUserPageTableTemplate (
-    &Descriptor,
-    UserPageTableTemplate,
-    UserPageTableTemplateSize
-    );
+  return ArmMakeUserPageTableTemplate (
+           &Descriptor,
+           UserPageTableTemplate,
+           UserPageTableTemplateSize
+           );
 }
 
 EFI_STATUS
@@ -118,7 +117,6 @@ InitializePlatform (
              &Physical
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3 ConfigurationTable.\n"));
     return Status;
   }
 
