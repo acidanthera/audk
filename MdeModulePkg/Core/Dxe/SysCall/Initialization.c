@@ -19,7 +19,7 @@ STATIC UEFI_IMAGE_RECORD     *mDxeRing3;
 STATIC EFI_PHYSICAL_ADDRESS  mCoreStackBase;
 STATIC UINT64                mCoreStackSize;
 
-VOID
+EFI_STATUS
 EFIAPI
 MakeUserPageTableTemplate (
   OUT UINTN  *UserPageTableTemplate,
@@ -60,7 +60,6 @@ InitializeRing3 (
              &Physical
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Data.\n"));
     return Status;
   }
 
@@ -98,7 +97,6 @@ InitializeRing3 (
              &Physical
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3Interfaces.\n"));
     CoreFreePages (
       (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
       EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
@@ -150,6 +148,7 @@ InitializeUserPageTable (
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
 {
+  EFI_STATUS                 Status;
   UINTN                      UserPageTable;
   UINTN                      UserPageTableSize;
   UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
@@ -157,10 +156,11 @@ InitializeUserPageTable (
   UINT32                     Index;
   UEFI_IMAGE_RECORD          *UserImageRecord;
 
-  //
-  // TODO: Remove ASSERTs, add proper checks and return status.
-  //
-  MakeUserPageTableTemplate (&UserPageTable, &UserPageTableSize);
+  Status = MakeUserPageTableTemplate (&UserPageTable, &UserPageTableSize);
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to initialize User page table - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
   //
   // Map gRing3Data, gRing3Interfaces, DxeRing3

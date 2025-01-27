@@ -13,7 +13,7 @@
 
 extern EXCEPTION_ADDRESSES  *mExceptionAddresses;
 
-VOID
+EFI_STATUS
 EFIAPI
 MakeUserPageTableTemplate (
   OUT UINTN  *UserPageTableTemplate,
@@ -159,8 +159,7 @@ MakeUserPageTableTemplate (
 
   BigPageAddress = (UINTN)AllocatePages (TotalPagesNum);
   if (BigPageAddress == 0) {
-    DEBUG ((DEBUG_ERROR, "Core: Could not allocate buffer for User page table.\n"));
-    CpuDeadLoop ();
+    return EFI_OUT_OF_RESOURCES;
   }
 
   //
@@ -284,6 +283,8 @@ MakeUserPageTableTemplate (
 
   *UserPageTableTemplate     = (UINTN)PageMap;
   *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
+
+  return EFI_SUCCESS;
 }
 
 EFI_STATUS
