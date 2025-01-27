@@ -1712,6 +1712,9 @@ CoreStartImage (
     if (PcdGetBool (PcdEnableUserSpace) && (Image->IsUserImage)) {
       if (gRing3Data == NULL) {
         Image->Status = InitializeRing3 (ImageHandle, Image);
+        if (EFI_ERROR (Image->Status)) {
+          CpuDeadLoop ();
+        }
       } else {
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
