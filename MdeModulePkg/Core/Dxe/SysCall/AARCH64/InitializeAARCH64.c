@@ -30,33 +30,31 @@ SysCallBootService (
   IN EFI_SYSTEM_CONTEXT  Context
   )
 {
-  EFI_STATUS              Status;
-  EFI_PHYSICAL_ADDRESS    Physical;
+  EFI_STATUS  Status;
+  UINTN       *UserArguments;
 
   ArmEnableInterrupts ();
 
-  Status = CoreAllocatePages (
-             AllocateAnyPages,
-             EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (7 * sizeof (UINTN)),
-             &Physical
-             );
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
+  UserArguments = (UINTN *)(Context.SystemContextAArch64->SP_EL0 - 7 * sizeof (UINTN));
 
   AllowSupervisorAccessToUserMemory ();
-  CopyMem ((VOID *)Physical, (VOID *)&(Context.SystemContextAArch64->X1), 7 * sizeof (UINTN));
+  //
+  // First 6 arguments are passed through X2-X7 and copied to Core stack,
+  // all the others are on User stack.
+  //
+  CopyMem (
+    (VOID *)UserArguments,
+    (VOID *)&(Context.SystemContextAArch64->X1),
+    7 * sizeof (UINTN)
+    );
   ForbidSupervisorAccessToUserMemory ();
 
   Status = CallBootService (
              Context.SystemContextAArch64->X0,
              Context.SystemContextAArch64->X1,
-             (UINTN *)Physical,
+             UserArguments,
              Context.SystemContextAArch64->SP
              );
-
-  CoreFreePages (Physical, EFI_SIZE_TO_PAGES (7 * sizeof (UINTN)));
 
   ArmDisableInterrupts ();
 

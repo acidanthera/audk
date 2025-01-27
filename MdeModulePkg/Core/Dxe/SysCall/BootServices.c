@@ -396,7 +396,15 @@ CallBootService (
 
   switch (Type) {
     case SysCallReturnToCore:
-      ReturnToCore (Arguments[1], ReturnSP);
+      //
+      // Argument 1: EFI_STATUS  Status
+      // Argument 2: UINTN       ReturnSP
+      //
+      Status = (EFI_STATUS)Arguments[1];
+
+      FreePool (Arguments);
+
+      ReturnToCore (Status, ReturnSP);
       break;
     case SysCallLocateProtocol:
       //
@@ -1510,5 +1518,6 @@ CallBootService (
       break;
   }
 
+  FreePool (Arguments);
   return EFI_UNSUPPORTED;
 }
