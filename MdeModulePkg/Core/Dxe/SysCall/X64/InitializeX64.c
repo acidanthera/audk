@@ -11,6 +11,8 @@
 #include <Register/Intel/Cpuid.h>
 #include <IndustryStandard/PageTable.h>
 
+extern EXCEPTION_ADDRESSES  *mExceptionAddresses;
+
 VOID
 EFIAPI
 MakeUserPageTableTemplate (
@@ -284,11 +286,10 @@ MakeUserPageTableTemplate (
   *UserPageTableTemplateSize = EFI_PAGES_TO_SIZE (TotalPagesNum);
 }
 
-VOID
+EFI_STATUS
 EFIAPI
-InitializeMsr (
-  IN OUT EFI_CONFIGURATION_TABLE  *Table,
-  IN     UINTN                    NumberOfEntries
+InitializePlatform (
+  IN OUT EFI_SYSTEM_TABLE  *System
   )
 {
   UINT64                  Msr;
@@ -342,7 +343,7 @@ InitializeMsr (
     AsmWriteMsr64 (MSR_IA32_EFER, MsrEfer.Uint64);
   } else {
     DEBUG ((DEBUG_ERROR, "Core: SYSCALL and SYSRET are not supported.\n"));
-    CpuDeadLoop ();
+    return EFI_UNSUPPORTED;
   }
 
   //
@@ -360,4 +361,52 @@ InitializeMsr (
   AsmWriteMsr64 (MSR_IA32_FMASK, Msr);
 
   gCorePageTable = AsmReadCr3 ();
+
+  return EFI_SUCCESS;
+}
+
+VOID
+EFIAPI
+MapPlatform (
+  IN OUT UINTN  UserPageTable
+  )
+{
+  IA32_DESCRIPTOR  IdtDescriptor;
+
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          (UINTN)&gCorePageTable,
+          SIZE_4KB,
+          EFI_MEMORY_RO | EFI_MEMORY_XP
+          );
+
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          mExceptionAddresses->ExceptionStackBase,
+          mExceptionAddresses->ExceptionStackSize,
+          EFI_MEMORY_XP
+          );
+
+  AsmReadIdtr (&IdtDescriptor);
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          IdtDescriptor.Base,
+          SIZE_4KB,
+          EFI_MEMORY_RO | EFI_MEMORY_XP
+          );
+
+  //
+  // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
+  //
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          FixedPcdGet32 (PcdOvmfWorkAreaBase),
+          FixedPcdGet32 (PcdOvmfWorkAreaSize),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
+
 }

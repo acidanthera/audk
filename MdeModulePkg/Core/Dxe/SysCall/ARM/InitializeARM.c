@@ -5,6 +5,7 @@
 
 **/
 
+#include <Guid/EarlyPL011BaseAddress.h>
 #include <Library/ArmLib.h>
 #include <Library/ArmMmuLib.h>
 #include <Library/DefaultExceptionHandlerLib.h>
@@ -12,6 +13,10 @@
 #include "DxeMain.h"
 
 UINTN  gUserPageTable;
+
+STATIC UINTN  mConfigurationTable;
+STATIC UINTN  mConfigurationTableSize;
+STATIC UINTN  mUartBaseAddress;
 
 EFI_STATUS
 EFIAPI
@@ -116,13 +121,53 @@ MakeUserPageTableTemplate (
     );
 }
 
-VOID
+EFI_STATUS
 EFIAPI
-InitializeMsr (
-  IN OUT EFI_CONFIGURATION_TABLE  *Table,
-  IN     UINTN                    NumberOfEntries
+InitializePlatform (
+  IN OUT EFI_SYSTEM_TABLE  *System
   )
 {
+  EFI_STATUS                Status;
+  EFI_PHYSICAL_ADDRESS      Physical;
+  UINTN                     Index;
+  EFI_CONFIGURATION_TABLE   *Conf;
+  EARLY_PL011_BASE_ADDRESS  *UartBase;
+  CONST VOID                *Hob;
+
+  mConfigurationTableSize = (System->NumberOfTableEntries + 1) * sizeof (EFI_CONFIGURATION_TABLE);
+
+  Status = CoreAllocatePages (
+             AllocateAnyPages,
+             EfiRing3MemoryType,
+             EFI_SIZE_TO_PAGES (mConfigurationTableSize),
+             &Physical
+             );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to allocate memory for Ring3 ConfigurationTable.\n"));
+    return Status;
+  }
+
+  Conf = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+
+  for (Index = 0; Index < System->NumberOfTableEntries; ++Index) {
+    CopyGuid (&Conf->VendorGuid, &System->ConfigurationTable[Index].VendorGuid);
+
+    Conf->VendorTable = System->ConfigurationTable[Index].VendorTable;
+
+    ++Conf;
+  }
+
+  Hob              = GetFirstGuidHob (&gEarlyPL011BaseAddressGuid);
+  UartBase         = GET_GUID_HOB_DATA (Hob);
+  mUartBaseAddress = (UINTN)UartBase->DebugAddress;
+
+  CopyGuid (&(Conf->VendorGuid), &gEarlyPL011BaseAddressGuid);
+  Conf->VendorTable = (VOID *)mUartBaseAddress;
+  ++System->NumberOfTableEntries;
+
+  System->ConfigurationTable = (EFI_CONFIGURATION_TABLE *)(UINTN)Physical;
+  mConfigurationTable        = (UINTN)Physical;
+
   if (ArmHasPan ()) {
     //
     // Enable Privileged Access Never feature.
@@ -132,6 +177,33 @@ InitializeMsr (
 
   InitializeSysCallHandler (SysCallBootService);
   SetExceptionAddresses (NULL, 0);
+
+  return EFI_SUCCESS;
+}
+
+VOID
+EFIAPI
+MapPlatform (
+  IN OUT UINTN  UserPageTable
+  )
+{
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          mConfigurationTable,
+          ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
+  //
+  // Necessary fix for DEBUG printings.
+  //
+  gCpu->SetUserMemoryAttributes (
+          gCpu,
+          UserPageTable,
+          mUartBaseAddress,
+          SIZE_4KB,
+          EFI_MEMORY_XP | EFI_MEMORY_USER
+          );
 }
 
 VOID

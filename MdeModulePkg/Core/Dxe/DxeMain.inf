@@ -150,10 +150,10 @@
   gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_CONSUMES   ## SystemTable
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
   gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
-  gEarlyPL011BaseAddressGuid                    ## CONSUMES
 
 [Guids.ARM, Guids.AARCH64]
-  gArmVirtSystemMemorySizeGuid                  ## CONSUMES
+  gArmVirtSystemMemorySizeGuid                  ## SOMETIMES_CONSUMES   ## SysCall
+  gEarlyPL011BaseAddressGuid                    ## SOMETIMES_CONSUMES   ## SysCall
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
@@ -227,7 +227,6 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace                         ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask                        ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdSerialUseMmio                           ## CONSUMES
 
 [Pcd.IA32, Pcd.X64]
   gEfiMdeModulePkgTokenSpaceGuid.PcdUse1GPageTable                          ## SOMETIMES_CONSUMES
