@@ -61,7 +61,7 @@ EFIAPI
 CallInstallMultipleProtocolInterfaces (
   IN EFI_HANDLE  *Handle,
   IN VOID        **ArgList,
-  IN UINT32      ArgListSize,
+  IN UINTN       ArgListSize,
   IN VOID        *Function
   );
 
@@ -300,30 +300,7 @@ CopyUserArguments (
                 );
   ForbidSupervisorAccessToUserMemory ();
 
-  ASSERT (Arguments != NULL);
-
   return Arguments;
-}
-
-STATIC
-USER_SPACE_DRIVER *
-EFIAPI
-FindUserInfo (
-  VOID
-  )
-{
-  LIST_ENTRY         *Link;
-  USER_SPACE_DRIVER  *UserDriver;
-
-  for (Link = gUserSpaceDriversHead.ForwardLink; Link != &gUserSpaceDriversHead; Link = Link->ForwardLink) {
-    UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
-
-    if (UserDriver->UserPageTable == gUserPageTable) {
-      return UserDriver;
-    }
-  }
-
-  return NULL;
 }
 
 STATIC
@@ -366,13 +343,12 @@ CallBootService (
   UINTN                Argument4;
   UINTN                Argument5;
   UINTN                Argument6;
-  UINT32               Index;
+  UINTN                Index;
   VOID                 **UserArgList;
   VOID                 **CoreArgList;
   EFI_HANDLE           CoreHandle;
   UINT32               PagesNumber;
   EFI_PHYSICAL_ADDRESS Ring3Pages;
-  USER_SPACE_DRIVER    *UserDriver;
   USER_SPACE_DRIVER    *NewDriver;
   UINTN                *Arguments;
   EFI_PHYSICAL_ADDRESS PhysAddr;
@@ -391,6 +367,10 @@ CallBootService (
   Argument6    = 0;
   Interface    = NULL;
   Arguments    = CopyUserArguments (NumberOfArguments, UserArguments);
+
+  if (Arguments == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   DEBUG ((DEBUG_VERBOSE, "Type: %a\n", SysCallNames[Type]));
 
@@ -425,8 +405,7 @@ CallBootService (
       Status = FindGuid ((EFI_GUID *)Arguments[1], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        FreePool (Arguments);
-        return Status;
+        break;
       }
 
       Status = gBS->LocateProtocol (
@@ -444,9 +423,7 @@ CallBootService (
       }
       ForbidSupervisorAccessToUserMemory ();
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallOpenProtocol:
       //
       // Argument 1: EFI_HANDLE  CoreUserHandle
@@ -471,8 +448,7 @@ CallBootService (
       Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        FreePool (Arguments);
-        return Status;
+        break;
       }
 
       Status = gBS->OpenProtocol (
@@ -494,9 +470,7 @@ CallBootService (
         ForbidSupervisorAccessToUserMemory ();
       }
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallInstallMultipleProtocolInterfaces:
       //
       // Argument 1: EFI_HANDLE  *Handle
@@ -513,6 +487,10 @@ CallBootService (
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       CoreArgList = AllocatePool (Arguments[2] * sizeof (VOID *));
+      if (CoreArgList == NULL) {
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
+      }
 
       AllowSupervisorAccessToUserMemory ();
       CoreHandle  = *(EFI_HANDLE *)Arguments[1];
@@ -526,17 +504,7 @@ CallBootService (
 
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
         if (EFI_ERROR (Status)) {
-          ForbidSupervisorAccessToUserMemory ();
-
-          while (Index > 0) {
-            FreeUserSpaceDriver (CoreArgList[Index - 1]);
-            FreePool (CoreArgList[Index - 1]);
-            Index -= 2;
-          }
-
-          FreePool (CoreArgList);
-          FreePool (Arguments);
-          return Status;
+          goto Exit;
         }
 
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index + 1], &Attributes);
@@ -545,16 +513,20 @@ CallBootService (
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
+        if (CoreArgList[Index + 1] == NULL) {
+          Status = EFI_OUT_OF_RESOURCES;
+          goto Exit;
+        }
 
-        UserDriver = FindUserInfo ();
-        ASSERT (UserDriver != NULL);
-        //
-        // TODO: Check everywhere that Allocated != NULL
-        //
-        NewDriver                  = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        NewDriver = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        if (NewDriver == NULL) {
+          Status = EFI_OUT_OF_RESOURCES;
+          goto Exit;
+        }
+
         NewDriver->CoreWrapper     = CoreArgList[Index + 1];
         NewDriver->UserSpaceDriver = UserArgList[Index + 1];
-        NewDriver->UserPageTable   = UserDriver->UserPageTable;
+        NewDriver->UserPageTable   = gUserPageTable;
         NewDriver->NumberOfCalls   = 0;
 
         InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
@@ -591,20 +563,35 @@ CallBootService (
                                                        (VOID *)CoreUnicodeCollation->SupportedLanguages
                                                        );
           ForbidSupervisorAccessToUserMemory ();
+          if (CoreUnicodeCollation->SupportedLanguages == NULL) {
+            Status = EFI_OUT_OF_RESOURCES;
+            Index  = Arguments[2] - 1;
+            goto Exit;
+          }
         }
       }
 
       Status = CallInstallMultipleProtocolInterfaces (
                  &CoreHandle,
                  CoreArgList,
-                 Index + 1,
+                 Arguments[2],
                  (VOID *)gBS->InstallMultipleProtocolInterfaces
                  );
 
       FreePool (CoreArgList);
-      FreePool (Arguments);
-      return Status;
+      break;
 
+    Exit:
+      ForbidSupervisorAccessToUserMemory ();
+
+      while (Index > 0) {
+        FreeUserSpaceDriver (CoreArgList[Index - 1]);
+        FreePool (CoreArgList[Index - 1]);
+        Index -= 2;
+      }
+
+      FreePool (CoreArgList);
+      break;
     case SysCallCloseProtocol:
       //
       // Argument 1: EFI_HANDLE  CoreUserHandle
@@ -621,8 +608,7 @@ CallBootService (
       Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        FreePool (Arguments);
-        return Status;
+        break;
       }
 
       Status = gBS->CloseProtocol (
@@ -632,9 +618,7 @@ CallBootService (
                       (EFI_HANDLE)Arguments[4]
                       );
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallHandleProtocol:
       //
       // Argument 1: EFI_HANDLE  CoreUserHandle
@@ -654,8 +638,7 @@ CallBootService (
       Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       ForbidSupervisorAccessToUserMemory ();
       if (EFI_ERROR (Status)) {
-        FreePool (Arguments);
-        return Status;
+        break;
       }
 
       Status = gBS->HandleProtocol (
@@ -673,9 +656,7 @@ CallBootService (
       }
       ForbidSupervisorAccessToUserMemory ();
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallAllocatePages:
       //
       // Argument 1: EFI_ALLOCATE_TYPE     Type
@@ -699,9 +680,7 @@ CallBootService (
       *(EFI_PHYSICAL_ADDRESS *)Arguments[4] = (EFI_PHYSICAL_ADDRESS)Argument4;
       ForbidSupervisorAccessToUserMemory ();
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallFreePages:
       //
       // Argument 1: UINTN                 NumberOfPages
@@ -716,27 +695,22 @@ CallBootService (
 
       Status = gBS->FreePages (PhysAddr, Arguments[1]);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallRaiseTpl:
       //
       // Argument 1: EFI_TPL  NewTpl
       //
       Status = (EFI_STATUS)gBS->RaiseTPL ((EFI_TPL)Arguments[1]);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallRestoreTpl:
       //
       // Argument 1: EFI_TPL  NewTpl
       //
       gBS->RestoreTPL ((EFI_TPL)Arguments[1]);
 
-      FreePool (Arguments);
-      return EFI_SUCCESS;
-
+      Status = EFI_SUCCESS;
+      break;
     case SysCallLocateHandleBuffer:
       //
       // Argument 1: EFI_LOCATE_SEARCH_TYPE  SearchType
@@ -755,8 +729,7 @@ CallBootService (
         Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
         ForbidSupervisorAccessToUserMemory ();
         if (EFI_ERROR (Status)) {
-          FreePool (Arguments);
-          return Status;
+          break;
         }
       }
 
@@ -794,8 +767,7 @@ CallBootService (
                    &Ring3Pages
                    );
         if (EFI_ERROR (Status)) {
-          FreePool (Arguments);
-          return Status;
+          break;
         }
 
         AllowSupervisorAccessToUserMemory ();
@@ -807,9 +779,8 @@ CallBootService (
         ForbidSupervisorAccessToUserMemory ();
       }
 
-      FreePool (Arguments);
-      return StatusBS;
-
+      Status = StatusBS;
+      break;
     case SysCallCalculateCrc32:
       //
       // Argument 1: VOID    *Data
@@ -827,8 +798,8 @@ CallBootService (
 
       Argument4 = (UINTN)AllocatePool (Arguments[2]);
       if ((VOID *)Argument4 == NULL) {
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       AllowSupervisorAccessToUserMemory ();
@@ -845,9 +816,7 @@ CallBootService (
       *(UINT32 *)Arguments[3] = (UINT32)Argument5;
       ForbidSupervisorAccessToUserMemory ();
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallGetVariable:
       //
       // Argument 1: CHAR16    *VariableName
@@ -876,16 +845,15 @@ CallBootService (
       Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[1]), (CHAR16 *)Arguments[1]);
       if ((VOID *)Argument6 == NULL) {
         ForbidSupervisorAccessToUserMemory ();
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       Status = FindGuid ((EFI_GUID *)Arguments[2], &CoreProtocol, &MemoryCoreSize);
       if (EFI_ERROR (Status)) {
         ForbidSupervisorAccessToUserMemory ();
         FreePool ((VOID *)Argument6);
-        FreePool (Arguments);
-        return Status;
+        break;
       }
 
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
@@ -905,8 +873,8 @@ CallBootService (
         if ((VOID *)Argument5 == NULL) {
           ForbidSupervisorAccessToUserMemory ();
           FreePool ((VOID *)Argument6);
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
       ForbidSupervisorAccessToUserMemory ();
@@ -937,9 +905,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallBlockIoReset:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
@@ -948,8 +914,8 @@ CallBootService (
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Status = BlockIo->Reset (
@@ -957,9 +923,7 @@ CallBootService (
                           (BOOLEAN)Arguments[2]
                           );
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallBlockIoRead:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
@@ -973,14 +937,14 @@ CallBootService (
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       Status = BlockIo->ReadBlocks (
@@ -1002,9 +966,7 @@ CallBootService (
 
       FreePool ((VOID *)Argument5);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallBlockIoWrite:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL *This
@@ -1018,14 +980,14 @@ CallBootService (
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
@@ -1047,9 +1009,7 @@ CallBootService (
 
       FreePool ((VOID *)Argument5);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallBlockIoFlush:
       //
       // Argument 1: EFI_BLOCK_IO_PROTOCOL  *This
@@ -1057,15 +1017,13 @@ CallBootService (
       BlockIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (BlockIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Status = BlockIo->FlushBlocks (BlockIo);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallDiskIoRead:
       //
       // Argument 1: EFI_DISK_IO_PROTOCOL  *This
@@ -1079,14 +1037,14 @@ CallBootService (
       DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (DiskIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       Status = DiskIo->ReadDisk (
@@ -1108,9 +1066,7 @@ CallBootService (
 
       FreePool ((VOID *)Argument5);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallDiskIoWrite:
       //
       // Argument 1: EFI_DISK_IO_PROTOCOL  *This
@@ -1124,14 +1080,14 @@ CallBootService (
       DiskIo = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (DiskIo == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       Argument5 = (UINTN)AllocatePool (Arguments[3]);
       if ((VOID *)Argument5 == NULL) {
-        FreePool (Arguments);
-        return EFI_OUT_OF_RESOURCES;
+        Status = EFI_OUT_OF_RESOURCES;
+        break;
       }
 
       gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
@@ -1153,9 +1109,7 @@ CallBootService (
 
       FreePool ((VOID *)Argument5);
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallUnicodeStriColl:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1165,8 +1119,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
@@ -1180,8 +1134,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1200,8 +1154,8 @@ CallBootService (
             FreePool ((VOID *)Argument4);
           }
 
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1219,9 +1173,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallUnicodeMetaiMatch:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1231,8 +1183,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
@@ -1246,8 +1198,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1266,8 +1218,8 @@ CallBootService (
             FreePool ((VOID *)Argument4);
           }
 
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1285,9 +1237,7 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     case SysCallUnicodeStrLwr:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1296,8 +1246,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
@@ -1311,8 +1261,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1329,9 +1279,8 @@ CallBootService (
         FreePool ((VOID *)Argument4);
       }
 
-      FreePool (Arguments);
-      return EFI_SUCCESS;
-
+      Status = EFI_SUCCESS;
+      break;
     case SysCallUnicodeStrUpr:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1340,8 +1289,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
@@ -1355,8 +1304,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1373,9 +1322,8 @@ CallBootService (
         FreePool ((VOID *)Argument4);
       }
 
-      FreePool (Arguments);
-      return EFI_SUCCESS;
-
+      Status = EFI_SUCCESS;
+      break;
     case SysCallUnicodeFatToStr:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1386,8 +1334,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR8 *)Arguments[3] != NULL) {
@@ -1400,8 +1348,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (Arguments[2], (CHAR8 *)Arguments[3]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1417,8 +1365,8 @@ CallBootService (
             FreePool ((VOID *)Argument4);
           }
 
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1441,9 +1389,8 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      FreePool (Arguments);
-      return EFI_SUCCESS;
-
+      Status = EFI_SUCCESS;
+      break;
     case SysCallUnicodeStrToFat:
       //
       // Argument 1: EFI_UNICODE_COLLATION_PROTOCOL  *This
@@ -1454,8 +1401,8 @@ CallBootService (
       Unicode = FindInterface (FALSE, (VOID *)Arguments[1]);
 
       if (Unicode == NULL) {
-        FreePool (Arguments);
-        return EFI_NOT_FOUND;
+        Status = EFI_NOT_FOUND;
+        break;
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
@@ -1469,8 +1416,8 @@ CallBootService (
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
         ForbidSupervisorAccessToUserMemory ();
         if ((VOID *)Argument4 == NULL) {
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1486,8 +1433,8 @@ CallBootService (
             FreePool ((VOID *)Argument4);
           }
 
-          FreePool (Arguments);
-          return EFI_OUT_OF_RESOURCES;
+          Status = EFI_OUT_OF_RESOURCES;
+          break;
         }
       }
 
@@ -1510,14 +1457,13 @@ CallBootService (
         FreePool ((VOID *)Argument5);
       }
 
-      FreePool (Arguments);
-      return Status;
-
+      break;
     default:
       DEBUG ((DEBUG_ERROR, "Ring0: Unknown syscall type.\n"));
+      Status = EFI_UNSUPPORTED;
       break;
   }
 
   FreePool (Arguments);
-  return EFI_UNSUPPORTED;
+  return Status;
 }
