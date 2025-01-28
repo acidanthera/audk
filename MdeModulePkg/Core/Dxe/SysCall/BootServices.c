@@ -317,12 +317,11 @@ FreeUserSpaceDriver (
     UserDriver = BASE_CR (Link, USER_SPACE_DRIVER, Link);
 
     if (UserDriver->CoreWrapper == CoreWrapper) {
-      break;
+      RemoveEntryList (&UserDriver->Link);
+      FreePool (UserDriver);
+      return;
     }
   }
-
-  RemoveEntryList (&UserDriver->Link);
-  FreePool (UserDriver);
 }
 
 EFI_STATUS
@@ -1456,6 +1455,13 @@ CallBootService (
 
         FreePool ((VOID *)Argument5);
       }
+
+      break;
+    case SysCallGetUserPageTable:
+      //
+      // No Arguments
+      //
+      Status = (EFI_STATUS)gUserPageTable;
 
       break;
     default:

@@ -18,6 +18,34 @@
 
 BOOLEAN  mOnGuarding = FALSE;
 
+STATIC UINTN  mMemoryTypes[EfiMaxMemoryType];
+STATIC UINTN  mNumberOfUsers = 0;
+
+STATIC
+UINTN
+EFIAPI
+GetMemoryType (
+  IN UINTN  UserPageTable
+  )
+{
+  UINTN  Index;
+
+  for (Index = 0; Index < mNumberOfUsers; ++Index) {
+    if (mMemoryTypes[Index] == UserPageTable) {
+      break;
+    }
+  }
+
+  if (Index == mNumberOfUsers) {
+    ++mNumberOfUsers;
+    mMemoryTypes[Index] = UserPageTable;
+  }
+
+  ASSERT (mNumberOfUsers <= EfiMaxMemoryType);
+
+  return Index;
+}
+
 STATIC
 EFI_STATUS
 EFIAPI
@@ -177,6 +205,32 @@ Ring3GetMemoryMap (
   DEBUG ((DEBUG_ERROR, "Ring3: GetMemoryMap is not supported\n"));
 
   return EFI_UNSUPPORTED;
+}
+
+EFI_STATUS
+EFIAPI
+Ring3AllocatePool (
+  IN  EFI_MEMORY_TYPE  PoolType,
+  IN  UINTN            Size,
+  OUT VOID             **Buffer
+  )
+{
+  UINTN  CurrentUser;
+
+  CurrentUser = (UINTN)SysCall (SysCallGetUserPageTable, 0);
+
+  PoolType = GetMemoryType (CurrentUser);
+
+  return CoreAllocatePool (PoolType, Size, Buffer);
+}
+
+EFI_STATUS
+EFIAPI
+Ring3FreePool (
+  IN VOID  *Buffer
+  )
+{
+  return CoreFreePool (Buffer);
 }
 
 EFI_STATUS
@@ -606,7 +660,7 @@ Ring3LocateHandleBuffer (
     && (Buffer != NULL) && (*Buffer != NULL)) {
     PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
 
-    Status = CoreAllocatePool (EfiRing3MemoryType, PoolSize, &Pool);
+    Status = Ring3AllocatePool (EfiRing3MemoryType, PoolSize, &Pool);
     if (EFI_ERROR (Status)) {
       return Status;
     }
@@ -672,7 +726,7 @@ Ring3InstallMultipleProtocolInterfaces (
   }
   VA_END (Marker);
 
-  Status = CoreAllocatePool (
+  Status = Ring3AllocatePool (
              EfiRing3MemoryType,
              NumberOfArguments * sizeof (VOID *),
              (VOID **)&Arguments
@@ -695,7 +749,7 @@ Ring3InstallMultipleProtocolInterfaces (
              Arguments
              );
 
-  CoreFreePool (Arguments);
+  Ring3FreePool (Arguments);
   return Status;
 }
 
