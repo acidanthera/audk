@@ -2060,6 +2060,10 @@ typedef enum {
   SysCallUnicodeStrUpr,
   SysCallUnicodeFatToStr,
   SysCallUnicodeStrToFat,
+  //
+  // Helper functions
+  //
+  SysCallGetUserPageTable,
   SysCallMax
 } SYS_CALL_TYPE;
 

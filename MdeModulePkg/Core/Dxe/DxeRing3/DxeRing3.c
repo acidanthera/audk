@@ -26,8 +26,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_ALLOCATE_PAGES)Ring3AllocatePages,                                                  // AllocatePages
   (EFI_FREE_PAGES)Ring3FreePages,                                                          // FreePages
   (EFI_GET_MEMORY_MAP)Ring3GetMemoryMap,                                                   // GetMemoryMap
-  (EFI_ALLOCATE_POOL)CoreAllocatePool,                                                     // AllocatePool
-  (EFI_FREE_POOL)CoreFreePool,                                                             // FreePool
+  (EFI_ALLOCATE_POOL)Ring3AllocatePool,                                                    // AllocatePool
+  (EFI_FREE_POOL)Ring3FreePool,                                                            // FreePool
   (EFI_CREATE_EVENT)Ring3CreateEvent,                                                      // CreateEvent
   (EFI_SET_TIMER)Ring3SetTimer,                                                            // SetTimer
   (EFI_WAIT_FOR_EVENT)Ring3WaitForEvent,                                                   // WaitForEvent
