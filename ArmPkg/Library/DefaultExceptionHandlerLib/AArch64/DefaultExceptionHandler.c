@@ -208,6 +208,7 @@ DefaultExceptionHandler (
   CHAR16  UnicodeBuffer[MAX_PRINT_CHARS];
   UINTN   CharCount;
   INT32   Offset;
+  UINT64  StackPointer;
 
   if (AARCH64_ESR_EC (SystemContext.SystemContextAArch64->ESR) == AARCH64_ESR_EC_SVC64) {
     return mSysCallHandler (SystemContext);
@@ -305,6 +306,12 @@ DefaultExceptionHandler (
 
   DEBUG_CODE_END ();
 
+  if ((SystemContext.SystemContextAArch64->SPSR & 0xFULL) == 0) {
+    StackPointer = SystemContext.SystemContextAArch64->SP_EL0;
+  } else {
+    StackPointer = SystemContext.SystemContextAArch64->SP;
+  }
+
   DEBUG ((DEBUG_ERROR, "\n  X0 0x%016lx   X1 0x%016lx   X2 0x%016lx   X3 0x%016lx\n", SystemContext.SystemContextAArch64->X0, SystemContext.SystemContextAArch64->X1, SystemContext.SystemContextAArch64->X2, SystemContext.SystemContextAArch64->X3));
   DEBUG ((DEBUG_ERROR, "  X4 0x%016lx   X5 0x%016lx   X6 0x%016lx   X7 0x%016lx\n", SystemContext.SystemContextAArch64->X4, SystemContext.SystemContextAArch64->X5, SystemContext.SystemContextAArch64->X6, SystemContext.SystemContextAArch64->X7));
   DEBUG ((DEBUG_ERROR, "  X8 0x%016lx   X9 0x%016lx  X10 0x%016lx  X11 0x%016lx\n", SystemContext.SystemContextAArch64->X8, SystemContext.SystemContextAArch64->X9, SystemContext.SystemContextAArch64->X10, SystemContext.SystemContextAArch64->X11));
@@ -333,7 +340,7 @@ DefaultExceptionHandler (
   DEBUG ((DEBUG_ERROR, " V28 0x%016lx %016lx  V29 0x%016lx %016lx\n", SystemContext.SystemContextAArch64->V28[1], SystemContext.SystemContextAArch64->V28[0], SystemContext.SystemContextAArch64->V29[1], SystemContext.SystemContextAArch64->V29[0]));
   DEBUG ((DEBUG_ERROR, " V30 0x%016lx %016lx  V31 0x%016lx %016lx\n", SystemContext.SystemContextAArch64->V30[1], SystemContext.SystemContextAArch64->V30[0], SystemContext.SystemContextAArch64->V31[1], SystemContext.SystemContextAArch64->V31[0]));
 
-  DEBUG ((DEBUG_ERROR, "\n  SP 0x%016lx  ELR 0x%016lx  SPSR 0x%08lx  FPSR 0x%08lx\n ESR 0x%08lx          FAR 0x%016lx\n", SystemContext.SystemContextAArch64->SP, SystemContext.SystemContextAArch64->ELR, SystemContext.SystemContextAArch64->SPSR, SystemContext.SystemContextAArch64->FPSR, SystemContext.SystemContextAArch64->ESR, SystemContext.SystemContextAArch64->FAR));
+  DEBUG ((DEBUG_ERROR, "\n  SP 0x%016lx  ELR 0x%016lx  SPSR 0x%08lx  FPSR 0x%08lx\n ESR 0x%08lx          FAR 0x%016lx\n", StackPointer, SystemContext.SystemContextAArch64->ELR, SystemContext.SystemContextAArch64->SPSR, SystemContext.SystemContextAArch64->FPSR, SystemContext.SystemContextAArch64->ESR, SystemContext.SystemContextAArch64->FAR));
 
   DEBUG ((DEBUG_ERROR, "\n ESR : EC 0x%02x  IL 0x%x  ISS 0x%08x\n", (SystemContext.SystemContextAArch64->ESR & 0xFC000000) >> 26, (SystemContext.SystemContextAArch64->ESR >> 25) & 0x1, SystemContext.SystemContextAArch64->ESR & 0x1FFFFFF));
 
@@ -345,11 +352,11 @@ DefaultExceptionHandler (
       DEBUG_ERROR,
       "%c %013lx: %016lx %016lx %016lx %016lx\n",
       Offset == 0 ? '>' : ' ',
-      SystemContext.SystemContextAArch64->SP + Offset,
-      *(UINT64 *)(SystemContext.SystemContextAArch64->SP + Offset),
-      *(UINT64 *)(SystemContext.SystemContextAArch64->SP + Offset + 8),
-      *(UINT64 *)(SystemContext.SystemContextAArch64->SP + Offset + 16),
-      *(UINT64 *)(SystemContext.SystemContextAArch64->SP + Offset + 24)
+      StackPointer + Offset,
+      *(UINT64 *)(StackPointer + Offset),
+      *(UINT64 *)(StackPointer + Offset + 8),
+      *(UINT64 *)(StackPointer + Offset + 16),
+      *(UINT64 *)(StackPointer + Offset + 24)
       ));
   }
 
