@@ -73,6 +73,15 @@ InitializeRing3 (
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
 
+  Status = InitializePlatform (&gRing3Data->SystemTable);
+  if (EFI_ERROR (Status)) {
+    CoreFreePages (
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
+      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+      );
+    return Status;
+  }
+
   //
   // Initialize DxeRing3 with Supervisor privileges.
   //
@@ -81,14 +90,16 @@ InitializeRing3 (
 
   SetUefiImageProtectionAttributes (mDxeRing3, FALSE);
 
+  AllowSupervisorAccessToUserMemory ();
   Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gRing3Data);
-
-  SetUefiImageProtectionAttributes (mDxeRing3, TRUE);
 
   gRing3EntryPoint = gRing3Data->EntryPoint;
 
   gRing3Data->SystemTable.BootServices    = gRing3Data->BootServices;
   gRing3Data->SystemTable.RuntimeServices = gRing3Data->RuntimeServices;
+  ForbidSupervisorAccessToUserMemory ();
+
+  SetUefiImageProtectionAttributes (mDxeRing3, TRUE);
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -111,19 +122,6 @@ InitializeRing3 (
     EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
-
-  Status = InitializePlatform (&gRing3Data->SystemTable);
-  if (EFI_ERROR (Status)) {
-    CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
-      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
-      );
-    CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Interfaces,
-      RING3_INTERFACES_PAGES
-      );
-    return Status;
-  }
 
   mExceptionAddresses = GetExceptionAddresses ();
 
