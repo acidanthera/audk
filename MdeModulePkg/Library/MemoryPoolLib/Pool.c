@@ -80,7 +80,9 @@ typedef struct {
 //
 // Pool header for each memory type.
 //
-POOL  mPoolHead[EfiMaxMemoryType];
+POOL  mPoolHead[MAX_MEMORY_TYPE];
+
+STATIC BOOLEAN  mIsCore;
 
 //
 // List of pool header to search for the appropriate memory type.
@@ -185,11 +187,13 @@ GetPoolIndexFromSize (
 **/
 VOID
 CoreInitializePool (
-  VOID
+  IN BOOLEAN  IsCore
   )
 {
   UINTN  Type;
   UINTN  Index;
+
+  mIsCore = IsCore;
 
   for (Type = 0; Type < EfiMaxMemoryType; Type++) {
     mPoolHead[Type].Signature  = 0;
@@ -218,6 +222,14 @@ LookupPoolHead (
   LIST_ENTRY  *Link;
   POOL        *Pool;
   UINTN       Index;
+
+  if (!mIsCore) {
+    if ((UINT32)MemoryType < MAX_MEMORY_TYPE) {
+      return &mPoolHead[MemoryType];
+    }
+
+    return NULL;
+  }
 
   if ((UINT32)MemoryType < EfiMaxMemoryType) {
     return &mPoolHead[MemoryType];
@@ -285,8 +297,8 @@ CoreInternalAllocatePool (
   //
   // If it's not a valid type, fail it
   //
-  if (((PoolType >= EfiMaxMemoryType) && (PoolType < MEMORY_TYPE_OEM_RESERVED_MIN)) ||
-      (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType))
+  if (mIsCore && (((PoolType >= EfiMaxMemoryType) && (PoolType < MEMORY_TYPE_OEM_RESERVED_MIN)) ||
+      (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType)))
   {
     return EFI_INVALID_PARAMETER;
   }
@@ -395,10 +407,11 @@ CoreAllocatePoolI (
 
   ASSERT_LOCKED (&mPoolMemoryLock);
 
-  if ((PoolType == EfiReservedMemoryType) ||
+  if (mIsCore &&
+     ((PoolType == EfiReservedMemoryType) ||
       (PoolType == EfiACPIMemoryNVS) ||
       (PoolType == EfiRuntimeServicesCode) ||
-      (PoolType == EfiRuntimeServicesData))
+      (PoolType == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {
@@ -724,10 +737,11 @@ CoreFreePoolI (
   Pool->Used -= Size;
   DEBUG ((DEBUG_POOL, "FreePool: %p (len %lx) %,ld\n", Head->Data, (UINT64)(Head->Size - POOL_OVERHEAD), (UINT64)Pool->Used));
 
-  if ((Head->Type == EfiReservedMemoryType) ||
+  if (mIsCore &&
+     ((Head->Type == EfiReservedMemoryType) ||
       (Head->Type == EfiACPIMemoryNVS) ||
       (Head->Type == EfiRuntimeServicesCode) ||
-      (Head->Type == EfiRuntimeServicesData))
+      (Head->Type == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {
@@ -897,6 +911,10 @@ IsMemoryTypeToGuard (
 {
   UINT64  TestBit;
   UINT64  ConfigBit;
+
+  if (!mIsCore) {
+    return FALSE;
+  }
 
   if (AllocateType == AllocateAddress) {
     return FALSE;

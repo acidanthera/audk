@@ -2269,7 +2269,7 @@ CoreInitializeMemoryServices (
   // Initialize the spin locks and maps in the memory services.
   // Also fill in the memory services into the EFI Boot Services Table
   //
-  CoreInitializePool ();
+  CoreInitializePool (TRUE);
 
   //
   // Initialize Local Variables
