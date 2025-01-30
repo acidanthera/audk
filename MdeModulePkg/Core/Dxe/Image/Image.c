@@ -23,6 +23,7 @@ typedef struct {
 STATIC LIST_ENTRY  mAvailableEmulators;
 STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
+STATIC BOOLEAN     mDxeRing3 = TRUE;
 
 extern BOOLEAN     gBdsStarted;
 
@@ -1348,6 +1349,12 @@ CoreLoadImageCommon (
   Image->Info.ParentHandle = ParentImageHandle;
   Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
 
+  if ((!PcdGetBool (PcdEnableUserSpace)) && Image->IsUserImage && mDxeRing3) {
+    mDxeRing3 = FALSE;
+    Status    = EFI_NOT_STARTED;
+    goto Done;
+  }
+
   if (NumberOfPages != NULL) {
     Image->NumberOfPages = *NumberOfPages;
   } else {
@@ -1444,7 +1451,7 @@ CoreLoadImageCommon (
   Status = EFI_SUCCESS;
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
-  if ((gRing3Data != NULL) && Image->IsUserImage) {
+  if (PcdGetBool (PcdEnableUserSpace) && (gRing3Data != NULL) && Image->IsUserImage) {
     Image->UserPageTable = InitializeUserPageTable (Image);
   }
 
