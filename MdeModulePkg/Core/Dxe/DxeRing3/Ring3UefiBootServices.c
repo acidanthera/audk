@@ -18,7 +18,7 @@
 
 BOOLEAN  mOnGuarding = FALSE;
 
-STATIC UINTN  mMemoryTypes[EfiMaxMemoryType];
+STATIC UINTN  mMemoryTypes[MAX_MEMORY_TYPE];
 STATIC UINTN  mNumberOfUsers = 0;
 
 STATIC
@@ -32,18 +32,16 @@ GetMemoryType (
 
   for (Index = 0; Index < mNumberOfUsers; ++Index) {
     if (mMemoryTypes[Index] == UserPageTable) {
-      break;
+      return Index;
     }
   }
 
-  if (Index == mNumberOfUsers) {
-    ++mNumberOfUsers;
-    mMemoryTypes[Index] = UserPageTable;
-  }
+  ASSERT (mNumberOfUsers < MAX_MEMORY_TYPE);
 
-  ASSERT (mNumberOfUsers <= EfiMaxMemoryType);
+  mMemoryTypes[mNumberOfUsers] = UserPageTable;
+  ++mNumberOfUsers;
 
-  return Index;
+  return (mNumberOfUsers - 1);
 }
 
 STATIC

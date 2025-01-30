@@ -36,13 +36,19 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define GUARD_HEAP_TYPE_ALL         \
         (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
 
+#define MAX_MEMORY_TYPE        100
+
 /**
   Called to initialize the pool.
+
+  @param  IsCore                 Selects between the purposes of mPoolHead array.
+                                 In DxeCore each element describes EFI_MEMORY_TYPE.
+                                 In DxeRing3 each element describes User space.
 
 **/
 VOID
 CoreInitializePool (
-  VOID
+  IN BOOLEAN  IsCore
   );
 
 /**

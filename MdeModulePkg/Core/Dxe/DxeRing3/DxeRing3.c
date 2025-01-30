@@ -259,7 +259,7 @@ Ring3Initialization (
   gBS = &mBootServices;
   gRT = &mRuntimeServices;
 
-  CoreInitializePool ();
+  CoreInitializePool (FALSE);
 
   return EFI_SUCCESS;
 }
