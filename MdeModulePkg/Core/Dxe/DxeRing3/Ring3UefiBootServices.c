@@ -67,8 +67,6 @@ FixInterface (
 
     LoadedImage = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
 
-    // TODO: Copy User changes to Core? Resembles InstallMultipleProtocolInterfaces().
-
     LoadedImage->Unload = NULL;
 
   } else if (CompareGuid (Protocol, &gEfiBlockIoProtocolGuid)) {
