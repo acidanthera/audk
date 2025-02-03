@@ -20,11 +20,11 @@ STATIC UINTN  mUartBaseAddress;
 
 EFI_STATUS
 EFIAPI
-ArmCallRing3 (
-  IN RING3_CALL_DATA  *Data,
-  IN UINTN            UserStackTop,
-  IN VOID             *EntryPoint,
-  IN UINTN            UserPageTable
+ArmCallUserSpace (
+  IN USER_SPACE_CALL_DATA  *Data,
+  IN UINTN                 UserStackTop,
+  IN VOID                  *EntryPoint,
+  IN UINTN                 UserPageTable
   );
 
 STATIC
@@ -147,7 +147,7 @@ InitializePlatform (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (mConfigurationTableSize),
              &Physical
              );
@@ -238,15 +238,15 @@ ForbidSupervisorAccessToUserMemory (
 
 EFI_STATUS
 EFIAPI
-CallRing3 (
-  IN RING3_CALL_DATA  *Data,
-  IN UINTN            UserStackTop
+CallUserSpace (
+  IN USER_SPACE_CALL_DATA  *Data,
+  IN UINTN                 UserStackTop
   )
 {
-  return ArmCallRing3 (
+  return ArmCallUserSpace (
             Data,
             UserStackTop,
-            gRing3EntryPoint,
+            gUserSpaceEntryPoint,
             gUserPageTable
             );
 }

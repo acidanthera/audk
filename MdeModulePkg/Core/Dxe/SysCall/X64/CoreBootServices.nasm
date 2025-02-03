@@ -8,7 +8,7 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 
 extern ASM_PFX(CallBootService)
-extern ASM_PFX(gRing3EntryPoint)
+extern ASM_PFX(gUserSpaceEntryPoint)
 
 DEFAULT REL
 SECTION .text
@@ -89,7 +89,7 @@ copy:
 
     ret
 
-%macro SetRing3DataSegmentSelectors 0
+%macro SetUserSpaceDataSegmentSelectors 0
     mov     rcx, MSR_IA32_STAR
     rdmsr
     shl     rdx, 0x20
@@ -157,7 +157,7 @@ ASM_PFX(CoreBootServices):
     push    rax
     cli
 
-    SetRing3DataSegmentSelectors
+    SetUserSpaceDataSegmentSelectors
 
     pop     rax
 
@@ -181,16 +181,16 @@ o64 sysret
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
 ; EFIAPI
-; CallRing3 (
-;   IN RING3_CALL_DATA  *Data,
-;   IN UINTN            UserStackTop
+; CallUserSpace (
+;   IN USER_SPACE_CALL_DATA  *Data,
+;   IN UINTN                 UserStackTop
 ;   );
 ;
 ;   (rcx) Data
 ;   (rdx) UserStackTop
 ;------------------------------------------------------------------------------
-global ASM_PFX(CallRing3)
-ASM_PFX(CallRing3):
+global ASM_PFX(CallUserSpace)
+ASM_PFX(CallUserSpace):
     pushfq
     pop     r11
     cli
@@ -211,11 +211,11 @@ ASM_PFX(CallRing3):
     mov     rbx, rdx
     mov     r10, rcx
 
-    SetRing3DataSegmentSelectors
+    SetUserSpaceDataSegmentSelectors
 
     ; Prepare SYSRET arguments.
     mov     rdx, r10
-    mov     rcx, [ASM_PFX(gRing3EntryPoint)]
+    mov     rcx, [ASM_PFX(gUserSpaceEntryPoint)]
 
     ; Switch to User Stack.
     mov     rsp, rbx

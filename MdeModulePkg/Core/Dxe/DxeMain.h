@@ -118,7 +118,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
 
 #define STACK_SIZE                  0x20000
-#define RING3_INTERFACES_PAGES      20
+#define USER_SPACE_INTERFACES_PAGES 20
 
 typedef struct {
   EFI_GUID     *ProtocolGuid;
@@ -287,12 +287,12 @@ extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfig
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
 extern LOADED_IMAGE_PRIVATE_DATA                   *mCurrentImage;
 
-extern RING3_DATA  *gRing3Data;
-extern VOID        *gRing3Interfaces;
-extern VOID        *gRing3EntryPoint;
-extern UINTN       gUserPageTable;
-extern UINTN       gCorePageTable;
-extern LIST_ENTRY  gUserSpaceDriversHead;
+extern USER_SPACE_DATA  *gUserSpaceData;
+extern VOID             *gUserSpaceInterfaces;
+extern VOID             *gUserSpaceEntryPoint;
+extern UINTN            gUserPageTable;
+extern UINTN            gCorePageTable;
+extern LIST_ENTRY       gUserSpaceDriversHead;
 
 //
 // Service Initialization Functions
@@ -2866,7 +2866,7 @@ ForbidSupervisorAccessToUserMemory (
 
 EFI_STATUS
 EFIAPI
-GoToRing3 (
+GoToUserSpace (
   IN UINT8              Number,
   IN VOID               *EntryPoint,
   IN USER_SPACE_DRIVER  *UserDriver,
@@ -2875,7 +2875,7 @@ GoToRing3 (
 
 EFI_STATUS
 EFIAPI
-InitializeRing3 (
+InitializeUserSpace (
   IN EFI_HANDLE                 ImageHandle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );

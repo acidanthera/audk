@@ -445,7 +445,7 @@ GetPermissionAttributeForMemoryType (
     Attributes |= EFI_MEMORY_XP;
   }
 
-  if (MemoryType == EfiRing3MemoryType) {
+  if (MemoryType == EfiUserSpaceMemoryType) {
     Attributes |= EFI_MEMORY_USER;
   }
 
@@ -1138,7 +1138,7 @@ ApplyMemoryProtectionPolicy (
       return EFI_SUCCESS;
     }
 
-    if ((gUserPageTable != 0) && (NewType == EfiRing3MemoryType)) {
+    if ((gUserPageTable != 0) && (NewType == EfiUserSpaceMemoryType)) {
       gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, NewAttributes);
     }
   } else {

@@ -1,11 +1,11 @@
 ;------------------------------------------------------------------------------
-; Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+; Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 ; SPDX-License-Identifier: BSD-3-Clause
 ;------------------------------------------------------------------------------
 
 #include <Uefi/UefiSpec.h>
 
-extern ASM_PFX(Ring3Call)
+extern ASM_PFX(UserSpaceCall)
 
 DEFAULT REL
 SECTION .text
@@ -49,14 +49,14 @@ userReturnAddress:
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; Ring3EntryPoint (
-;   IN RING3_CALL_DATA  *Data
+; UserSpaceEntryPoint (
+;   IN USER_SPACE_CALL_DATA  *Data
 ;   );
 ;
 ;   (eax) Data
 ;------------------------------------------------------------------------------
-global ASM_PFX(Ring3EntryPoint)
-ASM_PFX(Ring3EntryPoint):
+global ASM_PFX(UserSpaceEntryPoint)
+ASM_PFX(UserSpaceEntryPoint):
     push    eax
 
-    call ASM_PFX(Ring3Call)
+    call ASM_PFX(UserSpaceCall)

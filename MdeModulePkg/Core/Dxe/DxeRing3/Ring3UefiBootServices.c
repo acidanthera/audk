@@ -1,7 +1,7 @@
 /** @file
-  This driver constructs Ring 3 wrappers for the EFI_BOOT_SERVICES.
+  This driver constructs User space wrappers for the EFI_BOOT_SERVICES.
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -73,17 +73,17 @@ FixInterface (
 
     BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
 
-    BlockIo->Reset       = Ring3BlockIoReset;
-    BlockIo->ReadBlocks  = Ring3BlockIoRead;
-    BlockIo->WriteBlocks = Ring3BlockIoWrite;
-    BlockIo->FlushBlocks = Ring3BlockIoFlush;
+    BlockIo->Reset       = UserSpaceBlockIoReset;
+    BlockIo->ReadBlocks  = UserSpaceBlockIoRead;
+    BlockIo->WriteBlocks = UserSpaceBlockIoWrite;
+    BlockIo->FlushBlocks = UserSpaceBlockIoFlush;
 
   } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
 
     DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
 
-    DiskIo->ReadDisk  = Ring3DiskIoRead;
-    DiskIo->WriteDisk = Ring3DiskIoWrite;
+    DiskIo->ReadDisk  = UserSpaceDiskIoRead;
+    DiskIo->WriteDisk = UserSpaceDiskIoWrite;
 
   } else if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
     DevicePath = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
@@ -100,12 +100,12 @@ FixInterface (
   } else if (CompareGuid (Protocol, &gEfiUnicodeCollationProtocolGuid)) {
     Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)*Interface;
 
-    Unicode->StriColl   = Ring3UnicodeStriColl;
-    Unicode->MetaiMatch = Ring3UnicodeMetaiMatch;
-    Unicode->StrLwr     = Ring3UnicodeStrLwr;
-    Unicode->StrUpr     = Ring3UnicodeStrUpr;
-    Unicode->FatToStr   = Ring3UnicodeFatToStr;
-    Unicode->StrToFat   = Ring3UnicodeStrToFat;
+    Unicode->StriColl   = UserSpaceUnicodeStriColl;
+    Unicode->MetaiMatch = UserSpaceUnicodeMetaiMatch;
+    Unicode->StrLwr     = UserSpaceUnicodeStrLwr;
+    Unicode->StrUpr     = UserSpaceUnicodeStrUpr;
+    Unicode->FatToStr   = UserSpaceUnicodeFatToStr;
+    Unicode->StrToFat   = UserSpaceUnicodeStrToFat;
 
   } else {
     return EFI_UNSUPPORTED;
@@ -116,7 +116,7 @@ FixInterface (
 
 EFI_TPL
 EFIAPI
-Ring3RaiseTpl (
+UserSpaceRaiseTpl (
   IN EFI_TPL  NewTpl
   )
 {
@@ -129,7 +129,7 @@ Ring3RaiseTpl (
 
 VOID
 EFIAPI
-Ring3RestoreTpl (
+UserSpaceRestoreTpl (
   IN EFI_TPL  NewTpl
   )
 {
@@ -142,7 +142,7 @@ Ring3RestoreTpl (
 
 EFI_STATUS
 EFIAPI
-Ring3AllocatePages (
+UserSpaceAllocatePages (
   IN     EFI_ALLOCATE_TYPE     Type,
   IN     EFI_MEMORY_TYPE       MemoryType,
   IN     UINTN                 NumberOfPages,
@@ -155,12 +155,12 @@ Ring3AllocatePages (
              SysCallAllocatePages,
              4,
              Type,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              NumberOfPages,
              Memory
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to allocate %d pages.\n", NumberOfPages));
+    DEBUG ((DEBUG_ERROR, "UserSpace: Failed to allocate %d pages.\n", NumberOfPages));
   }
 
   return Status;
@@ -168,7 +168,7 @@ Ring3AllocatePages (
 
 EFI_STATUS
 EFIAPI
-Ring3FreePages (
+UserSpaceFreePages (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 NumberOfPages
   )
@@ -182,7 +182,7 @@ Ring3FreePages (
              Memory
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to free %d pages.\n", NumberOfPages));
+    DEBUG ((DEBUG_ERROR, "UserSpace: Failed to free %d pages.\n", NumberOfPages));
   }
 
   return Status;
@@ -190,7 +190,7 @@ Ring3FreePages (
 
 EFI_STATUS
 EFIAPI
-Ring3GetMemoryMap (
+UserSpaceGetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
      OUT UINTN                  *MapKey,
@@ -198,14 +198,14 @@ Ring3GetMemoryMap (
      OUT UINT32                 *DescriptorVersion
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetMemoryMap is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetMemoryMap is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3AllocatePool (
+UserSpaceAllocatePool (
   IN  EFI_MEMORY_TYPE  PoolType,
   IN  UINTN            Size,
   OUT VOID             **Buffer
@@ -222,7 +222,7 @@ Ring3AllocatePool (
 
 EFI_STATUS
 EFIAPI
-Ring3FreePool (
+UserSpaceFreePool (
   IN VOID  *Buffer
   )
 {
@@ -231,7 +231,7 @@ Ring3FreePool (
 
 EFI_STATUS
 EFIAPI
-Ring3CreateEvent (
+UserSpaceCreateEvent (
   IN  UINT32            Type,
   IN  EFI_TPL           NotifyTpl,
   IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
@@ -239,114 +239,114 @@ Ring3CreateEvent (
   OUT EFI_EVENT         *Event
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: CreateEvent is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: CreateEvent is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetTimer (
+UserSpaceSetTimer (
   IN EFI_EVENT        UserEvent,
   IN EFI_TIMER_DELAY  Type,
   IN UINT64           TriggerTime
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetTimer is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetTimer is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3WaitForEvent (
+UserSpaceWaitForEvent (
   IN  UINTN      NumberOfEvents,
   IN  EFI_EVENT  *UserEvents,
   OUT UINTN      *UserIndex
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: WaitForEvent is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: WaitForEvent is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SignalEvent (
+UserSpaceSignalEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SignalEvent is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SignalEvent is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3CloseEvent (
+UserSpaceCloseEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: CloseEvent is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: CloseEvent is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3CheckEvent (
+UserSpaceCheckEvent (
   IN EFI_EVENT  UserEvent
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: CheckEvent is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: CheckEvent is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3InstallProtocolInterface (
+UserSpaceInstallProtocolInterface (
   IN OUT EFI_HANDLE          *UserHandle,
   IN     EFI_GUID            *Protocol,
   IN     EFI_INTERFACE_TYPE  InterfaceType,
   IN     VOID                *Interface
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: InstallProtocolInterface is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: InstallProtocolInterface is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3ReinstallProtocolInterface (
+UserSpaceReinstallProtocolInterface (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN VOID        *OldInterface,
   IN VOID        *NewInterface
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ReinstallProtocolInterface is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ReinstallProtocolInterface is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3UninstallProtocolInterface (
+UserSpaceUninstallProtocolInterface (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN VOID        *Interface
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: UninstallProtocolInterface is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: UninstallProtocolInterface is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3HandleProtocol (
+UserSpaceHandleProtocol (
   IN  EFI_HANDLE  CoreUserHandle,
   IN  EFI_GUID    *Protocol,
   OUT VOID        **Interface
@@ -362,7 +362,7 @@ Ring3HandleProtocol (
              Interface
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to get handle of protocol %g - %r\n", Protocol, Status));
+    DEBUG ((DEBUG_ERROR, "UserSpace: Failed to get handle of protocol %g - %r\n", Protocol, Status));
     return Status;
   }
 
@@ -371,20 +371,20 @@ Ring3HandleProtocol (
 
 EFI_STATUS
 EFIAPI
-Ring3RegisterProtocolNotify (
+UserSpaceRegisterProtocolNotify (
   IN  EFI_GUID   *Protocol,
   IN  EFI_EVENT  Event,
   OUT VOID       **Registration
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: RegisterProtocolNotify is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: RegisterProtocolNotify is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3LocateHandle (
+UserSpaceLocateHandle (
   IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
   IN     EFI_GUID                *Protocol   OPTIONAL,
   IN     VOID                    *SearchKey  OPTIONAL,
@@ -392,39 +392,39 @@ Ring3LocateHandle (
      OUT EFI_HANDLE              *Buffer
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: LocateHandle is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: LocateHandle is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3LocateDevicePath (
+UserSpaceLocateDevicePath (
   IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
      OUT EFI_HANDLE                *Device
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: LocateDevicePath is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: LocateDevicePath is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3InstallConfigurationTable (
+UserSpaceInstallConfigurationTable (
   IN EFI_GUID  *Guid,
   IN VOID      *Table
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: InstallConfigurationTable is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: InstallConfigurationTable is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3LoadImage (
+UserSpaceLoadImage (
   IN  BOOLEAN                   BootPolicy,
   IN  EFI_HANDLE                ParentImageHandle,
   IN  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
@@ -433,127 +433,127 @@ Ring3LoadImage (
   OUT EFI_HANDLE                *ImageHandle
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: LoadImage is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: LoadImage is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3StartImage (
+UserSpaceStartImage (
   IN  EFI_HANDLE  ImageHandle,
   OUT UINTN       *ExitDataSize,
   OUT CHAR16      **ExitData  OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: StartImage is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: StartImage is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3Exit (
+UserSpaceExit (
   IN EFI_HANDLE  ImageHandle,
   IN EFI_STATUS  Status,
   IN UINTN       ExitDataSize,
   IN CHAR16      *ExitData  OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: Exit is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: Exit is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3UnloadImage (
+UserSpaceUnloadImage (
   IN EFI_HANDLE  ImageHandle
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: UnloadImage is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: UnloadImage is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3ExitBootServices (
+UserSpaceExitBootServices (
   IN EFI_HANDLE  ImageHandle,
   IN UINTN       MapKey
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ExitBootServices is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ExitBootServices is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3GetNextMonotonicCount (
+UserSpaceGetNextMonotonicCount (
   OUT UINT64  *Count
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetNextMonotonicCount is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetNextMonotonicCount is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3Stall (
+UserSpaceStall (
   IN UINTN  Microseconds
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: Stall is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: Stall is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetWatchdogTimer (
+UserSpaceSetWatchdogTimer (
   IN UINTN   Timeout,
   IN UINT64  WatchdogCode,
   IN UINTN   DataSize,
   IN CHAR16  *WatchdogData OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetWatchdogTimer is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetWatchdogTimer is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3ConnectController (
+UserSpaceConnectController (
   IN EFI_HANDLE                ControllerHandle,
   IN EFI_HANDLE                *DriverImageHandle    OPTIONAL,
   IN EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
   IN BOOLEAN                   Recursive
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ConnectController is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ConnectController is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3DisconnectController (
+UserSpaceDisconnectController (
   IN EFI_HANDLE  ControllerHandle,
   IN EFI_HANDLE  DriverImageHandle  OPTIONAL,
   IN EFI_HANDLE  ChildHandle        OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: DisconnectController is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: DisconnectController is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3OpenProtocol (
+UserSpaceOpenProtocol (
   IN  EFI_HANDLE  CoreUserHandle,
   IN  EFI_GUID    *Protocol,
   OUT VOID        **Interface OPTIONAL,
@@ -583,7 +583,7 @@ Ring3OpenProtocol (
 
 EFI_STATUS
 EFIAPI
-Ring3CloseProtocol (
+UserSpaceCloseProtocol (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN EFI_HANDLE  AgentHandle,
@@ -602,34 +602,34 @@ Ring3CloseProtocol (
 
 EFI_STATUS
 EFIAPI
-Ring3OpenProtocolInformation (
+UserSpaceOpenProtocolInformation (
   IN  EFI_HANDLE                           UserHandle,
   IN  EFI_GUID                             *Protocol,
   OUT EFI_OPEN_PROTOCOL_INFORMATION_ENTRY  **EntryBuffer,
   OUT UINTN                                *EntryCount
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: OpenProtocolInformation is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: OpenProtocolInformation is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3ProtocolsPerHandle (
+UserSpaceProtocolsPerHandle (
   IN  EFI_HANDLE  UserHandle,
   OUT EFI_GUID    ***ProtocolBuffer,
   OUT UINTN       *ProtocolBufferCount
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ProtocolsPerHandle is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ProtocolsPerHandle is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3LocateHandleBuffer (
+UserSpaceLocateHandleBuffer (
   IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
   IN     EFI_GUID                *Protocol OPTIONAL,
   IN     VOID                    *SearchKey OPTIONAL,
@@ -656,14 +656,14 @@ Ring3LocateHandleBuffer (
     && (Buffer != NULL) && (*Buffer != NULL)) {
     PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
 
-    Status = Ring3AllocatePool (EfiRing3MemoryType, PoolSize, &Pool);
+    Status = UserSpaceAllocatePool (EfiUserSpaceMemoryType, PoolSize, &Pool);
     if (EFI_ERROR (Status)) {
       return Status;
     }
 
     CopyMem (Pool, *Buffer, PoolSize);
 
-    Status = Ring3FreePages (
+    Status = UserSpaceFreePages (
                (EFI_PHYSICAL_ADDRESS)(UINTN)*Buffer,
                EFI_SIZE_TO_PAGES (PoolSize)
                );
@@ -679,7 +679,7 @@ Ring3LocateHandleBuffer (
 
 EFI_STATUS
 EFIAPI
-Ring3LocateProtocol (
+UserSpaceLocateProtocol (
   IN  EFI_GUID  *Protocol,
   IN  VOID      *CoreRegistration OPTIONAL,
   OUT VOID      **Interface
@@ -695,7 +695,7 @@ Ring3LocateProtocol (
              Interface
              );
   if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Ring3: Failed to loacate protocol %g\n", Protocol));
+    DEBUG ((DEBUG_ERROR, "UserSpace: Failed to loacate protocol %g\n", Protocol));
     return Status;
   }
 
@@ -704,7 +704,7 @@ Ring3LocateProtocol (
 
 EFI_STATUS
 EFIAPI
-Ring3InstallMultipleProtocolInterfaces (
+UserSpaceInstallMultipleProtocolInterfaces (
   IN OUT EFI_HANDLE  *Handle,
   ...
   )
@@ -722,8 +722,8 @@ Ring3InstallMultipleProtocolInterfaces (
   }
   VA_END (Marker);
 
-  Status = Ring3AllocatePool (
-             EfiRing3MemoryType,
+  Status = UserSpaceAllocatePool (
+             EfiUserSpaceMemoryType,
              NumberOfArguments * sizeof (VOID *),
              (VOID **)&Arguments
              );
@@ -745,25 +745,25 @@ Ring3InstallMultipleProtocolInterfaces (
              Arguments
              );
 
-  Ring3FreePool (Arguments);
+  UserSpaceFreePool (Arguments);
   return Status;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3UninstallMultipleProtocolInterfaces (
+UserSpaceUninstallMultipleProtocolInterfaces (
   IN EFI_HANDLE  Handle,
   ...
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: UninstallMultipleProtocolInterfaces is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: UninstallMultipleProtocolInterfaces is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3CalculateCrc32 (
+UserSpaceCalculateCrc32 (
   IN  VOID    *Data,
   IN  UINTN   DataSize,
   OUT UINT32  *Crc32
@@ -780,7 +780,7 @@ Ring3CalculateCrc32 (
 
 EFI_STATUS
 EFIAPI
-Ring3CreateEventEx (
+UserSpaceCreateEventEx (
   IN  UINT32            Type,
   IN  EFI_TPL           NotifyTpl,
   IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
@@ -789,7 +789,7 @@ Ring3CreateEventEx (
   OUT EFI_EVENT         *Event
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: CreateEventEx is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: CreateEventEx is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
@@ -835,7 +835,7 @@ CoreAllocatePoolPagesI (
 {
   EFI_PHYSICAL_ADDRESS  Memory;
 
-  Ring3AllocatePages (AllocateAnyPages, EfiRing3MemoryType, NoPages, &Memory);
+  UserSpaceAllocatePages (AllocateAnyPages, EfiUserSpaceMemoryType, NoPages, &Memory);
 
   return (VOID *)(UINTN)Memory;
 }
@@ -847,7 +847,7 @@ CoreFreePoolPagesI (
   IN UINTN                 NoPages
   )
 {
-  Ring3FreePages (Memory, NoPages);
+  UserSpaceFreePages (Memory, NoPages);
 }
 
 VOID
@@ -857,5 +857,5 @@ CoreFreePoolPagesWithGuard (
   IN UINTN                 NoPages
   )
 {
-  CoreFreePoolPagesI (EfiRing3MemoryType, Memory, NoPages);
+  CoreFreePoolPagesI (EfiUserSpaceMemoryType, Memory, NoPages);
 }

@@ -1,6 +1,8 @@
 /** @file
+  This driver constructs User space wrappers for the EFI_BOOT_SERVICES,
+  EFI_RUNTIME_SERVICES and EFI_*_PROTOCOLs.
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -15,86 +17,86 @@
 
 EFI_BOOT_SERVICES  mBootServices = {
   {
-    EFI_BOOT_SERVICES_SIGNATURE,                                                          // Signature
-    EFI_BOOT_SERVICES_REVISION,                                                           // Revision
-    sizeof (EFI_BOOT_SERVICES),                                                           // HeaderSize
-    0,                                                                                    // CRC32
-    0                                                                                     // Reserved
+    EFI_BOOT_SERVICES_SIGNATURE,                                                             // Signature
+    EFI_BOOT_SERVICES_REVISION,                                                              // Revision
+    sizeof (EFI_BOOT_SERVICES),                                                              // HeaderSize
+    0,                                                                                       // CRC32
+    0                                                                                        // Reserved
   },
-  (EFI_RAISE_TPL)Ring3RaiseTpl,                                                            // RaiseTPL
-  (EFI_RESTORE_TPL)Ring3RestoreTpl,                                                        // RestoreTPL
-  (EFI_ALLOCATE_PAGES)Ring3AllocatePages,                                                  // AllocatePages
-  (EFI_FREE_PAGES)Ring3FreePages,                                                          // FreePages
-  (EFI_GET_MEMORY_MAP)Ring3GetMemoryMap,                                                   // GetMemoryMap
-  (EFI_ALLOCATE_POOL)Ring3AllocatePool,                                                    // AllocatePool
-  (EFI_FREE_POOL)Ring3FreePool,                                                            // FreePool
-  (EFI_CREATE_EVENT)Ring3CreateEvent,                                                      // CreateEvent
-  (EFI_SET_TIMER)Ring3SetTimer,                                                            // SetTimer
-  (EFI_WAIT_FOR_EVENT)Ring3WaitForEvent,                                                   // WaitForEvent
-  (EFI_SIGNAL_EVENT)Ring3SignalEvent,                                                      // SignalEvent
-  (EFI_CLOSE_EVENT)Ring3CloseEvent,                                                        // CloseEvent
-  (EFI_CHECK_EVENT)Ring3CheckEvent,                                                        // CheckEvent
-  (EFI_INSTALL_PROTOCOL_INTERFACE)Ring3InstallProtocolInterface,                           // InstallProtocolInterface
-  (EFI_REINSTALL_PROTOCOL_INTERFACE)Ring3ReinstallProtocolInterface,                       // ReinstallProtocolInterface
-  (EFI_UNINSTALL_PROTOCOL_INTERFACE)Ring3UninstallProtocolInterface,                       // UninstallProtocolInterface
-  (EFI_HANDLE_PROTOCOL)Ring3HandleProtocol,                                                // HandleProtocol
-  (VOID *)NULL,                                                                            // Reserved
-  (EFI_REGISTER_PROTOCOL_NOTIFY)Ring3RegisterProtocolNotify,                               // RegisterProtocolNotify
-  (EFI_LOCATE_HANDLE)Ring3LocateHandle,                                                    // LocateHandle
-  (EFI_LOCATE_DEVICE_PATH)Ring3LocateDevicePath,                                           // LocateDevicePath
-  (EFI_INSTALL_CONFIGURATION_TABLE)Ring3InstallConfigurationTable,                         // InstallConfigurationTable
-  (EFI_IMAGE_LOAD)Ring3LoadImage,                                                          // LoadImage
-  (EFI_IMAGE_START)Ring3StartImage,                                                        // StartImage
-  (EFI_EXIT)Ring3Exit,                                                                     // Exit
-  (EFI_IMAGE_UNLOAD)Ring3UnloadImage,                                                      // UnloadImage
-  (EFI_EXIT_BOOT_SERVICES)Ring3ExitBootServices,                                           // ExitBootServices
-  (EFI_GET_NEXT_MONOTONIC_COUNT)Ring3GetNextMonotonicCount,                                // GetNextMonotonicCount
-  (EFI_STALL)Ring3Stall,                                                                   // Stall
-  (EFI_SET_WATCHDOG_TIMER)Ring3SetWatchdogTimer,                                           // SetWatchdogTimer
-  (EFI_CONNECT_CONTROLLER)Ring3ConnectController,                                          // ConnectController
-  (EFI_DISCONNECT_CONTROLLER)Ring3DisconnectController,                                    // DisconnectController
-  (EFI_OPEN_PROTOCOL)Ring3OpenProtocol,                                                    // OpenProtocol
-  (EFI_CLOSE_PROTOCOL)Ring3CloseProtocol,                                                  // CloseProtocol
-  (EFI_OPEN_PROTOCOL_INFORMATION)Ring3OpenProtocolInformation,                             // OpenProtocolInformation
-  (EFI_PROTOCOLS_PER_HANDLE)Ring3ProtocolsPerHandle,                                       // ProtocolsPerHandle
-  (EFI_LOCATE_HANDLE_BUFFER)Ring3LocateHandleBuffer,                                       // LocateHandleBuffer
-  (EFI_LOCATE_PROTOCOL)Ring3LocateProtocol,                                                // LocateProtocol
-  (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)Ring3InstallMultipleProtocolInterfaces,        // InstallMultipleProtocolInterfaces
-  (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)Ring3UninstallMultipleProtocolInterfaces,    // UninstallMultipleProtocolInterfaces
-  (EFI_CALCULATE_CRC32)Ring3CalculateCrc32,                                                // CalculateCrc32
-  (EFI_COPY_MEM)CopyMem,                                                                   // CopyMem
-  (EFI_SET_MEM)SetMem,                                                                     // SetMem
-  (EFI_CREATE_EVENT_EX)Ring3CreateEventEx,                                                 // CreateEventEx
+  (EFI_RAISE_TPL)UserSpaceRaiseTpl,                                                          // RaiseTPL
+  (EFI_RESTORE_TPL)UserSpaceRestoreTpl,                                                      // RestoreTPL
+  (EFI_ALLOCATE_PAGES)UserSpaceAllocatePages,                                                // AllocatePages
+  (EFI_FREE_PAGES)UserSpaceFreePages,                                                        // FreePages
+  (EFI_GET_MEMORY_MAP)UserSpaceGetMemoryMap,                                                 // GetMemoryMap
+  (EFI_ALLOCATE_POOL)UserSpaceAllocatePool,                                                  // AllocatePool
+  (EFI_FREE_POOL)UserSpaceFreePool,                                                          // FreePool
+  (EFI_CREATE_EVENT)UserSpaceCreateEvent,                                                    // CreateEvent
+  (EFI_SET_TIMER)UserSpaceSetTimer,                                                          // SetTimer
+  (EFI_WAIT_FOR_EVENT)UserSpaceWaitForEvent,                                                 // WaitForEvent
+  (EFI_SIGNAL_EVENT)UserSpaceSignalEvent,                                                    // SignalEvent
+  (EFI_CLOSE_EVENT)UserSpaceCloseEvent,                                                      // CloseEvent
+  (EFI_CHECK_EVENT)UserSpaceCheckEvent,                                                      // CheckEvent
+  (EFI_INSTALL_PROTOCOL_INTERFACE)UserSpaceInstallProtocolInterface,                         // InstallProtocolInterface
+  (EFI_REINSTALL_PROTOCOL_INTERFACE)UserSpaceReinstallProtocolInterface,                     // ReinstallProtocolInterface
+  (EFI_UNINSTALL_PROTOCOL_INTERFACE)UserSpaceUninstallProtocolInterface,                     // UninstallProtocolInterface
+  (EFI_HANDLE_PROTOCOL)UserSpaceHandleProtocol,                                              // HandleProtocol
+  (VOID *)NULL,                                                                              // Reserved
+  (EFI_REGISTER_PROTOCOL_NOTIFY)UserSpaceRegisterProtocolNotify,                             // RegisterProtocolNotify
+  (EFI_LOCATE_HANDLE)UserSpaceLocateHandle,                                                  // LocateHandle
+  (EFI_LOCATE_DEVICE_PATH)UserSpaceLocateDevicePath,                                         // LocateDevicePath
+  (EFI_INSTALL_CONFIGURATION_TABLE)UserSpaceInstallConfigurationTable,                       // InstallConfigurationTable
+  (EFI_IMAGE_LOAD)UserSpaceLoadImage,                                                        // LoadImage
+  (EFI_IMAGE_START)UserSpaceStartImage,                                                      // StartImage
+  (EFI_EXIT)UserSpaceExit,                                                                   // Exit
+  (EFI_IMAGE_UNLOAD)UserSpaceUnloadImage,                                                    // UnloadImage
+  (EFI_EXIT_BOOT_SERVICES)UserSpaceExitBootServices,                                         // ExitBootServices
+  (EFI_GET_NEXT_MONOTONIC_COUNT)UserSpaceGetNextMonotonicCount,                              // GetNextMonotonicCount
+  (EFI_STALL)UserSpaceStall,                                                                 // Stall
+  (EFI_SET_WATCHDOG_TIMER)UserSpaceSetWatchdogTimer,                                         // SetWatchdogTimer
+  (EFI_CONNECT_CONTROLLER)UserSpaceConnectController,                                        // ConnectController
+  (EFI_DISCONNECT_CONTROLLER)UserSpaceDisconnectController,                                  // DisconnectController
+  (EFI_OPEN_PROTOCOL)UserSpaceOpenProtocol,                                                  // OpenProtocol
+  (EFI_CLOSE_PROTOCOL)UserSpaceCloseProtocol,                                                // CloseProtocol
+  (EFI_OPEN_PROTOCOL_INFORMATION)UserSpaceOpenProtocolInformation,                           // OpenProtocolInformation
+  (EFI_PROTOCOLS_PER_HANDLE)UserSpaceProtocolsPerHandle,                                     // ProtocolsPerHandle
+  (EFI_LOCATE_HANDLE_BUFFER)UserSpaceLocateHandleBuffer,                                     // LocateHandleBuffer
+  (EFI_LOCATE_PROTOCOL)UserSpaceLocateProtocol,                                              // LocateProtocol
+  (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)UserSpaceInstallMultipleProtocolInterfaces,      // InstallMultipleProtocolInterfaces
+  (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)UserSpaceUninstallMultipleProtocolInterfaces,  // UninstallMultipleProtocolInterfaces
+  (EFI_CALCULATE_CRC32)UserSpaceCalculateCrc32,                                              // CalculateCrc32
+  (EFI_COPY_MEM)CopyMem,                                                                     // CopyMem
+  (EFI_SET_MEM)SetMem,                                                                       // SetMem
+  (EFI_CREATE_EVENT_EX)UserSpaceCreateEventEx,                                               // CreateEventEx
 };
 
 EFI_RUNTIME_SERVICES  mRuntimeServices = {
   {
-    EFI_RUNTIME_SERVICES_SIGNATURE,                               // Signature
-    EFI_RUNTIME_SERVICES_REVISION,                                // Revision
-    sizeof (EFI_RUNTIME_SERVICES),                                // HeaderSize
-    0,                                                            // CRC32
-    0                                                             // Reserved
+    EFI_RUNTIME_SERVICES_SIGNATURE,                                   // Signature
+    EFI_RUNTIME_SERVICES_REVISION,                                    // Revision
+    sizeof (EFI_RUNTIME_SERVICES),                                    // HeaderSize
+    0,                                                                // CRC32
+    0                                                                 // Reserved
   },
-  (EFI_GET_TIME)Ring3GetTime,                                     // GetTime
-  (EFI_SET_TIME)Ring3SetTime,                                     // SetTime
-  (EFI_GET_WAKEUP_TIME)Ring3GetWakeupTime,                        // GetWakeupTime
-  (EFI_SET_WAKEUP_TIME)Ring3SetWakeupTime,                        // SetWakeupTime
-  (EFI_SET_VIRTUAL_ADDRESS_MAP)Ring3SetVirtualAddressMap,         // SetVirtualAddressMap
-  (EFI_CONVERT_POINTER)Ring3ConvertPointer,                       // ConvertPointer
-  (EFI_GET_VARIABLE)Ring3GetVariable,                             // GetVariable
-  (EFI_GET_NEXT_VARIABLE_NAME)Ring3GetNextVariableName,           // GetNextVariableName
-  (EFI_SET_VARIABLE)Ring3SetVariable,                             // SetVariable
-  (EFI_GET_NEXT_HIGH_MONO_COUNT)Ring3GetNextHighMonotonicCount,   // GetNextHighMonotonicCount
-  (EFI_RESET_SYSTEM)Ring3ResetSystem,                             // ResetSystem
-  (EFI_UPDATE_CAPSULE)Ring3UpdateCapsule,                         // UpdateCapsule
-  (EFI_QUERY_CAPSULE_CAPABILITIES)Ring3QueryCapsuleCapabilities,  // QueryCapsuleCapabilities
-  (EFI_QUERY_VARIABLE_INFO)Ring3QueryVariableInfo                 // QueryVariableInfo
+  (EFI_GET_TIME)UserSpaceGetTime,                                     // GetTime
+  (EFI_SET_TIME)UserSpaceSetTime,                                     // SetTime
+  (EFI_GET_WAKEUP_TIME)UserSpaceGetWakeupTime,                        // GetWakeupTime
+  (EFI_SET_WAKEUP_TIME)UserSpaceSetWakeupTime,                        // SetWakeupTime
+  (EFI_SET_VIRTUAL_ADDRESS_MAP)UserSpaceSetVirtualAddressMap,         // SetVirtualAddressMap
+  (EFI_CONVERT_POINTER)UserSpaceConvertPointer,                       // ConvertPointer
+  (EFI_GET_VARIABLE)UserSpaceGetVariable,                             // GetVariable
+  (EFI_GET_NEXT_VARIABLE_NAME)UserSpaceGetNextVariableName,           // GetNextVariableName
+  (EFI_SET_VARIABLE)UserSpaceSetVariable,                             // SetVariable
+  (EFI_GET_NEXT_HIGH_MONO_COUNT)UserSpaceGetNextHighMonotonicCount,   // GetNextHighMonotonicCount
+  (EFI_RESET_SYSTEM)UserSpaceResetSystem,                             // ResetSystem
+  (EFI_UPDATE_CAPSULE)UserSpaceUpdateCapsule,                         // UpdateCapsule
+  (EFI_QUERY_CAPSULE_CAPABILITIES)UserSpaceQueryCapsuleCapabilities,  // QueryCapsuleCapabilities
+  (EFI_QUERY_VARIABLE_INFO)UserSpaceQueryVariableInfo                 // QueryVariableInfo
 };
 
 VOID
 EFIAPI
-Ring3EntryPoint (
- IN RING3_CALL_DATA  *Data
+UserSpaceEntryPoint (
+ IN USER_SPACE_CALL_DATA  *Data
  );
 
 typedef
@@ -181,8 +183,8 @@ EFI_STATUS
 
 VOID
 EFIAPI
-Ring3Call (
-  IN RING3_CALL_DATA  *Data
+UserSpaceCall (
+  IN USER_SPACE_CALL_DATA  *Data
   )
 {
   EFI_STATUS  Status;
@@ -243,18 +245,18 @@ Ring3Call (
 
 EFI_STATUS
 EFIAPI
-Ring3Initialization (
+UserSpaceInitialization (
   IN EFI_HANDLE        ImageHandle,
   IN EFI_SYSTEM_TABLE  *SystemTable
   )
 {
-  RING3_DATA  *Ring3Data;
+  USER_SPACE_DATA  *UserSpaceData;
 
-  Ring3Data = (RING3_DATA *)SystemTable;
+  UserSpaceData = (USER_SPACE_DATA *)SystemTable;
 
-  Ring3Data->EntryPoint      = (VOID *)Ring3EntryPoint;
-  Ring3Data->BootServices    = &mBootServices;
-  Ring3Data->RuntimeServices = &mRuntimeServices;
+  UserSpaceData->EntryPoint      = (VOID *)UserSpaceEntryPoint;
+  UserSpaceData->BootServices    = &mBootServices;
+  UserSpaceData->RuntimeServices = &mRuntimeServices;
 
   gBS = &mBootServices;
   gRT = &mRuntimeServices;

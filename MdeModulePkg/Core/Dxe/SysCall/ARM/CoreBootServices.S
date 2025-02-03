@@ -55,17 +55,17 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
-// CallRing3 (
-//   IN RING3_CALL_DATA  *Data,
-//   IN UINTN            UserStackTop
+// CallUserSpace (
+//   IN USER_SPACE_CALL_DATA  *Data,
+//   IN UINTN                 UserStackTop
 //   );
 //
 //   (r0) Data
 //   (r1) UserStackTop
-//   (r2) gRing3EntryPoint
+//   (r2) gUserSpaceEntryPoint
 //   (r3) gUserPageTable
 //------------------------------------------------------------------------------
-ASM_FUNC(ArmCallRing3)
+ASM_FUNC(ArmCallUserSpace)
   // Save registers.
   push  {R4-R12, LR}
   // Save old SP_usr and LR_usr on Core Stack.

@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -30,7 +30,7 @@ SysCall (
 **/
 EFI_TPL
 EFIAPI
-Ring3RaiseTpl (
+UserSpaceRaiseTpl (
   IN EFI_TPL  NewTpl
   );
 
@@ -43,7 +43,7 @@ Ring3RaiseTpl (
 **/
 VOID
 EFIAPI
-Ring3RestoreTpl (
+UserSpaceRestoreTpl (
   IN EFI_TPL  NewTpl
   );
 
@@ -67,7 +67,7 @@ Ring3RestoreTpl (
 **/
 EFI_STATUS
 EFIAPI
-Ring3AllocatePages (
+UserSpaceAllocatePages (
   IN     EFI_ALLOCATE_TYPE     Type,
   IN     EFI_MEMORY_TYPE       MemoryType,
   IN     UINTN                 NumberOfPages,
@@ -87,7 +87,7 @@ Ring3AllocatePages (
 **/
 EFI_STATUS
 EFIAPI
-Ring3FreePages (
+UserSpaceFreePages (
   IN EFI_PHYSICAL_ADDRESS  Memory,
   IN UINTN                 NumberOfPages
   );
@@ -124,7 +124,7 @@ Ring3FreePages (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetMemoryMap (
+UserSpaceGetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
      OUT UINTN                  *MapKey,
@@ -149,7 +149,7 @@ Ring3GetMemoryMap (
 **/
 EFI_STATUS
 EFIAPI
-Ring3AllocatePool (
+UserSpaceAllocatePool (
   IN  EFI_MEMORY_TYPE  PoolType,
   IN  UINTN            Size,
   OUT VOID             **Buffer
@@ -166,7 +166,7 @@ Ring3AllocatePool (
 **/
 EFI_STATUS
 EFIAPI
-Ring3FreePool (
+UserSpaceFreePool (
   IN VOID  *Buffer
   );
 
@@ -190,7 +190,7 @@ Ring3FreePool (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CreateEvent (
+UserSpaceCreateEvent (
   IN  UINT32            Type,
   IN  EFI_TPL           NotifyTpl,
   IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
@@ -215,7 +215,7 @@ Ring3CreateEvent (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetTimer (
+UserSpaceSetTimer (
   IN EFI_EVENT        UserEvent,
   IN EFI_TIMER_DELAY  Type,
   IN UINT64           TriggerTime
@@ -237,7 +237,7 @@ Ring3SetTimer (
 **/
 EFI_STATUS
 EFIAPI
-Ring3WaitForEvent (
+UserSpaceWaitForEvent (
   IN  UINTN      NumberOfEvents,
   IN  EFI_EVENT  *UserEvents,
   OUT UINTN      *UserIndex
@@ -254,7 +254,7 @@ Ring3WaitForEvent (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SignalEvent (
+UserSpaceSignalEvent (
   IN EFI_EVENT  UserEvent
   );
 
@@ -269,7 +269,7 @@ Ring3SignalEvent (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CloseEvent (
+UserSpaceCloseEvent (
   IN EFI_EVENT  UserEvent
   );
 
@@ -285,7 +285,7 @@ Ring3CloseEvent (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CheckEvent (
+UserSpaceCheckEvent (
   IN EFI_EVENT  UserEvent
   );
 
@@ -305,7 +305,7 @@ Ring3CheckEvent (
 **/
 EFI_STATUS
 EFIAPI
-Ring3InstallProtocolInterface (
+UserSpaceInstallProtocolInterface (
   IN OUT EFI_HANDLE          *UserHandle,
   IN     EFI_GUID            *Protocol,
   IN     EFI_INTERFACE_TYPE  InterfaceType,
@@ -328,7 +328,7 @@ Ring3InstallProtocolInterface (
 **/
 EFI_STATUS
 EFIAPI
-Ring3ReinstallProtocolInterface (
+UserSpaceReinstallProtocolInterface (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN VOID        *OldInterface,
@@ -350,7 +350,7 @@ Ring3ReinstallProtocolInterface (
 **/
 EFI_STATUS
 EFIAPI
-Ring3UninstallProtocolInterface (
+UserSpaceUninstallProtocolInterface (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN VOID        *Interface
@@ -369,7 +369,7 @@ Ring3UninstallProtocolInterface (
 **/
 EFI_STATUS
 EFIAPI
-Ring3HandleProtocol (
+UserSpaceHandleProtocol (
   IN  EFI_HANDLE  UserHandle,
   IN  EFI_GUID    *Protocol,
   OUT VOID        **Interface
@@ -390,7 +390,7 @@ Ring3HandleProtocol (
 **/
 EFI_STATUS
 EFIAPI
-Ring3RegisterProtocolNotify (
+UserSpaceRegisterProtocolNotify (
   IN  EFI_GUID   *Protocol,
   IN  EFI_EVENT  Event,
   OUT VOID       **Registration
@@ -416,7 +416,7 @@ Ring3RegisterProtocolNotify (
 **/
 EFI_STATUS
 EFIAPI
-Ring3LocateHandle (
+UserSpaceLocateHandle (
   IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
   IN     EFI_GUID                *Protocol   OPTIONAL,
   IN     VOID                    *SearchKey  OPTIONAL,
@@ -441,7 +441,7 @@ Ring3LocateHandle (
 **/
 EFI_STATUS
 EFIAPI
-Ring3LocateDevicePath (
+UserSpaceLocateDevicePath (
   IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
      OUT EFI_HANDLE                *Device
@@ -464,7 +464,7 @@ Ring3LocateDevicePath (
 **/
 EFI_STATUS
 EFIAPI
-Ring3InstallConfigurationTable (
+UserSpaceInstallConfigurationTable (
   IN EFI_GUID  *Guid,
   IN VOID      *Table
   );
@@ -505,7 +505,7 @@ Ring3InstallConfigurationTable (
 **/
 EFI_STATUS
 EFIAPI
-Ring3LoadImage (
+UserSpaceLoadImage (
   IN  BOOLEAN                   BootPolicy,
   IN  EFI_HANDLE                ParentImageHandle,
   IN  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
@@ -535,7 +535,7 @@ Ring3LoadImage (
 **/
 EFI_STATUS
 EFIAPI
-Ring3StartImage (
+UserSpaceStartImage (
   IN  EFI_HANDLE  ImageHandle,
   OUT UINTN       *ExitDataSize,
   OUT CHAR16      **ExitData  OPTIONAL
@@ -566,7 +566,7 @@ Ring3StartImage (
 **/
 EFI_STATUS
 EFIAPI
-Ring3Exit (
+UserSpaceExit (
   IN EFI_HANDLE  ImageHandle,
   IN EFI_STATUS  Status,
   IN UINTN       ExitDataSize,
@@ -587,7 +587,7 @@ Ring3Exit (
 **/
 EFI_STATUS
 EFIAPI
-Ring3UnloadImage (
+UserSpaceUnloadImage (
   IN EFI_HANDLE  ImageHandle
   );
 
@@ -603,7 +603,7 @@ Ring3UnloadImage (
 **/
 EFI_STATUS
 EFIAPI
-Ring3ExitBootServices (
+UserSpaceExitBootServices (
   IN EFI_HANDLE  ImageHandle,
   IN UINTN       MapKey
   );
@@ -620,7 +620,7 @@ Ring3ExitBootServices (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetNextMonotonicCount (
+UserSpaceGetNextMonotonicCount (
   OUT UINT64  *Count
   );
 
@@ -636,7 +636,7 @@ Ring3GetNextMonotonicCount (
 **/
 EFI_STATUS
 EFIAPI
-Ring3Stall (
+UserSpaceStall (
   IN UINTN  Microseconds
   );
 
@@ -664,7 +664,7 @@ Ring3Stall (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetWatchdogTimer (
+UserSpaceSetWatchdogTimer (
   IN UINTN   Timeout,
   IN UINT64  WatchdogCode,
   IN UINTN   DataSize,
@@ -699,7 +699,7 @@ Ring3SetWatchdogTimer (
 **/
 EFI_STATUS
 EFIAPI
-Ring3ConnectController (
+UserSpaceConnectController (
   IN EFI_HANDLE                ControllerHandle,
   IN EFI_HANDLE                *DriverImageHandle    OPTIONAL,
   IN EFI_DEVICE_PATH_PROTOCOL  *RemainingDevicePath  OPTIONAL,
@@ -740,7 +740,7 @@ Ring3ConnectController (
 **/
 EFI_STATUS
 EFIAPI
-Ring3DisconnectController (
+UserSpaceDisconnectController (
   IN EFI_HANDLE  ControllerHandle,
   IN EFI_HANDLE  DriverImageHandle  OPTIONAL,
   IN EFI_HANDLE  ChildHandle        OPTIONAL
@@ -768,7 +768,7 @@ Ring3DisconnectController (
 **/
 EFI_STATUS
 EFIAPI
-Ring3OpenProtocol (
+UserSpaceOpenProtocol (
   IN  EFI_HANDLE  UserHandle,
   IN  EFI_GUID    *Protocol,
   OUT VOID        **Interface OPTIONAL,
@@ -804,7 +804,7 @@ Ring3OpenProtocol (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CloseProtocol (
+UserSpaceCloseProtocol (
   IN EFI_HANDLE  UserHandle,
   IN EFI_GUID    *Protocol,
   IN EFI_HANDLE  AgentHandle,
@@ -824,7 +824,7 @@ Ring3CloseProtocol (
 **/
 EFI_STATUS
 EFIAPI
-Ring3OpenProtocolInformation (
+UserSpaceOpenProtocolInformation (
   IN  EFI_HANDLE                           UserHandle,
   IN  EFI_GUID                             *Protocol,
   OUT EFI_OPEN_PROTOCOL_INFORMATION_ENTRY  **EntryBuffer,
@@ -856,7 +856,7 @@ Ring3OpenProtocolInformation (
 **/
 EFI_STATUS
 EFIAPI
-Ring3ProtocolsPerHandle (
+UserSpaceProtocolsPerHandle (
   IN  EFI_HANDLE  UserHandle,
   OUT EFI_GUID    ***ProtocolBuffer,
   OUT UINTN       *ProtocolBufferCount
@@ -864,7 +864,7 @@ Ring3ProtocolsPerHandle (
 
 /**
   Function returns an array of handles that support the requested protocol
-  in a buffer allocated from pool. This is a version of Ring3LocateHandle()
+  in a buffer allocated from pool. This is a version of UserSpaceLocateHandle()
   that allocates a buffer for the caller.
 
   @param  SearchType             Specifies which handle(s) are to be returned.
@@ -886,7 +886,7 @@ Ring3ProtocolsPerHandle (
 **/
 EFI_STATUS
 EFIAPI
-Ring3LocateHandleBuffer (
+UserSpaceLocateHandleBuffer (
   IN     EFI_LOCATE_SEARCH_TYPE  SearchType,
   IN     EFI_GUID                *Protocol OPTIONAL,
   IN     VOID                    *SearchKey OPTIONAL,
@@ -912,7 +912,7 @@ Ring3LocateHandleBuffer (
 **/
 EFI_STATUS
 EFIAPI
-Ring3LocateProtocol (
+UserSpaceLocateProtocol (
   IN  EFI_GUID  *Protocol,
   IN  VOID      *Registration OPTIONAL,
   OUT VOID      **Interface
@@ -941,7 +941,7 @@ Ring3LocateProtocol (
 **/
 EFI_STATUS
 EFIAPI
-Ring3InstallMultipleProtocolInterfaces (
+UserSpaceInstallMultipleProtocolInterfaces (
   IN OUT EFI_HANDLE  *Handle,
   ...
   );
@@ -962,7 +962,7 @@ Ring3InstallMultipleProtocolInterfaces (
 **/
 EFI_STATUS
 EFIAPI
-Ring3UninstallMultipleProtocolInterfaces (
+UserSpaceUninstallMultipleProtocolInterfaces (
   IN EFI_HANDLE  Handle,
   ...
   );
@@ -984,7 +984,7 @@ Ring3UninstallMultipleProtocolInterfaces (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CalculateCrc32 (
+UserSpaceCalculateCrc32 (
   IN  VOID    *Data,
   IN  UINTN   DataSize,
   OUT UINT32  *Crc32
@@ -1012,7 +1012,7 @@ Ring3CalculateCrc32 (
 **/
 EFI_STATUS
 EFIAPI
-Ring3CreateEventEx (
+UserSpaceCreateEventEx (
   IN  UINT32            Type,
   IN  EFI_TPL           NotifyTpl,
   IN  EFI_EVENT_NOTIFY  NotifyFunction  OPTIONAL,
@@ -1034,7 +1034,7 @@ Ring3CreateEventEx (
 **/
 EFI_STATUS
 EFIAPI
-Ring3BlockIoReset (
+UserSpaceBlockIoReset (
   IN EFI_BLOCK_IO_PROTOCOL  *This,
   IN BOOLEAN                ExtendedVerification
   );
@@ -1060,7 +1060,7 @@ Ring3BlockIoReset (
 **/
 EFI_STATUS
 EFIAPI
-Ring3BlockIoRead (
+UserSpaceBlockIoRead (
   IN  EFI_BLOCK_IO_PROTOCOL  *This,
   IN  UINT32                 MediaId,
   IN  EFI_LBA                Lba,
@@ -1090,7 +1090,7 @@ Ring3BlockIoRead (
 **/
 EFI_STATUS
 EFIAPI
-Ring3BlockIoWrite (
+UserSpaceBlockIoWrite (
   IN EFI_BLOCK_IO_PROTOCOL  *This,
   IN UINT32                 MediaId,
   IN EFI_LBA                Lba,
@@ -1110,7 +1110,7 @@ Ring3BlockIoWrite (
 **/
 EFI_STATUS
 EFIAPI
-Ring3BlockIoFlush (
+UserSpaceBlockIoFlush (
   IN EFI_BLOCK_IO_PROTOCOL  *This
   );
 
@@ -1133,7 +1133,7 @@ Ring3BlockIoFlush (
 **/
 EFI_STATUS
 EFIAPI
-Ring3DiskIoRead (
+UserSpaceDiskIoRead (
   IN  EFI_DISK_IO_PROTOCOL  *This,
   IN  UINT32                MediaId,
   IN  UINT64                Offset,
@@ -1161,7 +1161,7 @@ Ring3DiskIoRead (
 **/
 EFI_STATUS
 EFIAPI
-Ring3DiskIoWrite (
+UserSpaceDiskIoWrite (
   IN EFI_DISK_IO_PROTOCOL  *This,
   IN UINT32                MediaId,
   IN UINT64                Offset,
@@ -1184,7 +1184,7 @@ Ring3DiskIoWrite (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetTime (
+UserSpaceGetTime (
   OUT EFI_TIME               *Time,
   OUT EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
   );
@@ -1201,7 +1201,7 @@ Ring3GetTime (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetTime (
+UserSpaceSetTime (
   IN EFI_TIME  *Time
   );
 
@@ -1222,7 +1222,7 @@ Ring3SetTime (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetWakeupTime (
+UserSpaceGetWakeupTime (
   OUT BOOLEAN   *Enabled,
   OUT BOOLEAN   *Pending,
   OUT EFI_TIME  *Time
@@ -1244,7 +1244,7 @@ Ring3GetWakeupTime (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetWakeupTime (
+UserSpaceSetWakeupTime (
   IN BOOLEAN   Enable,
   IN EFI_TIME  *Time   OPTIONAL
   );
@@ -1270,7 +1270,7 @@ Ring3SetWakeupTime (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetVirtualAddressMap (
+UserSpaceSetVirtualAddressMap (
   IN UINTN                  MemoryMapSize,
   IN UINTN                  DescriptorSize,
   IN UINT32                 DescriptorVersion,
@@ -1294,7 +1294,7 @@ Ring3SetVirtualAddressMap (
 **/
 EFI_STATUS
 EFIAPI
-Ring3ConvertPointer (
+UserSpaceConvertPointer (
   IN     UINTN  DebugDisposition,
   IN OUT VOID   **Address
   );
@@ -1325,7 +1325,7 @@ Ring3ConvertPointer (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetVariable (
+UserSpaceGetVariable (
   IN     CHAR16    *VariableName,
   IN     EFI_GUID  *VendorGuid,
      OUT UINT32    *Attributes     OPTIONAL,
@@ -1361,7 +1361,7 @@ Ring3GetVariable (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetNextVariableName (
+UserSpaceGetNextVariableName (
   IN OUT UINTN     *VariableNameSize,
   IN OUT CHAR16    *VariableName,
   IN OUT EFI_GUID  *VendorGuid
@@ -1403,7 +1403,7 @@ Ring3GetNextVariableName (
 **/
 EFI_STATUS
 EFIAPI
-Ring3SetVariable (
+UserSpaceSetVariable (
   IN CHAR16    *VariableName,
   IN EFI_GUID  *VendorGuid,
   IN UINT32    Attributes,
@@ -1423,7 +1423,7 @@ Ring3SetVariable (
 **/
 EFI_STATUS
 EFIAPI
-Ring3GetNextHighMonotonicCount (
+UserSpaceGetNextHighMonotonicCount (
   OUT UINT32  *HighCount
   );
 
@@ -1444,7 +1444,7 @@ Ring3GetNextHighMonotonicCount (
 **/
 VOID
 EFIAPI
-Ring3ResetSystem (
+UserSpaceResetSystem (
   IN EFI_RESET_TYPE  ResetType,
   IN EFI_STATUS      ResetStatus,
   IN UINTN           DataSize,
@@ -1483,7 +1483,7 @@ Ring3ResetSystem (
 **/
 EFI_STATUS
 EFIAPI
-Ring3UpdateCapsule (
+UserSpaceUpdateCapsule (
   IN EFI_CAPSULE_HEADER    **CapsuleHeaderArray,
   IN UINTN                 CapsuleCount,
   IN EFI_PHYSICAL_ADDRESS  ScatterGatherList   OPTIONAL
@@ -1514,7 +1514,7 @@ Ring3UpdateCapsule (
 **/
 EFI_STATUS
 EFIAPI
-Ring3QueryCapsuleCapabilities (
+UserSpaceQueryCapsuleCapabilities (
   IN  EFI_CAPSULE_HEADER  **CapsuleHeaderArray,
   IN  UINTN               CapsuleCount,
   OUT UINT64              *MaximumCapsuleSize,
@@ -1545,7 +1545,7 @@ Ring3QueryCapsuleCapabilities (
 **/
 EFI_STATUS
 EFIAPI
-Ring3QueryVariableInfo (
+UserSpaceQueryVariableInfo (
   IN  UINT32  Attributes,
   OUT UINT64  *MaximumVariableStorageSize,
   OUT UINT64  *RemainingVariableStorageSize,
@@ -1566,7 +1566,7 @@ Ring3QueryVariableInfo (
 **/
 INTN
 EFIAPI
-Ring3UnicodeStriColl (
+UserSpaceUnicodeStriColl (
   IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN CHAR16                          *Str1,
   IN CHAR16                          *Str2
@@ -1586,7 +1586,7 @@ Ring3UnicodeStriColl (
 **/
 BOOLEAN
 EFIAPI
-Ring3UnicodeMetaiMatch (
+UserSpaceUnicodeMetaiMatch (
   IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN CHAR16                          *String,
   IN CHAR16                          *Pattern
@@ -1602,7 +1602,7 @@ Ring3UnicodeMetaiMatch (
 **/
 VOID
 EFIAPI
-Ring3UnicodeStrLwr (
+UserSpaceUnicodeStrLwr (
   IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN OUT CHAR16                          *Str
   );
@@ -1617,7 +1617,7 @@ Ring3UnicodeStrLwr (
 **/
 VOID
 EFIAPI
-Ring3UnicodeStrUpr (
+UserSpaceUnicodeStrUpr (
   IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN OUT CHAR16                          *Str
   );
@@ -1636,7 +1636,7 @@ Ring3UnicodeStrUpr (
 **/
 VOID
 EFIAPI
-Ring3UnicodeFatToStr (
+UserSpaceUnicodeFatToStr (
   IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN  UINTN                           FatSize,
   IN  CHAR8                           *Fat,
@@ -1659,7 +1659,7 @@ Ring3UnicodeFatToStr (
 **/
 BOOLEAN
 EFIAPI
-Ring3UnicodeStrToFat (
+UserSpaceUnicodeStrToFat (
   IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN  CHAR16                          *String,
   IN  UINTN                           FatSize,

@@ -1,9 +1,9 @@
 ;------------------------------------------------------------------------------
-; Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+; Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 ; SPDX-License-Identifier: BSD-3-Clause
 ;------------------------------------------------------------------------------
 
-extern ASM_PFX(Ring3Call)
+extern ASM_PFX(UserSpaceCall)
 
 DEFAULT REL
 SECTION .text
@@ -43,15 +43,15 @@ makecall:
 ;------------------------------------------------------------------------------
 ; VOID
 ; EFIAPI
-; Ring3EntryPoint (
-;   IN RING3_CALL_DATA  *Data
+; UserSpaceEntryPoint (
+;   IN USER_SPACE_CALL_DATA  *Data
 ;   );
 ;
-;   (rcx) RIP of Ring3EntryPoint saved for SYSRET in CallRing3().
+;   (rcx) RIP of UserSpaceEntryPoint saved for SYSRET in CallUserSpace().
 ;   (rdx) Data
 ;------------------------------------------------------------------------------
-global ASM_PFX(Ring3EntryPoint)
-ASM_PFX(Ring3EntryPoint):
+global ASM_PFX(UserSpaceEntryPoint)
+ASM_PFX(UserSpaceEntryPoint):
     mov     rcx, rdx
 
-    call ASM_PFX(Ring3Call)
+    call ASM_PFX(UserSpaceCall)

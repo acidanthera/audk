@@ -1,11 +1,11 @@
 //------------------------------------------------------------------------------
-// Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+// Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 //------------------------------------------------------------------------------
 
 #include <AsmMacroIoLib.h>
 
-.extern ASM_PFX(Ring3Call)
+.extern ASM_PFX(UserSpaceCall)
 
 //------------------------------------------------------------------------------
 // EFI_STATUS
@@ -23,11 +23,11 @@ ASM_FUNC(SysCall)
 //------------------------------------------------------------------------------
 // VOID
 // EFIAPI
-// Ring3EntryPoint (
-//   IN RING3_CALL_DATA  *Data
+// UserSpaceEntryPoint (
+//   IN USER_SPACE_CALL_DATA  *Data
 //   );
 //
 //   (r0) Data
 //------------------------------------------------------------------------------
-ASM_FUNC(Ring3EntryPoint)
-  b ASM_PFX(Ring3Call)
+ASM_FUNC(UserSpaceEntryPoint)
+  b ASM_PFX(UserSpaceCall)
