@@ -1350,6 +1350,9 @@ CoreLoadImageCommon (
   Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
 
   if ((!PcdGetBool (PcdEnableUserSpace)) && Image->IsUserImage && mDxeRing3) {
+    //
+    // Do not load DxeRing3 driver, if UserSpace is disabled.
+    //
     mDxeRing3 = FALSE;
     Status    = EFI_NOT_STARTED;
     goto Done;
@@ -1976,6 +1979,10 @@ CoreUnloadImage (
     //
     Status = EFI_UNSUPPORTED;
     if (Image->Info.Unload != NULL) {
+      //
+      // TODO: If Image->IsUserImage, use FindInterface() to locate UserSpace
+      // EFI_LOADED_IMAGE_PROTOCOL->Unload() and GoToRing3().
+      //
       Status = Image->Info.Unload (ImageHandle);
     }
   } else {

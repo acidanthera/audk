@@ -38,6 +38,7 @@ SysCallBootService (
   UINT8       Type;
   UINT8       NumberOfArguments;
   UINTN       *UserArguments;
+  UINT64      Attributes;
 
   ArmEnableInterrupts ();
 
@@ -52,6 +53,9 @@ SysCallBootService (
     ++NumberOfArguments;
   }
 
+  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Context.SystemContextArm->SP, &Attributes);
+  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
   AllowSupervisorAccessToUserMemory ();
   if (Type == SysCallFreePages) {
     //
@@ -60,6 +64,9 @@ SysCallBootService (
     // Memory is passed as 2 words on stack and aligned on 8 bytes.
     //
     UserArguments = (UINTN *)(Context.SystemContextArm->SP - 2 * sizeof (UINTN));
+
+    gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
+    ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
     CopyMem (
       (VOID *)UserArguments,
@@ -72,6 +79,9 @@ SysCallBootService (
     // all the others are on User stack.
     //
     UserArguments = (UINTN *)(Context.SystemContextArm->SP - 3 * sizeof (UINTN));
+
+    gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
+    ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
     CopyMem (
       (VOID *)UserArguments,
