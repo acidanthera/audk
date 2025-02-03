@@ -1244,8 +1244,8 @@
   # @ValidRange 0x80000001 | 1 - 255
   gEfiMdeModulePkgTokenSpaceGuid.PcdUsbNetworkPeriodicTimerInterval|16|UINT8|0x30001063
 
-  ## Indicates whether DXE drivers marked in .fdf file as USER will be loaded in user memory.
-  #   TRUE  - USER DXE drivers will be loaded in user memory.<BR>
+  ## Indicates whether DXE drivers marked in .fdf file as USER will be loaded in separate User address spaces.
+  #   TRUE  - USER DXE drivers will be loaded in separate User address spaces.<BR>
   #   FALSE - All DXE drivers will be loaded in supervisor memory.<BR>
   # @Prompt Enable User Space.
   gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062

@@ -6,7 +6,7 @@
 
 **/
 
-#include "Ring3.h"
+#include "UserSpace.h"
 
 EFI_STATUS
 EFIAPI

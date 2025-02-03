@@ -9,7 +9,7 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = DxeRing3
+  BASE_NAME                      = DxeUserSpace
   FILE_GUID                      = 88EA50C2-0DEA-4F13-B691-B506554E632B
   MODULE_TYPE                    = DXE_DRIVER
   VERSION_STRING                 = 1.0
@@ -22,11 +22,11 @@
 #
 
 [Sources]
-  Ring3.h
-  DxeRing3.c
-  Ring3UefiBootServices.c
-  Ring3UefiRuntimeServices.c
-  Ring3Protocols.c
+  UserSpace.h
+  DxeUserSpace.c
+  UserSpaceUefiBootServices.c
+  UserSpaceUefiRuntimeServices.c
+  UserSpaceProtocols.c
 
 [Sources.IA32]
   IA32/SysCall.nasm

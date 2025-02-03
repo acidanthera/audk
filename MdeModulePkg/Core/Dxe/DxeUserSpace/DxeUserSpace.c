@@ -13,7 +13,7 @@
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
 
-#include "Ring3.h"
+#include "UserSpace.h"
 
 EFI_BOOT_SERVICES  mBootServices = {
   {

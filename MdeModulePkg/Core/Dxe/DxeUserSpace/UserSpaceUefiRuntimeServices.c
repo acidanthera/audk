@@ -11,7 +11,7 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DebugLib.h>
 
-#include "Ring3.h"
+#include "UserSpace.h"
 
 EFI_STATUS
 EFIAPI
