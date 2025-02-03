@@ -109,9 +109,9 @@ typedef enum {
   ///
   EfiUnacceptedMemoryType,
   ///
-  /// Memory allocated for (by) Ring3 Images.
+  /// Memory allocated for (by) UserSpace Images.
   ///
-  EfiRing3MemoryType,
+  EfiUserSpaceMemoryType,
   EfiMaxMemoryType,
   //
   // +---------------------------------------------------+

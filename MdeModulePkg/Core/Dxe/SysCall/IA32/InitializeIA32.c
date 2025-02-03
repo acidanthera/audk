@@ -1,6 +1,6 @@
 /** @file
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -150,7 +150,7 @@ InitializePlatform (
 
   //
   // Initialize MSR_IA32_SYSENTER_CS, MSR_IA32_SYSENTER_EIP for SYSENTER and SYSEXIT.
-  // MSR_IA32_SYSENTER_ESP is set in CallRing3().
+  // MSR_IA32_SYSENTER_ESP is set in CallUserSpace().
   //
   Msr = RING0_CODE32_SEL;
   AsmWriteMsr64 (MSR_IA32_SYSENTER_CS, Msr);

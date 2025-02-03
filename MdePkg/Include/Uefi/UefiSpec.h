@@ -2163,13 +2163,13 @@ typedef struct {
   VOID                 *EntryPoint;
   EFI_BOOT_SERVICES    *BootServices;
   EFI_RUNTIME_SERVICES *RuntimeServices;
-} RING3_DATA;
+} USER_SPACE_DATA;
 
 typedef struct {
   UINT8  NumberOfArguments;
   VOID   *EntryPoint;
   UINTN  Arguments[];
-} RING3_CALL_DATA;
+} USER_SPACE_CALL_DATA;
 
 /**
   This is the declaration of an EFI image entry point. This entry point is

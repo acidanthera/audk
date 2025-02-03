@@ -59,17 +59,17 @@ ASM_FUNC_ALIGN(SysCallBase, 4096)
 //------------------------------------------------------------------------------
 // EFI_STATUS
 // EFIAPI
-// CallRing3 (
-//   IN RING3_CALL_DATA  *Data,
-//   IN UINTN            UserStackTop
+// CallUserSpace (
+//   IN USER_SPACE_CALL_DATA  *Data,
+//   IN UINTN                 UserStackTop
 //   );
 //
 //   (x0) Data
 //   (x1) UserStackTop
-//   (x2) gRing3EntryPoint
+//   (x2) gUserSpaceEntryPoint
 //   (x3) gUserPageTable
 //------------------------------------------------------------------------------
-ASM_FUNC(ArmCallRing3)
+ASM_FUNC(ArmCallUserSpace)
   // Save registers.
   sub  sp, sp, #0x100
 
@@ -94,7 +94,7 @@ ASM_FUNC(ArmCallRing3)
   mrs  x6, nzcv
   mrs  x7, pan
   orr  x6, x6, x7
-  // Prepare Ring3 SP and EntryPoint.
+  // Prepare UserSpace SP and EntryPoint.
   msr  sp_el0, x1
   EL1_OR_EL2(x1)
 1:msr  elr_el1, x2

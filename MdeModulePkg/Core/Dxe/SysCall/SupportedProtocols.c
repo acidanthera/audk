@@ -14,26 +14,26 @@ LIST_ENTRY gUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (gUserSpaceDriv
 
 EFI_STATUS
 EFIAPI
-CallRing3 (
-  IN RING3_CALL_DATA  *Data,
-  IN UINTN            UserStackTop
+CallUserSpace (
+  IN USER_SPACE_CALL_DATA  *Data,
+  IN UINTN                 UserStackTop
   );
 
 EFI_STATUS
 EFIAPI
-GoToRing3 (
+GoToUserSpace (
   IN UINT8              Number,
   IN VOID               *EntryPoint,
   IN USER_SPACE_DRIVER  *UserDriver,
   ...
   )
 {
-  EFI_STATUS       Status;
-  RING3_CALL_DATA  *Input;
-  VA_LIST          Marker;
-  UINTN            Index;
-  UINTN            UserStackTop;
-  UINTN            UserStackBase;
+  EFI_STATUS            Status;
+  USER_SPACE_CALL_DATA  *Input;
+  VA_LIST               Marker;
+  UINTN                 Index;
+  UINTN                 UserStackTop;
+  UINTN                 UserStackBase;
 
   if (UserDriver->NumberOfCalls > MAX_CALL) {
     return EFI_OUT_OF_RESOURCES;
@@ -44,9 +44,9 @@ GoToRing3 (
     return EFI_OUT_OF_RESOURCES;
   }
 
-  UserStackTop = UserStackBase + STACK_SIZE - (sizeof (RING3_CALL_DATA) + Number * sizeof (UINTN));
+  UserStackTop = UserStackBase + STACK_SIZE - (sizeof (USER_SPACE_CALL_DATA) + Number * sizeof (UINTN));
 
-  Input = (RING3_CALL_DATA *)UserStackTop;
+  Input = (USER_SPACE_CALL_DATA *)UserStackTop;
 
   Input->NumberOfArguments = Number;
   Input->EntryPoint        = EntryPoint;
@@ -73,7 +73,7 @@ GoToRing3 (
   //
   UserStackTop = ALIGN_VALUE (UserStackTop - 8*4 - CPU_STACK_ALIGNMENT, CPU_STACK_ALIGNMENT);
 
-  Status = CallRing3 (
+  Status = CallUserSpace (
              Input,
              UserStackTop
              );
@@ -133,7 +133,7 @@ CoreDriverBindingSupported (
   EntryPoint = (VOID *)This->Supported;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
@@ -169,7 +169,7 @@ CoreDriverBindingStart (
   EntryPoint = (VOID *)This->Start;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
@@ -206,7 +206,7 @@ CoreDriverBindingStop (
   EntryPoint = (VOID *)This->Stop;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              4,
              EntryPoint,
              UserDriver,
@@ -242,7 +242,7 @@ CoreFileClose (
   EntryPoint = (VOID *)This->Close;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              1,
              EntryPoint,
              UserDriver,
@@ -278,9 +278,9 @@ CoreFileRead (
   )
 {
   EFI_STATUS            Status;
-  UINTN                 *Ring3BufferSize;
-  VOID                  *Ring3Buffer;
-  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  UINTN                 *UserSpaceBufferSize;
+  VOID                  *UserSpaceBuffer;
+  EFI_PHYSICAL_ADDRESS  UserSpacePages;
   UINT32                PagesNumber;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
@@ -290,57 +290,57 @@ CoreFileRead (
     return EFI_INVALID_PARAMETER;
   }
   //
-  // gUserPageTable must be set before alloctation of EfiRing3MemoryType pages.
+  // gUserPageTable must be set before alloctation of EfiUserSpaceMemoryType pages.
   //
   UserDriver = FindUserSpaceDriver (This, &OldPageTable);
   ASSERT (UserDriver != NULL);
 
   This = UserDriver->UserSpaceDriver;
 
-  Ring3Buffer = NULL;
-  Ring3Pages  = 0;
-  PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
+  UserSpaceBuffer = NULL;
+  UserSpacePages  = 0;
+  PagesNumber     = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize);
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              PagesNumber,
-             &Ring3Pages
+             &UserSpacePages
              );
   if (EFI_ERROR (Status)) {
     gUserPageTable = OldPageTable;
     return Status;
   }
 
-  Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
+  UserSpaceBufferSize = (UINTN *)(UINTN)UserSpacePages;
 
   AllowSupervisorAccessToUserMemory ();
-  *Ring3BufferSize = *BufferSize;
-  EntryPoint       = (VOID *)This->Read;
+  *UserSpaceBufferSize = *BufferSize;
+  EntryPoint           = (VOID *)This->Read;
   ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
-    Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
+    UserSpaceBuffer = (VOID *)((UINTN *)(UINTN)UserSpacePages + 1);
   }
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
              This,
-             Ring3BufferSize,
-             Ring3Buffer
+             UserSpaceBufferSize,
+             UserSpaceBuffer
              );
 
   AllowSupervisorAccessToUserMemory ();
-  if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
-    CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+  if ((UserSpaceBuffer != NULL) && (Buffer != NULL) && (*BufferSize >= *UserSpaceBufferSize)) {
+    CopyMem (Buffer, UserSpaceBuffer, *UserSpaceBufferSize);
   }
 
-  *BufferSize = *Ring3BufferSize;
+  *BufferSize = *UserSpaceBufferSize;
   ForbidSupervisorAccessToUserMemory ();
 
-  CoreFreePages (Ring3Pages, PagesNumber);
+  CoreFreePages (UserSpacePages, PagesNumber);
 
   gUserPageTable = OldPageTable;
 
@@ -382,7 +382,7 @@ CoreFileSetPosition (
   ForbidSupervisorAccessToUserMemory ();
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              2,
              EntryPoint,
              UserDriver,
@@ -393,7 +393,7 @@ CoreFileSetPosition (
   //
   // UINT64 Position is passed as 2 double words on stack.
   //
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
@@ -405,7 +405,7 @@ CoreFileSetPosition (
   // UINT64 Position is passed as 2 words in 2 registers and is aligned on 8 bytes.
   // R0 == This, R1 == NULL, R2 == Position_Low, R3 == Position_High.
   //
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              4,
              EntryPoint,
              UserDriver,
@@ -430,7 +430,7 @@ CoreFileGetPosition (
   )
 {
   EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Ring3Position;
+  EFI_PHYSICAL_ADDRESS  UserSpacePosition;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
   UINTN                 OldPageTable;
@@ -446,9 +446,9 @@ CoreFileGetPosition (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              1,
-             &Ring3Position
+             &UserSpacePosition
              );
   if (EFI_ERROR (Status)) {
     gUserPageTable = OldPageTable;
@@ -456,23 +456,23 @@ CoreFileGetPosition (
   }
 
   AllowSupervisorAccessToUserMemory ();
-  *(UINT64 *)(UINTN)Ring3Position = *Position;
-  EntryPoint                      = (VOID *)This->GetPosition;
+  *(UINT64 *)(UINTN)UserSpacePosition = *Position;
+  EntryPoint                          = (VOID *)This->GetPosition;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              2,
              EntryPoint,
              UserDriver,
              This,
-             Ring3Position
+             UserSpacePosition
              );
 
   AllowSupervisorAccessToUserMemory ();
-  *Position = *(UINT64 *)(UINTN)Ring3Position;
+  *Position = *(UINT64 *)(UINTN)UserSpacePosition;
   ForbidSupervisorAccessToUserMemory ();
 
-  CoreFreePages (Ring3Position, 1);
+  CoreFreePages (UserSpacePosition, 1);
 
   gUserPageTable = OldPageTable;
 
@@ -490,10 +490,10 @@ CoreFileGetInfo (
   )
 {
   EFI_STATUS            Status;
-  EFI_GUID              *Ring3InformationType;
-  UINTN                 *Ring3BufferSize;
-  VOID                  *Ring3Buffer;
-  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  EFI_GUID              *UserSpaceInformationType;
+  UINTN                 *UserSpaceBufferSize;
+  VOID                  *UserSpaceBuffer;
+  EFI_PHYSICAL_ADDRESS  UserSpacePages;
   UINT32                PagesNumber;
   USER_SPACE_DRIVER     *UserDriver;
   VOID                  *EntryPoint;
@@ -508,61 +508,61 @@ CoreFileGetInfo (
 
   This = UserDriver->UserSpaceDriver;
 
-  Ring3Buffer          = NULL;
-  Ring3InformationType = NULL;
-  Ring3Pages           = 0;
+  UserSpaceBuffer          = NULL;
+  UserSpaceInformationType = NULL;
+  UserSpacePages           = 0;
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (UINTN *) + *BufferSize + sizeof (EFI_GUID));
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              PagesNumber,
-             &Ring3Pages
+             &UserSpacePages
              );
   if (EFI_ERROR (Status)) {
     gUserPageTable = OldPageTable;
     return Status;
   }
 
-  Ring3BufferSize = (UINTN *)(UINTN)Ring3Pages;
+  UserSpaceBufferSize = (UINTN *)(UINTN)UserSpacePages;
 
   AllowSupervisorAccessToUserMemory ();
-  *Ring3BufferSize = *BufferSize;
-  EntryPoint       = (VOID *)This->GetInfo;
+  *UserSpaceBufferSize = *BufferSize;
+  EntryPoint           = (VOID *)This->GetInfo;
   ForbidSupervisorAccessToUserMemory ();
 
   if (Buffer != NULL) {
-    Ring3Buffer = (VOID *)((UINTN *)(UINTN)Ring3Pages + 1);
+    UserSpaceBuffer = (VOID *)((UINTN *)(UINTN)UserSpacePages + 1);
   }
 
   if (InformationType != NULL) {
-    Ring3InformationType = (EFI_GUID *)((UINTN)Ring3Pages + sizeof (UINTN *) + *BufferSize);
+    UserSpaceInformationType = (EFI_GUID *)((UINTN)UserSpacePages + sizeof (UINTN *) + *BufferSize);
 
     AllowSupervisorAccessToUserMemory ();
-    CopyGuid (Ring3InformationType, InformationType);
+    CopyGuid (UserSpaceInformationType, InformationType);
     ForbidSupervisorAccessToUserMemory ();
   }
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              4,
              EntryPoint,
              UserDriver,
              This,
-             Ring3InformationType,
-             Ring3BufferSize,
-             Ring3Buffer
+             UserSpaceInformationType,
+             UserSpaceBufferSize,
+             UserSpaceBuffer
              );
 
   AllowSupervisorAccessToUserMemory ();
-  if ((Ring3Buffer != NULL) && (Buffer != NULL) && (*BufferSize >= *Ring3BufferSize)) {
-    CopyMem (Buffer, Ring3Buffer, *Ring3BufferSize);
+  if ((UserSpaceBuffer != NULL) && (Buffer != NULL) && (*BufferSize >= *UserSpaceBufferSize)) {
+    CopyMem (Buffer, UserSpaceBuffer, *UserSpaceBufferSize);
   }
 
-  *BufferSize = *Ring3BufferSize;
+  *BufferSize = *UserSpaceBufferSize;
   ForbidSupervisorAccessToUserMemory ();
 
-  CoreFreePages (Ring3Pages, PagesNumber);
+  CoreFreePages (UserSpacePages, PagesNumber);
 
   gUserPageTable = OldPageTable;
 
@@ -653,9 +653,9 @@ CoreFileOpen (
 {
   EFI_STATUS            Status;
   EFI_FILE_PROTOCOL     *NewFile;
-  EFI_FILE_PROTOCOL     **Ring3NewHandle;
-  CHAR16                *Ring3FileName;
-  EFI_PHYSICAL_ADDRESS  Ring3Pages;
+  EFI_FILE_PROTOCOL     **UserSpaceNewHandle;
+  CHAR16                *UserSpaceFileName;
+  EFI_PHYSICAL_ADDRESS  UserSpacePages;
   UINT32                PagesNumber;
   USER_SPACE_DRIVER     *UserDriver;
   USER_SPACE_DRIVER     *NewDriver;
@@ -671,17 +671,17 @@ CoreFileOpen (
 
   This = UserDriver->UserSpaceDriver;
 
-  Ring3NewHandle = NULL;
-  Ring3FileName  = NULL;
-  Ring3Pages     = 0;
+  UserSpaceNewHandle = NULL;
+  UserSpaceFileName  = NULL;
+  UserSpacePages     = 0;
 
   PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (sizeof (EFI_FILE_PROTOCOL *) + StrSize (FileName));
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              PagesNumber,
-             &Ring3Pages
+             &UserSpacePages
              );
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
@@ -689,28 +689,28 @@ CoreFileOpen (
     return Status;
   }
 
-  Ring3NewHandle = (EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages;
-  Ring3FileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)(UINTN)Ring3Pages + 1);
+  UserSpaceNewHandle = (EFI_FILE_PROTOCOL **)(UINTN)UserSpacePages;
+  UserSpaceFileName  = (CHAR16 *)((EFI_FILE_PROTOCOL **)(UINTN)UserSpacePages + 1);
 
   AllowSupervisorAccessToUserMemory ();
-  Status     = StrCpyS (Ring3FileName, StrLen (FileName) + 1, FileName);
+  Status     = StrCpyS (UserSpaceFileName, StrLen (FileName) + 1, FileName);
   EntryPoint = (VOID *)This->Open;
   ForbidSupervisorAccessToUserMemory ();
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages (Ring3Pages, PagesNumber);
+    CoreFreePages (UserSpacePages, PagesNumber);
     gUserPageTable = OldPageTable;
     return Status;
   }
 
 #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              5,
              EntryPoint,
              UserDriver,
              This,
-             Ring3NewHandle,
-             Ring3FileName,
+             UserSpaceNewHandle,
+             UserSpaceFileName,
              OpenMode,
              Attributes
              );
@@ -718,13 +718,13 @@ CoreFileOpen (
   //
   // UINT64 OpenMode and Attributes are each passed as 2 double words on stack.
   //
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              7,
              EntryPoint,
              UserDriver,
              This,
-             Ring3NewHandle,
-             Ring3FileName,
+             UserSpaceNewHandle,
+             UserSpaceFileName,
              OpenMode,
              Attributes
              );
@@ -732,16 +732,16 @@ CoreFileOpen (
   //
   // UINT64 OpenMode and Attributes are each passed as 2 words on stack.
   // Each of them is aligned on 8 bytes.
-  // R0 == This, R1 == Ring3NewHandle, R2 == Ring3FileName, R3 == NULL,
+  // R0 == This, R1 == UserSpaceNewHandle, R2 == UserSpaceFileName, R3 == NULL,
   // [SP] == OpenMode, [SP + 8] == Attributes.
   //
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              8,
              EntryPoint,
              UserDriver,
              This,
-             Ring3NewHandle,
-             Ring3FileName,
+             UserSpaceNewHandle,
+             UserSpaceFileName,
              NULL,
              (UINT32)OpenMode,
              (UINT32)(OpenMode >> 32),
@@ -751,7 +751,7 @@ CoreFileOpen (
 #endif
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
-    CoreFreePages (Ring3Pages, PagesNumber);
+    CoreFreePages (UserSpacePages, PagesNumber);
     gUserPageTable = OldPageTable;
     return Status;
   }
@@ -759,7 +759,7 @@ CoreFileOpen (
   NewFile = AllocatePool (sizeof (EFI_FILE_PROTOCOL));
   if (NewFile == NULL) {
     *NewHandle = NULL;
-    CoreFreePages (Ring3Pages, PagesNumber);
+    CoreFreePages (UserSpacePages, PagesNumber);
     gUserPageTable = OldPageTable;
     return EFI_OUT_OF_RESOURCES;
   }
@@ -768,7 +768,7 @@ CoreFileOpen (
   if (NewDriver == NULL) {
     *NewHandle = NULL;
     FreePool (NewFile);
-    CoreFreePages (Ring3Pages, PagesNumber);
+    CoreFreePages (UserSpacePages, PagesNumber);
     gUserPageTable = OldPageTable;
     return EFI_OUT_OF_RESOURCES;
   }
@@ -778,8 +778,8 @@ CoreFileOpen (
   NewDriver->NumberOfCalls = 0;
 
   AllowSupervisorAccessToUserMemory ();
-  NewDriver->UserSpaceDriver = *Ring3NewHandle;
-  NewFile->Revision          = (*Ring3NewHandle)->Revision;
+  NewDriver->UserSpaceDriver = *UserSpaceNewHandle;
+  NewFile->Revision          = (*UserSpaceNewHandle)->Revision;
   ForbidSupervisorAccessToUserMemory ();
 
   InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
@@ -801,7 +801,7 @@ CoreFileOpen (
 
   *NewHandle = (EFI_FILE_PROTOCOL *)NewFile;
 
-  CoreFreePages (Ring3Pages, PagesNumber);
+  CoreFreePages (UserSpacePages, PagesNumber);
 
   gUserPageTable = OldPageTable;
 
@@ -816,7 +816,7 @@ CoreSimpleFileSystemOpenVolume (
   )
 {
   EFI_STATUS            Status;
-  EFI_FILE_PROTOCOL     **Ring3Root;
+  EFI_FILE_PROTOCOL     **UserSpaceRoot;
   EFI_FILE_PROTOCOL     *File;
   EFI_PHYSICAL_ADDRESS  Physical;
   USER_SPACE_DRIVER     *UserDriver;
@@ -839,7 +839,7 @@ CoreSimpleFileSystemOpenVolume (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              1,
              &Physical
              );
@@ -849,14 +849,14 @@ CoreSimpleFileSystemOpenVolume (
     return Status;
   }
 
-  Ring3Root = (EFI_FILE_PROTOCOL **)(UINTN)Physical;
+  UserSpaceRoot = (EFI_FILE_PROTOCOL **)(UINTN)Physical;
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              2,
              EntryPoint,
              UserDriver,
              This,
-             Ring3Root
+             UserSpaceRoot
              );
   if (EFI_ERROR (Status)) {
     *Root = NULL;
@@ -887,8 +887,8 @@ CoreSimpleFileSystemOpenVolume (
   NewDriver->NumberOfCalls = 0;
 
   AllowSupervisorAccessToUserMemory ();
-  NewDriver->UserSpaceDriver = *Ring3Root;
-  File->Revision             = (*Ring3Root)->Revision;
+  NewDriver->UserSpaceDriver = *UserSpaceRoot;
+  File->Revision             = (*UserSpaceRoot)->Revision;
   ForbidSupervisorAccessToUserMemory ();
 
   InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
@@ -943,7 +943,7 @@ CoreUnicodeCollationStriColl (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (Size1 + Size2),
              &UserMem
              );
@@ -958,7 +958,7 @@ CoreUnicodeCollationStriColl (
   EntryPoint = (VOID *)This->StriColl;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
@@ -1000,7 +1000,7 @@ CoreUnicodeCollationMetaiMatch (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (Size1 + Size2),
              &UserMem
              );
@@ -1015,7 +1015,7 @@ CoreUnicodeCollationMetaiMatch (
   EntryPoint = (VOID *)This->MetaiMatch;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              3,
              EntryPoint,
              UserDriver,
@@ -1054,7 +1054,7 @@ CoreUnicodeCollationStrLwr (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (Size1),
              &UserMem
              );
@@ -1068,7 +1068,7 @@ CoreUnicodeCollationStrLwr (
   EntryPoint = (VOID *)This->StrLwr;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              2,
              EntryPoint,
              UserDriver,
@@ -1108,7 +1108,7 @@ CoreUnicodeCollationStrUpr (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (Size1),
              &UserMem
              );
@@ -1122,7 +1122,7 @@ CoreUnicodeCollationStrUpr (
   EntryPoint = (VOID *)This->StrUpr;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              2,
              EntryPoint,
              UserDriver,
@@ -1161,7 +1161,7 @@ CoreUnicodeCollationFatToStr (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (FatSize * 3),
              &UserMem
              );
@@ -1175,7 +1175,7 @@ CoreUnicodeCollationFatToStr (
   EntryPoint = (VOID *)This->FatToStr;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              4,
              EntryPoint,
              UserDriver,
@@ -1219,7 +1219,7 @@ CoreUnicodeCollationStrToFat (
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
+             EfiUserSpaceMemoryType,
              EFI_SIZE_TO_PAGES (FatSize + Size1),
              &UserMem
              );
@@ -1233,7 +1233,7 @@ CoreUnicodeCollationStrToFat (
   EntryPoint = (VOID *)This->StrToFat;
   ForbidSupervisorAccessToUserMemory ();
 
-  Status = GoToRing3 (
+  Status = GoToUserSpace (
              4,
              EntryPoint,
              UserDriver,

@@ -247,7 +247,7 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO         *VectorInfoList;
   EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
-  gRing3Data     = NULL;
+  gUserSpaceData = NULL;
   gUserPageTable = 0;
 
   //
@@ -775,28 +775,28 @@ CoreExitBootServices (
   EFI_STATUS  Status;
 
   //
-  // Free resources allocated for Ring3.
+  // Free resources allocated for UserSpace.
   //
-  if (gRing3Data != NULL) {
+  if (gUserSpaceData != NULL) {
     AllowSupervisorAccessToUserMemory ();
-    if (gRing3Data->SystemTable.ConfigurationTable != NULL) {
+    if (gUserSpaceData->SystemTable.ConfigurationTable != NULL) {
       CoreFreePages (
-        (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data->SystemTable.ConfigurationTable,
-        EFI_SIZE_TO_PAGES (gRing3Data->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE))
+        (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData->SystemTable.ConfigurationTable,
+        EFI_SIZE_TO_PAGES (gUserSpaceData->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE))
       );
     }
     ForbidSupervisorAccessToUserMemory ();
 
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
-      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+      EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
     );
 
-    gRing3Data = NULL;
+    gUserSpaceData = NULL;
 
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Interfaces,
-      RING3_INTERFACES_PAGES
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceInterfaces,
+      USER_SPACE_INTERFACES_PAGES
     );
 
     FreeProtocolsList ();

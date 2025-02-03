@@ -43,7 +43,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
   @param  IsCore                 Selects between the purposes of mPoolHead array.
                                  In DxeCore each element describes EFI_MEMORY_TYPE.
-                                 In DxeRing3 each element describes User space.
+                                 In DxeUserSpace each element describes User space.
 
 **/
 VOID

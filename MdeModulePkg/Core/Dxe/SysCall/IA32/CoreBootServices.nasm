@@ -8,7 +8,7 @@
 #include <Register/Intel/ArchitecturalMsr.h>
 
 extern ASM_PFX(CallBootService)
-extern ASM_PFX(gRing3EntryPoint)
+extern ASM_PFX(gUserSpaceEntryPoint)
 
 extern ASM_PFX(AsmReadMsr64)
 
@@ -81,7 +81,7 @@ copy:
 
     ret
 
-%macro SetRing3DataSegmentSelectors 0
+%macro SetUserSpaceDataSegmentSelectors 0
     push dword MSR_IA32_SYSENTER_CS
     call ASM_PFX(AsmReadMsr64)
     ; eax = RING0_CODE32_SEL
@@ -146,7 +146,7 @@ ASM_PFX(CoreBootServices):
     push    eax
     cli
 
-    SetRing3DataSegmentSelectors
+    SetUserSpaceDataSegmentSelectors
 
     mov     eax, [ASM_PFX(gUserPageTable)]
     mov     cr3, eax
@@ -167,15 +167,15 @@ ASM_PFX(CoreBootServices):
 ;------------------------------------------------------------------------------
 ; EFI_STATUS
 ; EFIAPI
-; CallRing3 (
-;   IN RING3_CALL_DATA  *Data,
-;   IN UINTN            UserStackTop
+; CallUserSpace (
+;   IN USER_SPACE_CALL_DATA  *Data,
+;   IN UINTN                 UserStackTop
 ;   );
 ;
 ;   (On User Stack) Data, UserStackTop
 ;------------------------------------------------------------------------------
-global ASM_PFX(CallRing3)
-ASM_PFX(CallRing3):
+global ASM_PFX(CallUserSpace)
+ASM_PFX(CallUserSpace):
     cli
     ; Save nonvolatile registers EBX, EBP, EDI, ESI, ESP.
     push    ebx
@@ -194,11 +194,11 @@ ASM_PFX(CallRing3):
     mov     ecx, MSR_IA32_SYSENTER_ESP
     wrmsr
 
-    SetRing3DataSegmentSelectors
+    SetUserSpaceDataSegmentSelectors
 
     ; Prepare SYSEXIT arguments.
     mov     ecx, [esp + 4 * 7] ; UserStackTop
-    mov     edx, [ASM_PFX(gRing3EntryPoint)]
+    mov     edx, [ASM_PFX(gUserSpaceEntryPoint)]
     mov     eax, [esp + 4 * 6] ; Data
 
     ; Switch to User Stack.

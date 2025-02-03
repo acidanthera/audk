@@ -1,6 +1,7 @@
 /** @file
+  This driver constructs User space wrappers for the EFI_*_PROTOCOLs.
 
-  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
   SPDX-License-Identifier: BSD-3-Clause
 
 **/
@@ -9,7 +10,7 @@
 
 EFI_STATUS
 EFIAPI
-Ring3BlockIoReset (
+UserSpaceBlockIoReset (
   IN EFI_BLOCK_IO_PROTOCOL  *This,
   IN BOOLEAN                ExtendedVerification
   )
@@ -24,7 +25,7 @@ Ring3BlockIoReset (
 
 EFI_STATUS
 EFIAPI
-Ring3BlockIoRead (
+UserSpaceBlockIoRead (
   IN  EFI_BLOCK_IO_PROTOCOL  *This,
   IN  UINT32                 MediaId,
   IN  EFI_LBA                Lba,
@@ -45,7 +46,7 @@ Ring3BlockIoRead (
 
 EFI_STATUS
 EFIAPI
-Ring3BlockIoWrite (
+UserSpaceBlockIoWrite (
   IN EFI_BLOCK_IO_PROTOCOL  *This,
   IN UINT32                 MediaId,
   IN EFI_LBA                Lba,
@@ -66,7 +67,7 @@ Ring3BlockIoWrite (
 
 EFI_STATUS
 EFIAPI
-Ring3BlockIoFlush (
+UserSpaceBlockIoFlush (
   IN EFI_BLOCK_IO_PROTOCOL  *This
   )
 {
@@ -79,7 +80,7 @@ Ring3BlockIoFlush (
 
 EFI_STATUS
 EFIAPI
-Ring3DiskIoRead (
+UserSpaceDiskIoRead (
   IN  EFI_DISK_IO_PROTOCOL  *This,
   IN  UINT32                MediaId,
   IN  UINT64                Offset,
@@ -100,7 +101,7 @@ Ring3DiskIoRead (
 
 EFI_STATUS
 EFIAPI
-Ring3DiskIoWrite (
+UserSpaceDiskIoWrite (
   IN EFI_DISK_IO_PROTOCOL  *This,
   IN UINT32                MediaId,
   IN UINT64                Offset,
@@ -121,7 +122,7 @@ Ring3DiskIoWrite (
 
 INTN
 EFIAPI
-Ring3UnicodeStriColl (
+UserSpaceUnicodeStriColl (
   IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN CHAR16                          *Str1,
   IN CHAR16                          *Str2
@@ -138,7 +139,7 @@ Ring3UnicodeStriColl (
 
 BOOLEAN
 EFIAPI
-Ring3UnicodeMetaiMatch (
+UserSpaceUnicodeMetaiMatch (
   IN EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN CHAR16                          *String,
   IN CHAR16                          *Pattern
@@ -155,7 +156,7 @@ Ring3UnicodeMetaiMatch (
 
 VOID
 EFIAPI
-Ring3UnicodeStrLwr (
+UserSpaceUnicodeStrLwr (
   IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN OUT CHAR16                          *Str
   )
@@ -170,7 +171,7 @@ Ring3UnicodeStrLwr (
 
 VOID
 EFIAPI
-Ring3UnicodeStrUpr (
+UserSpaceUnicodeStrUpr (
   IN     EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN OUT CHAR16                          *Str
   )
@@ -185,7 +186,7 @@ Ring3UnicodeStrUpr (
 
 VOID
 EFIAPI
-Ring3UnicodeFatToStr (
+UserSpaceUnicodeFatToStr (
   IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN  UINTN                           FatSize,
   IN  CHAR8                           *Fat,
@@ -204,7 +205,7 @@ Ring3UnicodeFatToStr (
 
 BOOLEAN
 EFIAPI
-Ring3UnicodeStrToFat (
+UserSpaceUnicodeStrToFat (
   IN  EFI_UNICODE_COLLATION_PROTOCOL  *This,
   IN  CHAR16                          *String,
   IN  UINTN                           FatSize,

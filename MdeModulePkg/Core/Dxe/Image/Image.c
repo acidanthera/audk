@@ -23,7 +23,7 @@ typedef struct {
 STATIC LIST_ENTRY  mAvailableEmulators;
 STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
-STATIC BOOLEAN     mDxeRing3 = TRUE;
+STATIC BOOLEAN     mDxeUserSpace = TRUE;
 
 extern BOOLEAN     gBdsStarted;
 
@@ -1349,12 +1349,12 @@ CoreLoadImageCommon (
   Image->Info.ParentHandle = ParentImageHandle;
   Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
 
-  if ((!PcdGetBool (PcdEnableUserSpace)) && Image->IsUserImage && mDxeRing3) {
+  if ((!PcdGetBool (PcdEnableUserSpace)) && Image->IsUserImage && mDxeUserSpace) {
     //
-    // Do not load DxeRing3 driver, if UserSpace is disabled.
+    // Do not load DxeUserSpace driver, if UserSpace is disabled.
     //
-    mDxeRing3 = FALSE;
-    Status    = EFI_NOT_STARTED;
+    mDxeUserSpace = FALSE;
+    Status        = EFI_NOT_STARTED;
     goto Done;
   }
 
@@ -1454,7 +1454,7 @@ CoreLoadImageCommon (
   Status = EFI_SUCCESS;
   ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
 
-  if (PcdGetBool (PcdEnableUserSpace) && (gRing3Data != NULL) && Image->IsUserImage) {
+  if (PcdGetBool (PcdEnableUserSpace) && (gUserSpaceData != NULL) && Image->IsUserImage) {
     Image->UserPageTable = InitializeUserPageTable (Image);
   }
 
@@ -1708,8 +1708,8 @@ CoreStartImage (
     Image->Started = TRUE;
 
     if (PcdGetBool (PcdEnableUserSpace) && (Image->IsUserImage)) {
-      if (gRing3Data == NULL) {
-        Image->Status = InitializeRing3 (ImageHandle, Image);
+      if (gUserSpaceData == NULL) {
+        Image->Status = InitializeUserSpace (ImageHandle, Image);
         if (EFI_ERROR (Image->Status)) {
           DEBUG ((DEBUG_ERROR, "Core: Failed to initialize User address space - %r.\n", Image->Status));
           CpuDeadLoop ();
@@ -1729,12 +1729,12 @@ CoreStartImage (
 
           InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
 
-          Image->Status = GoToRing3 (
+          Image->Status = GoToUserSpace (
                             2,
                             (VOID *)Image->EntryPoint,
                             UserDriver,
                             ImageHandle,
-                            gRing3Data
+                            gUserSpaceData
                             );
         } else {
           Image->Status = EFI_OUT_OF_RESOURCES;
@@ -1981,7 +1981,7 @@ CoreUnloadImage (
     if (Image->Info.Unload != NULL) {
       //
       // TODO: If Image->IsUserImage, use FindInterface() to locate UserSpace
-      // EFI_LOADED_IMAGE_PROTOCOL->Unload() and GoToRing3().
+      // EFI_LOADED_IMAGE_PROTOCOL->Unload() and GoToUserSpace().
       //
       Status = Image->Info.Unload (ImageHandle);
     }

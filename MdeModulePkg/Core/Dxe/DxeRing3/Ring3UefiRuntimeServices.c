@@ -1,3 +1,11 @@
+/** @file
+  This driver constructs User space wrappers for the EFI_RUNTIME_SERVICES.
+
+  Copyright (c) 2024 - 2025, Mikhail Krichanov. All rights reserved.
+  SPDX-License-Identifier: BSD-3-Clause
+
+**/
+
 #include <Uefi.h>
 
 #include <Library/BaseMemoryLib.h>
@@ -7,81 +15,81 @@
 
 EFI_STATUS
 EFIAPI
-Ring3GetTime (
+UserSpaceGetTime (
   OUT EFI_TIME               *Time,
   OUT EFI_TIME_CAPABILITIES  *Capabilities OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetTime is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetTime is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetTime (
+UserSpaceSetTime (
   IN EFI_TIME  *Time
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetTime is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetTime is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3GetWakeupTime (
+UserSpaceGetWakeupTime (
   OUT BOOLEAN   *Enabled,
   OUT BOOLEAN   *Pending,
   OUT EFI_TIME  *Time
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetWakeupTime is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetWakeupTime is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetWakeupTime (
+UserSpaceSetWakeupTime (
   IN BOOLEAN   Enable,
   IN EFI_TIME  *Time   OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetWakeupTime is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetWakeupTime is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetVirtualAddressMap (
+UserSpaceSetVirtualAddressMap (
   IN UINTN                  MemoryMapSize,
   IN UINTN                  DescriptorSize,
   IN UINT32                 DescriptorVersion,
   IN EFI_MEMORY_DESCRIPTOR  *VirtualMap
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetVirtualAddressMap is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetVirtualAddressMap is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3ConvertPointer (
+UserSpaceConvertPointer (
   IN     UINTN  DebugDisposition,
   IN OUT VOID   **Address
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ConvertPointer is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ConvertPointer is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3GetVariable (
+UserSpaceGetVariable (
   IN     CHAR16    *VariableName,
   IN     EFI_GUID  *VendorGuid,
      OUT UINT32    *Attributes     OPTIONAL,
@@ -102,20 +110,20 @@ Ring3GetVariable (
 
 EFI_STATUS
 EFIAPI
-Ring3GetNextVariableName (
+UserSpaceGetNextVariableName (
   IN OUT UINTN     *VariableNameSize,
   IN OUT CHAR16    *VariableName,
   IN OUT EFI_GUID  *VendorGuid
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetNextVariableName is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetNextVariableName is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3SetVariable (
+UserSpaceSetVariable (
   IN CHAR16    *VariableName,
   IN EFI_GUID  *VendorGuid,
   IN UINT32    Attributes,
@@ -123,73 +131,73 @@ Ring3SetVariable (
   IN VOID      *Data
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: SetVariable is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: SetVariable is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3GetNextHighMonotonicCount (
+UserSpaceGetNextHighMonotonicCount (
   OUT UINT32  *HighCount
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: GetNextHighMonotonicCount is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: GetNextHighMonotonicCount is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 VOID
 EFIAPI
-Ring3ResetSystem (
+UserSpaceResetSystem (
   IN EFI_RESET_TYPE  ResetType,
   IN EFI_STATUS      ResetStatus,
   IN UINTN           DataSize,
   IN VOID            *ResetData OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: ResetSystem is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: ResetSystem is not supported\n"));
 
   return;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3UpdateCapsule (
+UserSpaceUpdateCapsule (
   IN EFI_CAPSULE_HEADER    **CapsuleHeaderArray,
   IN UINTN                 CapsuleCount,
   IN EFI_PHYSICAL_ADDRESS  ScatterGatherList   OPTIONAL
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: UpdateCapsule is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: UpdateCapsule is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3QueryCapsuleCapabilities (
+UserSpaceQueryCapsuleCapabilities (
   IN  EFI_CAPSULE_HEADER  **CapsuleHeaderArray,
   IN  UINTN               CapsuleCount,
   OUT UINT64              *MaximumCapsuleSize,
   OUT EFI_RESET_TYPE      *ResetType
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: QueryCapsuleCapabilities is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: QueryCapsuleCapabilities is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }
 
 EFI_STATUS
 EFIAPI
-Ring3QueryVariableInfo (
+UserSpaceQueryVariableInfo (
   IN  UINT32  Attributes,
   OUT UINT64  *MaximumVariableStorageSize,
   OUT UINT64  *RemainingVariableStorageSize,
   OUT UINT64  *MaximumVariableSize
   )
 {
-  DEBUG ((DEBUG_ERROR, "Ring3: QueryVariableInfo is not supported\n"));
+  DEBUG ((DEBUG_ERROR, "UserSpace: QueryVariableInfo is not supported\n"));
 
   return EFI_UNSUPPORTED;
 }

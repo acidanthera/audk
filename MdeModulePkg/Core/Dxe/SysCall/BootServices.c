@@ -12,11 +12,11 @@ LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
   VOID        *Core;
-  VOID        *Ring3;
+  VOID        *UserSpace;
   LIST_ENTRY  Link;
 } INTERFACE;
 
-UINTN  mRing3InterfacePointer = 0;
+UINTN  mUserSpaceInterfacePointer = 0;
 
 CHAR8 *SysCallNames[] = {
   //
@@ -92,76 +92,76 @@ STATIC
 EFI_STATUS
 EFIAPI
 FindGuid (
-  IN  EFI_GUID  *Ring3,
+  IN  EFI_GUID  *UserSpace,
   OUT EFI_GUID  **Core,
   OUT UINT32    *CoreSize
   )
 {
-  ASSERT (Ring3 != NULL);
+  ASSERT (UserSpace != NULL);
   ASSERT (Core != NULL);
   ASSERT (CoreSize != NULL);
 
-  if (CompareGuid (Ring3, &gEfiDevicePathUtilitiesProtocolGuid)) {
+  if (CompareGuid (UserSpace, &gEfiDevicePathUtilitiesProtocolGuid)) {
 
     *Core     = &gEfiDevicePathUtilitiesProtocolGuid;
     *CoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiLoadedImageProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiLoadedImageProtocolGuid)) {
 
     *Core     = &gEfiLoadedImageProtocolGuid;
     *CoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiBlockIoProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiBlockIoProtocolGuid)) {
 
     *Core     = &gEfiBlockIoProtocolGuid;
     *CoreSize = sizeof (EFI_BLOCK_IO_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiDiskIoProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiDiskIoProtocolGuid)) {
 
     *Core     = &gEfiDiskIoProtocolGuid;
     *CoreSize = sizeof (EFI_DISK_IO_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiDriverBindingProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiDriverBindingProtocolGuid)) {
 
     *Core     = &gEfiDriverBindingProtocolGuid;
     *CoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiComponentNameProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiComponentNameProtocolGuid)) {
 
     *Core     = &gEfiComponentNameProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiComponentName2ProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiComponentName2ProtocolGuid)) {
 
     *Core     = &gEfiComponentName2ProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME2_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiDevicePathProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiDevicePathProtocolGuid)) {
 
     *Core     = &gEfiDevicePathProtocolGuid;
     *CoreSize = sizeof (EFI_DEVICE_PATH_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiSimpleFileSystemProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiSimpleFileSystemProtocolGuid)) {
 
     *Core     = &gEfiSimpleFileSystemProtocolGuid;
     *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiUnicodeCollationProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiUnicodeCollationProtocolGuid)) {
 
     *Core     = &gEfiUnicodeCollationProtocolGuid;
     *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
 
-  } else if (CompareGuid (Ring3, &gEfiGlobalVariableGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiGlobalVariableGuid)) {
 
     *Core     = &gEfiGlobalVariableGuid;
 
-  } else if (CompareGuid (Ring3, &gEfiUnicodeCollation2ProtocolGuid)) {
+  } else if (CompareGuid (UserSpace, &gEfiUnicodeCollation2ProtocolGuid)) {
 
     *Core     = &gEfiUnicodeCollation2ProtocolGuid;
     *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
 
   } else {
-    DEBUG ((DEBUG_ERROR, "Ring0: Unknown protocol - %g.\n", Ring3));
+    DEBUG ((DEBUG_ERROR, "Core: Unknown protocol - %g.\n", UserSpace));
     return EFI_NOT_FOUND;
   }
 
@@ -172,7 +172,7 @@ STATIC
 VOID *
 EFIAPI
 FindInterface (
-  IN BOOLEAN  FindRing3,
+  IN BOOLEAN  FindUserSpace,
   IN VOID     *Interface
   )
 {
@@ -182,12 +182,12 @@ FindInterface (
   for (Link = mProtocolsHead.ForwardLink; Link != &mProtocolsHead; Link = Link->ForwardLink) {
     Protocol = BASE_CR (Link, INTERFACE, Link);
 
-    if (FindRing3) {
+    if (FindUserSpace) {
       if (Protocol->Core == Interface) {
-        return Protocol->Ring3;
+        return Protocol->UserSpace;
       }
     } else {
-      if (Protocol->Ring3 == Interface) {
+      if (Protocol->UserSpace == Interface) {
         return Protocol->Core;
       }
     }
@@ -199,15 +199,15 @@ FindInterface (
 STATIC
 VOID *
 EFIAPI
-PrepareRing3Interface (
+PrepareUserSpaceInterface (
   IN EFI_GUID  *Guid,
   IN VOID      *CoreInterface,
   IN UINT32    CoreSize
   )
 {
   EFI_STATUS                     Status;
-  UINTN                          Ring3Limit;
-  VOID                           *Ring3Interface;
+  UINTN                          UserSpaceLimit;
+  VOID                           *UserSpaceInterface;
   EFI_BLOCK_IO_PROTOCOL          *BlockIo;
   EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
   INTERFACE                      *Protocol;
@@ -215,50 +215,50 @@ PrepareRing3Interface (
   ASSERT (Guid != NULL);
   ASSERT (CoreInterface != NULL);
 
-  if (mRing3InterfacePointer == 0) {
-    mRing3InterfacePointer = (UINTN)gRing3Interfaces;
+  if (mUserSpaceInterfacePointer == 0) {
+    mUserSpaceInterfacePointer = (UINTN)gUserSpaceInterfaces;
   }
 
-  Ring3Interface = FindInterface (TRUE, CoreInterface);
+  UserSpaceInterface = FindInterface (TRUE, CoreInterface);
 
-  if (Ring3Interface != NULL) {
-    return Ring3Interface;
+  if (UserSpaceInterface != NULL) {
+    return UserSpaceInterface;
   }
 
-  Ring3Limit = (UINTN)gRing3Interfaces + EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES);
+  UserSpaceLimit = (UINTN)gUserSpaceInterfaces + EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES);
 
-  ASSERT ((mRing3InterfacePointer + CoreSize) <= Ring3Limit);
+  ASSERT ((mUserSpaceInterfacePointer + CoreSize) <= UserSpaceLimit);
 
-  Ring3Interface = (VOID *)mRing3InterfacePointer;
+  UserSpaceInterface = (VOID *)mUserSpaceInterfacePointer;
 
-  CopyMem ((VOID *)mRing3InterfacePointer, CoreInterface, CoreSize);
-  mRing3InterfacePointer += CoreSize;
+  CopyMem ((VOID *)mUserSpaceInterfacePointer, CoreInterface, CoreSize);
+  mUserSpaceInterfacePointer += CoreSize;
 
   Protocol = AllocatePool (sizeof (INTERFACE));
 
-  Protocol->Core  = CoreInterface;
-  Protocol->Ring3 = Ring3Interface;
+  Protocol->Core      = CoreInterface;
+  Protocol->UserSpace = UserSpaceInterface;
 
   InsertTailList (&mProtocolsHead, &Protocol->Link);
 
   if (CompareGuid (Guid, &gEfiBlockIoProtocolGuid)) {
-    ASSERT ((mRing3InterfacePointer + sizeof (EFI_BLOCK_IO_MEDIA)) <= Ring3Limit);
+    ASSERT ((mUserSpaceInterfacePointer + sizeof (EFI_BLOCK_IO_MEDIA)) <= UserSpaceLimit);
 
-    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)Ring3Interface;
+    BlockIo = (EFI_BLOCK_IO_PROTOCOL *)UserSpaceInterface;
 
-    CopyMem ((VOID *)mRing3InterfacePointer, (VOID *)BlockIo->Media, sizeof (EFI_BLOCK_IO_MEDIA));
+    CopyMem ((VOID *)mUserSpaceInterfacePointer, (VOID *)BlockIo->Media, sizeof (EFI_BLOCK_IO_MEDIA));
 
-    BlockIo->Media = (EFI_BLOCK_IO_MEDIA *)mRing3InterfacePointer;
+    BlockIo->Media = (EFI_BLOCK_IO_MEDIA *)mUserSpaceInterfacePointer;
 
-    mRing3InterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
+    mUserSpaceInterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
   } else if (CompareGuid (Guid, &gEfiUnicodeCollationProtocolGuid)) {
 
-    Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)Ring3Interface;
+    Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)UserSpaceInterface;
 
-    ASSERT ((mRing3InterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= Ring3Limit);
+    ASSERT ((mUserSpaceInterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= UserSpaceLimit);
 
     Status = AsciiStrCpyS (
-               (CHAR8 *)mRing3InterfacePointer,
+               (CHAR8 *)mUserSpaceInterfacePointer,
                AsciiStrSize (Unicode->SupportedLanguages),
                Unicode->SupportedLanguages
                );
@@ -267,12 +267,12 @@ PrepareRing3Interface (
       return NULL;
     }
 
-    Unicode->SupportedLanguages = (CHAR8 *)mRing3InterfacePointer;
+    Unicode->SupportedLanguages = (CHAR8 *)mUserSpaceInterfacePointer;
 
-    mRing3InterfacePointer += AsciiStrSize (Unicode->SupportedLanguages);
+    mUserSpaceInterfacePointer += AsciiStrSize (Unicode->SupportedLanguages);
   }
 
-  return Ring3Interface;
+  return UserSpaceInterface;
 }
 
 STATIC
@@ -347,7 +347,7 @@ CallBootService (
   VOID                 **CoreArgList;
   EFI_HANDLE           CoreHandle;
   UINT32               PagesNumber;
-  EFI_PHYSICAL_ADDRESS Ring3Pages;
+  EFI_PHYSICAL_ADDRESS UserSpacePages;
   USER_SPACE_DRIVER    *NewDriver;
   UINTN                *Arguments;
   EFI_PHYSICAL_ADDRESS PhysAddr;
@@ -415,7 +415,7 @@ CallBootService (
 
       AllowSupervisorAccessToUserMemory ();
       if (Interface != NULL) {
-        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
+        Interface = PrepareUserSpaceInterface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
         *(VOID **)Arguments[3] = Interface;
@@ -462,7 +462,7 @@ CallBootService (
       if ((VOID **)Arguments[3] != NULL) {
         AllowSupervisorAccessToUserMemory ();
         if (Interface != NULL) {
-          Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
+          Interface = PrepareUserSpaceInterface (CoreProtocol, Interface, MemoryCoreSize);
         }
 
         *(VOID **)Arguments[3] = Interface;
@@ -648,7 +648,7 @@ CallBootService (
 
       AllowSupervisorAccessToUserMemory ();
       if (Interface != NULL) {
-        Interface = PrepareRing3Interface (CoreProtocol, Interface, MemoryCoreSize);
+        Interface = PrepareUserSpaceInterface (CoreProtocol, Interface, MemoryCoreSize);
         ASSERT (Interface != NULL);
 
         *(VOID **)Arguments[3] = Interface;
@@ -761,20 +761,20 @@ CallBootService (
 
         Status = CoreAllocatePages (
                    AllocateAnyPages,
-                   EfiRing3MemoryType,
+                   EfiUserSpaceMemoryType,
                    PagesNumber,
-                   &Ring3Pages
+                   &UserSpacePages
                    );
         if (EFI_ERROR (Status)) {
           break;
         }
 
         AllowSupervisorAccessToUserMemory ();
-        CopyMem ((VOID *)(UINTN)Ring3Pages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
+        CopyMem ((VOID *)(UINTN)UserSpacePages, (VOID *)Argument5, Argument4 * sizeof (EFI_HANDLE *));
 
         FreePool ((VOID *)Argument5);
 
-        *(EFI_HANDLE **)Arguments[5] = (EFI_HANDLE *)(UINTN)Ring3Pages;
+        *(EFI_HANDLE **)Arguments[5] = (EFI_HANDLE *)(UINTN)UserSpacePages;
         ForbidSupervisorAccessToUserMemory ();
       }
 
@@ -1465,7 +1465,7 @@ CallBootService (
 
       break;
     default:
-      DEBUG ((DEBUG_ERROR, "Ring0: Unknown syscall type.\n"));
+      DEBUG ((DEBUG_ERROR, "Core: Unknown syscall type.\n"));
       Status = EFI_UNSUPPORTED;
       break;
   }

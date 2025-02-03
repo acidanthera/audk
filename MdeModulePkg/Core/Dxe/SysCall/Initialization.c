@@ -7,15 +7,15 @@
 
 #include "DxeMain.h"
 
-VOID        *gRing3EntryPoint;
-RING3_DATA  *gRing3Data;
-VOID        *gRing3Interfaces;
+VOID             *gUserSpaceEntryPoint;
+USER_SPACE_DATA  *gUserSpaceData;
+VOID             *gUserSpaceInterfaces;
 
 EXCEPTION_ADDRESSES  *mExceptionAddresses;
 extern UINTN         SysCallBase;
 extern UINTN         SysCallEnd;
 
-STATIC UEFI_IMAGE_RECORD     *mDxeRing3;
+STATIC UEFI_IMAGE_RECORD     *mDxeUserSpace;
 STATIC EFI_PHYSICAL_ADDRESS  mCoreStackBase;
 STATIC UINT64                mCoreStackSize;
 
@@ -40,7 +40,7 @@ MapPlatform (
 
 EFI_STATUS
 EFIAPI
-InitializeRing3 (
+InitializeUserSpace (
   IN EFI_HANDLE                 ImageHandle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
   )
@@ -51,75 +51,75 @@ InitializeRing3 (
   EFI_HOB_MEMORY_ALLOCATION  *MemoryHob;
 
   //
-  // Set Ring3 EntryPoint and BootServices.
+  // Set UserSpace EntryPoint and BootServices.
   //
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
-             EFI_SIZE_TO_PAGES (sizeof (RING3_DATA)),
+             EfiUserSpaceMemoryType,
+             EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA)),
              &Physical
              );
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  gRing3Data = (RING3_DATA *)(UINTN)Physical;
+  gUserSpaceData = (USER_SPACE_DATA *)(UINTN)Physical;
 
-  CopyMem ((VOID *)gRing3Data, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
+  CopyMem ((VOID *)gUserSpaceData, (VOID *)Image->Info.SystemTable, sizeof (EFI_SYSTEM_TABLE));
 
   SetUefiImageMemoryAttributes (
-    (UINTN)gRing3Data,
-    ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
+    (UINTN)gUserSpaceData,
+    ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
 
-  Status = InitializePlatform (&gRing3Data->SystemTable);
+  Status = InitializePlatform (&gUserSpaceData->SystemTable);
   if (EFI_ERROR (Status)) {
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
-      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+      EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
       );
     return Status;
   }
 
   //
-  // Initialize DxeRing3 with Supervisor privileges.
+  // Initialize DxeUserSpace with Supervisor privileges.
   //
-  mDxeRing3 = GetUefiImageRecord (Image);
-  ASSERT (mDxeRing3 != NULL);
+  mDxeUserSpace = GetUefiImageRecord (Image);
+  ASSERT (mDxeUserSpace != NULL);
 
-  SetUefiImageProtectionAttributes (mDxeRing3, FALSE);
+  SetUefiImageProtectionAttributes (mDxeUserSpace, FALSE);
 
   AllowSupervisorAccessToUserMemory ();
-  Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gRing3Data);
+  Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gUserSpaceData);
 
-  gRing3EntryPoint = gRing3Data->EntryPoint;
+  gUserSpaceEntryPoint = gUserSpaceData->EntryPoint;
 
-  gRing3Data->SystemTable.BootServices    = gRing3Data->BootServices;
-  gRing3Data->SystemTable.RuntimeServices = gRing3Data->RuntimeServices;
+  gUserSpaceData->SystemTable.BootServices    = gUserSpaceData->BootServices;
+  gUserSpaceData->SystemTable.RuntimeServices = gUserSpaceData->RuntimeServices;
   ForbidSupervisorAccessToUserMemory ();
 
-  SetUefiImageProtectionAttributes (mDxeRing3, TRUE);
+  SetUefiImageProtectionAttributes (mDxeUserSpace, TRUE);
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
-             EfiRing3MemoryType,
-             RING3_INTERFACES_PAGES,
+             EfiUserSpaceMemoryType,
+             USER_SPACE_INTERFACES_PAGES,
              &Physical
              );
   if (EFI_ERROR (Status)) {
     CoreFreePages (
-      (EFI_PHYSICAL_ADDRESS)(UINTN)gRing3Data,
-      EFI_SIZE_TO_PAGES (sizeof (RING3_DATA))
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+      EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
       );
     return Status;
   }
 
-  gRing3Interfaces = (VOID *)(UINTN)Physical;
+  gUserSpaceInterfaces = (VOID *)(UINTN)Physical;
 
   SetUefiImageMemoryAttributes (
-    (UINTN)gRing3Interfaces,
-    EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
+    (UINTN)gUserSpaceInterfaces,
+    EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
     EFI_MEMORY_XP | EFI_MEMORY_USER
     );
 
@@ -161,27 +161,27 @@ InitializeUserPageTable (
   }
 
   //
-  // Map gRing3Data, gRing3Interfaces, DxeRing3
+  // Map gUserSpaceData, gUserSpaceInterfaces, DxeUserSpace
   //
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          (UINTN)gRing3Data,
-          ALIGN_VALUE (sizeof (RING3_DATA), EFI_PAGE_SIZE),
+          (UINTN)gUserSpaceData,
+          ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
 
   gCpu->SetUserMemoryAttributes (
           gCpu,
           UserPageTable,
-          (UINTN)gRing3Interfaces,
-          EFI_PAGES_TO_SIZE (RING3_INTERFACES_PAGES),
+          (UINTN)gUserSpaceInterfaces,
+          EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
 
-  SectionAddress = mDxeRing3->StartAddress;
-  for (Index = 0; Index < mDxeRing3->NumSegments; Index++) {
-    ImageRecordSegment = &mDxeRing3->Segments[Index];
+  SectionAddress = mDxeUserSpace->StartAddress;
+  for (Index = 0; Index < mDxeUserSpace->NumSegments; Index++) {
+    ImageRecordSegment = &mDxeUserSpace->Segments[Index];
 
     gCpu->SetUserMemoryAttributes (
             gCpu,
