@@ -14,7 +14,7 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryPoolLib.h>
 
-#include "Ring3.h"
+#include "UserSpace.h"
 
 BOOLEAN  mOnGuarding = FALSE;
 

@@ -476,7 +476,7 @@
       DebugLib|ArmVirtPkg/Library/DebugLibFdtPL011Uart/DebugLibFdtPL011UartUser.inf
     !endif
   }
-  MdeModulePkg/Core/Dxe/DxeRing3/DxeRing3.inf {
+  MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf {
     <LibraryClasses>
       MemoryPoolLib|MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
     !if $(TARGET) != RELEASE
