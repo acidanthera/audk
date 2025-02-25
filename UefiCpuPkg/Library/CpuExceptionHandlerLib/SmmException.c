@@ -8,7 +8,7 @@
 
 #include <PiSmm.h>
 #include "CpuExceptionCommon.h"
-#include <Library/SmmServicesTableLib.h>
+// #include <Library/SmmServicesTableLib.h>
 #include <Guid/DebugImageInfoTable.h>
 
 CONST UINTN  mDoFarReturnFlag = 1;
@@ -131,18 +131,18 @@ InternalGetSystemConfigurationTable (
   OUT VOID      **Table
   )
 {
-  UINTN             Index;
-
-  ASSERT (TableGuid != NULL);
-  ASSERT (Table != NULL);
-
-  *Table = NULL;
-  for (Index = 0; Index < gSmst->NumberOfTableEntries; Index++) {
-    if (CompareGuid (TableGuid, &(gSmst->SmmConfigurationTable[Index].VendorGuid))) {
-      *Table = gSmst->SmmConfigurationTable[Index].VendorTable;
-      return EFI_SUCCESS;
-    }
-  }
+  // UINTN             Index;
+  //
+  // ASSERT (TableGuid != NULL);
+  // ASSERT (Table != NULL);
+  //
+  // *Table = NULL;
+  // for (Index = 0; Index < gSmst->NumberOfTableEntries; Index++) {
+  //   if (CompareGuid (TableGuid, &(gSmst->SmmConfigurationTable[Index].VendorGuid))) {
+  //     *Table = gSmst->SmmConfigurationTable[Index].VendorTable;
+  //     return EFI_SUCCESS;
+  //   }
+  // }
 
   return EFI_NOT_FOUND;
 }

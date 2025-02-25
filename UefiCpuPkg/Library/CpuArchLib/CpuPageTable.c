@@ -1654,7 +1654,7 @@ EfiGetMemoryAttributes (
 
   // Make sure AddressEncMask is contained to smallest supported address field.
   //
-  AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask) & PAGING_1G_ADDRESS_MASK_64;
+  AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask & PAGING_1G_ADDRESS_MASK_64;
 
   GetCurrentPagingContext (&CurrentPagingContext);
 
