@@ -66,11 +66,14 @@ ASM_FUNC(ArmPlatformPeiBootAction)
   tst    x0, #ID_AA64MMFR1_VH_MASK
   b.eq   0f
 
+/*
+ * Do not enable EL2&0 translation regime, as it breaks Windows 10 boot.
+ *
   mrs    x0, hcr_el2             // Enable VHE support
   orr    x0, x0, #HCR_EL2_E2H
   msr    hcr_el2, x0
   isb
-
+*/
 .Learly_idmap:
   mov_i  x0, mairval
   mov_i  x1, tcrval
