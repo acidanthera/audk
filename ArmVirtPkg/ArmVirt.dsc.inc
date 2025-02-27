@@ -381,12 +381,6 @@
   gEmbeddedTokenSpaceGuid.PcdMemoryTypeEfiLoaderData|0
 
   #
-  # Enable strict image permissions for all images. (This applies
-  # only to images that were built with >= 4 KB section alignment.)
-  #
-  gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x3
-
-  #
   # Enable NX memory protection for all non-code regions, including OEM and OS
   # reserved ones.
   # By passing --pcd PcdDxeNxMemoryProtectionPolicy=0xC000000000007FD1 on the

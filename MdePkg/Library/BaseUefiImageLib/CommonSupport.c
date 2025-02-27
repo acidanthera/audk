@@ -19,7 +19,8 @@ UefiImageInitializeContext (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize,
-  IN  UEFI_IMAGE_SOURCE                Source
+  IN  UEFI_IMAGE_SOURCE                Source,
+  IN  UINT8                            ImageOrigin
   )
 {
   RETURN_STATUS Status;
@@ -28,7 +29,8 @@ UefiImageInitializeContext (
              Context,
              FileBuffer,
              FileSize,
-             Source
+             Source,
+             ImageOrigin
              );
   if (RETURN_ERROR (Status)) {
     return Status;

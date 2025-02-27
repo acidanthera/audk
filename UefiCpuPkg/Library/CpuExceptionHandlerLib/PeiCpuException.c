@@ -239,7 +239,7 @@ GetImageInfoByIp (
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT32                          PdbPathSize;
 
-  Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip);
+  Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip, UefiImageOriginFv);
   if (RETURN_ERROR (Status)) {
     return FALSE;
   }
