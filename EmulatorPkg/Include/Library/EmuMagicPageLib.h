@@ -23,7 +23,7 @@ typedef struct {
   // Used by SecPeiServicesLib
   EFI_PEI_PPI_DESCRIPTOR    *PpiList;
 
-  // Needed by PEI PEI PeCoffLoaderExtraActionLib
+  // Needed by PEI PEI UefiImageLoaderExtraActionLib
   EMU_THUNK_PROTOCOL        *Thunk;
 } EMU_MAGIC_PAGE_LAYOUT;
 

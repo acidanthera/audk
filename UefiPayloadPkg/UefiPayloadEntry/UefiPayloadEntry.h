@@ -15,12 +15,12 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/HobLib.h>
 #include <Library/PcdLib.h>
 #include <Guid/MemoryAllocationHob.h>
 #include <Library/IoLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BlParseLib.h>
 #include <Library/PlatformSupportLib.h>
 #include <Library/CpuLib.h>
@@ -196,7 +196,8 @@ EFI_STATUS
 FileFindSection (
   IN EFI_FFS_FILE_HEADER  *FileHeader,
   IN EFI_SECTION_TYPE     SectionType,
-  OUT VOID                **SectionData
+  OUT VOID                      **SectionData,
+  OUT UINT32                    *SectionSize
   );
 
 /**

@@ -82,9 +82,8 @@
   UefiLib
   DebugLib
   DxeCoreEntryPoint
-  PeCoffLib
-  PeCoffGetEntryPointLib
-  PeCoffExtraActionLib
+  UefiImageLib
+  UefiImageExtraActionLib
   ExtractGuidedSectionLib
   MemoryAllocationLib
   UefiBootServicesTableLib

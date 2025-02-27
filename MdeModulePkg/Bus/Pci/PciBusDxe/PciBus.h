@@ -40,7 +40,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PcdLib.h>
 
 #include <IndustryStandard/Pci.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include <IndustryStandard/Acpi.h>
 
 typedef struct _PCI_IO_DEVICE  PCI_IO_DEVICE;
