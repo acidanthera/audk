@@ -166,6 +166,14 @@ MtrrLibIsMtrrSupported (
   // MTRR is not supported in TD-Guest.
   //
   if (TdIsEnabled ()) {
+    if (FixedMtrrSupported != NULL) {
+      *FixedMtrrSupported = FALSE;
+    }
+
+    if (VariableMtrrCount != NULL) {
+      *VariableMtrrCount = 0;
+    }
+
     return FALSE;
   }
 
