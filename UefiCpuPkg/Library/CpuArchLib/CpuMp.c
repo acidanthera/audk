@@ -659,6 +659,7 @@ InitializeMpExceptionStackSwitchHandlers (
   UINTN                           BufferSize;
   EFI_STATUS                      Status;
   UINT8                           *Buffer;
+  EFI_PHYSICAL_ADDRESS            BufferAddress;
 
   SwitchStackData = AllocateZeroPool (mNumberOfProcessors * sizeof (EXCEPTION_STACK_SWITCH_CONTEXT));
   if (SwitchStackData == NULL) {
@@ -697,18 +698,20 @@ InitializeMpExceptionStackSwitchHandlers (
     // we are allocating the buffer that will hold the new GDT and IDT for the APs. These must be allocated below
     // 4GB as they are used by protected mode code on the APs when they are started up after this point. If they are
     // above 4GB, the APs will triple fault because the 32 bit code segment is invalid
-    Buffer = (UINT8 *)(UINTN)(BASE_4GB - 1);
-    Status = gBS->AllocatePages (
-                    AllocateMaxAddress,
-                    EfiRuntimeServicesData,
-                    EFI_SIZE_TO_PAGES (BufferSize),
-                    (EFI_PHYSICAL_ADDRESS *)&Buffer
-                    );
+    BufferAddress = BASE_4GB - 1;
+    Status        = gBS->AllocatePages (
+                           AllocateMaxAddress,
+                           EfiRuntimeServicesData,
+                           EFI_SIZE_TO_PAGES (BufferSize),
+                           &BufferAddress
+                           );
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Failed to allocate buffer for InitializeExceptionStackSwitchHandlers Status %r\n", Status));
       ASSERT_EFI_ERROR (Status);
       goto Exit;
     }
+
+    Buffer = (UINT8 *)(UINTN)BufferAddress;
 
     ZeroMem (Buffer, BufferSize);
 
