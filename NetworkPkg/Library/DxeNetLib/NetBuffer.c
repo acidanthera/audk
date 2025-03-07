@@ -1622,20 +1622,12 @@ NetblockChecksum (
   )
 {
   register UINT32  Sum;
+  UINT32           BulkPtr;
 
   Sum = 0;
 
-  //
-  // Add left-over byte, if any
-  //
-  if (Len % 2 != 0) {
-    Sum += *(Bulk + Len - 1);
-  }
-
-  while (Len > 1) {
-    Sum  += *(UINT16 *)Bulk;
-    Bulk += 2;
-    Len  -= 2;
+  for (BulkPtr = 0; BulkPtr < Len; BulkPtr++, Bulk++) {
+    Sum += ((*Bulk) << ((BulkPtr & 1U) * 8U));
   }
 
   //
