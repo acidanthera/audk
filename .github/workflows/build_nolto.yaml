@@ -19,7 +19,7 @@ jobs:
     name: Linux GCC ARM
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -110,7 +110,7 @@ jobs:
         run: zip GCC_no_lto_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GCC Firmware NO_LTO Artifacts
           path: GCC_no_lto_artifacts.zip
@@ -119,7 +119,7 @@ jobs:
     name: Linux GCC AMD
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -219,7 +219,7 @@ jobs:
         run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GCC Firmware Artifacts
           path: GCC_fw_artifacts.zip
@@ -228,7 +228,7 @@ jobs:
     name: Linux GCC Common
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -370,7 +370,7 @@ jobs:
         ]
     steps:
       - name: Checkout ocbuild repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: acidanthera/ocbuild
           ref: audk-stable-202311
@@ -395,7 +395,7 @@ jobs:
           tar -xJf ./qemu-8.1.3.tar.xz -C $HOME
 
       - name: Download a single artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.package.toolchain }} Firmware NO_LTO Artifacts
 
@@ -472,7 +472,7 @@ jobs:
         ]
     steps:
       - name: Checkout ocbuild repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: acidanthera/ocbuild
           ref: audk-stable-202311
@@ -497,7 +497,7 @@ jobs:
           tar -xJf ./qemu-8.1.3.tar.xz -C $HOME
 
       - name: Download a single artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.package.toolchain }} Firmware Artifacts
 

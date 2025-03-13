@@ -21,7 +21,7 @@ jobs:
     env:
       JOB_TYPE: BUILD
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -128,7 +128,7 @@ jobs:
         run: zip XCODE5_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: XCODE5 Firmware Artifacts
           path: XCODE5_fw_artifacts.zip
@@ -142,7 +142,7 @@ jobs:
       run:
         shell: bash
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -238,7 +238,7 @@ jobs:
         run: zip VS2019_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: VS2019 Firmware Artifacts
           path: VS2019_fw_artifacts.zip
@@ -247,7 +247,7 @@ jobs:
     name: Linux CLANGPDB
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -343,7 +343,7 @@ jobs:
         run: zip CLANGPDB_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: CLANGPDB Firmware Artifacts
           path: CLANGPDB_fw_artifacts.zip
@@ -352,7 +352,7 @@ jobs:
     name: Linux CLANGDWARF
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -448,7 +448,7 @@ jobs:
         run: zip CLANGDWARF_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: CLANGDWARF Firmware Artifacts
           path: CLANGDWARF_fw_artifacts.zip
@@ -457,7 +457,7 @@ jobs:
     name: Linux GCC
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -553,7 +553,7 @@ jobs:
         run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: GCC Firmware Artifacts
           path: GCC_fw_artifacts.zip
@@ -575,7 +575,7 @@ jobs:
         ]
     steps:
       - name: Checkout ocbuild repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: acidanthera/ocbuild
           ref: audk-stable-202311
@@ -600,7 +600,7 @@ jobs:
           tar -xJf ./qemu-8.1.3.tar.xz -C $HOME
 
       - name: Download a single artifact
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.package.toolchain }} Firmware Artifacts
 
