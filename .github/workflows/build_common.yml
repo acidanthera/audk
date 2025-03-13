@@ -40,12 +40,12 @@ jobs:
 
       - name: CI Bootstrap
         run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202311/ci-bootstrap.sh) && eval "$src" || exit 1
           touch UDK.ready
 
       - name: Prepare efibuild.sh
         run: |
-          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202311/efibuild.sh || exit 1
           chmod +x ./efibuild.sh
           ln -s `pwd` UDK
 
@@ -154,12 +154,12 @@ jobs:
 
       - name: CI Bootstrap
         run: |
-          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202311/ci-bootstrap.sh) && eval "$src" || exit 1
           touch UDK.ready
 
       - name: Prepare efibuild.sh
         run: |
-          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/audk-stable-202311/efibuild.sh || exit 1
           chmod +x ./efibuild.sh
           cmd <<< "mklink /D .\\UDK .\\" > /dev/null
 
