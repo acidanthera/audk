@@ -20,22 +20,22 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   @retval  The number of characters in the passphrase or 0 if an error occurred.
 
 **/
-INTN
+INT32
 PasswordCallback (
   OUT  CHAR8  *Buf,
-  IN   INTN   Size,
-  IN   INTN   Flag,
+  IN   INT32  Size,
+  IN   INT32  Flag,
   IN   VOID   *Key
   )
 {
-  INTN  KeyLength;
+  INT32  KeyLength;
 
   ZeroMem ((VOID *)Buf, (UINTN)Size);
   if (Key != NULL) {
     //
     // Duplicate key phrase directly.
     //
-    KeyLength = (INTN)AsciiStrLen ((CHAR8 *)Key);
+    KeyLength = (INT32)AsciiStrLen ((CHAR8 *)Key);
     KeyLength = (KeyLength > Size) ? Size : KeyLength;
     CopyMem (Buf, Key, (UINTN)KeyLength);
     return KeyLength;
