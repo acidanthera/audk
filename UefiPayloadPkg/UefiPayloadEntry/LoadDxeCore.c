@@ -9,43 +9,6 @@
 #include "UefiPayloadEntry.h"
 
 /**
-  Allocate pages for code.
-
-  @param[in] Pages      Number of pages to be allocated.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateCodePages (
-  IN  UINTN  Pages
-  )
-{
-  VOID                  *Alloc;
-  EFI_PEI_HOB_POINTERS  Hob;
-
-  Alloc = AllocatePages (Pages);
-  if (Alloc == NULL) {
-    return NULL;
-  }
-
-  // find the HOB we just created, and change the type to EfiBootServicesCode
-  Hob.Raw = GetFirstHob (EFI_HOB_TYPE_MEMORY_ALLOCATION);
-  while (Hob.Raw != NULL) {
-    if (Hob.MemoryAllocation->AllocDescriptor.MemoryBaseAddress == (UINTN)Alloc) {
-      Hob.MemoryAllocation->AllocDescriptor.MemoryType = EfiBootServicesCode;
-      return Alloc;
-    }
-
-    Hob.Raw = GetNextHob (EFI_HOB_TYPE_MEMORY_ALLOCATION, GET_NEXT_HOB (Hob));
-  }
-
-  ASSERT (FALSE);
-
-  FreePages (Alloc, Pages);
-  return NULL;
-}
-
-/**
     Loads and relocates a PE/COFF image
 
   @param[in]   UefiImage      Point to a Pe/Coff image.

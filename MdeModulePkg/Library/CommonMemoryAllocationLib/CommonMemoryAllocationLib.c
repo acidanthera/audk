@@ -144,6 +144,36 @@ AllocateReservedPages (
 }
 
 /**
+  Allocates one or more 4KB pages of type EfiBootServicesCode.
+
+  Allocates the number of 4KB pages of type EfiBootServicesCode and returns a pointer to the
+  allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If Pages is 0, then NULL
+  is returned.  If there is not enough memory remaining to satisfy the request, then NULL is
+  returned.
+
+  @param  Pages                 The number of 4 KB pages to allocate.
+
+  @return A pointer to the allocated buffer or NULL if allocation fails.
+
+**/
+VOID *
+EFIAPI
+AllocateCodePages (
+  IN UINTN  Pages
+  )
+{
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  Memory;
+
+  Status = PhaseAllocatePages (AllocateAnyPages, gPhaseDefaultCodeType, Pages, &Memory);
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  return (VOID *)(UINTN)Memory;
+}
+
+/**
   Frees one or more 4KB pages that were previously allocated with one of the page allocation
   functions in the Memory Allocation Library.
 
@@ -340,6 +370,16 @@ AllocateAlignedReservedPages (
   }
 
   return Buffer;
+}
+
+VOID *
+EFIAPI
+AllocateAlignedCodePages (
+  IN UINTN  Pages,
+  IN UINTN  Alignment
+  )
+{
+  return InternalAllocateAlignedPages (gPhaseDefaultCodeType, Pages, Alignment);
 }
 
 /**
