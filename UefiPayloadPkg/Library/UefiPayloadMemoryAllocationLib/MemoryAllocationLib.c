@@ -19,6 +19,7 @@
 #include <Guid/MemoryAllocationHob.h>
 
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultCodeType = EfiBootServicesCode;
 
 /**
   Add a new HOB to the HOB List.
