@@ -78,7 +78,8 @@ MeasureUefiImageAndExtend (
              &ImageContext,
              (VOID *) (UINTN) ImageAddress,
              (UINT32) ImageSize,
-             UEFI_IMAGE_SOURCE_ALL
+             UEFI_IMAGE_SOURCE_ALL,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     //

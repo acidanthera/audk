@@ -564,7 +564,6 @@
   gUefiCpuPkgTokenSpaceGuid.PcdFirstTimeWakeUpAPsBySipi|FALSE
 
   gEfiMdePkgTokenSpaceGuid.PcdControlFlowEnforcementPropertyMask|0x1
-  gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
 
   #
   # Firmware volume supports UE, and may require PE.
@@ -609,10 +608,7 @@
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiLoaderData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF40
     gEfiMdePkgTokenSpaceGuid.PcdImageLoaderAllowMisalignedOffset|TRUE
-  !elseif $(WINDOWS_10_IA32) == TRUE
-    # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
-    gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
-    gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x0
+    gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000003
   !endif
 
 ################################################################################
