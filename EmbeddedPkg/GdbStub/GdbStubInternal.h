@@ -26,7 +26,7 @@
 #include <Protocol/LoadedImage.h>
 #include <Protocol/LoadedImage.h>
 #include <Guid/DebugImageInfoTable.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 extern CONST CHAR8  mHexToStr[];
 

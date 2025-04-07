@@ -46,7 +46,7 @@
   TimerLib
   SerialPortLib
   ExtractGuidedSectionLib
-  PeCoffLib
+  UefiImageLib
   PrePiLib
   MemoryAllocationLib
   HobLib

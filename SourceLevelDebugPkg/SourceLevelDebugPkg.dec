@@ -3,7 +3,7 @@
 # The target side components includes the Debug Agent Library instance
 # to communicate with host side modules, Debug Communication Library and
 # instances to provide the communication I/O functions between Debug Agent
-# and host, PeCoffExtraActionLib instance to report symbol path information,
+# and host, UefiImageExtraActionLib instance to report symbol path information,
 # etc.
 #
 # Copyright (c) 2010 - 2018, Intel Corporation. All rights reserved.<BR>

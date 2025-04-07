@@ -51,7 +51,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/SmmCpuFeaturesLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 #include <Library/RegisterCpuFeaturesLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/CpuPageTableLib.h>

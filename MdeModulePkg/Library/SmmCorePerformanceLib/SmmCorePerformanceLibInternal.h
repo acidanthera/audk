@@ -33,7 +33,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/SmmMemLib.h>
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/DxeServicesLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 
 #include <Protocol/SmmBase2.h>
 #include <Protocol/LoadedImage.h>

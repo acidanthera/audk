@@ -44,10 +44,10 @@
   SerialPortLib
   IoLib
   HobLib
-  PeCoffLib
   CpuLib
   HobPrintLib
   StackCheckLib
+  UefiImageLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid

@@ -14,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <PiDxe.h>
 
 #include <IndustryStandard/Pci.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 #include <IndustryStandard/Atapi.h>
 #include <IndustryStandard/Scsi.h>
 #include <IndustryStandard/Nvme.h>
@@ -64,7 +64,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DevicePathLib.h>
 #include <Library/PerformanceLib.h>
 #include <Library/PcdLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/UefiBootManagerLib.h>
 #include <Library/DxeServicesLib.h>
 #include <Library/ReportStatusCodeLib.h>

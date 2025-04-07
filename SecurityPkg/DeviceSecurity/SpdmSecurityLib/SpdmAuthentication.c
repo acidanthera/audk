@@ -136,9 +136,9 @@ ExtendCertificate (
 
   EventLog = NULL;
   ZeroMem (&Parameter, sizeof (Parameter));
-  Parameter.location = SpdmDataLocationConnection;
+  Parameter.location = (libspdm_data_location_t)SpdmDataLocationConnection;
   DataSize           = sizeof (BaseHashAlgo);
-  Status             = SpdmGetData (SpdmContext, SpdmDataBaseHashAlgo, &Parameter, &BaseHashAlgo, &DataSize);
+  Status             = SpdmGetData (SpdmContext, (libspdm_data_type_t)SpdmDataBaseHashAlgo, &Parameter, &BaseHashAlgo, &DataSize);
   ASSERT_EFI_ERROR (Status);
 
   DeviceContextSize = GetDeviceMeasurementContextSize (SpdmDeviceContext);
@@ -520,9 +520,9 @@ DoDeviceCertificate (
   SpdmContext = SpdmDeviceContext->SpdmContext;
 
   ZeroMem (&Parameter, sizeof (Parameter));
-  Parameter.location = SpdmDataLocationConnection;
+  Parameter.location = (libspdm_data_location_t)SpdmDataLocationConnection;
   DataSize           = sizeof (CapabilityFlags);
-  SpdmReturn         = SpdmGetData (SpdmContext, SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
+  SpdmReturn         = SpdmGetData (SpdmContext, (libspdm_data_type_t)SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
   if (LIBSPDM_STATUS_IS_ERROR (SpdmReturn)) {
     SecurityState->AuthenticationState = EDKII_DEVICE_SECURITY_STATE_ERROR_DEVICE_ERROR;
     return EFI_DEVICE_ERROR;
@@ -641,9 +641,9 @@ DoDeviceAuthentication (
   SpdmContext = SpdmDeviceContext->SpdmContext;
 
   ZeroMem (&Parameter, sizeof (Parameter));
-  Parameter.location = SpdmDataLocationConnection;
+  Parameter.location = (libspdm_data_location_t)SpdmDataLocationConnection;
   DataSize           = sizeof (CapabilityFlags);
-  SpdmReturn         = SpdmGetData (SpdmContext, SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
+  SpdmReturn         = SpdmGetData (SpdmContext, (libspdm_data_type_t)SpdmDataCapabilityFlags, &Parameter, &CapabilityFlags, &DataSize);
   if (LIBSPDM_STATUS_IS_ERROR (SpdmReturn)) {
     SecurityState->AuthenticationState = EDKII_DEVICE_SECURITY_STATE_ERROR_DEVICE_ERROR;
     return EFI_DEVICE_ERROR;

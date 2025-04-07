@@ -37,11 +37,11 @@
 #include <Guid/SmiHandlerProfile.h>
 #include <Guid/EndOfS3Resume.h>
 #include <Guid/S3SmmInitDone.h>
+#include <Guid/DebugImageInfoTable.h>
 
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/PeCoffLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/CacheMaintenanceLib.h>
 #include <Library/DebugLib.h>
 #include <Library/ReportStatusCodeLib.h>
@@ -55,6 +55,7 @@
 #include <Library/HobLib.h>
 #include <Library/SmmMemLib.h>
 #include <Library/SafeIntLib.h>
+#include <Library/SmmServicesTableLib.h>
 
 #include "PiSmmCorePrivateData.h"
 #include "HeapGuard.h"
@@ -1020,8 +1021,9 @@ SmramProfileInstallProtocol (
 **/
 EFI_STATUS
 RegisterSmramProfileImage (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN               RegisterToDxe
+  IN EFI_GUID                     *FileName,
+  IN BOOLEAN                      RegisterToDxe,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   );
 
 /**
@@ -1038,8 +1040,10 @@ RegisterSmramProfileImage (
 **/
 EFI_STATUS
 UnregisterSmramProfileImage (
-  IN EFI_SMM_DRIVER_ENTRY  *DriverEntry,
-  IN BOOLEAN               UnregisterToDxe
+  IN EFI_GUID                           *FileName,
+  IN PHYSICAL_ADDRESS                   ImageBase,
+  IN UINT64                             ImageSize,
+  IN BOOLEAN                            UnregisterFromDxe
   );
 
 /**
@@ -1350,6 +1354,52 @@ SmmInternalFreePagesEx (
 VOID
 SmmEntryPointMemoryManagementHook (
   VOID
+  );
+
+/**
+  Creates and initializes the DebugImageInfo Table.  Also creates the configuration
+  table and registers it into the system table.
+
+  Note:
+    This function allocates memory, frees it, and then allocates memory at an
+    address within the initial allocation. Since this function is called early
+    in DXE core initialization (before drivers are dispatched), this should not
+    be a problem.
+
+**/
+VOID
+SmmInitializeDebugImageInfoTable (
+  VOID
+  );
+
+
+/**
+  Adds a new DebugImageInfo structure to the DebugImageInfo Table.  Re-Allocates
+  the table if it's not large enough to accomidate another entry.
+
+  @param  ImageInfoType  type of debug image information
+  @param  LoadedImage    pointer to the loaded image protocol for the image being
+                         loaded
+  @param  ImageHandle    image handle for the image being loaded
+
+**/
+VOID
+SmmNewDebugImageInfoEntry (
+  IN  UINT32                      ImageInfoType,
+  IN  EFI_LOADED_IMAGE_PROTOCOL   *LoadedImage,
+  IN  EFI_HANDLE                  ImageHandle,
+  IN  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  );
+
+/**
+  Insert image record.
+
+  @param[in]  DriverEntry    Driver information
+**/
+VOID
+SmmInsertImageRecord (
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 #endif

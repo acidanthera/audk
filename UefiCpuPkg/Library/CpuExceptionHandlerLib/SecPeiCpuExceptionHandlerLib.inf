@@ -54,7 +54,7 @@
 
 [LibraryClasses.common]
   BaseLib
-  PeCoffGetEntryPointLib
+  UefiImageLib
   PrintLib
   SerialPortLib
 
