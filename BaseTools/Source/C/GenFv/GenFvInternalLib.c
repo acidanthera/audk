@@ -2307,7 +2307,8 @@ Returns:
                            &Context,
                            UefiImage,
                            UefiImageSize,
-                           UEFI_IMAGE_SOURCE_FV
+                           UEFI_IMAGE_SOURCE_FV,
+                           UefiImageOriginFv
                            );
   if (RETURN_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "Unrecognized UEFI image file.");
@@ -3505,11 +3506,13 @@ Returns:
     // Initialize context
     //
     SectPeSize = GetSectionFileLength (CurrentPe32Section.CommonHeader) - CurSecHdrSize;
+
     Status = UefiImageInitializeContext (
                &ImageContext,
                (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize),
                SectPeSize,
-               UEFI_IMAGE_SOURCE_FV
+               UEFI_IMAGE_SOURCE_FV,
+               UefiImageOriginFv
                );
     if (EFI_ERROR (Status)) {
       Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and the return status is %x", FileName, (int) Status);
@@ -3791,13 +3794,13 @@ Returns:
     //
     // Get this module function address from ModulePeMapFile and add them into FvMap file
     //
-
     Status = UefiImageInitializeContext (
-      &ImageContext,
-      (VOID *) ((UINTN)(*FfsFile) + FileOffset),
-      RebasedImageSize,
-      UEFI_IMAGE_SOURCE_FV
-      );
+               &ImageContext,
+               (VOID *) ((UINTN)(*FfsFile) + FileOffset),
+               RebasedImageSize,
+               UEFI_IMAGE_SOURCE_FV,
+               UefiImageOriginFv
+               );
     ASSERT_EFI_ERROR (Status);
 
     //
