@@ -85,6 +85,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugAgentLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/OrderedCollectionLib.h>
+#include <Library/CpuArchLib.h>
 
 //
 // attributes for reserved memory before it is promoted to system memory
@@ -232,14 +233,14 @@ typedef struct {
 //
 // DXE Core Global Variables
 //
-extern EFI_SYSTEM_TABLE      *gDxeCoreST;
-extern EFI_RUNTIME_SERVICES  *gDxeCoreRT;
-extern EFI_DXE_SERVICES      *gDxeCoreDS;
-extern EFI_HANDLE            gDxeCoreImageHandle;
+extern EFI_SYSTEM_TABLE                  *gST;
+extern EFI_RUNTIME_SERVICES              *gRT;
+extern EFI_DXE_SERVICES                  *gDS;
+extern EFI_HANDLE                        gImageHandle;
 
-extern BOOLEAN  gMemoryMapTerminated;
+extern BOOLEAN                           gMemoryMapTerminated;
 
-extern EFI_DECOMPRESS_PROTOCOL  gEfiDecompress;
+extern EFI_DECOMPRESS_PROTOCOL           gEfiDecompress;
 
 extern EFI_RUNTIME_ARCH_PROTOCOL         *gRuntime;
 extern EFI_CPU_ARCH_PROTOCOL             *gCpu;
@@ -251,20 +252,21 @@ extern EFI_SECURITY2_ARCH_PROTOCOL       *gSecurity2;
 extern EFI_BDS_ARCH_PROTOCOL             *gBds;
 extern EFI_SMM_BASE2_PROTOCOL            *gSmmBase2;
 
-extern EFI_TPL  gEfiCurrentTpl;
+extern EFI_TPL                           gEfiCurrentTpl;
 
-extern EFI_GUID                   *gDxeCoreFileName;
-extern EFI_LOADED_IMAGE_PROTOCOL  *gDxeCoreLoadedImage;
+extern EFI_GUID                          *gDxeCoreFileName;
+extern EFI_LOADED_IMAGE_PROTOCOL         *gDxeCoreLoadedImage;
 
-extern EFI_MEMORY_TYPE_INFORMATION  gMemoryTypeInformation[EfiMaxMemoryType + 1];
+extern EFI_MEMORY_TYPE_INFORMATION       gMemoryTypeInformation[EfiMaxMemoryType + 1];
 
-extern BOOLEAN                    gDispatcherRunning;
-extern EFI_RUNTIME_ARCH_PROTOCOL  gRuntimeTemplate;
+extern BOOLEAN                           gDispatcherRunning;
+extern EFI_RUNTIME_ARCH_PROTOCOL         gRuntimeTemplate;
 
 extern BOOLEAN  gMemoryAttributesTableForwardCfi;
 
 extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfigurationTable;
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
+extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
 //
 // Service Initialization Functions
 //

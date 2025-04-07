@@ -1,0 +1,24 @@
+## @file
+#  This library provides dummy InitializeCpu() for DxeMain.inf.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = CpuArchLib
+  FILE_GUID                      = EF9CBDF2-BD7C-48F1-9D87-EE83A0269EEE
+  MODULE_TYPE                    = DXE_CORE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = CpuArchLib
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+
+[Sources]
+  CpuDxeNull.c
