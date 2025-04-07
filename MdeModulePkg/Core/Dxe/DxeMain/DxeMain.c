@@ -203,6 +203,7 @@ EFI_RUNTIME_SERVICES  *gRT = &mEfiRuntimeServicesTableTemplate;
 EFI_HANDLE            gImageHandle = NULL;
 
 BOOLEAN               gMemoryMapTerminated = FALSE;
+BOOLEAN               gBdsStarted          = FALSE;
 
 static BOOLEAN  mExitBootServicesCalled = FALSE;
 
@@ -329,7 +330,7 @@ DxeMain (
 
   CoreInitializeMemoryProtection ();
 
-  ProtectUefiImage (&mCurrentImage->Info, TRUE, &ImageContext);
+  ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext);
 
   //
   // Call constructor for all libraries
@@ -571,6 +572,8 @@ DxeMain (
     EFI_PROGRESS_CODE,
     (EFI_SOFTWARE_DXE_CORE | EFI_SW_DXE_CORE_PC_HANDOFF_TO_NEXT)
     );
+
+  gBdsStarted = TRUE;
 
   //
   // Transfer control to the BDS Architectural Protocol

@@ -1457,21 +1457,6 @@
   # @Prompt Memory profile driver path.
   gEfiMdeModulePkgTokenSpaceGuid.PcdMemoryProfileDriverPath|{0x0}|VOID*|0x00001043
 
-  ## Set image protection policy. The policy is bitwise.
-  #  If a bit is set, the image will be protected by DxeCore if it is aligned.
-  #   The code section becomes read-only, and the data section becomes non-executable.
-  #  If a bit is clear, nothing will be done to image code/data sections.<BR><BR>
-  #    BIT0       - Image from unknown device. <BR>
-  #    BIT1       - Image from firmware volume.<BR>
-  #  <BR>
-  #  Note: If a bit is cleared, the data section could be still non-executable if
-  #  PcdDxeNxMemoryProtectionPolicy is enabled for EfiLoaderData, EfiBootServicesData
-  #  and/or EfiRuntimeServicesData.<BR>
-  #  <BR>
-  # @Prompt Set image protection policy.
-  # @ValidRange 0x80000002 | 0x00000000 - 0x0000001F
-  gEfiMdeModulePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x00000002|UINT32|0x00001047
-
   ## Set DXE memory protection policy. The policy is bitwise.
   #  If a bit is set, memory regions of the associated type will be mapped
   #  non-executable.<BR>
