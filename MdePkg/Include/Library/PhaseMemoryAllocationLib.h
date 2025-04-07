@@ -114,4 +114,9 @@ PhaseFreePool (
 ///
 extern CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType;
 
+///
+/// The memory type to allocate for calls to AllocateCodePages().
+///
+extern CONST EFI_MEMORY_TYPE  gPhaseDefaultCodeType;
+
 #endif

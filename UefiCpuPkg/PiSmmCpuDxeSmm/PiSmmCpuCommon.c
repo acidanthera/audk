@@ -1485,33 +1485,6 @@ ConfigSmmCodeAccessCheck (
 }
 
 /**
-  Allocate pages for code.
-
-  @param[in]  Pages Number of pages to be allocated.
-
-  @return Allocated memory.
-**/
-VOID *
-AllocateCodePages (
-  IN UINTN  Pages
-  )
-{
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Memory;
-
-  if (Pages == 0) {
-    return NULL;
-  }
-
-  Status = gMmst->MmAllocatePages (AllocateAnyPages, EfiRuntimeServicesCode, Pages, &Memory);
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
-
-  return (VOID *)(UINTN)Memory;
-}
-
-/**
   Perform the pre tasks.
 
 **/
