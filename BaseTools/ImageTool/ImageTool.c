@@ -259,7 +259,7 @@ GetAcpi (
     return RETURN_ABORTED;
   }
 
-  Status = PeCoffInitializeContext (&Context, Pe, (UINT32)PeSize);
+  Status = PeCoffInitializeContext (&Context, Pe, (UINT32)PeSize, UefiImageOriginFv);
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not initialise Context\n");
     free (Pe);
@@ -457,6 +457,10 @@ main (
   bool           Strip;
   bool           FixedAddress;
   int            ArgIndex;
+
+  PcdGet8 (PcdUefiImageFormatSupportNonFv) = 0x00;
+  PcdGet8 (PcdUefiImageFormatSupportFv)    = 0x03;
+  PcdGet32 (PcdImageProtectionPolicy)      = 0x00;
 
   if (argc < 2) {
     fprintf (stderr, "ImageTool: No command is specified\n");

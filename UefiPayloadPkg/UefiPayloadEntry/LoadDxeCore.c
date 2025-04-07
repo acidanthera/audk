@@ -40,7 +40,8 @@ LoadUefiImage (
              &ImageContext,
              UefiImage,
              UefiImageSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);

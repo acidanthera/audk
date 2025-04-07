@@ -211,7 +211,8 @@ ToolContextConstructUefiImage (
              &Context,
              File,
              (UINT32)FileSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (RETURN_ERROR (Status)) {
     return Status;
