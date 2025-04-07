@@ -91,7 +91,8 @@ InternalInitializeContextPreHash (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize,
-  IN  UINT8                            FormatIndex
+  IN  UINT8                            FormatIndex,
+  IN  UINT8                            ImageOrigin
   )
 {
   RETURN_STATUS  Status;
@@ -102,7 +103,8 @@ InternalInitializeContextPreHash (
     InitializeContextPreHash,
     Context,
     FileBuffer,
-    FileSize
+    FileSize,
+    ImageOrigin
     );
 
   return Status;
@@ -113,7 +115,8 @@ UefiImageInitializeContextPreHash (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize,
-  IN  UEFI_IMAGE_SOURCE                Source
+  IN  UEFI_IMAGE_SOURCE                Source,
+  IN  UINT8                            ImageOrigin
   )
 {
   RETURN_STATUS  Status;
@@ -144,7 +147,8 @@ UefiImageInitializeContextPreHash (
                Context,
                FileBuffer,
                FileSize,
-               UefiImageFormatUe
+               UefiImageFormatUe,
+               ImageOrigin
                );
     if (!RETURN_ERROR (Status)) {
       Context->FormatIndex = UefiImageFormatUe;
@@ -156,7 +160,8 @@ UefiImageInitializeContextPreHash (
                Context,
                FileBuffer,
                FileSize,
-               UefiImageFormatPe
+               UefiImageFormatPe,
+               ImageOrigin
                );
     if (!RETURN_ERROR (Status)) {
       Context->FormatIndex = UefiImageFormatPe;
@@ -624,7 +629,8 @@ UefiImageLoaderGetImageRecord (
 RETURN_STATUS
 UefiImageDebugLocateImage (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                            Address
+  IN  UINTN                            Address,
+  IN  UINT8                            ImageOrigin
   )
 {
   RETURN_STATUS  Status;
@@ -634,7 +640,8 @@ UefiImageDebugLocateImage (
     Context->FormatIndex,
     DebugLocateImage,
     Context,
-    Address
+    Address,
+    ImageOrigin
     );
 
   return Status;

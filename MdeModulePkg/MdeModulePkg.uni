@@ -1086,18 +1086,6 @@
 #string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdSmiHandlerProfilePropertyMask_HELP  #language en-US "The mask is used to control SmiHandlerProfile behavior.<BR><BR>\n"
                                                                                                   "BIT0 - Enable SmiHandlerProfile.<BR>"
 
-#string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdImageProtectionPolicy_PROMPT  #language en-US "Set image protection policy."
-
-#string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdImageProtectionPolicy_HELP  #language en-US "Set image protection policy. The policy is bitwise.\n"
-                                                                                          "If a bit is set, the image will be protected by DxeCore if it is aligned.\n"
-                                                                                          "The code section becomes read-only, and the data section becomes non-executable.\n"
-                                                                                          "If a bit is clear, nothing will be done to image code/data sections.<BR><BR>\n"
-                                                                                          "BIT0       - Image from unknown device. <BR>\n"
-                                                                                          "BIT1       - Image from firmware volume.<BR>"
-                                                                                          "Note: If a bit is cleared, the data section could be still non-executable if\n"
-                                                                                          "PcdDxeNxMemoryProtectionPolicy is enabled for EfiLoaderData, EfiBootServicesData\n"
-                                                                                          "and/or EfiRuntimeServicesData.<BR>"
-
 #string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdDxeNxMemoryProtectionPolicy_PROMPT  #language en-US "Set DXE memory protection policy."
 
 #string STR_gEfiMdeModulePkgTokenSpaceGuid_PcdDxeNxMemoryProtectionPolicy_HELP  #language en-US "Set DXE memory protection policy. The policy is bitwise.\n"

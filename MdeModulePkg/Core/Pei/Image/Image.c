@@ -200,7 +200,8 @@ LoadAndRelocateUefiImage (
              ImageContext,
              Pe32Data,
              Pe32DataSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     return Status;
@@ -386,7 +387,8 @@ LoadAndRelocateUefiImageInPlace (
              &ImageContext,
              ImageAddress,
              ImageSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
