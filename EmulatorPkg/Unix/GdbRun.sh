@@ -41,7 +41,7 @@ set $SymbolFileChangesCount = 0
 #
 define AddFirmwareSymbolFile
   if $SymbolFileChangesCount < $arg0
-    add-symbol-file $arg1 $arg2
+    add-symbol-file $arg1 -o $arg2
     set $SymbolFileChangesCount = $arg0
   end
 end

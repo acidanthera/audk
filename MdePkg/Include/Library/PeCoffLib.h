@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 /** @file
   Provides services to load and relocate a PE/COFF image.
 
@@ -12,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #pragma once
 
-#include <IndustryStandard/PeImage.h>
+  #include <IndustryStandard/PeImage.h>
 //
 // Return status codes from the PE/COFF Loader services
 //
@@ -358,7 +360,7 @@ PeCoffLoaderImageReadFromMemory (
 **/
 VOID
 EFIAPI
-PeCoffLoaderRelocateImageForRuntime (
+PeCoffLoaderRuntimeRelocateImage (
   IN  PHYSICAL_ADDRESS  ImageBase,
   IN  PHYSICAL_ADDRESS  VirtImageBase,
   IN  UINTN             ImageSize,
@@ -386,3 +388,5 @@ EFIAPI
 PeCoffLoaderUnloadImage (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   );
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

@@ -51,7 +51,7 @@
   DevicePathLib
   BaseCryptLib
   SecurityManagementLib
-  PeCoffLib
+  UefiImageLib
   TpmMeasurementLib
 
 [Protocols]
@@ -74,6 +74,10 @@
   ## SOMETIMES_CONSUMES   ## GUID       # Unique ID for the type of the signature.
   ## SOMETIMES_PRODUCES   ## GUID       # Unique ID for the type of the signature.
   gEfiCertSha256Guid
+
+  ## SOMETIMES_CONSUMES   ## GUID       # Unique ID for the type of the signature.
+  ## SOMETIMES_PRODUCES   ## GUID       # Unique ID for the type of the signature.
+  gEfiCertSha224Guid
 
   ## SOMETIMES_CONSUMES   ## GUID       # Unique ID for the type of the signature.
   ## SOMETIMES_PRODUCES   ## GUID       # Unique ID for the type of the signature.

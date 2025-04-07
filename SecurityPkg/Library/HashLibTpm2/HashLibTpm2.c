@@ -72,11 +72,13 @@ HashStart (
   AlgoId = Tpm2GetAlgoFromHashMask ();
 
   Status = Tpm2HashSequenceStart (AlgoId, &SequenceHandle);
-  if (!EFI_ERROR (Status)) {
-    *HashHandle = (HASH_HANDLE)SequenceHandle;
+  if (EFI_ERROR (Status)) {
+    return Status;
   }
 
-  return Status;
+  *HashHandle = (HASH_HANDLE)SequenceHandle;
+
+  return EFI_SUCCESS;
 }
 
 /**
@@ -109,7 +111,7 @@ HashUpdate (
 
     Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)HashHandle, &HashBuffer);
     if (EFI_ERROR (Status)) {
-      return EFI_DEVICE_ERROR;
+      return Status;
     }
   }
 
@@ -120,7 +122,7 @@ HashUpdate (
   CopyMem (HashBuffer.buffer, Buffer, (UINTN)HashLen);
   Status = Tpm2SequenceUpdate ((TPMI_DH_OBJECT)HashHandle, &HashBuffer);
   if (EFI_ERROR (Status)) {
-    return EFI_DEVICE_ERROR;
+    return Status;
   }
 
   return EFI_SUCCESS;

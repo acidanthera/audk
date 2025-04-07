@@ -12,11 +12,10 @@
 
 #include <Base.h>
 
-CHAR8 *
+CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase,
-  OUT UINTN  *PeCoffSizeOfHeaders
+  OUT UINTN  *ImageBase
   );
 
 VOID

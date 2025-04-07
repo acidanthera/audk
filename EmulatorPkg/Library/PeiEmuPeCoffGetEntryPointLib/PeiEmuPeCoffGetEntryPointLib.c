@@ -7,7 +7,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "PiPei.h"
-#include <Library/PeCoffGetEntryPointLib.h>
+// #include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PeiServicesLib.h>
 #include <IndustryStandard/PeImage.h>
 #include <Library/DebugLib.h>
@@ -35,8 +35,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 RETURN_STATUS
 EFIAPI
 PeCoffLoaderGetEntryPoint (
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+  IN     VOID    *Pe32Data,
+  IN     UINT32  Pe32Size,
+  IN OUT VOID    **EntryPoint
   )
 {
   EMU_THUNK_PPI       *ThunkPpi;
@@ -56,7 +57,7 @@ PeCoffLoaderGetEntryPoint (
 
   Thunk = (EMU_THUNK_PROTOCOL *)ThunkPpi->Thunk ();
 
-  return Thunk->PeCoffGetEntryPoint (Pe32Data, EntryPoint);
+  return Thunk->PeCoffGetEntryPoint (Pe32Data, Pe32Size, EntryPoint);
 }
 
 /**

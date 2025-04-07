@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 /** @file
   Provides services to perform additional actions when a PE/COFF image is loaded
   or unloaded.  This is useful for environment where symbols need to be loaded
@@ -10,7 +12,7 @@
 
 #pragma once
 
-#include <Library/PeCoffLib.h>
+  #include <Library/PeCoffLib.h>
 
 /**
   Performs additional actions after a PE/COFF image has been loaded and relocated.
@@ -42,3 +44,5 @@ EFIAPI
 PeCoffLoaderUnloadImageExtraAction (
   IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
   );
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

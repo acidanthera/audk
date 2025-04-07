@@ -16,7 +16,7 @@
 // neded for things like EFI_TIME_CAPABILITIES
 #include <Uefi.h>
 
-#include <Library/PeCoffExtraActionLib.h>
+#include <Library/UefiImageExtraActionLib.h>
 
 #include <Protocol/EmuIoThunk.h>
 #include <Protocol/DevicePath.h>
@@ -87,20 +87,21 @@ BOOLEAN
 typedef
 EFI_STATUS
 (EFIAPI *EMU_PE_COFF_GET_ENTRY_POINT)(
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+  IN     VOID   *Pe32Data,
+  IN     UINT32 Pe32Size,
+  IN OUT VOID   **EntryPoint
   );
 
 typedef
 VOID
 (EFIAPI *EMU_PE_COFF_RELOCATE_EXTRA_ACTION)(
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 typedef
 VOID
 (EFIAPI *EMU_PE_COFF_UNLOAD_EXTRA_ACTION)(
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 typedef
@@ -216,9 +217,9 @@ struct _EMU_THUNK_PROTOCOL {
   ///
   /// PE/COFF loader hooks to get symbols loaded
   ///
-  EMU_PE_COFF_GET_ENTRY_POINT          PeCoffGetEntryPoint;
-  EMU_PE_COFF_RELOCATE_EXTRA_ACTION    PeCoffRelocateImageExtraAction;
-  EMU_PE_COFF_UNLOAD_EXTRA_ACTION      PeCoffUnloadImageExtraAction;
+  EMU_PE_COFF_GET_ENTRY_POINT          UefiImageGetEntryPoint;
+  EMU_PE_COFF_RELOCATE_EXTRA_ACTION    UefiImageRelocateImageExtraAction;
+  EMU_PE_COFF_UNLOAD_EXTRA_ACTION      UefiImageUnloadImageExtraAction;
 
   ///
   /// DXE Architecture Protocol Services

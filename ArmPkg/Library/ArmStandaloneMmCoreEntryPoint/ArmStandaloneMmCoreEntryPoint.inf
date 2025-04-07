@@ -60,10 +60,12 @@
 [Pcd]
   gArmTokenSpaceGuid.PcdStMmStackSize
 
-# Standalone MM Core can be used as an OP-TEE trusted application and needs to do runtime^M
-# relocation in that scenario. It needs to be built as a position independent executable (PIE)^M
-# for this use case. However, PE targets do not support PIE, so only ELF targets^M
+#
+# Standalone MM Core can be used as an OP-TEE trusted application and needs to do runtime
+# relocation in that scenario. It needs to be built as a position independent executable (PIE)
+# for this use case. However, PE targets do not support PIE, so only ELF targets
 # are built with these flags and support this scenario.
+#
 [BuildOptions]
   GCC:*_GCC_AARCH64_CC_FLAGS = -fpie
   CLANGDWARF:*_CLANGDWARF_AARCH64_CC_FLAGS = -fpie

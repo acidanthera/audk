@@ -51,11 +51,11 @@
   DevicePathLib
   PerformanceLib
   DxeServicesLib
-  PeCoffGetEntryPointLib
 
 [Guids]
   gPerformanceProtocolGuid                                ## CONSUMES ## SystemTable
   gEdkiiFpdtExtendedFirmwarePerformanceGuid               ## CONSUMES ## SystemTable
+  gEfiDebugImageInfoTableGuid                             ## CONSUMES ## SystemTable
 
 [Protocols]
   gEfiLoadedImageProtocolGuid                             ## CONSUMES

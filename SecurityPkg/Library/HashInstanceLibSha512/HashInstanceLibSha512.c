@@ -55,7 +55,9 @@ Sha512HashInit (
 
   CtxSize   = Sha512GetContextSize ();
   Sha512Ctx = AllocatePool (CtxSize);
-  ASSERT (Sha512Ctx != NULL);
+  if (Sha512Ctx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Sha512Init (Sha512Ctx);
 
@@ -81,10 +83,7 @@ Sha512HashUpdate (
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sha512Ctx;
-
-  Sha512Ctx = (VOID *)HashHandle;
-  Sha512Update (Sha512Ctx, DataToHash, DataToHashLen);
+  Sha512Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
   return EFI_SUCCESS;
 }
@@ -100,17 +99,15 @@ Sha512HashUpdate (
 EFI_STATUS
 EFIAPI
 Sha512HashFinal (
-  IN HASH_HANDLE          HashHandle,
+  IN  HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SHA512_DIGEST_SIZE];
-  VOID   *Sha512Ctx;
 
-  Sha512Ctx = (VOID *)HashHandle;
-  Sha512Final (Sha512Ctx, Digest);
+  Sha512Final ((VOID *)HashHandle, Digest);
 
-  FreePool (Sha512Ctx);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSha512ToDigestList (DigestList, Digest);
 

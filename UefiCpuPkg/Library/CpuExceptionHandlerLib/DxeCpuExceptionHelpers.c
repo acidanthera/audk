@@ -9,7 +9,6 @@
 **/
 
 #include <Uefi.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/UefiLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Guid/DebugImageInfoTable.h>
@@ -22,17 +21,15 @@
 
   @param  FaultAddress         Address to find PE/COFF image for.
   @param  ImageBase            Return load address of found image
-  @param  PeCoffSizeOfHeaders  Return the size of the PE/COFF header for the image that was found
 
   @retval NULL                 FaultAddress not in a loaded PE/COFF image.
   @retval                      Path and file name of PE/COFF image.
 
 **/
-CHAR8 *
+CONST CHAR8 *
 GetImageName (
   IN  UINTN  FaultAddress,
-  OUT UINTN  *ImageBase,
-  OUT UINTN  *PeCoffSizeOfHeaders
+  OUT UINTN  *ImageBase
   )
 {
   EFI_STATUS                         Status;
@@ -60,9 +57,8 @@ GetImageName (
         if ((Address >= (CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase) &&
             (Address <= ((CHAR8 *)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase + DebugTable->NormalImage->LoadedImageProtocolInstance->ImageSize)))
         {
-          *ImageBase           = (UINTN)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase;
-          *PeCoffSizeOfHeaders = PeCoffGetSizeOfHeaders ((VOID *)(UINTN)*ImageBase);
-          return PeCoffLoaderGetPdbPointer (DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase);
+          *ImageBase = (UINTN)DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase;
+          return DebugTable->NormalImage->PdbPath;
         }
       }
     }

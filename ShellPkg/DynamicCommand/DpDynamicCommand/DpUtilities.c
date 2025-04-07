@@ -11,7 +11,7 @@
 #include <Library/MemoryAllocationLib.h>
 #include <Library/DebugLib.h>
 #include <Library/UefiBootServicesTableLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 #include <Library/PrintLib.h>
 #include <Library/HiiLib.h>
 #include <Library/PcdLib.h>
@@ -28,6 +28,7 @@
 #include <Protocol/DevicePath.h>
 
 #include <Guid/Performance.h>
+#include <Guid/DebugImageInfoTable.h>
 
 #include "Dp.h"
 #include "Literals.h"
@@ -148,8 +149,8 @@ IsCorePerf (
 **/
 VOID
 DpGetShortPdbFileName (
-  IN  CHAR8   *PdbFileName,
-  OUT CHAR16  *UnicodeBuffer
+  IN  CONST CHAR8  *PdbFileName,
+  OUT CHAR16       *UnicodeBuffer
   )
 {
   UINTN  IndexA;    // Current work location within an ASCII string.
@@ -188,6 +189,42 @@ DpGetShortPdbFileName (
   }
 }
 
+// FIXME: Duplicate (GetImageName), create API
+CONST CHAR8 *
+GetImagePdb (
+  IN CONST VOID  *ImageBase
+  )
+{
+  EFI_STATUS                         Status;
+  EFI_DEBUG_IMAGE_INFO_TABLE_HEADER  *DebugTableHeader;
+  EFI_DEBUG_IMAGE_INFO               *DebugTable;
+  UINTN                              Entry;
+
+  Status = EfiGetSystemConfigurationTable (&gEfiDebugImageInfoTableGuid, (VOID **)&DebugTableHeader);
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  DebugTable = DebugTableHeader->EfiDebugImageInfoTable;
+  if (DebugTable == NULL) {
+    return NULL;
+  }
+
+  for (Entry = 0; Entry < DebugTableHeader->TableSize; Entry++, DebugTable++) {
+    if (DebugTable->NormalImage != NULL) {
+      if ((DebugTable->NormalImage->ImageInfoType == EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) &&
+          (DebugTable->NormalImage->LoadedImageProtocolInstance != NULL))
+      {
+        if (ImageBase == DebugTable->NormalImage->LoadedImageProtocolInstance->ImageBase) {
+          return DebugTable->NormalImage->PdbPath;
+        }
+      }
+    }
+  }
+
+  return NULL;
+}
+
 /**
   Get a human readable name for an image handle.
   The following methods will be tried orderly:
@@ -211,7 +248,7 @@ DpGetNameFromHandle (
 {
   EFI_STATUS                    Status;
   EFI_LOADED_IMAGE_PROTOCOL     *Image;
-  CHAR8                         *PdbFileName;
+  CONST CHAR8                   *PdbFileName;
   EFI_DRIVER_BINDING_PROTOCOL   *DriverBinding;
   EFI_STRING                    StringPtr;
   EFI_DEVICE_PATH_PROTOCOL      *LoadedImageDevicePath;
@@ -255,7 +292,7 @@ DpGetNameFromHandle (
   }
 
   if (!EFI_ERROR (Status)) {
-    PdbFileName = PeCoffLoaderGetPdbPointer (Image->ImageBase);
+    PdbFileName = GetImagePdb (Image->ImageBase);
 
     if (PdbFileName != NULL) {
       DpGetShortPdbFileName (PdbFileName, mGaugeString);

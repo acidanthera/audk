@@ -48,8 +48,9 @@
   HobLib
   MemoryAllocationLib
   MemLib
-  PeCoffLib
+  UefiImageLib
   ReportStatusCodeLib
+  StandaloneMmProtectionLib
   StandaloneMmCoreEntryPoint
   HobPrintLib
   ImagePropertiesRecordLib

@@ -45,12 +45,12 @@
   SerialPortLib
   IoLib
   HobLib
-  PeCoffLib
   CpuLib
   HobPrintLib
   StackCheckLib
   UefiCpuBaseArchSupportLib
   MemoryAllocationLib
+  UefiImageLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid

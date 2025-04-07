@@ -54,7 +54,6 @@
   UefiLib
   ReportStatusCodeLib
   DxeServicesLib
-  PeCoffGetEntryPointLib
   DevicePathLib
 
 [Protocols]

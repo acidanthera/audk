@@ -370,6 +370,7 @@ FfsProcessSection (
   IN EFI_COMMON_SECTION_HEADER  *Section,
   IN UINTN                      SectionSize,
   OUT VOID                      **OutputBuffer,
+  OUT UINT32                    *OutputSize,
   OUT UINT32                    *AuthenticationStatus OPTIONAL
   )
 {
@@ -380,7 +381,9 @@ FfsProcessSection (
   VOID        *DstBuffer;
   UINT32      TempAuthStatus;
 
-  ParsedLength = 0;
+  ParsedLength  = 0;
+  *OutputBuffer = NULL;
+  *OutputSize   = 0;
 
   while (ParsedLength < SectionSize) {
     UINT32  SectionHeaderSize;
@@ -395,6 +398,7 @@ FfsProcessSection (
       }
 
       *OutputBuffer = (VOID *)((UINT8 *)Section + SectionHeaderSize);
+      *OutputSize   = GetSectionNSize (Section) - SectionHeaderSize;
 
       return EFI_SUCCESS;
     } else if ((Section->Type == EFI_SECTION_COMPRESSION) || (Section->Type == EFI_SECTION_GUID_DEFINED)) {
@@ -502,6 +506,7 @@ FfsProcessSection (
                DstBuffer,
                DstBufferSize,
                OutputBuffer,
+               OutputSize,
                AuthenticationStatus
                );
     }
@@ -531,6 +536,7 @@ CheckNextSection:
   @param  FileHandle            A pointer to the file header that contains the set of sections to
                                 be searched.
   @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionSize           A pointer to the size of the discovered section, if successful.
   @param  AuthenticationStatus  Pointer to the authentication status. This parameter is optional. If non-NULL and
                                 GUIDed extraction occurs, the authentication status will be updated.
 
@@ -545,6 +551,7 @@ FfsFindSectionDataWithHook (
   IN FFS_CHECK_SECTION_HOOK  SectionCheckHook,
   IN EFI_PEI_FILE_HANDLE     FileHandle,
   OUT VOID                   **SectionData,
+  OUT UINT32                 *SectionSize,
   OUT UINT32                 *AuthenticationStatus OPTIONAL
   )
 {
@@ -567,6 +574,7 @@ FfsFindSectionDataWithHook (
            Section,
            FileSize,
            SectionData,
+           SectionSize,
            AuthenticationStatus
            );
 }
@@ -578,6 +586,7 @@ FfsFindSectionDataWithHook (
   @param  FileHandle            A pointer to the file header that contains the set of sections to
                                 be searched.
   @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionSize           A pointer to the size of the discovered section, if successful.
 
   @retval EFI_SUCCESS           The section was found.
   @retval EFI_NOT_FOUND         The section was not found.
@@ -588,10 +597,11 @@ EFIAPI
 FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_PEI_FILE_HANDLE  FileHandle,
-  OUT VOID                **SectionData
+  OUT VOID                **SectionData,
+  OUT UINT32              *SectionSize
   )
 {
-  return FfsFindSectionDataWithHook (SectionType, NULL, FileHandle, SectionData, NULL);
+  return FfsFindSectionDataWithHook (SectionType, NULL, FileHandle, SectionData, SectionSize, NULL);
 }
 
 /**
@@ -885,6 +895,7 @@ FfsProcessFvFile (
 {
   EFI_STATUS            Status;
   EFI_PEI_FV_HANDLE     FvImageHandle;
+  UINT32                FvImageHandleSize;
   EFI_FV_INFO           FvImageInfo;
   EFI_FV_INFO           ParentVolumeInfo;
   UINT32                FvAlignment;
@@ -920,7 +931,14 @@ FfsProcessFvFile (
   //
   // Find FvImage in FvFile
   //
-  Status = FfsFindSectionDataWithHook (EFI_SECTION_FIRMWARE_VOLUME_IMAGE, NULL, FvFileHandle, (VOID **)&FvImageHandle, &AuthenticationStatus);
+  Status = FfsFindSectionDataWithHook (
+             EFI_SECTION_FIRMWARE_VOLUME_IMAGE,
+             NULL,
+             FvFileHandle,
+             (VOID **)&FvImageHandle,
+             &FvImageHandleSize,
+             &AuthenticationStatus
+             );
   if (EFI_ERROR (Status)) {
     return Status;
   }
