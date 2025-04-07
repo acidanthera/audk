@@ -272,7 +272,7 @@ CoreInitializeImageServices (
   //
   // Fill in DXE globals
   //
-  gDxeCoreImageHandle = Image->Handle;
+  gImageHandle        = Image->Handle;
   gDxeCoreLoadedImage = &Image->Info;
 
   //
@@ -298,8 +298,6 @@ CoreInitializeImageServices (
   ASSERT_EFI_ERROR (Status);
 
   InitializeListHead (&mAvailableEmulators);
-
-  ProtectUefiImage (Image, ImageContext);
 
   return Status;
 }
@@ -1279,7 +1277,7 @@ CoreLoadImageCommon (
   // Initialize the fields for an internal driver
   //
   Image->Signature         = LOADED_IMAGE_PRIVATE_DATA_SIGNATURE;
-  Image->Info.SystemTable  = gDxeCoreST;
+  Image->Info.SystemTable  = gST;
   Image->Info.DeviceHandle = DeviceHandle;
   Image->Info.Revision     = EFI_LOADED_IMAGE_PROTOCOL_REVISION;
   Image->Info.FilePath     = DuplicateDevicePath (FilePath);

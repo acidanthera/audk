@@ -1,0 +1,34 @@
+## @file
+# Dummy instance of UEFI Boot Services Table Library for DxeCore.
+#
+# Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DxeCoreUefiBootServicesTableLib
+  MODULE_UNI_FILE                = DxeCoreUefiBootServicesTableLib.uni
+  FILE_GUID                      = 67ecd0d0-5e42-4933-baee-cb129e4f4c55
+  MODULE_TYPE                    = DXE_CORE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = UefiBootServicesTableLib|DXE_CORE
+
+  CONSTRUCTOR                    = UefiBootServicesTableLibConstructor
+
+#
+#  VALID_ARCHITECTURES           = IA32 X64 EBC ARM AARCH64
+#
+
+[Sources]
+  DxeCoreUefiBootServicesTableLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+
+[LibraryClasses]
+  DebugLib
