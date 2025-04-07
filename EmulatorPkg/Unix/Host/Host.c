@@ -44,9 +44,6 @@ EMU_FD_INFO  *gFdInfo;
 UINTN              gSystemMemoryCount = 0;
 EMU_SYSTEM_MEMORY  *gSystemMemory;
 
-UINTN                        mImageContextModHandleArraySize = 0;
-IMAGE_CONTEXT_TO_MOD_HANDLE  *mImageContextModHandleArray    = NULL;
-
 EFI_PEI_PPI_DESCRIPTOR  *gPpiList;
 
 int  gInXcode = 0;
@@ -96,11 +93,13 @@ main (
   CHAR8                 *FileName;
   EFI_PEI_FILE_HANDLE   FileHandle;
   VOID                  *SecFile;
+  UINT32                SecFileSize;
   CHAR16                *MemorySizeStr;
   CHAR16                *FirmwareVolumesStr;
   UINTN                 *StackPointer;
   FILE                  *GdbTempFile;
   EMU_THUNK_PPI         *SecEmuThunkPpi;
+  UINT32                AuthenticationStatus;
 
   //
   // Xcode does not support sourcing gdb scripts directly, so the Xcode XML
@@ -109,8 +108,7 @@ main (
   SecGdbConfigBreak ();
 
   //
-  // If dlopen doesn't work, then we build a gdb script to allow the
-  // symbols to be loaded.
+  // We build a gdb script to allow the symbols to be loaded.
   //
   Index               = strlen (*Argv);
   gGdbWorkingFileName = AllocatePool (Index + strlen (".gdb") + 1);
@@ -282,7 +280,14 @@ main (
                      &FileHandle
                      );
       if (!EFI_ERROR (Status)) {
-        Status = PeiServicesFfsFindSectionData (EFI_SECTION_PE32, FileHandle, &SecFile);
+        Status = PeiServicesFfsFindSectionData4 (
+                   EFI_SECTION_PE32,
+                   0,
+                   FileHandle,
+                   &SecFile,
+                   &SecFileSize,
+                   &AuthenticationStatus
+                   );
         if (!EFI_ERROR (Status)) {
           printf (" contains SEC Core");
         }
@@ -327,7 +332,7 @@ main (
   //
   // Hand off to SEC
   //
-  SecLoadFromCore ((UINTN)InitialStackMemory, (UINTN)InitialStackMemorySize, (UINTN)gFdInfo[0].Address, SecFile);
+  SecLoadFromCore ((UINTN)InitialStackMemory, (UINTN)InitialStackMemorySize, (UINTN)gFdInfo[0].Address, SecFile, SecFileSize);
 
   //
   // If we get here, then the SEC Core returned. This is an error as SEC should
@@ -540,10 +545,11 @@ Returns:
 **/
 VOID
 SecLoadFromCore (
-  IN  UINTN  LargestRegion,
-  IN  UINTN  LargestRegionSize,
-  IN  UINTN  BootFirmwareVolumeBase,
-  IN  VOID   *PeiCorePe32File
+  IN  UINTN   LargestRegion,
+  IN  UINTN   LargestRegionSize,
+  IN  UINTN   BootFirmwareVolumeBase,
+  IN  VOID    *PeiCorePe32File,
+  IN  UINT32  PeiCorePe32Size
   )
 {
   EFI_STATUS            Status;
@@ -591,7 +597,7 @@ SecLoadFromCore (
   //
   // Find the SEC Core Entry Point
   //
-  Status = SecPeCoffGetEntryPoint (PeiCorePe32File, (VOID **)&PeiCoreEntryPoint);
+  Status = SecUefiImageGetEntryPoint (PeiCorePe32File, PeiCorePe32Size, (VOID **)&PeiCoreEntryPoint);
   if (EFI_ERROR (Status)) {
     return;
   }
@@ -725,53 +731,28 @@ SecEmuThunkAddress (
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+SecUefiImageGetEntryPoint (
+  IN     VOID    *Pe32Data,
+  IN     UINT32  Pe32Size,
+  IN OUT VOID    **EntryPoint
   )
 {
-  EFI_STATUS                    Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  EFI_STATUS                       Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
-  ZeroMem (&ImageContext, sizeof (ImageContext));
-  ImageContext.Handle    = Pe32Data;
-  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)SecImageRead;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = UefiImageInitializeContext (&ImageContext, Pe32Data, Pe32Size);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  if (ImageContext.ImageAddress != (UINTN)Pe32Data) {
-    //
-    // Relocate image to match the address where it resides
-    //
-    ImageContext.ImageAddress = (UINTN)Pe32Data;
-    Status                    = PeCoffLoaderLoadImage (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    Status = PeCoffLoaderRelocateImage (&ImageContext);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-  } else {
-    //
-    // Or just return image entry point
-    //
-    ImageContext.PdbPointer = PeCoffLoaderGetPdbPointer (Pe32Data);
-    Status                  = PeCoffLoaderGetEntryPoint (Pe32Data, EntryPoint);
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    ImageContext.EntryPoint = (UINTN)*EntryPoint;
+  // FIXME: Why cannot the Image be in-place already?
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  if (EFI_ERROR (Status)) {
+    return Status;
   }
 
-  // On Unix a dlopen is done that will change the entry point
-  SecPeCoffRelocateImageExtraAction (&ImageContext);
-  *EntryPoint = (VOID *)(UINTN)ImageContext.EntryPoint;
+  SecUefiImageRelocateImageExtraAction (&ImageContext);
+  *EntryPoint = (VOID *)(UefiImageLoaderGetImageEntryPoint (&ImageContext));
 
   return Status;
 }
@@ -894,114 +875,9 @@ Returns:
   return EFI_SUCCESS;
 }
 
-/*++
-
-Routine Description:
-  Store the ModHandle in an array indexed by the Pdb File name.
-  The ModHandle is needed to unload the image.
-
-Arguments:
-  ImageContext - Input data returned from PE Loader Library. Used to find the
-                 .PDB file name of the PE Image.
-  ModHandle    - Returned from LoadLibraryEx() and stored for call to
-                 FreeLibrary().
-
-Returns:
-  EFI_SUCCESS - ModHandle was stored.
-
-**/
-EFI_STATUS
-AddHandle (
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN  VOID                          *ModHandle
-  )
-{
-  UINTN                        Index;
-  IMAGE_CONTEXT_TO_MOD_HANDLE  *Array;
-  UINTN                        PreviousSize;
-
-  Array = mImageContextModHandleArray;
-  for (Index = 0; Index < mImageContextModHandleArraySize; Index++, Array++) {
-    if (Array->ImageContext == NULL) {
-      //
-      // Make a copy of the string and store the ModHandle
-      //
-      Array->ImageContext = ImageContext;
-      Array->ModHandle    = ModHandle;
-      return EFI_SUCCESS;
-    }
-  }
-
-  //
-  // No free space in mImageContextModHandleArray so grow it by
-  // IMAGE_CONTEXT_TO_MOD_HANDLE entires. realloc will
-  // copy the old values to the new location. But it does
-  // not zero the new memory area.
-  //
-  PreviousSize                     = mImageContextModHandleArraySize * sizeof (IMAGE_CONTEXT_TO_MOD_HANDLE);
-  mImageContextModHandleArraySize += MAX_IMAGE_CONTEXT_TO_MOD_HANDLE_ARRAY_SIZE;
-
-  mImageContextModHandleArray = ReallocatePool (
-                                  (mImageContextModHandleArraySize - 1) * sizeof (IMAGE_CONTEXT_TO_MOD_HANDLE),
-                                  mImageContextModHandleArraySize * sizeof (IMAGE_CONTEXT_TO_MOD_HANDLE),
-                                  mImageContextModHandleArray
-                                  );
-  if (mImageContextModHandleArray == NULL) {
-    ASSERT (FALSE);
-    return EFI_OUT_OF_RESOURCES;
-  }
-
-  memset (mImageContextModHandleArray + PreviousSize, 0, MAX_IMAGE_CONTEXT_TO_MOD_HANDLE_ARRAY_SIZE * sizeof (IMAGE_CONTEXT_TO_MOD_HANDLE));
-
-  return AddHandle (ImageContext, ModHandle);
-}
-
-/*++
-
-Routine Description:
-  Return the ModHandle and delete the entry in the array.
-
-Arguments:
-  ImageContext - Input data returned from PE Loader Library. Used to find the
-                 .PDB file name of the PE Image.
-
-Returns:
-  ModHandle - ModHandle associated with ImageContext is returned
-  NULL      - No ModHandle associated with ImageContext
-
-**/
-VOID *
-RemoveHandle (
-  IN  PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
-  )
-{
-  UINTN                        Index;
-  IMAGE_CONTEXT_TO_MOD_HANDLE  *Array;
-
-  if (ImageContext->PdbPointer == NULL) {
-    //
-    // If no PDB pointer there is no ModHandle so return NULL
-    //
-    return NULL;
-  }
-
-  Array = mImageContextModHandleArray;
-  for (Index = 0; Index < mImageContextModHandleArraySize; Index++, Array++) {
-    if (Array->ImageContext == ImageContext) {
-      //
-      // If you find a match return it and delete the entry
-      //
-      Array->ImageContext = NULL;
-      return Array->ModHandle;
-    }
-  }
-
-  return NULL;
-}
-
 BOOLEAN
 IsPdbFile (
-  IN  CHAR8  *PdbFileName
+  IN  CONST CHAR8  *PdbFileName
   )
 {
   UINTN  Len;
@@ -1029,23 +905,29 @@ IsPdbFile (
 
 void
 PrintLoadAddress (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  if (ImageContext->PdbPointer == NULL) {
+  EFI_STATUS   Status;
+  CONST CHAR8  *PdbPath;
+  UINT32       PdbPathSize;
+
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
+
+  if (EFI_ERROR (Status)) {
     fprintf (
       stderr,
       "0x%08lx Loading NO DEBUG with entry point 0x%08lx\n",
-      (unsigned long)(ImageContext->ImageAddress),
-      (unsigned long)ImageContext->EntryPoint
+      (unsigned long)UefiImageLoaderGetImageAddress (ImageContext),
+      (unsigned long)UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
   } else {
     fprintf (
       stderr,
       "0x%08lx Loading %s with entry point 0x%08lx\n",
-      (unsigned long)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders),
-      ImageContext->PdbPointer,
-      (unsigned long)ImageContext->EntryPoint
+      (unsigned long)UefiImageLoaderGetImageAddress (ImageContext),
+      PdbPath,
+      (unsigned long)UefiImageLoaderGetImageEntryPoint (ImageContext)
       );
   }
 
@@ -1053,71 +935,12 @@ PrintLoadAddress (
   fflush (stderr);
 }
 
-/**
-  Loads the image using dlopen so symbols will be automatically
-  loaded by gdb.
-
-  @param  ImageContext  The PE/COFF image context
-
-  @retval TRUE - The image was successfully loaded
-  @retval FALSE - The image was successfully loaded
-
-**/
-BOOLEAN
-DlLoadImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
-  )
-{
- #ifdef __APPLE__
-
-  return FALSE;
-
- #else
-
-  void  *Handle = NULL;
-  void  *Entry  = NULL;
-
-  if (ImageContext->PdbPointer == NULL) {
-    return FALSE;
-  }
-
-  if (!IsPdbFile (ImageContext->PdbPointer)) {
-    return FALSE;
-  }
-
-  fprintf (
-    stderr,
-    "Loading %s 0x%08lx - entry point 0x%08lx\n",
-    ImageContext->PdbPointer,
-    (unsigned long)ImageContext->ImageAddress,
-    (unsigned long)ImageContext->EntryPoint
-    );
-
-  Handle = dlopen (ImageContext->PdbPointer, RTLD_NOW);
-  if (Handle != NULL) {
-    Entry = dlsym (Handle, "_ModuleEntryPoint");
-    AddHandle (ImageContext, Handle);
-  } else {
-    printf ("%s\n", dlerror ());
-  }
-
-  if (Entry != NULL) {
-    ImageContext->EntryPoint = (UINTN)Entry;
-    printf ("Change %s Entrypoint to :0x%08lx\n", ImageContext->PdbPointer, (unsigned long)Entry);
-    return TRUE;
-  } else {
-    return FALSE;
-  }
-
- #endif
-}
-
 #ifdef __APPLE__
 __attribute__ ((noinline))
 #endif
 VOID
 SecGdbScriptBreak (
-  char               *FileName,
+  const char         *FileName,
   int                FileNameLength,
   long unsigned int  LoadAddress,
   int                AddSymbolFlag
@@ -1135,28 +958,37 @@ SecGdbScriptBreak (
 **/
 VOID
 GdbScriptAddImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
+  EFI_STATUS   Status;
+  CONST CHAR8  *PdbPath;
+  UINT32       PdbPathSize;
+
   PrintLoadAddress (ImageContext);
 
-  if ((ImageContext->PdbPointer != NULL) && !IsPdbFile (ImageContext->PdbPointer)) {
+  Status = UefiImageGetSymbolsPath ((ImageContext, &PdbPath, ) &PdbPathSize);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
+
+  if (!IsPdbFile (PdbPath)) {
     FILE  *GdbTempFile;
     if (FeaturePcdGet (PcdEmulatorLazyLoadSymbols)) {
       GdbTempFile = fopen (gGdbWorkingFileName, "a");
       if (GdbTempFile != NULL) {
-        long unsigned int  SymbolsAddr = (long unsigned int)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders);
+        long unsigned int  SymbolsAddr = (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext);
         mScriptSymbolChangesCount++;
         fprintf (
           GdbTempFile,
           "AddFirmwareSymbolFile 0x%x %s 0x%08lx\n",
           mScriptSymbolChangesCount,
-          ImageContext->PdbPointer,
+          PdbPath,
           SymbolsAddr
           );
         fclose (GdbTempFile);
         // This is for the lldb breakpoint only
-        SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, (long unsigned int)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1165,9 +997,9 @@ GdbScriptAddImage (
       if (GdbTempFile != NULL) {
         fprintf (
           GdbTempFile,
-          "add-symbol-file %s 0x%08lx\n",
-          ImageContext->PdbPointer,
-          (long unsigned int)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders)
+          "add-symbol-file %s -o 0x%08lx\n",
+          PdbPath,
+          (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext)
           );
         fclose (GdbTempFile);
 
@@ -1177,7 +1009,7 @@ GdbScriptAddImage (
         // Also used for the lldb breakpoint script. The lldb breakpoint script does
         // not use the file, it uses the arguments.
         //
-        SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, (long unsigned int)(ImageContext->ImageAddress + ImageContext->SizeOfHeaders), 1);
+        SecGdbScriptBreak (PdbPath, PdbPathSize, (long unsigned int)UefiImageLoaderGetImageAddress (ImageContext), 1);
       } else {
         ASSERT (FALSE);
       }
@@ -1187,13 +1019,11 @@ GdbScriptAddImage (
 
 VOID
 EFIAPI
-SecPeCoffRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  if (!DlLoadImage (ImageContext)) {
-    GdbScriptAddImage (ImageContext);
-  }
+  GdbScriptAddImage (ImageContext);
 }
 
 /**
@@ -1205,15 +1035,23 @@ SecPeCoffRelocateImageExtraAction (
 **/
 VOID
 GdbScriptRemoveImage (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  FILE  *GdbTempFile;
+  FILE         *GdbTempFile;
+  EFI_STATUS   Status;
+  CONST CHAR8  *PdbPath;
+  UINT32       PdbPathSize;
+
+  Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
+  if (EFI_ERROR (Status)) {
+    return;
+  }
 
   //
   // Need to skip images which dont have pdb area and .PDB files created from VC++
   //
-  if ((ImageContext->PdbPointer == NULL) || (IsPdbFile (ImageContext->PdbPointer))) {
+  if (IsPdbFile (PdbPath)) {
     return;
   }
 
@@ -1228,24 +1066,24 @@ GdbScriptRemoveImage (
         GdbTempFile,
         "RemoveFirmwareSymbolFile 0x%x %s\n",
         mScriptSymbolChangesCount,
-        ImageContext->PdbPointer
+        PdbPath
         );
       fclose (GdbTempFile);
-      SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, PdbPathSize, 0, 0);
     } else {
       ASSERT (FALSE);
     }
   } else {
     GdbTempFile = fopen (gGdbWorkingFileName, "w");
     if (GdbTempFile != NULL) {
-      fprintf (GdbTempFile, "remove-symbol-file %s\n", ImageContext->PdbPointer);
+      fprintf (GdbTempFile, "remove-symbol-file %s\n", PdbPath);
       fclose (GdbTempFile);
 
       //
       // Target for gdb breakpoint in a script that uses gGdbWorkingFileName to set a breakpoint.
       // Hey what can you say scripting in gdb is not that great....
       //
-      SecGdbScriptBreak (ImageContext->PdbPointer, strlen (ImageContext->PdbPointer) + 1, 0, 0);
+      SecGdbScriptBreak (PdbPath, PdbPathSize, 0, 0);
     } else {
       ASSERT (FALSE);
     }
@@ -1254,22 +1092,9 @@ GdbScriptRemoveImage (
 
 VOID
 EFIAPI
-SecPeCoffUnloadImageExtraAction (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageUnloadImageExtraAction (
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  VOID  *Handle;
-
-  //
-  // Check to see if the image symbols were loaded with gdb script, or dlopen
-  //
-  Handle = RemoveHandle (ImageContext);
-  if (Handle != NULL) {
- #ifndef __APPLE__
-    dlclose (Handle);
- #endif
-    return;
-  }
-
   GdbScriptRemoveImage (ImageContext);
 }

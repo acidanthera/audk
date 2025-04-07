@@ -15,7 +15,8 @@
 #include <Library/SerialPortLib.h>
 #include <Library/PrintLib.h>
 #include <Library/LocalApicLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+#include <Library/DebugLib.h>
+
 #include <Library/BaseMemoryLib.h>
 #include <Library/SynchronizationLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
@@ -319,6 +320,14 @@ VOID
 EFIAPI
 AsmGetTssTemplateMap (
   OUT EXCEPTION_HANDLER_TEMPLATE_MAP  *AddressMap
+  );
+
+// FIXME:
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
   );
 
 #endif

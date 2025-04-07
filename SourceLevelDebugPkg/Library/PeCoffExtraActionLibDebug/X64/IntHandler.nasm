@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 ;------------------------------------------------------------------------------
 ;
 ; Copyright (c) 2016, Intel Corporation. All rights reserved.<BR>
@@ -21,3 +23,5 @@ ASM_PFX(AsmInterruptHandle):
     cli
     mov   al, 1
     iretq
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

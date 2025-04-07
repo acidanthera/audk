@@ -420,6 +420,40 @@ EFI_STATUS
   );
 
 /**
+  Searches for the next matching section within the specified file.
+
+  This service enables PEI modules to discover the section of a given type within a valid file.
+  This service will search within encapsulation sections (compression and GUIDed) as well. It will
+  search inside of a GUIDed section or a compressed section, but may not, for example, search a
+  GUIDed section inside a GUIDes section.
+  This service will not search within compression sections or GUIDed sections that require
+  extraction if memory is not present.
+
+  @param  PeiServices           An indirect pointer to the EFI_PEI_SERVICES table published by the PEI Foundation.
+  @param  SectionType           The value of the section type to find.
+  @param  SectionInstance       Section instance to find.
+  @param  FileHandle            Handle of the firmware file to search.
+  @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionDataSize       The size of the discovered section, if successful.
+  @param  AuthenticationStatus  A pointer to the authentication status for this section.
+
+  @retval EFI_SUCCESS      The section was found.
+  @retval EFI_NOT_FOUND    The section was not found.
+
+**/
+typedef
+EFI_STATUS
+(EFIAPI *EFI_PEI_FFS_FIND_SECTION_DATA4)(
+  IN CONST EFI_PEI_SERVICES            **PeiServices,
+  IN EFI_SECTION_TYPE                  SectionType,
+  IN UINTN                             SectionInstance,
+  IN EFI_PEI_FILE_HANDLE               FileHandle,
+  OUT VOID                             **SectionData,
+  OUT UINT32                           *SectionDataSize,
+  OUT UINT32                           *AuthenticationStatus
+  );
+
+/**
   This function registers the found memory configuration with the PEI Foundation.
 
   @param  PeiServices      An indirect pointer to the EFI_PEI_SERVICES table published by the PEI Foundation.
@@ -944,6 +978,7 @@ struct _EFI_PEI_SERVICES {
   EFI_PEI_FFS_GET_FILE_INFO2        FfsGetFileInfo2;
   EFI_PEI_RESET2_SYSTEM             ResetSystem2;
   EFI_PEI_FREE_PAGES                FreePages;
+  EFI_PEI_FFS_FIND_SECTION_DATA4    FindSectionData4;
 };
 
 ///

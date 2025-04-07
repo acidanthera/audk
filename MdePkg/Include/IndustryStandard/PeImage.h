@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 /** @file
   EFI image format for PE32, PE32+ and TE. Please note some data structures are
   different for PE32 and PE32+. EFI_IMAGE_NT_HEADERS32 is for PE32 and
@@ -813,3 +815,5 @@ typedef union {
 } EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION;
 
 #endif
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

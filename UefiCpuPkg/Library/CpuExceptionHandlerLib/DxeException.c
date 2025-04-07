@@ -11,6 +11,8 @@
 #include <Library/DebugLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/UefiBootServicesTableLib.h>
+#include <Library/UefiLib.h>
+#include <Guid/DebugImageInfoTable.h>
 
 CONST UINTN  mDoFarReturnFlag = 0;
 
@@ -25,6 +27,8 @@ EXCEPTION_HANDLER_DATA     mExceptionHandlerData = {
 
 UINT8  mBuffer[CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE
                + sizeof (IA32_TSS_DESCRIPTOR) + CPU_TSS_GDT_SIZE];
+
+STATIC CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER  *mDebugImageInfoTable = NULL;
 
 /**
   Common exception handler.
@@ -134,4 +138,53 @@ InitializeSeparateExceptionStacks (
   } else {
     return ArchSetupExceptionStack (Buffer, BufferSize);
   }
+}
+
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
+  )
+{
+  EFI_STATUS                         Status;
+  UINT32                             Index;
+  CONST EFI_DEBUG_IMAGE_INFO_NORMAL  *NormalImage;
+
+  if (mDebugImageInfoTable == NULL) {
+    Status = EfiGetSystemConfigurationTable (
+               &gEfiDebugImageInfoTableGuid,
+               (VOID **)&mDebugImageInfoTable
+               );
+    if (EFI_ERROR (Status)) {
+      mDebugImageInfoTable = NULL;
+      return FALSE;
+    }
+  }
+
+  ASSERT (mDebugImageInfoTable != NULL);
+
+  for (Index = 0; Index < mDebugImageInfoTable->TableSize; ++Index) {
+    if (mDebugImageInfoTable->EfiDebugImageInfoTable[Index].ImageInfoType == NULL) {
+      continue;
+    }
+
+    if (*mDebugImageInfoTable->EfiDebugImageInfoTable[Index].ImageInfoType != EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL) {
+      continue;
+    }
+
+    NormalImage = mDebugImageInfoTable->EfiDebugImageInfoTable[Index].NormalImage;
+
+    ASSERT (NormalImage->LoadedImageProtocolInstance != NULL);
+
+    if ((CurrentEip >= (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase) &&
+        (CurrentEip < (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase + NormalImage->LoadedImageProtocolInstance->ImageSize))
+    {
+      *ImageBase   = (UINTN)NormalImage->LoadedImageProtocolInstance->ImageBase;
+      *SymbolsPath = NormalImage->PdbPath;
+      return TRUE;
+    }
+  }
+
+  return FALSE;
 }

@@ -56,7 +56,9 @@ Sha256HashInit (
 
   CtxSize   = Sha256GetContextSize ();
   Sha256Ctx = AllocatePool (CtxSize);
-  ASSERT (Sha256Ctx != NULL);
+  if (Sha256Ctx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Sha256Init (Sha256Ctx);
 
@@ -82,10 +84,7 @@ Sha256HashUpdate (
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sha256Ctx;
-
-  Sha256Ctx = (VOID *)HashHandle;
-  Sha256Update (Sha256Ctx, DataToHash, DataToHashLen);
+  Sha256Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
   return EFI_SUCCESS;
 }
@@ -106,12 +105,10 @@ Sha256HashFinal (
   )
 {
   UINT8  Digest[SHA256_DIGEST_SIZE];
-  VOID   *Sha256Ctx;
 
-  Sha256Ctx = (VOID *)HashHandle;
-  Sha256Final (Sha256Ctx, Digest);
+  Sha256Final ((VOID *)HashHandle, Digest);
 
-  FreePool (Sha256Ctx);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSha256ToDigestList (DigestList, Digest);
 
