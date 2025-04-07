@@ -16,6 +16,7 @@
 
 EFI_MM_SYSTEM_TABLE                                  *mMemoryAllocationMmst = NULL;
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType  = EfiRuntimeServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultCodeType  = EfiRuntimeServicesCode;
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
