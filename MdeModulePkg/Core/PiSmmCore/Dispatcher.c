@@ -344,7 +344,8 @@ SmmLoadImage (
              ImageContext,
              Buffer,
              (UINT32)Size,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     if (Buffer != NULL) {

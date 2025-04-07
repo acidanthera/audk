@@ -1183,7 +1183,8 @@ ExecuteSmmCoreFromSmram (
              &gSmmCorePrivate->PiSmmCoreImageContext,
              SourceBuffer,
              (UINT32)SourceSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     return Status;

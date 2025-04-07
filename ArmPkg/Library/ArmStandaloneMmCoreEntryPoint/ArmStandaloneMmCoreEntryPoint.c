@@ -1014,7 +1014,7 @@ CEntryPoint (
   IN UINTN  Arg3
   )
 {
-  PE_COFF_LOADER_IMAGE_CONTEXT        ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT     ImageContext;
   ARM_SVC_ARGS                        EventCompleteSvcArgs;
   EFI_STATUS                          Status;
   COMM_PROTOCOL                       CommProtocol;
@@ -1074,7 +1074,8 @@ CEntryPoint (
              &ImageContext,
              TeData,
              TeDataSize,
-             UEFI_IMAGE_SOURCE_FV
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
              );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Unable to locate Standalone MM Core PE-COFF Section information - %r\n", Status));

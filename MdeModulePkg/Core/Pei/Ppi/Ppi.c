@@ -1121,7 +1121,8 @@ ConvertPeiCorePpiPointers (
                &ImageContext,
                (VOID *)(UINTN)PeiCoreImageBase,
                PeiCoreImageSize,
-               UEFI_IMAGE_SOURCE_FV
+               UEFI_IMAGE_SOURCE_FV,
+               UefiImageOriginFv
                );
     ASSERT_EFI_ERROR (Status);
 
