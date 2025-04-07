@@ -85,7 +85,20 @@ GLOBAL_REMOVE_IF_UNREFERENCED MACHINE_TYPE_INFO  mMachineTypeInfo[] = {
   { EFI_IMAGE_MACHINE_LOONGARCH64, L"LOONGARCH64" },
 };
 
-UINT16  mDxeCoreImageMachineType = 0;
+//  FIXME: RISC-V, IA64
+#if defined (MDE_CPU_IA32)
+CONST CHAR16  *mDxeCoreImageMachineTypeName = L"IA32";
+#elif defined (MDE_CPU_IPF)
+CONST CHAR16  *mDxeCoreImageMachineTypeName = L"IA64";
+#elif defined (MDE_CPU_X64)
+CONST CHAR16  *mDxeCoreImageMachineTypeName = L"X64";
+#elif defined (MDE_CPU_ARM)
+CONST CHAR16  *mDxeCoreImageMachineTypeName = L"ARM";
+#elif defined (MDE_CPU_AARCH64)
+CONST CHAR16  *mDxeCoreImageMachineTypeName = L"AARCH64";
+#else
+  #error Unkown CPU architecture
+#endif
 
 /**
  Return machine type name.
@@ -101,7 +114,7 @@ GetMachineTypeName (
 {
   UINTN  Index;
 
-  for (Index = 0; Index < sizeof (mMachineTypeInfo)/sizeof (mMachineTypeInfo[0]); Index++) {
+  for (Index = 0; Index < sizeof (mMachineTypeInfo)/sizeof (mMachineTypeInfo[0]); ++Index) {
     if (mMachineTypeInfo[Index].MachineType == MachineType) {
       return mMachineTypeInfo[Index].MachineTypeName;
     }
@@ -181,7 +194,8 @@ PeCoffEmuProtocolNotify (
 **/
 EFI_STATUS
 CoreInitializeImageServices (
-  IN  VOID  *HobStart
+  IN  VOID                             *HobStart,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   EFI_STATUS                 Status;
@@ -220,6 +234,18 @@ CoreInitializeImageServices (
   //
   Image = &mCorePrivateImage;
 
+  Status = UefiImageInitializeContext (
+             ImageContext,
+             (VOID *)(UINTN)DxeCoreImageBaseAddress,
+             (UINT32)DxeCoreImageLength
+             );
+  ASSERT_EFI_ERROR (Status);
+
+  // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
+  ImageContext->ImageBuffer = (VOID *)ImageContext->FileBuffer;
+
+  ASSERT ((UINTN)DxeCoreEntryPoint == UefiImageLoaderGetImageEntryPoint (ImageContext));
+
   Image->EntryPoint     = (EFI_IMAGE_ENTRY_POINT)(UINTN)DxeCoreEntryPoint;
   Image->ImageBasePage  = DxeCoreImageBaseAddress;
   Image->NumberOfPages  = (UINTN)(EFI_SIZE_TO_PAGES ((UINTN)(DxeCoreImageLength)));
@@ -243,9 +269,8 @@ CoreInitializeImageServices (
   //
   // Fill in DXE globals
   //
-  mDxeCoreImageMachineType = PeCoffLoaderGetMachineType (Image->Info.ImageBase);
-  gDxeCoreImageHandle      = Image->Handle;
-  gDxeCoreLoadedImage      = &Image->Info;
+  gDxeCoreImageHandle = Image->Handle;
+  gDxeCoreLoadedImage = &Image->Info;
 
   //
   // Create the PE/COFF emulator protocol registration event
@@ -271,62 +296,9 @@ CoreInitializeImageServices (
 
   InitializeListHead (&mAvailableEmulators);
 
-  ProtectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
+  ProtectUefiImage (Image, ImageContext);
 
   return Status;
-}
-
-/**
-  Read image file (specified by UserHandle) into user specified buffer with specified offset
-  and length.
-
-  @param  UserHandle             Image file handle
-  @param  Offset                 Offset to the source file
-  @param  ReadSize               For input, pointer of size to read; For output,
-                                 pointer of size actually read.
-  @param  Buffer                 Buffer to write into
-
-  @retval EFI_SUCCESS            Successfully read the specified part of file
-                                 into buffer.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreReadImageFile (
-  IN     VOID   *UserHandle,
-  IN     UINTN  Offset,
-  IN OUT UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  )
-{
-  UINTN              EndPosition;
-  IMAGE_FILE_HANDLE  *FHand;
-
-  if ((UserHandle == NULL) || (ReadSize == NULL) || (Buffer == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (MAX_ADDRESS - Offset < *ReadSize) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  FHand = (IMAGE_FILE_HANDLE  *)UserHandle;
-  ASSERT (FHand->Signature == IMAGE_FILE_HANDLE_SIGNATURE);
-
-  //
-  // Move data from our local copy of the file
-  //
-  EndPosition = Offset + *ReadSize;
-  if (EndPosition > FHand->SourceSize) {
-    *ReadSize = (UINT32)(FHand->SourceSize - Offset);
-  }
-
-  if (Offset >= FHand->SourceSize) {
-    *ReadSize = 0;
-  }
-
-  CopyMem (Buffer, (CHAR8 *)FHand->Source + Offset, *ReadSize);
-  return EFI_SUCCESS;
 }
 
 /**
@@ -379,8 +351,8 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   // Test the memory range for loading the image in the DXE code range.
   //
-  if ((gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress <  ImageBase + ImageSize) ||
-      (DxeCodeBase >  ImageBase))
+  if ((gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress < ImageBase + ImageSize) ||
+      (DxeCodeBase > ImageBase))
   {
     return EFI_NOT_FOUND;
   }
@@ -390,7 +362,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   BaseOffsetPageNumber = EFI_SIZE_TO_PAGES ((UINT32)(ImageBase - DxeCodeBase));
   TopOffsetPageNumber  = EFI_SIZE_TO_PAGES ((UINT32)(ImageBase + ImageSize - DxeCodeBase));
-  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; Index++) {
+  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; ++Index) {
     if ((mDxeCodeMemoryRangeUsageBitMap[Index / 64] & LShiftU64 (1, (Index % 64))) != 0) {
       //
       // This page is already used.
@@ -402,7 +374,7 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
   //
   // Being here means the memory range is available.  So mark the bits for the memory range
   //
-  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; Index++) {
+  for (Index = BaseOffsetPageNumber; Index < TopOffsetPageNumber; ++Index) {
     mDxeCodeMemoryRangeUsageBitMap[Index / 64] |= LShiftU64 (1, (Index % 64));
   }
 
@@ -421,88 +393,36 @@ CheckAndMarkFixLoadingMemoryUsageBitMap (
 
 **/
 EFI_STATUS
-GetPeCoffImageFixLoadingAssignedAddress (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+GetUefiImageFixLoadingAssignedAddress (
+  OUT    EFI_PHYSICAL_ADDRESS  *LoadAddress,
+  IN     UINT64                ValueInSectionHeader,
+  IN     UINT32                ImageDestSize
   )
 {
-  UINTN                            SectionHeaderOffset;
-  EFI_STATUS                       Status;
-  EFI_IMAGE_SECTION_HEADER         SectionHeader;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
-  UINT16                           Index;
-  UINTN                            Size;
-  UINT16                           NumberOfSections;
-  IMAGE_FILE_HANDLE                *Handle;
-  UINT64                           ValueInSectionHeader;
+  EFI_STATUS            Status;
+  EFI_PHYSICAL_ADDRESS  FixLoadingAddress;
 
-  Status = EFI_NOT_FOUND;
-
-  //
-  // Get PeHeader pointer
-  //
-  Handle              = (IMAGE_FILE_HANDLE *)ImageContext->Handle;
-  ImgHdr              = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((CHAR8 *)Handle->Source + ImageContext->PeCoffHeaderOffset);
-  SectionHeaderOffset = ImageContext->PeCoffHeaderOffset +
-                        sizeof (UINT32) +
-                        sizeof (EFI_IMAGE_FILE_HEADER) +
-                        ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader;
-  NumberOfSections = ImgHdr->Pe32.FileHeader.NumberOfSections;
-
-  //
-  // Get base address from the first section header that doesn't point to code section.
-  //
-  for (Index = 0; Index < NumberOfSections; Index++) {
+  if ((INT64)PcdGet64 (PcdLoadModuleAtFixAddressEnable) > 0) {
     //
-    // Read section header from file
+    // When LMFA feature is configured as Load Module at Fixed Absolute Address mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the absolute address of image base running in memory
     //
-    Size   = sizeof (EFI_IMAGE_SECTION_HEADER);
-    Status = ImageContext->ImageRead (
-                             ImageContext->Handle,
-                             SectionHeaderOffset,
-                             &Size,
-                             &SectionHeader
-                             );
-    if (EFI_ERROR (Status)) {
-      return Status;
-    }
-
-    if (Size != sizeof (EFI_IMAGE_SECTION_HEADER)) {
-      return EFI_NOT_FOUND;
-    }
-
-    Status = EFI_NOT_FOUND;
-
-    if ((SectionHeader.Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
-      //
-      // Build tool will save the address in PointerToRelocations & PointerToLineNumbers fields in the first section header
-      // that doesn't point to code section in image header, as well as ImageBase field of image header. And there is an
-      // assumption that when the feature is enabled, if a module is assigned a loading address by tools, PointerToRelocations
-      // & PointerToLineNumbers fields should NOT be Zero, or else, these 2 fields should be set to Zero
-      //
-      ValueInSectionHeader = ReadUnaligned64 ((UINT64 *)&SectionHeader.PointerToRelocations);
-      if (ValueInSectionHeader != 0) {
-        //
-        // When the feature is configured as load module at fixed absolute address, the ImageAddress field of ImageContext
-        // hold the specified address. If the feature is configured as load module at fixed offset, ImageAddress hold an offset
-        // relative to top address
-        //
-        if ((INT64)PcdGet64 (PcdLoadModuleAtFixAddressEnable) < 0) {
-          ImageContext->ImageAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + (INT64)(INTN)ImageContext->ImageAddress;
-        }
-
-        //
-        // Check if the memory range is available.
-        //
-        Status = CheckAndMarkFixLoadingMemoryUsageBitMap (ImageContext->ImageAddress, (UINTN)(ImageContext->ImageSize + ImageContext->SectionAlignment));
-      }
-
-      break;
-    }
-
-    SectionHeaderOffset += sizeof (EFI_IMAGE_SECTION_HEADER);
+    FixLoadingAddress = ValueInSectionHeader;
+  } else {
+    //
+    // When LMFA feature is configured as Load Module at Fixed offset mode, PointerToRelocations & PointerToLineNumbers field
+    // hold the offset relative to a platform-specific top address.
+    //
+    FixLoadingAddress = gLoadModuleAtFixAddressConfigurationTable.DxeCodeTopAddress + ValueInSectionHeader;
   }
 
-  DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)(ImageContext->ImageAddress), Status));
+  //
+  // Check if the memory range is available.
+  //
+  Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, ImageDestSize);
+  *LoadAddress = FixLoadingAddress;
+
+  DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
   return Status;
 }
 
@@ -521,7 +441,8 @@ GetPeCoffImageFixLoadingAssignedAddress (
 STATIC
 BOOLEAN
 CoreIsImageTypeSupported (
-  IN OUT LOADED_IMAGE_PRIVATE_DATA  *Image
+  IN OUT LOADED_IMAGE_PRIVATE_DATA        *Image,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   LIST_ENTRY      *Link;
@@ -532,13 +453,13 @@ CoreIsImageTypeSupported (
        Link = GetNextNode (&mAvailableEmulators, Link))
   {
     Entry = BASE_CR (Link, EMULATOR_ENTRY, Link);
-    if (Entry->MachineType != Image->ImageContext.Machine) {
+    if (Entry->MachineType != UefiImageGetMachine (ImageContext)) {
       continue;
     }
 
     if (Entry->Emulator->IsImageSupported (
                            Entry->Emulator,
-                           Image->ImageContext.ImageType,
+                           UefiImageGetSubsystem (ImageContext),
                            Image->Info.FilePath
                            ))
     {
@@ -547,8 +468,8 @@ CoreIsImageTypeSupported (
     }
   }
 
-  return EFI_IMAGE_MACHINE_TYPE_SUPPORTED (Image->ImageContext.Machine) ||
-         EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (Image->ImageContext.Machine);
+  return EFI_IMAGE_MACHINE_TYPE_SUPPORTED (UefiImageGetMachine (ImageContext)) ||
+         EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED (UefiImageGetMachine (ImageContext));
 }
 
 /**
@@ -558,7 +479,6 @@ CoreIsImageTypeSupported (
                                   from the boot manager, and that the boot
                                   manager is attempting to load FilePath as a
                                   boot selection.
-  @param  Pe32Handle              The handle of PE32 image
   @param  Image                   PE image to be loaded
   @param  DstBuffer               The buffer to store the image
   @param  EntryPoint              A pointer to the entry point
@@ -574,35 +494,31 @@ CoreIsImageTypeSupported (
 **/
 EFI_STATUS
 CoreLoadPeImage (
-  IN BOOLEAN                    BootPolicy,
-  IN VOID                       *Pe32Handle,
-  IN LOADED_IMAGE_PRIVATE_DATA  *Image,
-  IN EFI_PHYSICAL_ADDRESS       DstBuffer    OPTIONAL,
-  OUT EFI_PHYSICAL_ADDRESS      *EntryPoint  OPTIONAL,
-  IN  UINT32                    Attribute
+  IN     BOOLEAN                          BootPolicy,
+  IN     LOADED_IMAGE_PRIVATE_DATA        *Image,
+  IN     EFI_PHYSICAL_ADDRESS             *DstBuffer   OPTIONAL,
+  OUT    EFI_PHYSICAL_ADDRESS             *EntryPoint  OPTIONAL,
+  IN     UINT32                           Attribute,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS  Status;
-  BOOLEAN     DstBufAlocated;
-  UINTN       Size;
-  UINTN       Index;
-  UINTN       StartIndex;
-  CHAR8       EfiFileName[512];
+  EFI_STATUS                         Status;
+  BOOLEAN                            DstBufAlocated;
+  UINT32                             ImageSize;
+  UINT32                             ImageAlignment;
+  UINT64                             ValueInSectionHeader;
+  UINT32                             DstBufPages;
+  UINT32                             DstBufSize;
+  EFI_MEMORY_TYPE                    ImageCodeMemoryType;
+  EFI_MEMORY_TYPE                    ImageDataMemoryType;
+  UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  *RelocationData;
+  EFI_PHYSICAL_ADDRESS               BufferAddress;
+  UINT32                             RelocDataSize;
+  CHAR8                              EfiFileName[512];
 
-  ZeroMem (&Image->ImageContext, sizeof (Image->ImageContext));
+  RelocationData = NULL;
 
-  Image->ImageContext.Handle    = Pe32Handle;
-  Image->ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)CoreReadImageFile;
-
-  //
-  // Get information about the image being loaded
-  //
-  Status = PeCoffLoaderGetImageInfo (&Image->ImageContext);
-  if (EFI_ERROR (Status)) {
-    return Status;
-  }
-
-  if (!CoreIsImageTypeSupported (Image)) {
+  if (!CoreIsImageTypeSupported (Image, ImageContext)) {
     //
     // The PE/COFF loader can support loading image types that can be executed.
     // If we loaded an image type that we can not execute return EFI_UNSUPPORTED.
@@ -610,49 +526,49 @@ CoreLoadPeImage (
     DEBUG ((
       DEBUG_ERROR,
       "Image type %s can't be loaded on %s UEFI system.\n",
-      GetMachineTypeName (Image->ImageContext.Machine),
-      GetMachineTypeName (mDxeCoreImageMachineType)
+      GetMachineTypeName (UefiImageGetMachine (ImageContext)),
+      mDxeCoreImageMachineTypeName
       ));
+
     return EFI_UNSUPPORTED;
   }
 
   //
   // Set EFI memory type based on ImageType
   //
-  switch (Image->ImageContext.ImageType) {
+  switch (UefiImageGetSubsystem (ImageContext)) {
     case EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION:
-      Image->ImageContext.ImageCodeMemoryType = EfiLoaderCode;
-      Image->ImageContext.ImageDataMemoryType = EfiLoaderData;
+      ImageCodeMemoryType = EfiLoaderCode;
+      ImageDataMemoryType = EfiLoaderData;
       break;
     case EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER:
-      Image->ImageContext.ImageCodeMemoryType = EfiBootServicesCode;
-      Image->ImageContext.ImageDataMemoryType = EfiBootServicesData;
+      ImageCodeMemoryType = EfiBootServicesCode;
+      ImageDataMemoryType = EfiBootServicesData;
       break;
     case EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER:
-      Image->ImageContext.ImageCodeMemoryType = EfiRuntimeServicesCode;
-      Image->ImageContext.ImageDataMemoryType = EfiRuntimeServicesData;
+      ImageCodeMemoryType = EfiRuntimeServicesCode;
+      ImageDataMemoryType = EfiRuntimeServicesData;
       break;
     default:
-      Image->ImageContext.ImageError = IMAGE_ERROR_INVALID_SUBSYSTEM;
+      DEBUG ((DEBUG_INFO, "Unsupported type %d\n", UefiImageGetSubsystem (ImageContext)));
       return EFI_UNSUPPORTED;
   }
 
+  ImageSize      = UefiImageGetImageSize (ImageContext);
+  DstBufPages    = EFI_SIZE_TO_PAGES (ImageSize);
+  DstBufSize     = EFI_PAGES_TO_SIZE (DstBufPages);
+  ImageAlignment = UefiImageGetSegmentAlignment (ImageContext);
+
+  BufferAddress = 0;
   //
   // Allocate memory of the correct memory type aligned on the required image boundary
   //
   DstBufAlocated = FALSE;
-  if (DstBuffer == 0) {
+  if (*DstBuffer == 0) {
     //
     // Allocate Destination Buffer as caller did not pass it in
     //
-
-    if (Image->ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-      Size = (UINTN)Image->ImageContext.ImageSize + Image->ImageContext.SectionAlignment;
-    } else {
-      Size = (UINTN)Image->ImageContext.ImageSize;
-    }
-
-    Image->NumberOfPages = EFI_SIZE_TO_PAGES (Size);
+    Image->NumberOfPages = DstBufPages;
 
     //
     // If the image relocations have not been stripped, then load at any address.
@@ -667,98 +583,108 @@ CoreLoadPeImage (
     // a specified address.
     //
     if (PcdGet64 (PcdLoadModuleAtFixAddressEnable) != 0 ) {
-      Status = GetPeCoffImageFixLoadingAssignedAddress (&(Image->ImageContext));
+      Status = UefiImageGetFixedAddress (ImageContext, &ValueInSectionHeader);
+      if (RETURN_ERROR (Status)) {
+        return Status;
+      }
 
-      if (EFI_ERROR (Status)) {
+      Status = GetUefiImageFixLoadingAssignedAddress (&BufferAddress, ValueInSectionHeader, DstBufSize);
+
+      if (!EFI_ERROR (Status)) {
+        if ((BufferAddress != UefiImageGetPreferredAddress (ImageContext)) && UefiImageGetRelocsStripped (ImageContext)) {
+          Status = EFI_UNSUPPORTED;
+          DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since relocs have been stripped.\n"));
+        }
+      } else {
         //
         // If the code memory is not ready, invoke CoreAllocatePage with AllocateAnyPages to load the driver.
         //
         DEBUG ((DEBUG_INFO|DEBUG_LOAD, "LOADING MODULE FIXED ERROR: Loading module at fixed address failed since specified memory is not available.\n"));
-
-        Status = CoreAllocatePages (
-                   AllocateAnyPages,
-                   (EFI_MEMORY_TYPE)(Image->ImageContext.ImageCodeMemoryType),
-                   Image->NumberOfPages,
-                   &Image->ImageContext.ImageAddress
-                   );
       }
-    } else {
-      if ((PcdGetBool (PcdImageLargeAddressLoad) && ((Image->ImageContext.ImageAddress) >= 0x100000)) ||
-          Image->ImageContext.RelocationsStripped)
-      {
-        Status = CoreAllocatePages (
+    }
+
+    if (EFI_ERROR (Status)) {
+      BufferAddress = UefiImageGetPreferredAddress (ImageContext);
+      if ((BufferAddress >= 0x100000) || UefiImageGetRelocsStripped (ImageContext)) {
+        Status = AllocatePagesEx (
                    AllocateAddress,
-                   (EFI_MEMORY_TYPE)(Image->ImageContext.ImageCodeMemoryType),
-                   Image->NumberOfPages,
-                   &Image->ImageContext.ImageAddress
+                   ImageCodeMemoryType,
+                   DstBufPages,
+                   &BufferAddress
                    );
       }
 
-      if (EFI_ERROR (Status) && !Image->ImageContext.RelocationsStripped) {
-        Status = CoreAllocatePages (
+      if (EFI_ERROR (Status) && !UefiImageGetRelocsStripped (ImageContext)) {
+        Status = AllocateAlignedPagesEx (
                    AllocateAnyPages,
-                   (EFI_MEMORY_TYPE)(Image->ImageContext.ImageCodeMemoryType),
-                   Image->NumberOfPages,
-                   &Image->ImageContext.ImageAddress
+                   ImageCodeMemoryType,
+                   DstBufPages,
+                   ImageAlignment,
+                   &BufferAddress
                    );
       }
     }
 
     if (EFI_ERROR (Status)) {
+      ASSERT (FALSE);
       return Status;
     }
 
     DstBufAlocated = TRUE;
+    *DstBuffer     = BufferAddress;
   } else {
     //
     // Caller provided the destination buffer
     //
 
-    if (Image->ImageContext.RelocationsStripped && (Image->ImageContext.ImageAddress != DstBuffer)) {
+    if (UefiImageGetRelocsStripped (ImageContext) && (BufferAddress != *DstBuffer)) {
       //
       // If the image relocations were stripped, and the caller provided a
       // destination buffer address that does not match the address that the
       // image is linked at, then the image cannot be loaded.
       //
+      ASSERT (FALSE);
       return EFI_INVALID_PARAMETER;
     }
 
     if ((Image->NumberOfPages != 0) &&
         (Image->NumberOfPages <
-         (EFI_SIZE_TO_PAGES ((UINTN)Image->ImageContext.ImageSize + Image->ImageContext.SectionAlignment))))
+         DstBufPages))
     {
-      Image->NumberOfPages = EFI_SIZE_TO_PAGES ((UINTN)Image->ImageContext.ImageSize + Image->ImageContext.SectionAlignment);
+      Image->NumberOfPages = DstBufPages;
+      ASSERT (FALSE);
       return EFI_BUFFER_TOO_SMALL;
     }
 
-    Image->NumberOfPages             = EFI_SIZE_TO_PAGES ((UINTN)Image->ImageContext.ImageSize + Image->ImageContext.SectionAlignment);
-    Image->ImageContext.ImageAddress = DstBuffer;
+    Image->NumberOfPages = DstBufPages;
+    BufferAddress        = *DstBuffer;
   }
 
-  Image->ImageBasePage = Image->ImageContext.ImageAddress;
-  if (!Image->ImageContext.IsTeImage) {
-    Image->ImageContext.ImageAddress =
-      (Image->ImageContext.ImageAddress + Image->ImageContext.SectionAlignment - 1) &
-      ~((UINTN)Image->ImageContext.SectionAlignment - 1);
-  }
-
-  //
-  // Load the image from the file into the allocated memory
-  //
-  Status = PeCoffLoaderLoadImage (&Image->ImageContext);
-  if (EFI_ERROR (Status)) {
-    goto Done;
-  }
+  Image->ImageBasePage = BufferAddress;
 
   //
   // If this is a Runtime Driver, then allocate memory for the FixupData that
   // is used to relocate the image when SetVirtualAddressMap() is called. The
   // relocation is done by the Runtime AP.
   //
+  RelocDataSize = 0;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
-    if (Image->ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
-      Image->ImageContext.FixupData = AllocateRuntimePool ((UINTN)(Image->ImageContext.FixupDataSize));
-      if (Image->ImageContext.FixupData == NULL) {
+    if (UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+      if (UefiImageGetRelocsStripped (ImageContext)) {
+        ASSERT (FALSE);
+        Status = RETURN_UNSUPPORTED;
+        goto Done;
+      }
+
+      Status = UefiImageLoaderGetRuntimeContextSize (ImageContext, &RelocDataSize);
+      if (EFI_ERROR (Status)) {
+        ASSERT (FALSE);
+        goto Done;
+      }
+
+      RelocationData = AllocateRuntimeZeroPool (RelocDataSize);
+      if (RelocationData == NULL) {
+        ASSERT (FALSE);
         Status = EFI_OUT_OF_RESOURCES;
         goto Done;
       }
@@ -766,38 +692,40 @@ CoreLoadPeImage (
   }
 
   //
-  // Relocate the image in memory
+  // Load the image from the file into the allocated memory
   //
-  Status = PeCoffLoaderRelocateImage (&Image->ImageContext);
+  Status = UefiImageLoadImageForExecution (
+             ImageContext,
+             (VOID *)(UINTN)BufferAddress,
+             DstBufSize,
+             RelocationData,
+             RelocDataSize
+             );
   if (EFI_ERROR (Status)) {
+    ASSERT (FALSE);
     goto Done;
   }
 
   //
-  // Flush the Instruction Cache
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)Image->ImageContext.ImageAddress, (UINTN)Image->ImageContext.ImageSize);
-
-  //
   // Copy the machine type from the context to the image private data.
   //
-  Image->Machine = Image->ImageContext.Machine;
+  Image->Machine = UefiImageGetMachine (ImageContext);
 
   //
   // Get the image entry point.
   //
-  Image->EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UINTN)Image->ImageContext.EntryPoint;
+  Image->EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol
   //
-  Image->Type               = Image->ImageContext.ImageType;
-  Image->Info.ImageBase     = (VOID *)(UINTN)Image->ImageContext.ImageAddress;
-  Image->Info.ImageSize     = Image->ImageContext.ImageSize;
-  Image->Info.ImageCodeType = (EFI_MEMORY_TYPE)(Image->ImageContext.ImageCodeMemoryType);
-  Image->Info.ImageDataType = (EFI_MEMORY_TYPE)(Image->ImageContext.ImageDataMemoryType);
+  Image->Type               = UefiImageGetSubsystem (ImageContext);
+  Image->Info.ImageBase     = (VOID *)(UINTN)BufferAddress;
+  Image->Info.ImageSize     = ImageSize;
+  Image->Info.ImageCodeType = ImageCodeMemoryType;
+  Image->Info.ImageDataType = ImageDataMemoryType;
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_RUNTIME_REGISTRATION) != 0) {
-    if (Image->ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
+    if (UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) {
       //
       // Make a list off all the RT images so we can let the RT AP know about them.
       //
@@ -808,10 +736,10 @@ CoreLoadPeImage (
 
       Image->RuntimeData->ImageBase      = Image->Info.ImageBase;
       Image->RuntimeData->ImageSize      = (UINT64)(Image->Info.ImageSize);
-      Image->RuntimeData->RelocationData = Image->ImageContext.FixupData;
+      Image->RuntimeData->RelocationData = RelocationData;
       Image->RuntimeData->Handle         = Image->Handle;
       InsertTailList (&gRuntime->ImageHead, &Image->RuntimeData->Link);
-      InsertImageRecord (Image->RuntimeData);
+      InsertImageRecord (Image, ImageContext);
     }
   }
 
@@ -819,57 +747,42 @@ CoreLoadPeImage (
   // Fill in the entry point of the image if it is available
   //
   if (EntryPoint != NULL) {
-    *EntryPoint = Image->ImageContext.EntryPoint;
+    *EntryPoint = UefiImageLoaderGetImageEntryPoint (ImageContext);
+  }
+
+  UINT32  Hiioff;
+  UINT32  Hiisize;
+
+  Status = UefiImageGetHiiDataRva (ImageContext, &Hiioff, &Hiisize);
+  if (Status != RETURN_NOT_FOUND) {
+    ASSERT_EFI_ERROR (Status);
+  }
+
+  if (!EFI_ERROR (Status)) {
+    Image->HiiData = (VOID *)((UINTN)BufferAddress + Hiioff);
   }
 
   //
   // Print the load address and the PDB file name if it is available
   //
-
   DEBUG ((
     DEBUG_INFO | DEBUG_LOAD,
-    "Loading driver at 0x%11p EntryPoint=0x%11p ",
-    (VOID *)(UINTN)Image->ImageContext.ImageAddress,
-    FUNCTION_ENTRY_POINT (Image->ImageContext.EntryPoint)
+    "Loading driver at 0x%11p EntryPoint=0x%11p \n",
+    (VOID *)(UINTN)BufferAddress,
+    FUNCTION_ENTRY_POINT (UefiImageLoaderGetImageEntryPoint (ImageContext))
     ));
+
+  Status = UefiImageGetModuleNameFromSymbolsPath (
+             ImageContext,
+             EfiFileName,
+             sizeof (EfiFileName)
+             );
 
   //
   // Print Module Name by Pdb file path.
-  // Windows and Unix style file path are all trimmed correctly.
   //
-  if (Image->ImageContext.PdbPointer != NULL) {
-    StartIndex = 0;
-    for (Index = 0; Image->ImageContext.PdbPointer[Index] != 0; Index++) {
-      if ((Image->ImageContext.PdbPointer[Index] == '\\') || (Image->ImageContext.PdbPointer[Index] == '/')) {
-        StartIndex = Index + 1;
-      }
-    }
-
-    //
-    // Copy the PDB file name to our temporary string, and replace .pdb with .efi
-    // The PDB file name is limited in the range of 0~255.
-    // If the length is bigger than 255, trim the redudant characters to avoid overflow in array boundary.
-    //
-    for (Index = 0; Index < sizeof (EfiFileName) - 4; Index++) {
-      EfiFileName[Index] = Image->ImageContext.PdbPointer[Index + StartIndex];
-      if (EfiFileName[Index] == 0) {
-        EfiFileName[Index] = '.';
-      }
-
-      if (EfiFileName[Index] == '.') {
-        EfiFileName[Index + 1] = 'e';
-        EfiFileName[Index + 2] = 'f';
-        EfiFileName[Index + 3] = 'i';
-        EfiFileName[Index + 4] = 0;
-        break;
-      }
-    }
-
-    if (Index == sizeof (EfiFileName) - 4) {
-      EfiFileName[Index] = 0;
-    }
-
-    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));   // &Image->ImageContext.PdbPointer[StartIndex]));
+  if (!EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
   }
 
   DEBUG ((DEBUG_INFO | DEBUG_LOAD, "\n"));
@@ -883,13 +796,13 @@ Done:
   //
 
   if (DstBufAlocated) {
-    CoreFreePages (Image->ImageContext.ImageAddress, Image->NumberOfPages);
-    Image->ImageContext.ImageAddress = 0;
-    Image->ImageBasePage             = 0;
+    ZeroMem ((VOID *)(UINTN)BufferAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
+    FreeAlignedPages ((VOID *)(UINTN)BufferAddress, Image->NumberOfPages);
+    Image->ImageBasePage = 0;
   }
 
-  if (Image->ImageContext.FixupData != NULL) {
-    CoreFreePool (Image->ImageContext.FixupData);
+  if (RelocationData != NULL) {
+    CoreFreePool (RelocationData);
   }
 
   return Status;
@@ -954,23 +867,20 @@ CoreUnloadAndCloseImage (
   HandleBuffer      = NULL;
   ProtocolGuidArray = NULL;
 
-  if (Image->Started) {
-    UnregisterMemoryProfileImage (Image);
-  }
-
-  UnprotectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
+  UnregisterMemoryProfileImage (Image->Info.FilePath, Image->ImageBasePage);
 
   if (Image->PeCoffEmu != NULL) {
     //
     // If the PE/COFF Emulator protocol exists we must unregister the image.
     //
-    Image->PeCoffEmu->UnregisterImage (Image->PeCoffEmu, Image->ImageBasePage);
+    Image->PeCoffEmu->UnregisterImage (Image->PeCoffEmu, (UINTN)Image->Info.ImageBase);
   }
 
   //
   // Unload image, free Image->ImageContext->ModHandle
   //
-  PeCoffLoaderUnloadImage (&Image->ImageContext);
+  // FIXME:
+  // PeCoffUnloadImage (&Image->ImageContext);
 
   //
   // Free our references to the image handle
@@ -984,14 +894,14 @@ CoreUnloadAndCloseImage (
                &HandleBuffer
                );
     if (!EFI_ERROR (Status)) {
-      for (HandleIndex = 0; HandleIndex < HandleCount; HandleIndex++) {
+      for (HandleIndex = 0; HandleIndex < HandleCount; ++HandleIndex) {
         Status = CoreProtocolsPerHandle (
                    HandleBuffer[HandleIndex],
                    &ProtocolGuidArray,
                    &ArrayCount
                    );
         if (!EFI_ERROR (Status)) {
-          for (ProtocolIndex = 0; ProtocolIndex < ArrayCount; ProtocolIndex++) {
+          for (ProtocolIndex = 0; ProtocolIndex < ArrayCount; ++ProtocolIndex) {
             Status = CoreOpenProtocolInformation (
                        HandleBuffer[HandleIndex],
                        ProtocolGuidArray[ProtocolIndex],
@@ -999,7 +909,7 @@ CoreUnloadAndCloseImage (
                        &OpenInfoCount
                        );
             if (!EFI_ERROR (Status)) {
-              for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; OpenInfoIndex++) {
+              for (OpenInfoIndex = 0; OpenInfoIndex < OpenInfoCount; ++OpenInfoIndex) {
                 if (OpenInfo[OpenInfoIndex].AgentHandle == Image->Handle) {
                   Status = CoreCloseProtocol (
                              HandleBuffer[HandleIndex],
@@ -1041,11 +951,11 @@ CoreUnloadAndCloseImage (
                &Image->Info
                );
 
-    if (Image->ImageContext.HiiResourceData != 0) {
+    if (Image->HiiData != NULL) {
       Status = CoreUninstallProtocolInterface (
                  Image->Handle,
                  &gEfiHiiPackageListProtocolGuid,
-                 (VOID *)(UINTN)Image->ImageContext.HiiResourceData
+                 Image->HiiData
                  );
     }
   }
@@ -1063,25 +973,28 @@ CoreUnloadAndCloseImage (
   }
 
   //
-  // Free the Image from memory
+  // Done with the Image structure
   //
-  if ((Image->ImageBasePage != 0) && FreePage) {
-    CoreFreePages (Image->ImageBasePage, Image->NumberOfPages);
+  if (Image->FixupData != NULL) {
+    CoreFreePool (Image->FixupData);
   }
 
   //
-  // Done with the Image structure
+  // Free the Image from memory
   //
+  if ((Image->ImageBasePage != 0) && FreePage) {
+    UnprotectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
+    // FIXME: SecureZeroMem; instruction pattern to trap?
+    ZeroMem ((VOID *)(UINTN)Image->ImageBasePage, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
+    CoreFreePages (Image->ImageBasePage, Image->NumberOfPages);
+  }
+
   if (Image->Info.FilePath != NULL) {
     CoreFreePool (Image->Info.FilePath);
   }
 
   if (Image->LoadedImageDevicePath != NULL) {
     CoreFreePool (Image->LoadedImageDevicePath);
-  }
-
-  if (Image->FixupData != NULL) {
-    CoreFreePool (Image->FixupData);
   }
 
   CoreFreePool (Image);
@@ -1145,20 +1058,21 @@ CoreLoadImageCommon (
   IN  UINT32                    Attribute
   )
 {
-  LOADED_IMAGE_PRIVATE_DATA  *Image;
-  LOADED_IMAGE_PRIVATE_DATA  *ParentImage;
-  IMAGE_FILE_HANDLE          FHand;
-  EFI_STATUS                 Status;
-  EFI_STATUS                 SecurityStatus;
-  EFI_HANDLE                 DeviceHandle;
-  UINT32                     AuthenticationStatus;
-  EFI_DEVICE_PATH_PROTOCOL   *OriginalFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *HandleFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *InputFilePath;
-  EFI_DEVICE_PATH_PROTOCOL   *Node;
-  UINTN                      FilePathSize;
-  BOOLEAN                    ImageIsFromFv;
-  BOOLEAN                    ImageIsFromLoadFile;
+  LOADED_IMAGE_PRIVATE_DATA        *Image;
+  LOADED_IMAGE_PRIVATE_DATA        *ParentImage;
+  IMAGE_FILE_HANDLE                FHand;
+  EFI_STATUS                       Status;
+  EFI_STATUS                       SecurityStatus;
+  EFI_HANDLE                       DeviceHandle;
+  UINT32                           AuthenticationStatus;
+  EFI_DEVICE_PATH_PROTOCOL         *OriginalFilePath;
+  EFI_DEVICE_PATH_PROTOCOL         *HandleFilePath;
+  EFI_DEVICE_PATH_PROTOCOL         *InputFilePath;
+  EFI_DEVICE_PATH_PROTOCOL         *Node;
+  UINTN                            FilePathSize;
+  BOOLEAN                          ImageIsFromFv;
+  BOOLEAN                          ImageIsFromLoadFile;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1201,6 +1115,18 @@ CoreLoadImageCommon (
     }
 
     if (SourceSize > 0) {
+      if (DeviceHandle != NULL) {
+        Status = CoreOpenProtocol (
+                   DeviceHandle,
+                   &gEfiFirmwareVolume2ProtocolGuid,
+                   NULL,
+                   NULL,
+                   NULL,
+                   EFI_OPEN_PROTOCOL_TEST_PROTOCOL
+                   );
+        ImageIsFromFv = !EFI_ERROR (Status);
+      }
+
       Status = EFI_SUCCESS;
     } else {
       Status = EFI_LOAD_ERROR;
@@ -1264,6 +1190,16 @@ CoreLoadImageCommon (
     goto Done;
   }
 
+  //
+  // Get information about the image being loaded
+  //
+  Status = UefiImageInitializeContextPreHash (&ImageContext, FHand.Source, (UINT32)FHand.SourceSize);
+  if (EFI_ERROR (Status)) {
+    ASSERT (FALSE);
+    return Status;
+  }
+
+  // FIXME: Context
   if (gSecurity2 != NULL) {
     //
     // Verify File Authentication through the Security2 Architectural Protocol
@@ -1271,8 +1207,8 @@ CoreLoadImageCommon (
     SecurityStatus = gSecurity2->FileAuthentication (
                                    gSecurity2,
                                    OriginalFilePath,
-                                   FHand.Source,
-                                   FHand.SourceSize,
+                                   &ImageContext,
+                                   sizeof (ImageContext),
                                    BootPolicy
                                    );
     if (!EFI_ERROR (SecurityStatus) && ImageIsFromFv) {
@@ -1316,6 +1252,11 @@ CoreLoadImageCommon (
 
     Status = SecurityStatus;
     Image  = NULL;
+    goto Done;
+  }
+
+  Status = UefiImageInitializeContextPostHash (&ImageContext);
+  if (RETURN_ERROR (Status)) {
     goto Done;
   }
 
@@ -1374,7 +1315,9 @@ CoreLoadImageCommon (
   //
   // Load the image.  If EntryPoint is Null, it will not be set.
   //
-  Status = CoreLoadPeImage (BootPolicy, &FHand, Image, DstBuffer, EntryPoint, Attribute);
+  EFI_PHYSICAL_ADDRESS  LoadAddress = DstBuffer;
+
+  Status = CoreLoadPeImage (BootPolicy, Image, &LoadAddress, EntryPoint, Attribute, &ImageContext);
   if (EFI_ERROR (Status)) {
     if ((Status == EFI_BUFFER_TOO_SMALL) || (Status == EFI_OUT_OF_RESOURCES)) {
       if (NumberOfPages != NULL) {
@@ -1393,7 +1336,7 @@ CoreLoadImageCommon (
   // Register the image in the Debug Image Info Table if the attribute is set
   //
   if ((Attribute & EFI_LOAD_PE_IMAGE_ATTRIBUTE_DEBUG_IMAGE_INFO_TABLE_REGISTRATION) != 0) {
-    CoreNewDebugImageInfoEntry (EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL, &Image->Info, Image->Handle);
+    CoreNewDebugImageInfoEntry (EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL, &Image->Info, Image->Handle, &ImageContext);
   }
 
   //
@@ -1440,22 +1383,26 @@ CoreLoadImageCommon (
     goto Done;
   }
 
-  //
-  // Install HII Package List Protocol onto the image handle
-  //
-  if (Image->ImageContext.HiiResourceData != 0) {
+  if (Image->HiiData != NULL) {
     Status = CoreInstallProtocolInterface (
                &Image->Handle,
                &gEfiHiiPackageListProtocolGuid,
                EFI_NATIVE_INTERFACE,
-               (VOID *)(UINTN)Image->ImageContext.HiiResourceData
+               Image->HiiData
                );
     if (EFI_ERROR (Status)) {
       goto Done;
     }
   }
 
-  ProtectUefiImage (&Image->Info, Image->LoadedImageDevicePath);
+  Status = EFI_SUCCESS;
+  ProtectUefiImage (Image, &ImageContext);
+
+  RegisterMemoryProfileImage (
+    Image->LoadedImageDevicePath,
+    (UefiImageGetSubsystem (&ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER),
+    &ImageContext
+    );
 
   //
   // Success.  Return the image handle
@@ -1618,6 +1565,8 @@ CoreStartImage (
     return Image->LoadImageStatus;
   }
 
+  DEBUG ((DEBUG_WARN, "Starting driver at %lu\n", Image->Info.ImageBase));
+
   //
   // The image to be started must have the machine type supported by DxeCore.
   //
@@ -1628,16 +1577,16 @@ CoreStartImage (
     // Do not ASSERT here, because image might be loaded via EFI_IMAGE_MACHINE_CROSS_TYPE_SUPPORTED
     // But it can not be started.
     //
-    DEBUG ((DEBUG_ERROR, "Image type %s can't be started ", GetMachineTypeName (Image->Machine)));
-    DEBUG ((DEBUG_ERROR, "on %s UEFI system.\n", GetMachineTypeName (mDxeCoreImageMachineType)));
+    DEBUG ((EFI_D_ERROR, "Image type %s can't be started ", GetMachineTypeName (Image->Machine)));
+    DEBUG ((EFI_D_ERROR, "on %s UEFI system.\n", mDxeCoreImageMachineTypeName));
     return EFI_UNSUPPORTED;
   }
 
   if (Image->PeCoffEmu != NULL) {
     Status = Image->PeCoffEmu->RegisterImage (
                                  Image->PeCoffEmu,
-                                 Image->ImageBasePage,
-                                 EFI_PAGES_TO_SIZE (Image->NumberOfPages),
+                                 (UINTN)Image->Info.ImageBase,
+                                 Image->Info.ImageSize,
                                  &Image->EntryPoint
                                  );
     if (EFI_ERROR (Status)) {
@@ -1691,7 +1640,6 @@ CoreStartImage (
   // Subsequent calls to LongJump() cause a non-zero value to be returned by SetJump().
   //
   if (SetJumpFlag == 0) {
-    RegisterMemoryProfileImage (Image, (Image->ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER));
     //
     // Call the image's entry point
     //

@@ -7,9 +7,6 @@
   This external input must be validated carefully to avoid security issue like
   buffer overflow, integer overflow.
 
-  DxeTpm2MeasureBootLibImageRead() function will make sure the PE/COFF image content
-  read is within the image buffer.
-
   Tcg2MeasurePeImage() function will accept untrusted PE/COFF image and validate its
   data structure within this image buffer before use.
 
@@ -41,7 +38,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DevicePathLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/BaseCryptLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/SecurityManagementLib.h>
 #include <Library/HobLib.h>
 #include <Protocol/CcMeasurement.h>
@@ -58,61 +55,11 @@ typedef struct {
 //
 BOOLEAN  mTcg2MeasureGptTableFlag = FALSE;
 UINTN    mTcg2MeasureGptCount     = 0;
-VOID     *mTcg2FileBuffer;
-UINTN    mTcg2ImageSize;
 //
 // Measured FV handle cache
 //
 EFI_HANDLE         mTcg2CacheMeasuredHandle = NULL;
 MEASURED_HOB_DATA  *mTcg2MeasuredHobData    = NULL;
-
-/**
-  Reads contents of a PE/COFF image in memory buffer.
-
-  Caution: This function may receive untrusted input.
-  PE/COFF image is external input, so this function will make sure the PE/COFF image content
-  read is within the image buffer.
-
-  @param  FileHandle      Pointer to the file handle to read the PE/COFF image.
-  @param  FileOffset      Offset into the PE/COFF image to begin the read operation.
-  @param  ReadSize        On input, the size in bytes of the requested read operation.
-                          On output, the number of bytes actually read.
-  @param  Buffer          Output buffer that contains the data read from the PE/COFF image.
-
-  @retval EFI_SUCCESS     The specified portion of the PE/COFF image was read and the size
-**/
-EFI_STATUS
-EFIAPI
-DxeTpm2MeasureBootLibImageRead (
-  IN     VOID   *FileHandle,
-  IN     UINTN  FileOffset,
-  IN OUT UINTN  *ReadSize,
-  OUT    VOID   *Buffer
-  )
-{
-  UINTN  EndPosition;
-
-  if ((FileHandle == NULL) || (ReadSize == NULL) || (Buffer == NULL)) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  if (MAX_ADDRESS - FileOffset < *ReadSize) {
-    return EFI_INVALID_PARAMETER;
-  }
-
-  EndPosition = FileOffset + *ReadSize;
-  if (EndPosition > mTcg2ImageSize) {
-    *ReadSize = (UINT32)(mTcg2ImageSize - FileOffset);
-  }
-
-  if (FileOffset >= mTcg2ImageSize) {
-    *ReadSize = 0;
-  }
-
-  CopyMem (Buffer, (UINT8 *)((UINTN)FileHandle + FileOffset), *ReadSize);
-
-  return EFI_SUCCESS;
-}
 
 /**
   Measure GPT table data into TPM log.
@@ -634,10 +581,14 @@ DxeTpm2MeasureBootHandler (
   EFI_HANDLE                          Handle;
   EFI_HANDLE                          TempHandle;
   BOOLEAN                             ApplicationRequired;
-  PE_COFF_LOADER_IMAGE_CONTEXT        ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT     *ImageContext;
   EFI_FIRMWARE_VOLUME_BLOCK_PROTOCOL  *FvbProtocol;
   EFI_PHYSICAL_ADDRESS                FvAddress;
   UINT32                              Index;
+
+  // FIXME:
+  ASSERT (FileSize == sizeof (UEFI_IMAGE_LOADER_IMAGE_CONTEXT));
+  ImageContext = FileBuffer;
 
   MeasureBootProtocols.Tcg2Protocol = NULL;
   MeasureBootProtocols.CcProtocol   = NULL;
@@ -791,41 +742,17 @@ DxeTpm2MeasureBootHandler (
     goto Finish;
   }
 
-  mTcg2ImageSize  = FileSize;
-  mTcg2FileBuffer = FileBuffer;
-
   //
   // Measure PE Image
   //
   DevicePathNode = OrigDevicePathNode;
-  ZeroMem (&ImageContext, sizeof (ImageContext));
-  ImageContext.Handle    = (VOID *)FileBuffer;
-  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)DxeTpm2MeasureBootLibImageRead;
-
-  //
-  // Get information about the image being loaded
-  //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
-  if (EFI_ERROR (Status)) {
-    //
-    // Check for invalid parameters.
-    //
-    if (File == NULL) {
-      Status = EFI_ACCESS_DENIED;
-    }
-
-    //
-    // The information can't be got from the invalid PeImage
-    //
-    goto Finish;
-  }
 
   //
   // Measure only application if Application flag is set
   // Measure drivers and applications if Application flag is not set
   //
   if ((!ApplicationRequired) ||
-      (ApplicationRequired && (ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)))
+      (ApplicationRequired && (UefiImageGetSubsystem (ImageContext) == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION)))
   {
     //
     // Print the image path to be measured.
@@ -846,12 +773,13 @@ DxeTpm2MeasureBootHandler (
     //
     // Measure PE image into TPM log.
     //
+    // FIXME: Pass context?
     Status = Tcg2MeasurePeImage (
                &MeasureBootProtocols,
                (EFI_PHYSICAL_ADDRESS)(UINTN)FileBuffer,
                FileSize,
-               (UINTN)ImageContext.ImageAddress,
-               ImageContext.ImageType,
+               UefiImageLoaderGetImageAddress (ImageContext),
+               UefiImageGetSubsystem (ImageContext),
                DevicePathNode
                );
   }

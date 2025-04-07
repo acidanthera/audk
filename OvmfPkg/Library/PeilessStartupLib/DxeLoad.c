@@ -186,6 +186,7 @@ FindDxeNonCc (
   EFI_FV_INFO          FvImageInfo;
   UINT32               FvAlignment;
   VOID                 *FvBuffer;
+  UINT32               FvImageSize;
 
   FileHandle = NULL;
 
@@ -201,7 +202,7 @@ FindDxeNonCc (
   //
   // Find FvImage in FvFile
   //
-  Status = FfsFindSectionDataWithHook (EFI_SECTION_FIRMWARE_VOLUME_IMAGE, CheckSectionHookForDxeNonCc, FileHandle, (VOID **)&FvImageHandle);
+  Status = FfsFindSectionDataWithHook (EFI_SECTION_FIRMWARE_VOLUME_IMAGE, CheckSectionHookForDxeNonCc, FileHandle, (VOID **)&FvImageHandle, &FvImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -273,10 +274,11 @@ DxeLoadCore (
   EFI_STATUS            Status;
   EFI_FV_FILE_INFO      DxeCoreFileInfo;
   EFI_PHYSICAL_ADDRESS  DxeCoreAddress;
-  UINT64                DxeCoreSize;
+  UINT32                DxeCoreSize;
   EFI_PHYSICAL_ADDRESS  DxeCoreEntryPoint;
   EFI_PEI_FILE_HANDLE   FileHandle;
-  VOID                  *PeCoffImage;
+  VOID                  *UefiImage;
+  UINT32                UefiImageSize;
 
   //
   // Look in all the FVs present and find the DXE Core FileHandle
@@ -295,12 +297,12 @@ DxeLoadCore (
   //
   // Load the DXE Core from a Firmware Volume.
   //
-  Status = FfsFindSectionDataWithHook (EFI_SECTION_PE32, NULL, FileHandle, &PeCoffImage);
+  Status = FfsFindSectionDataWithHook (EFI_SECTION_PE32, NULL, FileHandle, &UefiImage, &UefiImageSize);
   if (EFI_ERROR (Status)) {
     return Status;
   }
 
-  Status = LoadPeCoffImage (PeCoffImage, &DxeCoreAddress, &DxeCoreSize, &DxeCoreEntryPoint);
+  Status = LoadUefiImage (UefiImage, UefiImageSize, &DxeCoreAddress, &DxeCoreSize, &DxeCoreEntryPoint);
   ASSERT_EFI_ERROR (Status);
 
   //

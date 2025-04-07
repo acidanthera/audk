@@ -25,7 +25,7 @@
 
 #include <Library/ArmSvcLib.h>
 #include <Library/ArmFfaLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/FvLib.h>
 
 #define CPU_INFO_FLAG_PRIMARY_CPU  0x00000001
@@ -159,56 +159,6 @@ typedef RETURN_STATUS (*REGION_PERMISSION_UPDATE_FUNC) (
 
 /**
   Privileged firmware assigns RO & Executable attributes to all memory occupied
-  by the Boot Firmware Volume. This function sets the correct permissions of
-  sections in the Standalone MM Core module to be able to access RO and RW data
-  and make further progress in the boot process.
-
-  @param  [in] ImageContext           Pointer to PE/COFF image context
-  @param  [in] ImageBase              Base of image in memory
-  @param  [in] SectionHeaderOffset    Offset of PE/COFF image section header
-  @param  [in] NumberOfSections       Number of Sections
-  @param  [in] TextUpdater            Function to change code permissions
-  @param  [in] ReadOnlyUpdater        Function to change RO permissions
-  @param  [in] ReadWriteUpdater       Function to change RW permissions
-
-**/
-EFI_STATUS
-EFIAPI
-UpdateMmFoundationPeCoffPermissions (
-  IN  CONST PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN  EFI_PHYSICAL_ADDRESS                ImageBase,
-  IN  UINT32                              SectionHeaderOffset,
-  IN  CONST  UINT16                       NumberOfSections,
-  IN  REGION_PERMISSION_UPDATE_FUNC       TextUpdater,
-  IN  REGION_PERMISSION_UPDATE_FUNC       ReadOnlyUpdater,
-  IN  REGION_PERMISSION_UPDATE_FUNC       ReadWriteUpdater
-  );
-
-/**
-  Privileged firmware assigns RO & Executable attributes to all memory occupied
-  by the Boot Firmware Volume. This function locates the section information of
-  the Standalone MM Core module to be able to change permissions of the
-  individual sections later in the boot process.
-
-  @param  [in]      TeData                Pointer to PE/COFF image data
-  @param  [in, out] ImageContext          Pointer to PE/COFF image context
-  @param  [out]     ImageBase             Pointer to ImageBase variable
-  @param  [in, out] SectionHeaderOffset   Offset of PE/COFF image section header
-  @param  [in, out] NumberOfSections      Number of Sections
-
-**/
-EFI_STATUS
-EFIAPI
-GetStandaloneMmCorePeCoffSections (
-  IN        VOID                          *TeData,
-  IN  OUT   PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  OUT   EFI_PHYSICAL_ADDRESS              *ImageBase,
-  IN  OUT   UINT32                        *SectionHeaderOffset,
-  IN  OUT   UINT16                        *NumberOfSections
-  );
-
-/**
-  Privileged firmware assigns RO & Executable attributes to all memory occupied
   by the Boot Firmware Volume. This function locates the Standalone MM Core
   module PE/COFF image in the BFV and returns this information.
 
@@ -220,10 +170,10 @@ GetStandaloneMmCorePeCoffSections (
 **/
 EFI_STATUS
 EFIAPI
-LocateStandaloneMmCorePeCoffData (
+LocateStandaloneMmCoreUefiImage (
   IN        EFI_FIRMWARE_VOLUME_HEADER  *BfvAddress,
   IN  OUT   VOID                        **TeData,
-  IN  OUT   UINTN                       *TeDataSize
+  IN  OUT   UINT32                      *TeDataSize
   );
 
 /**

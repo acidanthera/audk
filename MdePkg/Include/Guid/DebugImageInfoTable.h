@@ -47,6 +47,7 @@ typedef struct {
   /// Indicates the image handle of the associated image.
   ///
   EFI_HANDLE                   ImageHandle;
+  CHAR8                        *PdbPath;
 } EFI_DEBUG_IMAGE_INFO_NORMAL;
 
 typedef union {

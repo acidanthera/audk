@@ -85,7 +85,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <PiPei.h>
 #include <Uefi.h>
 
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/MemoryAllocationLib.h>
@@ -97,7 +97,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/ThunkPpiList.h>
 #include <Library/ThunkProtocolList.h>
 #include <Library/PeiServicesLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/EmuMagicPageLib.h>
 
 #include <Ppi/EmuThunk.h>
@@ -136,8 +135,8 @@ typedef struct {
 #define MAX_IMAGE_CONTEXT_TO_MOD_HANDLE_ARRAY_SIZE  0x100
 
 typedef struct {
-  PE_COFF_LOADER_IMAGE_CONTEXT    *ImageContext;
-  VOID                            *ModHandle;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext;
+  VOID                               *ModHandle;
 } IMAGE_CONTEXT_TO_MOD_HANDLE;
 
 EFI_STATUS
@@ -158,10 +157,11 @@ main (
 
 VOID
 SecLoadFromCore (
-  IN  UINTN  LargestRegion,
-  IN  UINTN  LargestRegionSize,
-  IN  UINTN  BootFirmwareVolumeBase,
-  IN  VOID   *PeiCoreFile
+  IN  UINTN   LargestRegion,
+  IN  UINTN   LargestRegionSize,
+  IN  UINTN   BootFirmwareVolumeBase,
+  IN  VOID    *PeiCoreFile,
+  IN  UINT32  PeiCorePe32Size
   );
 
 EFI_STATUS
@@ -193,17 +193,11 @@ SecFfsFindSectionData (
   );
 
 EFI_STATUS
-EFIAPI
-SecUnixPeCoffLoaderLoadAsDll (
-  IN CHAR8  *PdbFileName,
-  IN VOID   **ImageEntryPoint,
-  OUT VOID  **ModHandle
-  );
-
-EFI_STATUS
-EFIAPI
-SecUnixPeCoffLoaderFreeLibrary (
-  OUT VOID  *ModHandle
+SecFfsFindSectionData2 (
+  IN EFI_SECTION_TYPE     SectionType,
+  IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
+  IN OUT VOID             **SectionData,
+  OUT UINT32              *SectionDataSize
   );
 
 EFI_STATUS
@@ -227,8 +221,8 @@ GasketSecUnixFdAddress (
 
 EFI_STATUS
 GetImageReadFunction (
-  IN PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext,
-  IN EFI_PHYSICAL_ADDRESS          *TopOfMemory
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN EFI_PHYSICAL_ADDRESS             *TopOfMemory
   );
 
 EFI_STATUS
@@ -272,21 +266,22 @@ GasketSecTemporaryRamSupport (
 
 RETURN_STATUS
 EFIAPI
-SecPeCoffGetEntryPoint (
-  IN     VOID  *Pe32Data,
-  IN OUT VOID  **EntryPoint
+SecUefiImageGetEntryPoint (
+  IN     VOID    *Pe32Data,
+  IN     UINT32  Pe32Size,
+  IN OUT VOID    **EntryPoint
   );
 
 VOID
 EFIAPI
-SecPeCoffRelocateImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageRelocateImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID
 EFIAPI
-SecPeCoffLoaderUnloadImageExtraAction (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+SecUefiImageLoaderUnloadImageExtraAction (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
 
 VOID

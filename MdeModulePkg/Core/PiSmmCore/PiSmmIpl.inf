@@ -35,7 +35,7 @@
   UefiDriverEntryPoint
   BaseLib
   BaseMemoryLib
-  PeCoffLib
+  UefiImageLib
   CacheMaintenanceLib
   MemoryAllocationLib
   DebugLib

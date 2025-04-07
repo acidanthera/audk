@@ -39,12 +39,13 @@
   BaseMemoryLib
   UefiLib
   FspWrapperApiLib
-  PeCoffLib
+  UefiImageLib
   CacheMaintenanceLib
   DxeServicesLib
   PerformanceLib
   HobLib
   FspWrapperPlatformLib
+  MemoryAllocationLib
 
 [Protocols]
   gEfiPciEnumerationCompleteProtocolGuid            ## CONSUMES

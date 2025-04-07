@@ -1,3 +1,5 @@
+#ifndef DISABLE_NEW_DEPRECATED_INTERFACES
+
 /** @file
   PE/Coff Extra Action library instances.
 
@@ -64,7 +66,7 @@ PeCoffLoaderExtraActionCommon (
   ASSERT (ImageContext != NULL);
 
   if (ImageContext->PdbPointer != NULL) {
-    DEBUG ((DEBUG_ERROR, "    PDB = %a\n", ImageContext->PdbPointer));
+    DEBUG ((EFI_D_ERROR, "    PDB = %a\n", ImageContext->PdbPointer));
   }
 
   //
@@ -229,3 +231,5 @@ PeCoffLoaderUnloadImageExtraAction (
 {
   PeCoffLoaderExtraActionCommon (ImageContext, IMAGE_UNLOAD_SIGNATURE);
 }
+
+#endif // DISABLE_NEW_DEPRECATED_INTERFACES

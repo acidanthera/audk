@@ -26,6 +26,14 @@ SecFfsFindSectionData (
   OUT VOID                **SectionData
   );
 
+EFI_STATUS
+SecFfsFindSectionData2 (
+  IN EFI_SECTION_TYPE     SectionType,
+  IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
+  IN OUT VOID             **SectionData,
+  OUT UINT32              *SectionDataSize
+  );
+
 /**
   This service enables a given PEIM to register an interface into the PEI Foundation.
 
@@ -302,6 +310,38 @@ PeiServicesFfsFindSectionData (
   )
 {
   return SecFfsFindSectionData (SectionType, FileHandle, SectionData);
+}
+
+/**
+  This service enables PEIMs to discover sections of a given instance and type within a valid FFS file.
+
+  @param  SectionType           The value of the section type to find.
+  @param  SectionInstance       Section instance to find.
+  @param  FileHandle            A pointer to the file header that contains the set
+                                of sections to be searched.
+  @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionDataSize       The size of the discovered section, if successful.
+  @param  AuthenticationStatus  A pointer to the authentication status for this section.
+
+  @retval EFI_SUCCESS           The section was found.
+  @retval EFI_NOT_FOUND         The section was not found.
+
+**/
+EFI_STATUS
+EFIAPI
+PeiServicesFfsFindSectionData4 (
+  IN EFI_SECTION_TYPE     SectionType,
+  IN UINTN                SectionInstance,
+  IN EFI_PEI_FILE_HANDLE  FileHandle,
+  OUT VOID                **SectionData,
+  OUT UINT32              *SectionDataSize,
+  OUT UINT32              *AuthenticationStatus
+  )
+{
+  ASSERT (SectionInstance == 0);
+
+  *AuthenticationStatus = 0;
+  return SecFfsFindSectionData2 (SectionType, FileHandle, SectionData, SectionDataSize);
 }
 
 /**

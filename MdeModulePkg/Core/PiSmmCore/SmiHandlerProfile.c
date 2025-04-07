@@ -17,7 +17,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PrintLib.h>
 #include <Library/UefiLib.h>
 #include <Library/DevicePathLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Protocol/LoadedImage.h>
 #include <Protocol/SmmAccess2.h>
 #include <Protocol/SmmReadyToLock.h>
@@ -74,7 +73,7 @@ BuildSmiHandlerProfileDatabase (
 
 **/
 RETURN_STATUS
-InternalPeCoffGetEntryPoint (
+InternalUefiImageGetEntryPoint (
   IN  VOID  *Pe32Data,
   OUT VOID  **EntryPoint
   );
@@ -264,7 +263,6 @@ GetSmmLoadedImage (
   CHAR16                     *PathStr;
   EFI_SMM_DRIVER_ENTRY       *LoadedImagePrivate;
   PHYSICAL_ADDRESS           EntryPoint;
-  VOID                       *EntryPointInImage;
   EFI_GUID                   Guid;
   CHAR8                      *PdbString;
   PHYSICAL_ADDRESS           RealImageBase;
@@ -324,15 +322,6 @@ GetSmmLoadedImage (
     RealImageBase      = (UINTN)LoadedImage->ImageBase;
     if (LoadedImagePrivate->Signature == EFI_SMM_DRIVER_ENTRY_SIGNATURE) {
       EntryPoint = LoadedImagePrivate->ImageEntryPoint;
-      if ((EntryPoint != 0) && ((EntryPoint < (UINTN)LoadedImage->ImageBase) || (EntryPoint >= ((UINTN)LoadedImage->ImageBase + LoadedImage->ImageSize)))) {
-        //
-        // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-        // So patch ImageBuffer here to align the EntryPoint.
-        //
-        Status = InternalPeCoffGetEntryPoint (LoadedImage->ImageBase, &EntryPointInImage);
-        ASSERT_EFI_ERROR (Status);
-        RealImageBase = (UINTN)LoadedImage->ImageBase + EntryPoint - (UINTN)EntryPointInImage;
-      }
     }
 
     DEBUG ((DEBUG_INFO, "(0x%lx - 0x%lx", RealImageBase, LoadedImage->ImageSize));
@@ -342,10 +331,12 @@ GetSmmLoadedImage (
 
     DEBUG ((DEBUG_INFO, ")\n"));
 
-    if (RealImageBase != 0) {
-      PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)RealImageBase);
+    // FIXME:
+
+    /*if (RealImageBase != 0) {
+      PdbString = UefiImageLoaderGetPdbPointer ((VOID *)(UINTN)RealImageBase);
       DEBUG ((DEBUG_INFO, "       pdb - %a\n", PdbString));
-    } else {
+    } else*/{
       PdbString = NULL;
     }
 

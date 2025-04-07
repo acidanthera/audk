@@ -276,3 +276,53 @@ Returns:
 
   return EFI_NOT_FOUND;
 }
+
+// FIXME: Docs
+EFI_STATUS
+SecFfsFindSectionData2 (
+  IN EFI_SECTION_TYPE     SectionType,
+  IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
+  IN OUT VOID             **SectionData,
+  OUT UINT32              *SectionDataSize
+  )
+{
+  UINT32                     FileSize;
+  EFI_COMMON_SECTION_HEADER  *Section;
+  UINT32                     SectionLength;
+  UINT32                     ParsedLength;
+
+  //
+  // Size is 24 bits wide so mask upper 8 bits.
+  //    Does not include FfsFileHeader header size
+  // FileSize is adjusted to FileOccupiedSize as it is 8 byte aligned.
+  //
+  Section   = (EFI_COMMON_SECTION_HEADER *)(FfsFileHeader + 1);
+  FileSize  = *(UINT32 *)(FfsFileHeader->Size) & 0x00FFFFFF;
+  FileSize -= sizeof (EFI_FFS_FILE_HEADER);
+
+  *SectionData = NULL;
+  ParsedLength = 0;
+  while (ParsedLength < FileSize) {
+    // FIXME: Common API with size checks
+    //
+    // Size is 24 bits wide so mask upper 8 bits.
+    //
+    SectionLength = *(UINT32 *)Section->Size & 0x00FFFFFF;
+    if (Section->Type == SectionType) {
+      *SectionData     = (VOID *)(Section + 1);
+      *SectionDataSize = SectionLength - sizeof (*Section);
+      return EFI_SUCCESS;
+    }
+
+    //
+    // SectionLength is adjusted it is 4 byte aligned.
+    // Go to the next section
+    //
+    SectionLength = GET_OCCUPIED_SIZE (SectionLength, 4);
+
+    ParsedLength += SectionLength;
+    Section       = (EFI_COMMON_SECTION_HEADER *)((UINT8 *)Section + SectionLength);
+  }
+
+  return EFI_NOT_FOUND;
+}
