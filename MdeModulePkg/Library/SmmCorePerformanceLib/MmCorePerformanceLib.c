@@ -107,16 +107,16 @@ GetModuleInfoFromHandle (
       TempGuid   = &FvFilePath->FvFileName;
     }
 
-    if (GetModuleNameFromPdbString (LoadedImage->ImageBase, NameString, BufferSize) == EFI_SUCCESS) {
-      goto Done;
-    }
+    // if (GetModuleNameFromPdbString (LoadedImage->ImageBase, NameString, BufferSize) == EFI_SUCCESS) {
+    //   goto Done;
+    // }
   }
 
   if (!IsZeroGuid (TempGuid)) {
     Status = GetNameFromUiSection (TempGuid, NameString, BufferSize);
   }
 
-Done:
+// Done:
   //
   // Copy Module Guid
   //
@@ -160,6 +160,8 @@ GetModuleNameFromPdbString (
   IN UINTN   BufferSize
   )
 {
+  // FIXME:
+  /*
   CHAR8  *PdbFileName;
   UINTN  Index;
   UINTN  StartIndex;
@@ -168,7 +170,7 @@ GetModuleNameFromPdbString (
     return EFI_INVALID_PARAMETER;
   }
 
-  PdbFileName = PeCoffLoaderGetPdbPointer (ImageBase);
+  PdbFileName = UefiImageLoaderGetPdbPointer (ImageBase);
 
   if (PdbFileName == NULL) {
     return EFI_NOT_FOUND;
@@ -195,7 +197,7 @@ GetModuleNameFromPdbString (
   if (Index == BufferSize - 1) {
     NameString[Index] = 0;
   }
-
+  */
   return EFI_SUCCESS;
 }
 

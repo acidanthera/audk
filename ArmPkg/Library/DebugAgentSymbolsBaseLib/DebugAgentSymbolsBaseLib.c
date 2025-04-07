@@ -13,8 +13,8 @@
 #include <Library/DebugLib.h>
 #include <Library/DebugAgentLib.h>
 #include <Library/PcdLib.h>
-#include <Library/PeCoffExtraActionLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageExtraActionLib.h>
+#include <Library/UefiImageLib.h>
 
 #include <Pi/PiFirmwareFile.h>
 #include <Pi/PiFirmwareVolume.h>
@@ -165,34 +165,39 @@ GetFfsFile (
 
 EFI_STATUS
 GetImageContext (
-  IN  EFI_FFS_FILE_HEADER           *FfsHeader,
-  OUT PE_COFF_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN  EFI_FFS_FILE_HEADER              *FfsHeader,
+  OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS                       Status;
-  UINTN                            ParsedLength;
-  UINTN                            SectionSize;
-  UINTN                            SectionLength;
-  EFI_COMMON_SECTION_HEADER        *Section;
-  VOID                             *EfiImage;
-  UINTN                            ImageAddress;
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY  *DebugEntry;
-  VOID                             *CodeViewEntryPointer;
+  EFI_STATUS                              Status;
+  UINTN                                   ParsedLength;
+  UINT32                                  SectionSize;
+  UINT32                                  SectionLength;
+  EFI_COMMON_SECTION_HEADER               *Section;
+  VOID                                    *EfiImage;
 
-  Section      = (EFI_COMMON_SECTION_HEADER *)(FfsHeader + 1);
-  SectionSize  = FFS_FILE_SIZE (FfsHeader);
-  SectionSize -= sizeof (EFI_FFS_FILE_HEADER);
-  ParsedLength = 0;
-  EfiImage     = NULL;
+  Section       = (EFI_COMMON_SECTION_HEADER *)(FfsHeader + 1);
+  SectionLength = 0;
+  SectionSize   = FFS_FILE_SIZE (FfsHeader);
+  SectionSize  -= sizeof (EFI_FFS_FILE_HEADER);
+  ParsedLength  = 0;
+  EfiImage      = NULL;
 
   while (ParsedLength < SectionSize) {
+    //
+    // Size is 24 bits wide so mask upper 8 bits.
+    //
+    SectionLength = *(UINT32 *)Section->Size & 0x00FFFFFF;
+    if (SectionLength < sizeof (*Section)) {
+      return EFI_VOLUME_CORRUPTED;
+    }
+
     if ((Section->Type == EFI_SECTION_PE32) || (Section->Type == EFI_SECTION_TE)) {
-      EfiImage = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)(Section + 1);
+      EfiImage = (Section + 1);
       break;
     }
 
     //
-    // Size is 24 bits wide so mask upper 8 bits.
     // SectionLength is adjusted it is 4 byte aligned.
     // Go to the next section
     //
@@ -208,34 +213,10 @@ GetImageContext (
   }
 
   // Initialize the Image Context
-  ZeroMem (ImageContext, sizeof (PE_COFF_LOADER_IMAGE_CONTEXT));
-  ImageContext->Handle    = EfiImage;
-  ImageContext->ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  Status =  PeCoffLoaderGetImageInfo (ImageContext);
-  if (!EFI_ERROR (Status) && ((VOID *)(UINTN)ImageContext->DebugDirectoryEntryRva != NULL)) {
-    ImageAddress = ImageContext->ImageAddress;
-    if (ImageContext->IsTeImage) {
-      ImageAddress += sizeof (EFI_TE_IMAGE_HEADER) - ((EFI_TE_IMAGE_HEADER *)EfiImage)->StrippedSize;
-    }
-
-    DebugEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *)(ImageAddress + ImageContext->DebugDirectoryEntryRva);
-    if (DebugEntry->Type == EFI_IMAGE_DEBUG_TYPE_CODEVIEW) {
-      CodeViewEntryPointer = (VOID *)(ImageAddress + (UINTN)DebugEntry->RVA);
-      switch (*(UINT32 *)CodeViewEntryPointer) {
-        case CODEVIEW_SIGNATURE_NB10:
-          ImageContext->PdbPointer = (CHAR8 *)CodeViewEntryPointer + sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY);
-          break;
-        case CODEVIEW_SIGNATURE_RSDS:
-          ImageContext->PdbPointer = (CHAR8 *)CodeViewEntryPointer + sizeof (EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY);
-          break;
-        case CODEVIEW_SIGNATURE_MTOC:
-          ImageContext->PdbPointer = (CHAR8 *)CodeViewEntryPointer + sizeof (EFI_IMAGE_DEBUG_CODEVIEW_MTOC_ENTRY);
-          break;
-        default:
-          break;
-      }
-    }
+  // FIXME: Common FFS API with size checks
+  Status = UefiImageInitializeContext (ImageContext, EfiImage, SectionLength - sizeof (*Section));
+  if (!EFI_ERROR(Status)) {
+    Status = UefiImageLoadImageInplace( ImageContext);
   }
 
   return Status;
@@ -271,9 +252,9 @@ InitializeDebugAgent (
   IN DEBUG_AGENT_CONTINUE  Function  OPTIONAL
   )
 {
-  EFI_STATUS                    Status;
-  EFI_FFS_FILE_HEADER           *FfsHeader;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+  EFI_STATUS                      Status;
+  EFI_FFS_FILE_HEADER             *FfsHeader;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
 
   // We use InitFlag to know if DebugAgent has been initialized from
   // Sec (DEBUG_AGENT_INIT_PREMEM_SEC) or PrePi (DEBUG_AGENT_INIT_POSTMEM_SEC)
@@ -286,7 +267,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
   } else if (InitFlag == DEBUG_AGENT_INIT_POSTMEM_SEC) {
@@ -297,7 +278,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
 
@@ -308,7 +289,7 @@ InitializeDebugAgent (
     if (!EFI_ERROR (Status)) {
       Status = GetImageContext (FfsHeader, &ImageContext);
       if (!EFI_ERROR (Status)) {
-        PeCoffLoaderRelocateImageExtraAction (&ImageContext);
+        UefiImageLoaderRelocateImageExtraAction (&ImageContext);
       }
     }
   }

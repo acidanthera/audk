@@ -22,6 +22,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include "DxeMain.h"
 #include "HeapGuard.h"
+#include "IndustryStandard/PeImage2.h"
+#include "ProcessorBind.h"
 
 /**
   This function for GetMemoryMap() with properties table capability.
@@ -73,7 +75,7 @@ CoreGetMemoryMapWithSeparatedImageSection (
 typedef struct {
   UINT32        Signature;
   UINTN         ImageRecordCount;
-  UINTN         CodeSegmentCountMax;
+  UINTN         SectionCountMax;
   LIST_ENTRY    ImageRecordList;
 } IMAGE_PROPERTIES_PRIVATE_DATA;
 
@@ -200,7 +202,7 @@ InstallMemoryAttributesTable (
       case EfiRuntimeServicesCode:
       case EfiRuntimeServicesData:
         CopyMem (MemoryAttributesEntry, MemoryMap, DescriptorSize);
-        MemoryAttributesEntry->Attribute &= (EFI_MEMORY_RO|EFI_MEMORY_XP|EFI_MEMORY_RUNTIME);
+        MemoryAttributesEntry->Attribute &= EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_RUNTIME;
         DEBUG ((DEBUG_VERBOSE, "Entry (0x%x)\n", MemoryAttributesEntry));
         DEBUG ((DEBUG_VERBOSE, "  Type              - 0x%x\n", MemoryAttributesEntry->Type));
         DEBUG ((DEBUG_VERBOSE, "  PhysicalStart     - 0x%016lx\n", MemoryAttributesEntry->PhysicalStart));
@@ -282,15 +284,6 @@ InstallMemoryAttributesTableOnEndOfDxe (
   )
 {
   InstallMemoryAttributesTable ();
-
-  DEBUG_CODE_BEGIN ();
-  if ( mImagePropertiesPrivateData.ImageRecordCount > 0) {
-    DEBUG ((DEBUG_INFO, "DXE - Total Runtime Image Count: 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
-    DEBUG ((DEBUG_INFO, "DXE - Dump Runtime Image Records:\n"));
-    DumpImageRecords (&mImagePropertiesPrivateData.ImageRecordList);
-  }
-
-  DEBUG_CODE_END ();
 }
 
 /**
@@ -532,7 +525,11 @@ CoreGetMemoryMapWithSeparatedImageSection (
 
   CoreAcquiremMemoryAttributesTableLock ();
 
-  AdditionalRecordCount = (2 * mImagePropertiesPrivateData.CodeSegmentCountMax + 3) * mImagePropertiesPrivateData.ImageRecordCount;
+  //
+  // Per image, there may be one additional trailer. There may be prefixed data
+  // (counted as the original entry).
+  //
+  AdditionalRecordCount = (mImagePropertiesPrivateData.SectionCountMax + 1) * mImagePropertiesPrivateData.ImageRecordCount;
 
   OldMemoryMapSize = *MemoryMapSize;
   Status           = CoreGetMemoryMap (MemoryMapSize, MemoryMap, MapKey, DescriptorSize, DescriptorVersion);
@@ -573,87 +570,168 @@ CoreGetMemoryMapWithSeparatedImageSection (
 //
 
 /**
+  Set MemoryAttributesTable according to PE/COFF image section alignment.
+
+  @param  SectionAlignment    PE/COFF section alignment
+**/
+STATIC
+VOID
+SetMemoryAttributesTableSectionAlignment (
+  IN UINT32  SectionAlignment
+  )
+{
+  if (((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) &&
+      mMemoryAttributesTableEnable)
+  {
+    DEBUG ((DEBUG_VERBOSE, "SetMemoryAttributesTableSectionAlignment - Clear\n"));
+    mMemoryAttributesTableEnable = FALSE;
+  }
+}
+
+/**
+  Sort image record based upon the ImageBase from low to high.
+**/
+STATIC
+VOID
+InsertSortImageRecord (
+  IN UEFI_IMAGE_RECORD  *NewImageRecord
+  )
+{
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  LIST_ENTRY         *PrevImageRecordLink;
+  LIST_ENTRY         *ImageRecordLink;
+  LIST_ENTRY         *ImageRecordList;
+
+  ImageRecordList = &mImagePropertiesPrivateData.ImageRecordList;
+
+  PrevImageRecordLink = ImageRecordList;
+  for (
+    ImageRecordLink = GetFirstNode (ImageRecordList);
+    !IsNull (ImageRecordLink, ImageRecordList);
+    ImageRecordLink = GetNextNode (ImageRecordList, PrevImageRecordLink)
+    ) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+    if (NewImageRecord->StartAddress < ImageRecord->StartAddress) {
+      break;
+    }
+
+    PrevImageRecordLink = ImageRecordLink;
+  }
+
+  InsertHeadList (PrevImageRecordLink, &NewImageRecord->Link);
+  mImagePropertiesPrivateData.ImageRecordCount++;
+
+  if (mImagePropertiesPrivateData.SectionCountMax < NewImageRecord->NumSegments) {
+    mImagePropertiesPrivateData.SectionCountMax = NewImageRecord->NumSegments;
+  }
+}
+
+/**
   Insert image record.
 
   @param  RuntimeImage    Runtime image information
 **/
 VOID
 InsertImageRecord (
-  IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
+  IN     LOADED_IMAGE_PRIVATE_DATA        *Image,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_STATUS               Status;
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
-  CHAR8                    *PdbPointer;
-  UINT32                   RequiredAlignment;
+  RETURN_STATUS            PdbStatus;
+  EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage;
+  UINT32                   SectionAlignment;
+  UEFI_IMAGE_RECORD        *ImageRecord;
+  CONST CHAR8              *PdbPointer;
+  UINT32                   PdbSize;
+
+  RuntimeImage = Image->RuntimeData;
 
   DEBUG ((DEBUG_VERBOSE, "InsertImageRecord - 0x%x\n", RuntimeImage));
 
-  ImageRecord = AllocatePool (sizeof (*ImageRecord));
-  if (ImageRecord == NULL) {
-    return;
-  }
+  DEBUG ((DEBUG_VERBOSE, "ImageRecordCount - 0x%x\n", mImagePropertiesPrivateData.ImageRecordCount));
 
-  InitializeListHead (&ImageRecord->Link);
-  InitializeListHead (&ImageRecord->CodeSegmentList);
-
-  PdbPointer = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)RuntimeImage->ImageBase);
-  if (PdbPointer != NULL) {
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbPointer, &PdbSize);
+  if (!EFI_ERROR (PdbStatus)) {
     DEBUG ((DEBUG_VERBOSE, "  Image - %a\n", PdbPointer));
   }
 
-  RequiredAlignment = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
-  Status            = CreateImagePropertiesRecord (
-                        RuntimeImage->ImageBase,
-                        RuntimeImage->ImageSize,
-                        &RequiredAlignment,
-                        ImageRecord
-                        );
+  //
+  // Get SectionAlignment
+  //
+  SectionAlignment  = UefiImageGetSegmentAlignment (ImageContext);
 
-  if (EFI_ERROR (Status)) {
-    if (Status == EFI_ABORTED) {
-      mMemoryAttributesTableEnable = FALSE;
+  SetMemoryAttributesTableSectionAlignment (SectionAlignment);
+  if ((SectionAlignment & (RUNTIME_PAGE_ALLOCATION_GRANULARITY - 1)) != 0) {
+    DEBUG ((
+      DEBUG_WARN,
+      "!!!!!!!!  InsertImageRecord - Section Alignment(0x%x) is not %dK  !!!!!!!!\n",
+      SectionAlignment, RUNTIME_PAGE_ALLOCATION_GRANULARITY >> 10));
+    if (!EFI_ERROR (PdbStatus)) {
+      DEBUG ((DEBUG_WARN, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
     }
 
-    Status = EFI_ABORTED;
-    goto Finish;
+    return;
   }
 
-  if (ImageRecord->CodeSegmentCount == 0) {
-    mMemoryAttributesTableEnable = FALSE;
-    DEBUG ((DEBUG_ERROR, "!!!!!!!!  InsertImageRecord - CodeSegmentCount is 0  !!!!!!!!\n"));
-    if (PdbPointer != NULL) {
-      DEBUG ((DEBUG_ERROR, "!!!!!!!!  Image - %a  !!!!!!!!\n", PdbPointer));
+  ImageRecord = UefiImageLoaderGetImageRecord (ImageContext);
+  if (ImageRecord == NULL) {
+    return ;
+  }
+
+  UefiImageDebugPrintSegments (ImageContext);
+  UefiImageDebugPrintImageRecord (ImageRecord);
+
+  //
+  // Section order is guaranteed by the PE specification.
+  // Section validity (e.g. no overlap) is guaranteed by the PE specification.
+  //
+
+  InsertSortImageRecord (ImageRecord);
+}
+
+/**
+  Find image record according to image base and size.
+
+  @param  ImageBase    Base of PE image
+  @param  ImageSize    Size of PE image
+
+  @return image record
+**/
+STATIC
+UEFI_IMAGE_RECORD *
+FindImageRecord (
+  IN EFI_PHYSICAL_ADDRESS  ImageBase
+  )
+{
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  LIST_ENTRY         *ImageRecordLink;
+  LIST_ENTRY         *ImageRecordList;
+
+  ImageRecordList = &mImagePropertiesPrivateData.ImageRecordList;
+
+  for (ImageRecordLink = ImageRecordList->ForwardLink;
+       ImageRecordLink != ImageRecordList;
+       ImageRecordLink = ImageRecordLink->ForwardLink)
+  {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+
+    if (ImageBase == ImageRecord->StartAddress)
+    {
+      return ImageRecord;
     }
-
-    Status = EFI_ABORTED;
-    goto Finish;
   }
 
-  //
-  // Check overlap all section in ImageBase/Size
-  //
-  if (!IsImageRecordCodeSectionValid (ImageRecord)) {
-    DEBUG ((DEBUG_ERROR, "IsImageRecordCodeSectionValid - FAIL\n"));
-    Status = EFI_ABORTED;
-    goto Finish;
-  }
-
-  InsertTailList (&mImagePropertiesPrivateData.ImageRecordList, &ImageRecord->Link);
-  mImagePropertiesPrivateData.ImageRecordCount++;
-
-  if (mImagePropertiesPrivateData.CodeSegmentCountMax < ImageRecord->CodeSegmentCount) {
-    mImagePropertiesPrivateData.CodeSegmentCountMax = ImageRecord->CodeSegmentCount;
-  }
-
-  SortImageRecord (&mImagePropertiesPrivateData.ImageRecordList);
-
-Finish:
-  if (EFI_ERROR (Status) && (ImageRecord != NULL)) {
-    DeleteImagePropertiesRecord (ImageRecord);
-  }
-
-  return;
+  return NULL;
 }
 
 /**
@@ -666,12 +744,12 @@ RemoveImageRecord (
   IN EFI_RUNTIME_IMAGE_ENTRY  *RuntimeImage
   )
 {
-  IMAGE_PROPERTIES_RECORD  *ImageRecord;
+  UEFI_IMAGE_RECORD  *ImageRecord;
 
   DEBUG ((DEBUG_VERBOSE, "RemoveImageRecord - 0x%x\n", RuntimeImage));
   DEBUG ((DEBUG_VERBOSE, "RemoveImageRecord - 0x%016lx - 0x%016lx\n", (EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase, RuntimeImage->ImageSize));
 
-  ImageRecord = FindImageRecord ((EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase, RuntimeImage->ImageSize, &mImagePropertiesPrivateData.ImageRecordList);
+  ImageRecord = FindImageRecord ((EFI_PHYSICAL_ADDRESS)(UINTN)RuntimeImage->ImageBase);
   if (ImageRecord == NULL) {
     DEBUG ((DEBUG_ERROR, "!!!!!!!! ImageRecord not found !!!!!!!!\n"));
     return;

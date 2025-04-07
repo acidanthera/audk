@@ -35,7 +35,8 @@ PEI_FW_VOL_INSTANCE  mPeiFfs2FwVol = {
     PeiFfsFvPpiGetFileInfo2,
     PeiFfsFvPpiFindSectionByType2,
     EFI_PEI_FIRMWARE_VOLUME_PPI_SIGNATURE,
-    EFI_PEI_FIRMWARE_VOLUME_PPI_REVISION
+    EFI_PEI_FIRMWARE_VOLUME_PPI_REVISION,
+    PeiFfsFvPpiFindSectionByType3
   }
 };
 
@@ -52,7 +53,8 @@ PEI_FW_VOL_INSTANCE  mPeiFfs3FwVol = {
     PeiFfsFvPpiGetFileInfo2,
     PeiFfsFvPpiFindSectionByType2,
     EFI_PEI_FIRMWARE_VOLUME_PPI_SIGNATURE,
-    EFI_PEI_FIRMWARE_VOLUME_PPI_REVISION
+    EFI_PEI_FIRMWARE_VOLUME_PPI_REVISION,
+    PeiFfsFvPpiFindSectionByType3
   }
 };
 
@@ -796,6 +798,8 @@ VerifyGuidedSectionGuid (
   @param SectionSize       The file size to search.
   @param OutputBuffer      A pointer to the discovered section, if successful.
                            NULL if section not found
+  @param OutputSize        The size of the discovered section, if successful.
+                           0 if section not found
   @param AuthenticationStatus Updated upon return to point to the authentication status for this section.
   @param IsFfs3Fv          Indicates the FV format.
 
@@ -811,6 +815,7 @@ ProcessSection (
   IN EFI_COMMON_SECTION_HEADER  *Section,
   IN UINTN                      SectionSize,
   OUT VOID                      **OutputBuffer,
+  OUT UINT32                    *OutputSize,
   OUT UINT32                    *AuthenticationStatus,
   IN BOOLEAN                    IsFfs3Fv
   )
@@ -828,11 +833,13 @@ ProcessSection (
   EFI_GUID                               *SectionDefinitionGuid;
   BOOLEAN                                SectionCached;
   VOID                                   *TempOutputBuffer;
+  UINT32                                  TempOutputSize;
   UINT32                                 TempAuthenticationStatus;
   UINT16                                 GuidedSectionAttributes;
 
   PrivateData   = PEI_CORE_INSTANCE_FROM_PS_THIS (PeiServices);
   *OutputBuffer = NULL;
+  *OutputSize   = 0;
   ParsedLength  = 0;
   Index         = 0;
   Status        = EFI_NOT_FOUND;
@@ -869,10 +876,13 @@ ProcessSection (
         //
         // Got it!
         //
+        // FIXME: Size checks
         if (IS_SECTION2 (Section)) {
           *OutputBuffer = (VOID *)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER2));
+          *OutputSize   = SECTION2_SIZE (Section) - sizeof (EFI_COMMON_SECTION_HEADER2);
         } else {
           *OutputBuffer = (VOID *)((UINT8 *)Section + sizeof (EFI_COMMON_SECTION_HEADER));
+          *OutputSize   = SECTION_SIZE (Section) - sizeof (EFI_COMMON_SECTION_HEADER);
         }
 
         return EFI_SUCCESS;
@@ -919,11 +929,13 @@ ProcessSection (
                                        PpiOutput,
                                        PpiOutputSize,
                                        &TempOutputBuffer,
+                     &TempOutputSize,
                                        &TempAuthenticationStatus,
                                        IsFfs3Fv
                                        );
           if (!EFI_ERROR (Status)) {
             *OutputBuffer         = TempOutputBuffer;
+            *OutputSize   = TempOutputSize;
             *AuthenticationStatus = TempAuthenticationStatus | Authentication;
             return EFI_SUCCESS;
           }
@@ -1006,11 +1018,13 @@ ProcessSection (
                                        PpiOutput,
                                        PpiOutputSize,
                                        &TempOutputBuffer,
+                     &TempOutputSize,
                                        &TempAuthenticationStatus,
                                        IsFfs3Fv
                                        );
           if (!EFI_ERROR (Status)) {
             *OutputBuffer         = TempOutputBuffer;
+            *OutputSize   = TempOutputSize;
             *AuthenticationStatus = TempAuthenticationStatus | Authentication;
             return EFI_SUCCESS;
           }
@@ -1098,6 +1112,38 @@ PeiFfsFindSectionData3 (
   OUT UINT32                  *AuthenticationStatus
   )
 {
+  UINT32 SectionDataSize;
+
+  return PeiFfsFindSectionData4 (PeiServices, SectionType, SectionInstance, FileHandle, SectionData, &SectionDataSize, AuthenticationStatus);
+}
+
+/**
+  Searches for the next matching section within the specified file.
+
+  @param  PeiServices           An indirect pointer to the EFI_PEI_SERVICES table published by the PEI Foundation.
+  @param  SectionType           The value of the section type to find.
+  @param  SectionInstance       Section instance to find.
+  @param  FileHandle            Handle of the firmware file to search.
+  @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionDataSize       The size of the discovered section, if successful.
+  @param  AuthenticationStatus  A pointer to the authentication status for this section.
+
+  @retval EFI_SUCCESS      The section was found.
+  @retval EFI_NOT_FOUND    The section was not found.
+
+**/
+EFI_STATUS
+EFIAPI
+PeiFfsFindSectionData4 (
+  IN CONST EFI_PEI_SERVICES    **PeiServices,
+  IN     EFI_SECTION_TYPE      SectionType,
+  IN     UINTN                 SectionInstance,
+  IN     EFI_PEI_FILE_HANDLE   FileHandle,
+  OUT VOID                     **SectionData,
+  OUT UINT32                   *SectionDataSize,
+  OUT UINT32                   *AuthenticationStatus
+  )
+{
   PEI_CORE_FV_HANDLE  *CoreFvHandle;
 
   CoreFvHandle = FileHandleToVolume (FileHandle);
@@ -1108,7 +1154,7 @@ PeiFfsFindSectionData3 (
   if ((CoreFvHandle->FvPpi->Signature == EFI_PEI_FIRMWARE_VOLUME_PPI_SIGNATURE) &&
       (CoreFvHandle->FvPpi->Revision == EFI_PEI_FIRMWARE_VOLUME_PPI_REVISION))
   {
-    return CoreFvHandle->FvPpi->FindSectionByType2 (CoreFvHandle->FvPpi, SectionType, SectionInstance, FileHandle, SectionData, AuthenticationStatus);
+    return CoreFvHandle->FvPpi->FindSectionByType3 (CoreFvHandle->FvPpi, SectionType, SectionInstance, FileHandle, SectionData, SectionDataSize, AuthenticationStatus);
   }
 
   //
@@ -2066,6 +2112,57 @@ PeiFfsFvPpiFindSectionByType2 (
   OUT UINT32                             *AuthenticationStatus
   )
 {
+  UINT32 SectionDataSize;
+
+  // FIXME: Deprecate
+  return PeiFfsFvPpiFindSectionByType3 (
+           This,
+           SearchType,
+           SearchInstance,
+           FileHandle,
+           SectionData,
+           &SectionDataSize,
+           AuthenticationStatus
+           );
+}
+
+/**
+  Find the next matching section in the firmware file.
+
+  This service enables PEI modules to discover sections
+  of a given instance and type within a valid file.
+
+  @param This                   Points to this instance of the
+                                EFI_PEI_FIRMWARE_VOLUME_PPI.
+  @param SearchType             A filter to find only sections of this
+                                type.
+  @param SearchInstance         A filter to find the specific instance
+                                of sections.
+  @param FileHandle             Handle of firmware file in which to
+                                search.
+  @param SectionData            Updated upon return to point to the
+                                section found.
+  @param SectionDataSize        Updated upon return to point to the
+                                section size found.
+  @param AuthenticationStatus   Updated upon return to point to the
+                                authentication status for this section.
+
+  @retval EFI_SUCCESS     Section was found.
+  @retval EFI_NOT_FOUND   Section of the specified type was not
+                          found. SectionData contains NULL.
+**/
+EFI_STATUS
+EFIAPI
+PeiFfsFvPpiFindSectionByType3 (
+  IN  CONST EFI_PEI_FIRMWARE_VOLUME_PPI    *This,
+  IN        EFI_SECTION_TYPE               SearchType,
+  IN        UINTN                          SearchInstance,
+  IN        EFI_PEI_FILE_HANDLE            FileHandle,
+  OUT VOID                                 **SectionData,
+  OUT UINT32                               *SectionDataSize,
+  OUT UINT32                               *AuthenticationStatus
+  )
+{
   EFI_STATUS                 Status;
   EFI_FFS_FILE_HEADER        *FfsFileHeader;
   UINT32                     FileSize;
@@ -2114,6 +2211,7 @@ PeiFfsFvPpiFindSectionByType2 (
                                     Section,
                                     FileSize,
                                     SectionData,
+             SectionDataSize,
                                     &ExtractedAuthenticationStatus,
                                     FwVolInstance->IsFfs3Fv
                                     );

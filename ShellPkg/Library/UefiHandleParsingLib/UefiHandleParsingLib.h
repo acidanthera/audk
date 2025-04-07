@@ -143,7 +143,7 @@
 #include <Library/ShellLib.h>
 #include <Library/SortLib.h>
 #include <Library/ShellCommandLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 
 #define   EFI_FIRMWARE_IMAGE_DESCRIPTOR_VERSION_V1  1
 #define   EFI_FIRMWARE_IMAGE_DESCRIPTOR_VERSION_V2  2
