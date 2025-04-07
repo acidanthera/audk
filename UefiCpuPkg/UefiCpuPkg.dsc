@@ -110,6 +110,7 @@
   HobLib|MdePkg/Library/DxeHobLib/DxeHobLib.inf
 
 [LibraryClasses.common.MM_STANDALONE]
+  SmmServicesTableLib|MdePkg/Library/SmmServicesTableLib/StandaloneSmmServicesTableLib.inf
   MmServicesTableLib|MdePkg/Library/StandaloneMmServicesTableLib/StandaloneMmServicesTableLib.inf
   SmmCpuFeaturesLib|UefiCpuPkg/Library/SmmCpuFeaturesLib/StandaloneMmCpuFeaturesLib.inf
 
