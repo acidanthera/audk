@@ -63,10 +63,9 @@
   gArmTokenSpaceGuid.PcdStMmStackSize
 
 #
-# This configuration fails for CLANGPDB, which does not support PIE in the GCC
-# sense. Such however is required for ARM family StandaloneMmCore
-# self-relocation, and thus the CLANGPDB toolchain is unsupported for AARCH64
-# for this module.
+# This configuration fails for CLANGDPB, which does not support PIE in the GCC
+# sense. Such however is required for AArch64 StandaloneMmCore self-relocation,
+# and thus the CLANGPDB toolchain is unsupported for AArch64 for this module.
 #
 [BuildOptions]
   GCC:*_*_AARCH64_CC_FLAGS = -fpie

@@ -47,11 +47,11 @@
   SerialPortLib
   IoLib
   HobLib
-  PeCoffLib
   CpuLib
   HobPrintLib
   StackCheckLib
   UefiCpuBaseArchSupportLib
+  UefiImageLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid

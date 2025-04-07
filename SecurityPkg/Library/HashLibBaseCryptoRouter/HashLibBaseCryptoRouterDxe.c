@@ -76,7 +76,9 @@ HashStart (
   CheckSupportedHashMaskMismatch ();
 
   HashCtx = AllocatePool (sizeof (*HashCtx) * mHashInterfaceCount);
-  ASSERT (HashCtx != NULL);
+  if (HashCtx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   for (Index = 0; Index < mHashInterfaceCount; Index++) {
     HashMask = Tpm2GetHashMaskFromAlgo (&mHashInterface[Index].HashGuid);

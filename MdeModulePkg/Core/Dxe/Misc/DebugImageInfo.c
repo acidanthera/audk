@@ -160,15 +160,20 @@ CoreUpdateDebugTableCrc32 (
 **/
 VOID
 CoreNewDebugImageInfoEntry (
-  IN  UINT32                     ImageInfoType,
-  IN  EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
-  IN  EFI_HANDLE                 ImageHandle
+  IN     UINT32                           ImageInfoType,
+  IN     EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN     EFI_HANDLE                       ImageHandle,
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
-  EFI_DEBUG_IMAGE_INFO  *Table;
-  EFI_DEBUG_IMAGE_INFO  *NewTable;
-  UINTN                 Index;
-  UINTN                 TableSize;
+  EFI_DEBUG_IMAGE_INFO        *Table;
+  EFI_DEBUG_IMAGE_INFO        *NewTable;
+  UINTN                       Index;
+  UINTN                       TableSize;
+  EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
+  RETURN_STATUS               Status;
+  CONST CHAR8                 *PdbPath;
+  UINT32                      PdbPathSize;
 
   //
   // Set the flag indicating that we're in the process of updating the table.
@@ -192,6 +197,11 @@ CoreNewDebugImageInfoEntry (
     // Copy the old table into the new one
     //
     CopyMem (NewTable, Table, TableSize);
+    mDebugInfoTableHeader.EfiDebugImageInfoTable = NewTable;
+    //
+    // Enlarge the max table entries.
+    //
+    mMaxTableEntries += EFI_PAGE_SIZE / EFI_DEBUG_TABLE_ENTRY_SIZE;
     //
     // Free the old table
     //
@@ -199,34 +209,36 @@ CoreNewDebugImageInfoEntry (
     //
     // Update the table header
     //
-    Table                                        = NewTable;
-    mDebugInfoTableHeader.EfiDebugImageInfoTable = NewTable;
-    //
-    // Enlarge the max table entries and set the first empty entry index to
-    // be the original max table entries.
-    //
-    mMaxTableEntries += EFI_PAGE_SIZE / EFI_DEBUG_TABLE_ENTRY_SIZE;
+    Table = NewTable;
   }
 
+  //
   // We always put the next entry at the end of the currently consumed table (i.e. first free entry)
+  //
   Index = mDebugInfoTableHeader.TableSize;
 
   //
   // Allocate data for new entry
   //
-  Table[Index].NormalImage = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL));
-  if (Table[Index].NormalImage != NULL) {
+  NormalImage = AllocateZeroPool (sizeof (EFI_DEBUG_IMAGE_INFO_NORMAL));
+  if (NormalImage != NULL) {
     //
     // Update the entry
     //
-    Table[Index].NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
-    Table[Index].NormalImage->LoadedImageProtocolInstance = LoadedImage;
-    Table[Index].NormalImage->ImageHandle                 = ImageHandle;
+    NormalImage->ImageInfoType               = (UINT32)ImageInfoType;
+    NormalImage->LoadedImageProtocolInstance = LoadedImage;
+    NormalImage->ImageHandle                 = ImageHandle;
+
+    Status = UefiImageGetSymbolsPath (ImageContext, &PdbPath, &PdbPathSize);
+    if (!RETURN_ERROR (Status)) {
+      NormalImage->PdbPath = AllocateCopyPool (PdbPathSize, PdbPath);
+    }
     //
     // Increase the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
     //
-    mDebugInfoTableHeader.TableSize++;
     mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
+    Table[Index].NormalImage = NormalImage;
+    mDebugInfoTableHeader.TableSize++;
   }
 
   mDebugInfoTableHeader.UpdateStatus &= ~EFI_DEBUG_IMAGE_INFO_UPDATE_IN_PROGRESS;
@@ -243,8 +255,9 @@ CoreRemoveDebugImageInfoEntry (
   EFI_HANDLE  ImageHandle
   )
 {
-  EFI_DEBUG_IMAGE_INFO  *Table;
-  UINTN                 Index;
+  EFI_DEBUG_IMAGE_INFO        *Table;
+  UINTN                       Index;
+  EFI_DEBUG_IMAGE_INFO_NORMAL *NormalImage;
 
   mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_UPDATE_IN_PROGRESS;
 
@@ -256,15 +269,20 @@ CoreRemoveDebugImageInfoEntry (
       // Found a match. Free up the record, then move the final entry down to this slot; we don't care about the
       // order of the array
       //
-      CoreFreePool (Table[Index].NormalImage);
-      Table[Index].NormalImage                               = Table[mDebugInfoTableHeader.TableSize - 1].NormalImage;
-      Table[mDebugInfoTableHeader.TableSize - 1].NormalImage = NULL;
-
+      NormalImage = Table[Index].NormalImage;
       //
       // Decrease the number of EFI_DEBUG_IMAGE_INFO elements and set the mDebugInfoTable in modified status.
       //
-      mDebugInfoTableHeader.TableSize--;
       mDebugInfoTableHeader.UpdateStatus |= EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED;
+      mDebugInfoTableHeader.TableSize--;
+      Table[Index].NormalImage                           = Table[mDebugInfoTableHeader.TableSize].NormalImage;
+      Table[mDebugInfoTableHeader.TableSize].NormalImage = NULL;
+
+      if (NormalImage->PdbPath != NULL) {
+        FreePool (NormalImage->PdbPath);
+      }
+
+      CoreFreePool (NormalImage);
       break;
     }
   }

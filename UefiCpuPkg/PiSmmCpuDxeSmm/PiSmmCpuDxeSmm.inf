@@ -97,7 +97,6 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  PeCoffGetEntryPointLib
   PerformanceLib
   CpuPageTableLib
   MmSaveStateLib
@@ -121,6 +120,7 @@
   gSmmBaseHobGuid                          ## CONSUMES
   gMpInformation2HobGuid                   ## CONSUMES # Assume the HOB must has been created
   gEfiSmmSmramMemoryGuid
+  gEfiDebugImageInfoTableGuid              ## CONSUMES ## SystemTable
 
 [FeaturePcd]
   gUefiCpuPkgTokenSpaceGuid.PcdCpuSmmDebug                         ## CONSUMES

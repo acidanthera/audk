@@ -38,6 +38,7 @@
 #include <Library/StandaloneMmMmuLib.h>
 #include <Library/SafeIntLib.h>
 #include <Library/PcdLib.h>
+#include <Library/MemoryAllocationLib.h>
 
 #include <IndustryStandard/ArmStdSmc.h>
 #include <IndustryStandard/ArmMmSvc.h>
@@ -1016,13 +1017,12 @@ CEntryPoint (
   PE_COFF_LOADER_IMAGE_CONTEXT        ImageContext;
   ARM_SVC_ARGS                        EventCompleteSvcArgs;
   EFI_STATUS                          Status;
-  UINT32                              SectionHeaderOffset;
-  UINT16                              NumberOfSections;
   COMM_PROTOCOL                       CommProtocol;
   VOID                                *HobStart;
   VOID                                *TeData;
-  UINTN                               TeDataSize;
-  EFI_PHYSICAL_ADDRESS                ImageBase;
+  UINT32                              TeDataSize;
+  UINT32                              SectionIndex;
+  UEFI_IMAGE_RECORD                   *ImageRecord;
   EDKII_PI_MM_CPU_DRIVER_EP_PROTOCOL  *PiMmCpuDriverEpProtocol;
   EDKII_PI_MM_CPU_DRIVER_ENTRYPOINT   CpuDriverEntryPoint;
   EFI_HOB_FIRMWARE_VOLUME             *FvHob;
@@ -1057,7 +1057,7 @@ CEntryPoint (
   }
 
   // Locate PE/COFF File information for the Standalone MM core module
-  Status = LocateStandaloneMmCorePeCoffData (
+  Status = LocateStandaloneMmCoreUefiImage (
              (EFI_FIRMWARE_VOLUME_HEADER *)(UINTN)FvHob->BaseAddress,
              &TeData,
              &TeDataSize
@@ -1067,52 +1067,45 @@ CEntryPoint (
     goto finish;
   }
 
+  DEBUG ((DEBUG_INFO, "Found Standalone MM PE data - 0x%x\n", TeData));
+
   // Obtain the PE/COFF Section information for the Standalone MM core module
-  Status = GetStandaloneMmCorePeCoffSections (
-             TeData,
-             &ImageContext,
-             &ImageBase,
-             &SectionHeaderOffset,
-             &NumberOfSections
-             );
-
+  Status = UefiImageInitializeContext (&ImageContext, TeData, TeDataSize);
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Unable to locate Standalone MM Core PE-COFF Section information - %r\n", Status));
     goto finish;
   }
 
-  //
-  // ImageBase may deviate from ImageContext.ImageAddress if we are dealing
-  // with a TE image, in which case the latter points to the actual offset
-  // of the image, whereas ImageBase refers to the address where the image
-  // would start if the stripped PE headers were still in place. In either
-  // case, we need to fix up ImageBase so it refers to the actual current
-  // load address.
-  //
-  ImageBase += (UINTN)TeData - ImageContext.ImageAddress;
+  ImageRecord = UefiImageLoaderGetImageRecord (&ImageContext);
 
-  // Update the memory access permissions of individual sections in the
-  // Standalone MM core module
-  Status = UpdateMmFoundationPeCoffPermissions (
-             &ImageContext,
-             ImageBase,
-             SectionHeaderOffset,
-             NumberOfSections,
-             ArmSetMemoryRegionNoExec,
-             ArmSetMemoryRegionReadOnly,
-             ArmClearMemoryRegionReadOnly
-             );
-  if (EFI_ERROR (Status)) {
+  if (ImageRecord == NULL) {
     goto finish;
   }
 
-  if (ImageContext.ImageAddress != (UINTN)TeData) {
-    ImageContext.ImageAddress = (UINTN)TeData;
-    ArmSetMemoryRegionNoExec (ImageBase, SIZE_4KB);
-    ArmClearMemoryRegionReadOnly (ImageBase, SIZE_4KB);
+  UINT32 Address = 0;
+  for (SectionIndex = 0; SectionIndex < ImageRecord->NumSegments; ++ SectionIndex) {
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_XP) != 0) {
+      ArmSetMemoryRegionNoExec (
+        Address,
+        ImageRecord->Segments[SectionIndex].Size
+        );
+    }
 
-    Status = PeCoffLoaderRelocateImage (&ImageContext);
-    ASSERT_EFI_ERROR (Status);
+    if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) == 0) {
+      ArmClearMemoryRegionReadOnly (
+        Address,
+        ImageRecord->Segments[SectionIndex].Size
+        );
+    }
+
+    Address += ImageRecord->Segments[SectionIndex].Size;
   }
+
+  FreePool (ImageRecord);
+
+  // FIXME: Should relocation not be performed with all of the Image writable?
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
+  ASSERT_EFI_ERROR (Status);
 
   // Set the gHobList to point to the HOB list passed by TF-A.
   // This will be used by StandaloneMmCoreHobLib in early stage.

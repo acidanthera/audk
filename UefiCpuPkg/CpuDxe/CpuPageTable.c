@@ -10,7 +10,7 @@
 
 #include <Base.h>
 #include <Uefi.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 #include <Library/SerialPortLib.h>
 #include <Library/SynchronizationLib.h>
 #include <Library/PrintLib.h>
