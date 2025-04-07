@@ -1088,8 +1088,10 @@ ConvertPeiCorePpiPointers (
   UINTN                 PeiCoreModuleSize;
   EFI_PEI_FILE_HANDLE   PeiCoreFileHandle;
   VOID                  *PeiCoreImageBase;
-  VOID                  *PeiCoreEntryPoint;
-  EFI_STATUS            Status;
+  UINT32                PeiCoreImageSize;
+  // VOID                           *PeiCoreEntryPoint;
+  EFI_STATUS                       Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
   PeiCoreFileHandle = NULL;
 
@@ -1108,17 +1110,18 @@ ConvertPeiCorePpiPointers (
     Status = CoreFvHandle->FvPpi->GetFileInfo (CoreFvHandle->FvPpi, PeiCoreFileHandle, &FileInfo);
     ASSERT_EFI_ERROR (Status);
 
-    Status = PeiGetPe32Data (PeiCoreFileHandle, &PeiCoreImageBase);
+    Status = PeiGetPe32Data (PeiCoreFileHandle, &PeiCoreImageBase, &PeiCoreImageSize);
     ASSERT_EFI_ERROR (Status);
 
     //
     // Find PEI Core EntryPoint in the BFV in temporary memory.
     //
-    Status = PeCoffLoaderGetEntryPoint ((VOID *)(UINTN)PeiCoreImageBase, &PeiCoreEntryPoint);
+    // FIXME: "Assume" sanity and skip full initialisation?
+    Status = UefiImageInitializeContext (&ImageContext, (VOID *)(UINTN)PeiCoreImageBase, PeiCoreImageSize);
     ASSERT_EFI_ERROR (Status);
 
     OrgImageBase      = (UINTN)PeiCoreImageBase;
-    MigratedImageBase = (UINTN)_ModuleEntryPoint - ((UINTN)PeiCoreEntryPoint - (UINTN)PeiCoreImageBase);
+    MigratedImageBase = (UINTN)_ModuleEntryPoint - UefiImageGetEntryPointAddress (&ImageContext);
 
     //
     // Size of loaded PEI_CORE in permanent memory.

@@ -186,6 +186,43 @@ PeiFfsFvPpiFindSectionByType2 (
   );
 
 /**
+  Find the next matching section in the firmware file.
+
+  This service enables PEI modules to discover sections
+  of a given instance and type within a valid file.
+
+  @param This                   Points to this instance of the
+                                EFI_PEI_FIRMWARE_VOLUME_PPI.
+  @param SearchType             A filter to find only sections of this
+                                type.
+  @param SearchInstance         A filter to find the specific instance
+                                of sections.
+  @param FileHandle             Handle of firmware file in which to
+                                search.
+  @param SectionData            Updated upon return to point to the
+                                section found.
+  @param SectionDataSize        Updated upon return to point to the
+                                section size found.
+  @param AuthenticationStatus   Updated upon return to point to the
+                                authentication status for this section.
+
+  @retval EFI_SUCCESS     Section was found.
+  @retval EFI_NOT_FOUND   Section of the specified type was not
+                          found. SectionData contains NULL.
+**/
+EFI_STATUS
+EFIAPI
+PeiFfsFvPpiFindSectionByType3 (
+  IN  CONST EFI_PEI_FIRMWARE_VOLUME_PPI  *This,
+  IN        EFI_SECTION_TYPE             SearchType,
+  IN        UINTN                        SearchInstance,
+  IN        EFI_PEI_FILE_HANDLE          FileHandle,
+  OUT VOID                               **SectionData,
+  OUT UINT32                             *SectionDataSize,
+  OUT UINT32                             *AuthenticationStatus
+  );
+
+/**
   Returns information about a specific file.
 
   This function returns information about a specific

@@ -109,8 +109,8 @@ IsCorePerf (
 **/
 VOID
 DpGetShortPdbFileName (
-  IN  CHAR8   *PdbFileName,
-  OUT CHAR16  *UnicodeBuffer
+  IN  CONST CHAR8  *PdbFileName,
+  OUT CHAR16       *UnicodeBuffer
   );
 
 /**

@@ -56,7 +56,9 @@ Sha1HashInit (
 
   CtxSize = Sha1GetContextSize ();
   Sha1Ctx = AllocatePool (CtxSize);
-  ASSERT (Sha1Ctx != NULL);
+  if (Sha1Ctx == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
 
   Sha1Init (Sha1Ctx);
 
@@ -82,10 +84,7 @@ Sha1HashUpdate (
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sha1Ctx;
-
-  Sha1Ctx = (VOID *)HashHandle;
-  Sha1Update (Sha1Ctx, DataToHash, DataToHashLen);
+  Sha1Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
   return EFI_SUCCESS;
 }
@@ -101,17 +100,15 @@ Sha1HashUpdate (
 EFI_STATUS
 EFIAPI
 Sha1HashFinal (
-  IN HASH_HANDLE          HashHandle,
+  IN  HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SHA1_DIGEST_SIZE];
-  VOID   *Sha1Ctx;
 
-  Sha1Ctx = (VOID *)HashHandle;
-  Sha1Final (Sha1Ctx, Digest);
+  Sha1Final ((VOID *)HashHandle, Digest);
 
-  FreePool (Sha1Ctx);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSha1ToDigestList (DigestList, Digest);
 

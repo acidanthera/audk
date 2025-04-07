@@ -22,7 +22,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/PcdLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/SecurityManagementLib.h>
-#include <Library/PeCoffLib.h>
+#include <Library/UefiImageLib.h>
 #include <Protocol/FirmwareVolume2.h>
 #include <Protocol/DevicePath.h>
 #include <Protocol/BlockIo.h>
@@ -30,7 +30,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Protocol/VariableWrite.h>
 #include <Guid/ImageAuthentication.h>
 #include <Guid/AuthenticatedVariableFormat.h>
-#include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage2.h>
 
 #define EFI_CERT_TYPE_RSA2048_SHA256_SIZE  256
 #define EFI_CERT_TYPE_RSA2048_SIZE         256
@@ -58,16 +58,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define DEFER_EXECUTE_ON_SECURITY_VIOLATION  0x00000003
 #define DENY_EXECUTE_ON_SECURITY_VIOLATION   0x00000004
 #define QUERY_USER_ON_SECURITY_VIOLATION     0x00000005
-
-//
-// Support hash types
-//
-#define HASHALG_SHA1    0x00000000
-#define HASHALG_SHA224  0x00000001
-#define HASHALG_SHA256  0x00000002
-#define HASHALG_SHA384  0x00000003
-#define HASHALG_SHA512  0x00000004
-#define HASHALG_MAX     0x00000005
 
 //
 // Set max digest size as SHA512 Output (64 bytes) by far
@@ -177,6 +167,10 @@ typedef struct {
   // Length of Hash OID Value
   //
   UINTN                    OidLength;
+  //
+  // GUID of the certificate type
+  //
+  CONST GUID               *CertType;
   //
   // Pointer to Hash GetContentSize function
   //
