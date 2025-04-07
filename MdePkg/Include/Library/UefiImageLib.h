@@ -150,7 +150,8 @@ UefiImageInitializeContextPreHash (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize,
-  IN  UEFI_IMAGE_SOURCE                Source
+  IN  UEFI_IMAGE_SOURCE                Source,
+  IN  UINT8                            ImageOrigin
   );
 
 RETURN_STATUS
@@ -169,6 +170,8 @@ UefiImageInitializeContextPostHash (
   @param[out] Context     The context describing the Image.
   @param[in]  FileBuffer  The file data to parse as UEFI Image.
   @param[in]  FileSize    The size, in Bytes, of FileBuffer.
+  @param[in]  Source      Determines supported loaders (PE/UE).
+  @param[in]  ImageOrigin Determines image protection policy.
 
   @retval RETURN_SUCCESS  The Image context has been initialised successfully.
   @retval other           The file data is malformed.
@@ -178,7 +181,8 @@ UefiImageInitializeContext (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
   IN  UINT32                           FileSize,
-  IN  UEFI_IMAGE_SOURCE                Source
+  IN  UEFI_IMAGE_SOURCE                Source,
+  IN  UINT8                            ImageOrigin
   );
 
 /**
@@ -673,7 +677,8 @@ UefiImageLoaderGetImageRecord (
 RETURN_STATUS
 UefiImageDebugLocateImage (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                            Address
+  IN  UINTN                            Address,
+  IN  UINT8                            ImageOrigin
   );
 
 /**

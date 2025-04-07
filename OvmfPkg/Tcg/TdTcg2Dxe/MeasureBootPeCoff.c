@@ -131,7 +131,13 @@ MeasurePeImageAndExtend (
   //
   // Get information about the image being loaded
   //
-  Status = UefiImageInitializeContext (&ImageContext, (VOID *)(UINTN)ImageAddress, ImageSize);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             (VOID *)(UINTN)ImageAddress,
+             (UINT32)ImageSize,
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
+             );
   if (EFI_ERROR (Status)) {
     //
     // The information can't be got from the invalid PeImage
