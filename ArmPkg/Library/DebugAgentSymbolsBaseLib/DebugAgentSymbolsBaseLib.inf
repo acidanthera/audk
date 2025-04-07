@@ -24,8 +24,8 @@
 [LibraryClasses]
   DebugLib
   PcdLib
-  PeCoffExtraActionLib
-  PeCoffLib
+  UefiImageExtraActionLib
+  UefiImageLib
 
 [Pcd]
   gArmTokenSpaceGuid.PcdSecureFvBaseAddress

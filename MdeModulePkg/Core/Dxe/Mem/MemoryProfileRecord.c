@@ -8,6 +8,10 @@
 
 #include "DxeMain.h"
 #include "Imem.h"
+#include "Library/UefiImageLib.h"
+#include "ProcessorBind.h"
+#include "Protocol/LoadedImage.h"
+#include "Uefi/UefiBaseType.h"
 
 #define IS_UEFI_MEMORY_PROFILE_ENABLED  ((PcdGet8 (PcdMemoryProfilePropertyMask) & BIT0) != 0)
 
@@ -104,8 +108,7 @@ EFIAPI
 ProfileProtocolRegisterImage (
   IN EDKII_MEMORY_PROFILE_PROTOCOL  *This,
   IN EFI_DEVICE_PATH_PROTOCOL       *FilePath,
-  IN PHYSICAL_ADDRESS               ImageBase,
-  IN UINT64                         ImageSize,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
   IN EFI_FV_FILETYPE                FileType
   );
 
@@ -248,110 +251,6 @@ GetMemoryProfileContext (
 }
 
 /**
-  Retrieves and returns the Subsystem of a PE/COFF image that has been loaded into system memory.
-  If Pe32Data is NULL, then ASSERT().
-
-  @param Pe32Data   The pointer to the PE/COFF image that is loaded in system memory.
-
-  @return The Subsystem of the PE/COFF image.
-
-**/
-UINT16
-InternalPeCoffGetSubsystem (
-  IN VOID  *Pe32Data
-  )
-{
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION  Hdr;
-  EFI_IMAGE_DOS_HEADER                 *DosHdr;
-  UINT16                               Magic;
-
-  ASSERT (Pe32Data != NULL);
-
-  DosHdr = (EFI_IMAGE_DOS_HEADER *)Pe32Data;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    //
-    // DOS image header is present, so read the PE header after the DOS image header.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINTN)Pe32Data + (UINTN)((DosHdr->e_lfanew) & 0x0ffff));
-  } else {
-    //
-    // DOS image header is not present, so PE header is at the image base.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)Pe32Data;
-  }
-
-  if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-    return Hdr.Te->Subsystem;
-  } else if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
-    Magic = Hdr.Pe32->OptionalHeader.Magic;
-    if (Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-      return Hdr.Pe32->OptionalHeader.Subsystem;
-    } else if (Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-      return Hdr.Pe32Plus->OptionalHeader.Subsystem;
-    }
-  }
-
-  return 0x0000;
-}
-
-/**
-  Retrieves and returns a pointer to the entry point to a PE/COFF image that has been loaded
-  into system memory with the PE/COFF Loader Library functions.
-
-  Retrieves the entry point to the PE/COFF image specified by Pe32Data and returns this entry
-  point in EntryPoint.  If the entry point could not be retrieved from the PE/COFF image, then
-  return RETURN_INVALID_PARAMETER.  Otherwise return RETURN_SUCCESS.
-  If Pe32Data is NULL, then ASSERT().
-  If EntryPoint is NULL, then ASSERT().
-
-  @param  Pe32Data                  The pointer to the PE/COFF image that is loaded in system memory.
-  @param  EntryPoint                The pointer to entry point to the PE/COFF image to return.
-
-  @retval RETURN_SUCCESS            EntryPoint was returned.
-  @retval RETURN_INVALID_PARAMETER  The entry point could not be found in the PE/COFF image.
-
-**/
-RETURN_STATUS
-InternalPeCoffGetEntryPoint (
-  IN  VOID  *Pe32Data,
-  OUT VOID  **EntryPoint
-  )
-{
-  EFI_IMAGE_DOS_HEADER                 *DosHdr;
-  EFI_IMAGE_OPTIONAL_HEADER_PTR_UNION  Hdr;
-
-  ASSERT (Pe32Data   != NULL);
-  ASSERT (EntryPoint != NULL);
-
-  DosHdr = (EFI_IMAGE_DOS_HEADER *)Pe32Data;
-  if (DosHdr->e_magic == EFI_IMAGE_DOS_SIGNATURE) {
-    //
-    // DOS image header is present, so read the PE header after the DOS image header.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)((UINTN)Pe32Data + (UINTN)((DosHdr->e_lfanew) & 0x0ffff));
-  } else {
-    //
-    // DOS image header is not present, so PE header is at the image base.
-    //
-    Hdr.Pe32 = (EFI_IMAGE_NT_HEADERS32 *)Pe32Data;
-  }
-
-  //
-  // Calculate the entry point relative to the start of the image.
-  // AddressOfEntryPoint is common for PE32 & PE32+
-  //
-  if (Hdr.Te->Signature == EFI_TE_IMAGE_HEADER_SIGNATURE) {
-    *EntryPoint = (VOID *)((UINTN)Pe32Data + (UINTN)(Hdr.Te->AddressOfEntryPoint & 0x0ffffffff) + sizeof (EFI_TE_IMAGE_HEADER) - Hdr.Te->StrippedSize);
-    return RETURN_SUCCESS;
-  } else if (Hdr.Pe32->Signature == EFI_IMAGE_NT_SIGNATURE) {
-    *EntryPoint = (VOID *)((UINTN)Pe32Data + (UINTN)(Hdr.Pe32->OptionalHeader.AddressOfEntryPoint & 0x0ffffffff));
-    return RETURN_SUCCESS;
-  }
-
-  return RETURN_UNSUPPORTED;
-}
-
-/**
   Build driver info.
 
   @param ContextData    Memory profile context.
@@ -367,32 +266,27 @@ InternalPeCoffGetEntryPoint (
 **/
 MEMORY_PROFILE_DRIVER_INFO_DATA *
 BuildDriverInfo (
-  IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData,
-  IN EFI_GUID                     *FileName,
-  IN PHYSICAL_ADDRESS             ImageBase,
-  IN UINT64                       ImageSize,
-  IN PHYSICAL_ADDRESS             EntryPoint,
-  IN UINT16                       ImageSubsystem,
-  IN EFI_FV_FILETYPE              FileType
+  IN MEMORY_PROFILE_CONTEXT_DATA      *ContextData,
+  IN EFI_GUID                         *FileName,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN EFI_FV_FILETYPE                  FileType
   )
 {
+  RETURN_STATUS                     PdbStatus;
   EFI_STATUS                       Status;
   MEMORY_PROFILE_DRIVER_INFO       *DriverInfo;
   MEMORY_PROFILE_DRIVER_INFO_DATA  *DriverInfoData;
-  VOID                             *EntryPointInImage;
-  CHAR8                            *PdbString;
-  UINTN                            PdbSize;
+  CONST CHAR8                       *PdbString;
+  UINT32                            PdbSize;
   UINTN                            PdbOccupiedSize;
 
-  PdbSize         = 0;
   PdbOccupiedSize = 0;
-  PdbString       = NULL;
-  if (ImageBase != 0) {
-    PdbString = PeCoffLoaderGetPdbPointer ((VOID *)(UINTN)ImageBase);
-    if (PdbString != NULL) {
-      PdbSize         = AsciiStrSize (PdbString);
-      PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
-    }
+
+  ASSERT (UefiImageLoaderGetImageAddress (ImageContext) != 0);
+
+  PdbStatus = UefiImageGetSymbolsPath (ImageContext, &PdbString, &PdbSize);
+  if (!EFI_ERROR (PdbStatus)) {
+    PdbOccupiedSize = GET_OCCUPIED_SIZE (PdbSize, sizeof (UINT64));
   }
 
   //
@@ -420,19 +314,10 @@ BuildDriverInfo (
     CopyMem (&DriverInfo->FileName, FileName, sizeof (EFI_GUID));
   }
 
-  DriverInfo->ImageBase      = ImageBase;
-  DriverInfo->ImageSize      = ImageSize;
-  DriverInfo->EntryPoint     = EntryPoint;
-  DriverInfo->ImageSubsystem = ImageSubsystem;
-  if ((EntryPoint != 0) && ((EntryPoint < ImageBase) || (EntryPoint >= (ImageBase + ImageSize)))) {
-    //
-    // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-    // So patch ImageBuffer here to align the EntryPoint.
-    //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
-    ASSERT_EFI_ERROR (Status);
-    DriverInfo->ImageBase = ImageBase + EntryPoint - (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  }
+  DriverInfo->ImageBase      = UefiImageLoaderGetImageAddress (ImageContext);
+  DriverInfo->ImageSize      = UefiImageGetImageSize (ImageContext);
+  DriverInfo->EntryPoint     = UefiImageLoaderGetImageEntryPoint (ImageContext);
+  DriverInfo->ImageSubsystem = UefiImageGetSubsystem (ImageContext);
 
   DriverInfo->FileType          = FileType;
   DriverInfoData->AllocInfoList = (LIST_ENTRY *)(DriverInfoData + 1);
@@ -440,7 +325,7 @@ BuildDriverInfo (
   DriverInfo->CurrentUsage     = 0;
   DriverInfo->PeakUsage        = 0;
   DriverInfo->AllocRecordCount = 0;
-  if (PdbSize != 0) {
+  if (!RETURN_ERROR (PdbStatus)) {
     DriverInfo->PdbStringOffset = (UINT16)sizeof (MEMORY_PROFILE_DRIVER_INFO);
     DriverInfoData->PdbString   = (CHAR8 *)(DriverInfoData->AllocInfoList + 1);
     CopyMem (DriverInfoData->PdbString, PdbString, PdbSize);
@@ -528,13 +413,13 @@ NeedRecordThisDriver (
 **/
 BOOLEAN
 RegisterDxeCore (
-  IN VOID                         *HobStart,
-  IN MEMORY_PROFILE_CONTEXT_DATA  *ContextData
+  IN VOID                             *HobStart,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN MEMORY_PROFILE_CONTEXT_DATA      *ContextData
   )
 {
   EFI_PEI_HOB_POINTERS               DxeCoreHob;
   MEMORY_PROFILE_DRIVER_INFO_DATA    *DriverInfoData;
-  PHYSICAL_ADDRESS                   ImageBase;
   UINT8                              TempBuffer[sizeof (MEDIA_FW_VOL_FILEPATH_DEVICE_PATH) + sizeof (EFI_DEVICE_PATH_PROTOCOL)];
   MEDIA_FW_VOL_FILEPATH_DEVICE_PATH  *FilePath;
 
@@ -567,14 +452,10 @@ RegisterDxeCore (
     return FALSE;
   }
 
-  ImageBase      = DxeCoreHob.MemoryAllocationModule->MemoryAllocationHeader.MemoryBaseAddress;
   DriverInfoData = BuildDriverInfo (
                      ContextData,
                      &DxeCoreHob.MemoryAllocationModule->ModuleName,
-                     ImageBase,
-                     DxeCoreHob.MemoryAllocationModule->MemoryAllocationHeader.MemoryLength,
-                     DxeCoreHob.MemoryAllocationModule->EntryPoint,
-                     InternalPeCoffGetSubsystem ((VOID *)(UINTN)ImageBase),
+                     ImageContext,
                      EFI_FV_FILETYPE_DXE_CORE
                      );
   if (DriverInfoData == NULL) {
@@ -592,7 +473,8 @@ RegisterDxeCore (
 **/
 VOID
 MemoryProfileInit (
-  IN VOID  *HobStart
+  IN VOID                            *HobStart,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA  *ContextData;
@@ -617,7 +499,7 @@ MemoryProfileInit (
   mMemoryProfileDriverPath     = AllocateCopyPool (mMemoryProfileDriverPathSize, PcdGetPtr (PcdMemoryProfileDriverPath));
   mMemoryProfileContextPtr     = &mMemoryProfileContext;
 
-  RegisterDxeCore (HobStart, &mMemoryProfileContext);
+  RegisterDxeCore (HobStart, ImageContext, &mMemoryProfileContext);
 
   DEBUG ((DEBUG_INFO, "MemoryProfileInit MemoryProfileContext - 0x%x\n", &mMemoryProfileContext));
 }
@@ -694,8 +576,9 @@ GetFileNameFromFilePath (
 **/
 EFI_STATUS
 RegisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry,
-  IN EFI_FV_FILETYPE            FileType
+  IN EFI_DEVICE_PATH_PROTOCOL         *FilePath,
+  IN EFI_FV_FILETYPE                  FileType,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   )
 {
   MEMORY_PROFILE_CONTEXT_DATA      *ContextData;
@@ -705,7 +588,7 @@ RegisterMemoryProfileImage (
     return EFI_UNSUPPORTED;
   }
 
-  if (!NeedRecordThisDriver (DriverEntry->Info.FilePath)) {
+  if (!NeedRecordThisDriver (FilePath)) {
     return EFI_UNSUPPORTED;
   }
 
@@ -716,11 +599,8 @@ RegisterMemoryProfileImage (
 
   DriverInfoData = BuildDriverInfo (
                      ContextData,
-                     GetFileNameFromFilePath (DriverEntry->Info.FilePath),
-                     DriverEntry->ImageContext.ImageAddress,
-                     DriverEntry->ImageContext.ImageSize,
-                     DriverEntry->ImageContext.EntryPoint,
-                     DriverEntry->ImageContext.ImageType,
+                     GetFileNameFromFilePath (FilePath),
+                     ImageContext,
                      FileType
                      );
   if (DriverInfoData == NULL) {
@@ -833,21 +713,21 @@ GetMemoryProfileDriverInfoFromAddress (
 **/
 EFI_STATUS
 UnregisterMemoryProfileImage (
-  IN LOADED_IMAGE_PRIVATE_DATA  *DriverEntry
+  EFI_DEVICE_PATH_PROTOCOL  *FilePath,
+  IN EFI_PHYSICAL_ADDRESS  ImageAddress
   )
 {
-  EFI_STATUS                       Status;
+  //EFI_STATUS                        Status;
   MEMORY_PROFILE_CONTEXT_DATA      *ContextData;
   MEMORY_PROFILE_DRIVER_INFO_DATA  *DriverInfoData;
   EFI_GUID                         *FileName;
-  PHYSICAL_ADDRESS                 ImageAddress;
-  VOID                             *EntryPointInImage;
+  //VOID                              *EntryPointInImage;
 
   if (!IS_UEFI_MEMORY_PROFILE_ENABLED) {
     return EFI_UNSUPPORTED;
   }
 
-  if (!NeedRecordThisDriver (DriverEntry->Info.FilePath)) {
+  if (!NeedRecordThisDriver (FilePath)) {
     return EFI_UNSUPPORTED;
   }
 
@@ -857,17 +737,7 @@ UnregisterMemoryProfileImage (
   }
 
   DriverInfoData = NULL;
-  FileName       = GetFileNameFromFilePath (DriverEntry->Info.FilePath);
-  ImageAddress   = DriverEntry->ImageContext.ImageAddress;
-  if ((DriverEntry->ImageContext.EntryPoint < ImageAddress) || (DriverEntry->ImageContext.EntryPoint >= (ImageAddress + DriverEntry->ImageContext.ImageSize))) {
-    //
-    // If the EntryPoint is not in the range of image buffer, it should come from emulation environment.
-    // So patch ImageAddress here to align the EntryPoint.
-    //
-    Status = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageAddress, &EntryPointInImage);
-    ASSERT_EFI_ERROR (Status);
-    ImageAddress = ImageAddress + (UINTN)DriverEntry->ImageContext.EntryPoint - (UINTN)EntryPointInImage;
-  }
+  FileName = GetFileNameFromFilePath (FilePath);
 
   if (FileName != NULL) {
     DriverInfoData = GetMemoryProfileDriverInfoByFileNameAndAddress (ContextData, FileName, ImageAddress);
@@ -1631,27 +1501,13 @@ ProfileProtocolGetData (
 EFI_STATUS
 EFIAPI
 ProfileProtocolRegisterImage (
-  IN EDKII_MEMORY_PROFILE_PROTOCOL  *This,
-  IN EFI_DEVICE_PATH_PROTOCOL       *FilePath,
-  IN PHYSICAL_ADDRESS               ImageBase,
-  IN UINT64                         ImageSize,
-  IN EFI_FV_FILETYPE                FileType
+  IN EDKII_MEMORY_PROFILE_PROTOCOL      *This,
+  IN EFI_DEVICE_PATH_PROTOCOL           *FilePath,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT    *ImageContext,
+  IN EFI_FV_FILETYPE                    FileType
   )
 {
-  EFI_STATUS                 Status;
-  LOADED_IMAGE_PRIVATE_DATA  DriverEntry;
-  VOID                       *EntryPointInImage;
-
-  ZeroMem (&DriverEntry, sizeof (DriverEntry));
-  DriverEntry.Info.FilePath             = FilePath;
-  DriverEntry.ImageContext.ImageAddress = ImageBase;
-  DriverEntry.ImageContext.ImageSize    = ImageSize;
-  Status                                = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
-  ASSERT_EFI_ERROR (Status);
-  DriverEntry.ImageContext.EntryPoint = (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-  DriverEntry.ImageContext.ImageType  = InternalPeCoffGetSubsystem ((VOID *)(UINTN)ImageBase);
-
-  return RegisterMemoryProfileImage (&DriverEntry, FileType);
+  return RegisterMemoryProfileImage (FilePath, FileType, ImageContext);
 }
 
 /**
@@ -1677,19 +1533,7 @@ ProfileProtocolUnregisterImage (
   IN UINT64                         ImageSize
   )
 {
-  EFI_STATUS                 Status;
-  LOADED_IMAGE_PRIVATE_DATA  DriverEntry;
-  VOID                       *EntryPointInImage;
-
-  ZeroMem (&DriverEntry, sizeof (DriverEntry));
-  DriverEntry.Info.FilePath             = FilePath;
-  DriverEntry.ImageContext.ImageAddress = ImageBase;
-  DriverEntry.ImageContext.ImageSize    = ImageSize;
-  Status                                = InternalPeCoffGetEntryPoint ((VOID *)(UINTN)ImageBase, &EntryPointInImage);
-  ASSERT_EFI_ERROR (Status);
-  DriverEntry.ImageContext.EntryPoint = (PHYSICAL_ADDRESS)(UINTN)EntryPointInImage;
-
-  return UnregisterMemoryProfileImage (&DriverEntry);
+  return UnregisterMemoryProfileImage (FilePath, ImageBase);
 }
 
 /**

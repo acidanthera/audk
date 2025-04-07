@@ -12,6 +12,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/HobLib.h>
 #include <Library/MemoryAllocationLib.h>
 #include <Library/PcdLib.h>
+#include <Library/UefiImageLib.h>
 
 CONST UINTN  mDoFarReturnFlag = 0;
 
@@ -223,4 +224,27 @@ InitializeSeparateExceptionStacks (
   }
 
   return ArchSetupExceptionStack (Buffer, BufferSize);
+}
+
+// FIXME: Expose DebugImageInfoTable as PPI?
+BOOLEAN
+GetImageInfoByIp (
+  OUT UINTN        *ImageBase,
+  OUT CONST CHAR8  **SymbolsPath,
+  IN  UINTN        CurrentEip
+  )
+{
+  RETURN_STATUS                   Status;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
+  UINT32                          PdbPathSize;
+
+  Status = UefiImageDebugLocateImage (&ImageContext, CurrentEip);
+  if (RETURN_ERROR (Status)) {
+    return FALSE;
+  }
+
+  *ImageBase = UefiImageLoaderGetImageAddress (&ImageContext);
+
+  Status = UefiImageGetSymbolsPath (&ImageContext, SymbolsPath, &PdbPathSize);
+  return !RETURN_ERROR (Status);
 }
