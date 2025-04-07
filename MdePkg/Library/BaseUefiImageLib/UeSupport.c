@@ -37,7 +37,8 @@ RETURN_STATUS
 UefiImageInitializeContextPreHashUe (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
-  IN  UINT32                           FileSize
+  IN  UINT32                           FileSize,
+  IN  UINT8                            ImageOrigin
   )
 {
   return UeInitializeContextPreHash (&Context->Ctx.Ue, FileBuffer, FileSize);
@@ -433,7 +434,8 @@ UefiImageLoaderGetImageRecordUe (
 RETURN_STATUS
 UefiImageDebugLocateImageUe (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
-  IN  UINTN                            Address
+  IN  UINTN                            Address,
+  IN  UINT8                            ImageOrigin
   )
 {
   ASSERT (Context != NULL);
