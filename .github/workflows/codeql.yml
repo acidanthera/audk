@@ -253,7 +253,7 @@ jobs:
     - name: CI Build
       env:
         STUART_CODEQL_PATH: ${{ steps.cache_key_gen.outputs.codeql_cli_ext_dep_dir }}
-      run: stuart_ci_build -c .pytool/CISettings.py -t DEBUG -p ${{ matrix.Package }} -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2022 --codeql --npt
+      run: stuart_ci_build -c .pytool/CISettings.py -t DEBUG -p ${{ matrix.Package }} -a ${{ matrix.ArchList }} TOOL_CHAIN_TAG=VS2022 --codeql
 
     - name: Build Cleanup
       id: build_cleanup
