@@ -12,22 +12,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/UefiLib.h>
 
 //
-// +---------------------------------------------------+
-// | 0..(EfiMaxMemoryType - 1)    - Normal memory type |
-// +---------------------------------------------------+
-// | EfiMaxMemoryType..0x6FFFFFFF - Invalid            |
-// +---------------------------------------------------+
-// | 0x70000000..0x7FFFFFFF       - OEM reserved       |
-// +---------------------------------------------------+
-// | 0x80000000..0xFFFFFFFF       - OS reserved        |
-// +---------------------------------------------------+
-//
-#define MEMORY_TYPE_OS_RESERVED_MIN   0x80000000
-#define MEMORY_TYPE_OS_RESERVED_MAX   0xFFFFFFFF
-#define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
-#define MEMORY_TYPE_OEM_RESERVED_MAX  0x7FFFFFFF
-
-//
 // Memory type to guard (matching the related PCD definition)
 //
 #define GUARD_HEAP_TYPE_PAGE   BIT0
@@ -36,7 +20,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define GUARD_HEAP_TYPE_ALL         \
         (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
 
-#define MAX_MEMORY_TYPE        100
+#define MAX_MEMORY_TYPE        FixedPcdGet32 (PcdMaxMemoryType)
 
 /**
   Called to initialize the pool.

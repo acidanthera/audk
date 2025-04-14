@@ -38,3 +38,4 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPageType                       ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPoolType                       ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask                   ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType                           ## CONSUMES
