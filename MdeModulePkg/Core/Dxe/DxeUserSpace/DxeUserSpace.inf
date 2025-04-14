@@ -62,5 +62,8 @@
   gEfiDevicePathProtocolGuid           ## SOMETIMES_CONSUMES
   gEfiUnicodeCollationProtocolGuid     ## SOMETIMES_CONSUMES
 
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType  ## CONSUMES
+  
 [Depex]
   TRUE

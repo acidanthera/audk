@@ -82,6 +82,8 @@ typedef struct {
 //
 POOL  mPoolHead[MAX_MEMORY_TYPE];
 
+STATIC_ASSERT (MAX_MEMORY_TYPE > EfiMaxMemoryType, "PcdMaxMemoryType must be greater than EfiMaxMemoryType");
+
 STATIC BOOLEAN  mIsCore;
 
 //

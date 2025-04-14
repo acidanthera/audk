@@ -1210,6 +1210,12 @@
   # @Prompt Enable User Space.
   gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062
 
+  ## Sets the size of mPoolHead array in MemoryPoolLib. It must be greater than EfiMaxMemoryType.
+  #  In DxeMain this array manages Pools of different memory types.
+  #  In DxeUserSpace this array manages Pools in different User address spaces.
+  # @Prompt Max number of memory types (or User address spaces).
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType|100|UINT32|0x30001063
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
   #  PcdMaxPeiPcdCallBackNumberPerPcdEntry indicates the maximum number of callback function
