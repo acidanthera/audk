@@ -11,7 +11,7 @@
 #------------------------------------------------------------------------------
 
 #include <Library/PcdLib.h>
-#include <AsmMacroIoLib.h>
+#include <AsmMacroLib.h>
 
 /*
 
