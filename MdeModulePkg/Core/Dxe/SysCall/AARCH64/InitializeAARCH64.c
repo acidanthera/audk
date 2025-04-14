@@ -5,7 +5,6 @@
 
 **/
 
-#include <Chipset/AArch64.h>
 #include <Guid/EarlyPL011BaseAddress.h>
 #include <Library/ArmLib.h>
 #include <Library/ArmMmuLib.h>

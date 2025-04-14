@@ -40,6 +40,10 @@ DEFINE FD_SIZE_IN_MB    = 3
   DEFINE FD_NUM_BLOCKS    = 0x300
 !endif
 
+!ifdef $(USER_SPACE)
+  DEFINE CUSTOM_STACK_CHECK_LIB = STATIC
+!endif
+
 [BuildOptions.common.EDKII.DXE_RUNTIME_DRIVER]
   GCC:*_*_AARCH64_DLINK_FLAGS = -z max-page-size=0x10000
 
@@ -71,6 +75,8 @@ DEFINE FD_SIZE_IN_MB    = 3
   UefiBootServicesTableLib|MdePkg/Library/UefiBootServicesTableLib/UefiBootServicesTableLib.inf
   DxeServicesTableLib|MdePkg/Library/DxeServicesTableLib/DxeServicesTableLib.inf
   DxeServicesLib|MdePkg/Library/DxeServicesLib/DxeServicesLib.inf
+  UefiDriverEntryPoint|MdePkg/Library/UefiDriverEntryPoint/UefiDriverEntryPoint.inf
+  UefiApplicationEntryPoint|MdePkg/Library/UefiApplicationEntryPoint/UefiApplicationEntryPoint.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   SortLib|MdeModulePkg/Library/UefiSortLib/UefiSortLib.inf
@@ -256,6 +262,7 @@ DEFINE FD_SIZE_IN_MB    = 3
 [LibraryClasses.common.DXE_CORE]
   HobLib|MdePkg/Library/DxeCoreHobLib/DxeCoreHobLib.inf
   MemoryAllocationLib|MdeModulePkg/Library/DxeCoreMemoryAllocationLib/DxeCoreMemoryAllocationLib.inf
+  DxeCoreEntryPoint|MdePkg/Library/DxeCoreEntryPoint/DxeCoreEntryPoint.inf
   ExtractGuidedSectionLib|MdePkg/Library/DxeExtractGuidedSectionLib/DxeExtractGuidedSectionLib.inf
   PerformanceLib|MdeModulePkg/Library/DxeCorePerformanceLib/DxeCorePerformanceLib.inf
   CpuArchLib|ArmPkg/Library/CpuArchLib/CpuArchLib.inf

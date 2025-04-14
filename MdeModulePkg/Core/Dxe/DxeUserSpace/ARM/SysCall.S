@@ -3,7 +3,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 //------------------------------------------------------------------------------
 
-#include <AsmMacroIoLib.h>
+#include <AsmMacroLib.h>
 
 .extern ASM_PFX(UserSpaceCall)
 
