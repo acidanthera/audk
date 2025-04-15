@@ -34,15 +34,20 @@
   ArmPkg/ArmPkg.dec
   EmbeddedPkg/EmbeddedPkg.dec
   MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
 
 [LibraryClasses]
   ArmLib
   CacheMaintenanceLib
   HobLib
   MemoryAllocationLib
+  PcdLib
 
 [Guids]
   gArmMmuReplaceLiveTranslationEntryFuncGuid
 
 [Pcd.ARM]
   gArmTokenSpaceGuid.PcdNormalMemoryNonshareableOverride
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace          ## CONSUMES

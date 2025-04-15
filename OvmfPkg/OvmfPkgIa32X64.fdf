@@ -204,6 +204,9 @@ APRIORI DXE {
 !if $(SMM_REQUIRE) == FALSE
   INF  OvmfPkg/QemuFlashFvbServicesRuntimeDxe/FvbServicesRuntimeDxe.inf
 !endif
+  # The driver responsible for UserSpace initialization (DxeUserSpace.inf)
+  # must be the first USER driver in APRIORI list.
+  INF  MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf
 }
 
 #
@@ -263,7 +266,7 @@ INF  MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
 INF  MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
 INF  MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
 INF  MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
-INF  MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
+INF USER MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
 INF  MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf
 INF  MdeModulePkg/Bus/Scsi/ScsiDiskDxe/ScsiDiskDxe.inf
 INF  MdeModulePkg/Bus/Pci/SataControllerDxe/SataControllerDxe.inf
@@ -289,7 +292,8 @@ INF  MdeModulePkg/Universal/Acpi/S3SaveStateDxe/S3SaveStateDxe.inf
 INF  MdeModulePkg/Universal/Acpi/BootScriptExecutorDxe/BootScriptExecutorDxe.inf
 INF  MdeModulePkg/Universal/Acpi/BootGraphicsResourceTableDxe/BootGraphicsResourceTableDxe.inf
 
-INF  FatPkg/EnhancedFatDxe/Fat.inf
+INF USER FatPkg/EnhancedFatDxe/Fat.inf
+INF USER MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf
 INF  MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
 INF  OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
 

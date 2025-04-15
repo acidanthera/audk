@@ -17,11 +17,15 @@
 
 [Packages]
   MdePkg/MdePkg.dec
+  OvmfPkg/OvmfPkg.dec
 
 [LibraryClasses]
   BaseLib
   IoLib
+  PcdLib
 
 [Sources]
   SerialPortLib.c
 
+[Pcd]
+  gUefiOvmfPkgTokenSpaceGuid.PcdUartBase  ## CONSUMES

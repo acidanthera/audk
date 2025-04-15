@@ -90,6 +90,7 @@ OpteeSharedMemoryRemap (
              PhysicalAddress,
              Size,
              EFI_MEMORY_WB | EFI_MEMORY_XP,
+             0,
              0
              );
   if (EFI_ERROR (Status)) {

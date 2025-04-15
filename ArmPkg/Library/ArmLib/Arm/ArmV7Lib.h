@@ -33,6 +33,16 @@ ArmReadIdMmfr4 (
   VOID
   );
 
+/** Reads the ID_MMFR3 register.
+
+   @return The contents of the ID_MMFR3 register.
+**/
+UINT32
+EFIAPI
+ArmReadIdMmfr3 (
+  VOID
+  );
+
 UINTN
 EFIAPI
 ArmReadIdPfr1 (
