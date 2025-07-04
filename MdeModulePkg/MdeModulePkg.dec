@@ -1204,6 +1204,18 @@
   # @Prompt Defines the page allocation for the MM communication buffer; default is 128 pages (512KB).
   gEfiMdeModulePkgTokenSpaceGuid.PcdMmCommBufferPages|128|UINT32|0x30001061
 
+  ## Indicates whether DXE drivers marked in .fdf file as USER will be loaded in separate User address spaces.
+  #   TRUE  - USER DXE drivers will be loaded in separate User address spaces.<BR>
+  #   FALSE - All DXE drivers will be loaded in supervisor memory.<BR>
+  # @Prompt Enable User Space.
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE|BOOLEAN|0x30001062
+
+  ## Sets the size of mPoolHead array in MemoryPoolLib. It must be greater than EfiMaxMemoryType.
+  #  In DxeMain this array manages Pools of different memory types.
+  #  In DxeUserSpace this array manages Pools in different User address spaces.
+  # @Prompt Max number of memory types (or User address spaces).
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType|100|UINT32|0x30001063
+
 [PcdsFixedAtBuild, PcdsPatchableInModule]
   ## Dynamic type PCD can be registered callback function for Pcd setting action.
   #  PcdMaxPeiPcdCallBackNumberPerPcdEntry indicates the maximum number of callback function

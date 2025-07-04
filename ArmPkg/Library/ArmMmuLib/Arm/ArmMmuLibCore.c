@@ -86,7 +86,8 @@ PopulateLevel2PageTable (
   IN UINT32                        *SectionEntry,
   IN UINT32                        PhysicalBase,
   IN UINT32                        RemainLength,
-  IN ARM_MEMORY_REGION_ATTRIBUTES  Attributes
+  IN ARM_MEMORY_REGION_ATTRIBUTES  Attributes,
+  IN BOOLEAN                       UserTable
   )
 {
   UINT32  *PageEntry;
@@ -130,6 +131,10 @@ PopulateLevel2PageTable (
 
   if (PreferNonshareableMemory ()) {
     PageAttributes &= ~TT_DESCRIPTOR_PAGE_S_SHARED;
+  }
+
+  if (!UserTable) {
+    PageAttributes |= TT_DESCRIPTOR_PAGE_AF;
   }
 
   // Check if the Section Entry has already been populated. Otherwise attach a
@@ -220,7 +225,8 @@ STATIC
 VOID
 FillTranslationTable (
   IN  UINT32                        *TranslationTable,
-  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryRegion
+  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryRegion,
+  IN  BOOLEAN                       UserTable
   )
 {
   UINT32  *SectionEntry;
@@ -252,7 +258,7 @@ FillTranslationTable (
       break;
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_BACK_XP:
       Attributes  = TT_DESCRIPTOR_SECTION_WRITE_BACK;
-      Attributes |= TT_DESCRIPTOR_SECTION_XN_MASK;
+      Attributes |= TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK;
       break;
     case ARM_MEMORY_REGION_ATTRIBUTE_WRITE_THROUGH:
       Attributes = TT_DESCRIPTOR_SECTION_WRITE_THROUGH;
@@ -270,6 +276,10 @@ FillTranslationTable (
 
   if (PreferNonshareableMemory ()) {
     Attributes &= ~TT_DESCRIPTOR_SECTION_S_SHARED;
+  }
+
+  if (!UserTable) {
+    Attributes |= TT_DESCRIPTOR_SECTION_AF;
   }
 
   // Get the first section entry for this mapping
@@ -307,7 +317,8 @@ FillTranslationTable (
         SectionEntry,
         PhysicalBase,
         PageMapLength,
-        MemoryRegion->Attributes
+        MemoryRegion->Attributes,
+        UserTable
         );
 
       //
@@ -364,7 +375,7 @@ ArmConfigureMmu (
   ZeroMem (TranslationTable, TRANSLATION_TABLE_SECTION_SIZE);
 
   while (MemoryTable->Length != 0) {
-    FillTranslationTable (TranslationTable, MemoryTable);
+    FillTranslationTable (TranslationTable, MemoryTable, FALSE);
     MemoryTable++;
   }
 
@@ -423,4 +434,33 @@ ArmConfigureMmu (
   ArmEnableDataCache ();
   ArmEnableMmu ();
   return RETURN_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+ArmMakeUserPageTableTemplate (
+  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable,
+  OUT UINTN                         *TranslationTableBase,
+  OUT UINTN                         *TranslationTableSize
+  )
+{
+  VOID  *TranslationTable;
+
+  TranslationTable = AllocateAlignedPages (
+                       EFI_SIZE_TO_PAGES (TRANSLATION_TABLE_SECTION_SIZE),
+                       TRANSLATION_TABLE_SECTION_ALIGNMENT
+                       );
+  if (TranslationTable == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  ZeroMem (TranslationTable, TRANSLATION_TABLE_SECTION_SIZE);
+
+  FillTranslationTable (TranslationTable, MemoryTable, TRUE);
+
+  *TranslationTableBase = (UINTN)TranslationTable;
+  *TranslationTableSize = TRANSLATION_TABLE_SECTION_SIZE;
+
+  return EFI_SUCCESS;
+
 }
