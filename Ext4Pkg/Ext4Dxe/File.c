@@ -498,7 +498,9 @@ Ext4ReadFile (
   File      = EXT4_FILE_FROM_THIS (This);
   Partition = File->Partition;
 
-  ASSERT (Ext4FileIsOpenable (File));
+  if (!Ext4FileIsOpenable (File)) {
+    return EFI_DEVICE_ERROR;
+  }
 
   if (Ext4FileIsReg (File)) {
     Status = Ext4Read (Partition, File, Buffer, File->Position, BufferSize);
