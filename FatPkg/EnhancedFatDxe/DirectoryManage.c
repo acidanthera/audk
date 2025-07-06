@@ -478,7 +478,7 @@ FatGetDirEntInfo (
     Info       = Buffer;
     Info->Size = ResultSize;
     if ((Entry->Attributes & FAT_ATTRIBUTE_DIRECTORY) != 0) {
-      Cluster            = (Entry->FileClusterHigh << 16) | Entry->FileCluster;
+      Cluster            = ((((UINTN) Entry->FileClusterHigh) << 16) | ((UINTN) Entry->FileCluster));
       Info->PhysicalSize = FatPhysicalDirSize (Volume, Cluster);
       Info->FileSize     = Info->PhysicalSize;
     } else {
@@ -1191,7 +1191,7 @@ FatOpenDirEnt (
       //
       Volume             = Parent->Volume;
       OFile->FullPathLen = Parent->FullPathLen + 1 + StrLen (DirEnt->FileString);
-      OFile->FileCluster = ((DirEnt->Entry.FileClusterHigh) << 16) | (DirEnt->Entry.FileCluster);
+      OFile->FileCluster = (((UINTN) DirEnt->Entry.FileClusterHigh) << 16) | ((UINTN) DirEnt->Entry.FileCluster);
       InsertTailList (&Parent->ChildHead, &OFile->ChildLink);
     } else {
       //
