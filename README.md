@@ -89,15 +89,15 @@ To not expose FV-only UEFI image formats via, e.g., DxeCore to untrusted sources
 * Some validation is still absent
 
 ### BZs fixed by integrating the new PE/COFF loader
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1860
-* https://bugzilla.tianocore.org/show_bug.cgi?id=1999
-* https://bugzilla.tianocore.org/show_bug.cgi?id=2120
-* https://bugzilla.tianocore.org/show_bug.cgi?id=3329
+* [Verify that loading images with <4k section alignment either succeeds or fails gracefully (Bugzilla Bug 1860)](https://github.com/tianocore/edk2-test/issues/222)
+* [PE loader should zero out dest buffer on allocation (Bugzilla Bug 1999)](https://github.com/tianocore/edk2/issues/9757)
+* [[PeCoffLib] Provide flexibility for platform to disable TE image support (Bugzilla Bug 2120)](https://github.com/tianocore/edk2/issues/9784)
+* [DxeCore: No support for granular PE section permissions (Bugzilla Bug 3329)](https://github.com/tianocore/edk2/issues/10074)
 * More to be added shortly...
 
 ### BZs easier to address by integrating the new PE/COFF loader
-* https://bugzilla.tianocore.org/show_bug.cgi?id=3326
-* https://bugzilla.tianocore.org/show_bug.cgi?id=3331
+* [Enforce W^X design principles (Bugzilla Bug 3326)](https://github.com/tianocore/edk2/issues/10072)
+* [Treat memory protection attributes separately (Bugzilla Bug 3331)](https://github.com/tianocore/edk2/issues/10075)
 * More to be added shortly...
 
 ## UEFI Executable File Format
