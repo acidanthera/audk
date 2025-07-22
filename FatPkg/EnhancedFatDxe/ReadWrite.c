@@ -318,6 +318,8 @@ FatIFileAccess (
     }
   }
 
+Done:
+
   if (Token != NULL) {
     if (!EFI_ERROR (Status)) {
       Status = FatQueueTask (IFile, Task);
@@ -326,7 +328,6 @@ FatIFileAccess (
     }
   }
 
-Done:
   //
   // On EFI_SUCCESS case, not calling FatCleanupVolume():
   // 1) The Cache flush operation is avoided to enhance
