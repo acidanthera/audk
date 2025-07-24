@@ -9,20 +9,20 @@ code hardening through various compiler optimizations and codebase architectural
 
 Stable branches in AUDK project are constructed by rebasing all the commits in master branch upon EDK II stable tag.<br>
 Available stable branches:<br>
-[audk-stable-202211](https://github.com/acidanthera/audk/tree/audk-stable-202211)<br>
-[audk-stable-202302](https://github.com/acidanthera/audk/tree/audk-stable-202302)<br>
-[audk-stable-202305](https://github.com/acidanthera/audk/tree/audk-stable-202305)<br>
-[audk-stable-202311](https://github.com/acidanthera/audk/tree/audk-stable-202311)<br>
-[audk-stable-202405](https://github.com/acidanthera/audk/tree/audk-stable-202405)<br>
+* [audk-stable-202211](https://github.com/acidanthera/audk/tree/audk-stable-202211)<br>
+* [audk-stable-202302](https://github.com/acidanthera/audk/tree/audk-stable-202302)<br>
+* [audk-stable-202305](https://github.com/acidanthera/audk/tree/audk-stable-202305)<br>
+* [audk-stable-202311](https://github.com/acidanthera/audk/tree/audk-stable-202311)<br>
+* [audk-stable-202405](https://github.com/acidanthera/audk/tree/audk-stable-202405)<br>
 
 ## Supported features
-[PE loader designed with formal methods](#pe-loader-designed-with-formal-methods)<br>
-[UEFI Executable File Format](#uefi-executable-file-format)<br>
-[ImageTool](#imagetool)<br>
-Ext4Pkg, FatPkg: Various improvements based on [Sydr](https://github.com/ispras/oss-sydr-fuzz) fuzzing results<br>
-Introduced CpuArchLib to move the CPU Architectural initialization to DxeCore (https://bugzilla.tianocore.org/show_bug.cgi?id=3223)<br>
-CI checks not only compilation results of various packages but also boot results of Windows 10 / Linux kernels for OVMF, ArmVirtQemu<br>
-Introduced new image protection policy, which forbids loading of unaligned images<br>
+* [PE loader designed with formal methods](#pe-loader-designed-with-formal-methods)<br>
+* [UEFI Executable File Format](#uefi-executable-file-format)<br>
+* [ImageTool](#imagetool)<br>
+* Ext4Pkg, FatPkg: Various improvements based on [Sydr](https://github.com/ispras/oss-sydr-fuzz) fuzzing results<br>
+* [Introduced CpuArchLib to move the CPU Architectural initialization to DxeCore](https://github.com/tianocore/projects/issues/26) ([Bugzilla Bug 3223](https://bugzilla.tianocore.org/show_bug.cgi?id=3223))<br>
+* CI checks not only compilation results of various packages but also boot results of Windows 10 / Linux kernels for [OVMF](.github/workflows/build_x86.yaml) and [ArmVirtQemu](.github/workflows/build_arm.yaml)<br>
+* Introduced [new image protection policy](MdePkg/MdePkg.dec#L2388-L2407), which forbids loading of unaligned images<br>
 
 ## PE loader designed with formal methods
 
@@ -116,7 +116,7 @@ To account for this, EDK II’s PeiCore has a workaround to apply the shift to t
 so that the image file header is technically misaligned, but the image segments are correctly aligned.
 This is especially important when enforcing memory permissions during PEI.
 
-We propose a novel executable file format (UEFI Executable File Format, [UE](https://github.com/mhaeuser/MastersThesis/tree/main)),
+We propose a novel executable file format ([UEFI Executable File Format](MdePkg/Library/BaseUeImageLib), [UE](https://github.com/mhaeuser/MastersThesis/tree/main)),
 accompanied by a trivial digital signature scheme. (In our repository TE format is completely replaced with UE.)
 Both help reduce the complexity of parsing and validation, while also encoding metadata much more efficiently than
 the PE and the TE formats. They are specifically designed for UEFI firmware implementations and are explicitly not optimized
@@ -138,7 +138,7 @@ are simply copied into the building directory of those tools.
 
 We addressed that issue in our AUDK project greatly increasing code reuse among BaseTools and, in addition,
 to make image file conversion easier to maintain, extend, and validate, we have replaced ``GenFw`` with ``ImageTool``.
-``ImageTool`` implements an approach based on an intermediate representation.
+[``ImageTool``](BaseTools/ImageTool) implements an approach based on an intermediate representation.
 This allows input and output formats to be processed independently of each other.
 At the same time, operations such as relocating an image became format-independent, contributing to improved extensibility.
 Because we designed the intermediate representation to be semi-canonical, we were able to use it to reduce the validation of the output file
