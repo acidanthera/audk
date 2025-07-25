@@ -326,6 +326,7 @@
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   CpuArchLib|UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
   MpInitLib|UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
+  MemoryPoolLib|MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
@@ -583,6 +584,8 @@
   #
   # Security measures for memory protection.
   #
+  gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard|TRUE
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|TRUE
   !if $(LEGACY_WINDOWS_LOADER) == TRUE
     # Allow execution of EfiLoaderData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFFD1
@@ -595,6 +598,7 @@
     # Allow execution of EfiReservedMemoryType, EfiConventionalMemory, EfiBootServicesData and EfiRuntimeServicesData memory regions.
     gEfiMdeModulePkgTokenSpaceGuid.PcdDxeNxMemoryProtectionPolicy|0xFFFFFFFFFFFFFF04
     gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy|0x70000000
+    gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace|FALSE
   !endif
 
   #
@@ -826,6 +830,10 @@
   MdeModulePkg/Universal/Disk/RamDiskDxe/RamDiskDxe.inf
   MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   FatPkg/EnhancedFatDxe/Fat.inf
+  MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf {
+    <LibraryClasses>
+      MemoryPoolLib|MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
+  }
   MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
   OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
   MdeModulePkg/Bus/Scsi/ScsiBusDxe/ScsiBusDxe.inf

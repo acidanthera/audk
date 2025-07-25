@@ -278,6 +278,8 @@ STATIC EFI_CPU_ARCH_PROTOCOL  mCpu = {
   CpuSetMemoryAttributes,
   0,          // NumberOfTimers
   2048,       // DmaBufferAlignment
+  CpuGetMemoryAttributes,
+  CpuSetUserMemoryAttributes
 };
 
 STATIC
@@ -352,7 +354,8 @@ RemapUnusedMemoryNx (
         MemoryMapEntry->PhysicalStart,
         EFI_PAGES_TO_SIZE (MemoryMapEntry->NumberOfPages),
         EFI_MEMORY_XP,
-        EFI_MEMORY_XP
+        EFI_MEMORY_XP,
+        0
         );
     }
 

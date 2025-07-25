@@ -143,6 +143,7 @@
   MicrocodeLib|UefiCpuPkg/Library/MicrocodeLib/MicrocodeLib.inf
   MemEncryptSevLib|OvmfPkg/Library/BaseMemEncryptSevLib/DxeMemEncryptSevLib.inf
   CpuPageTableLib|UefiCpuPkg/Library/CpuPageTableLib/CpuPageTableLib.inf
+  MemoryPoolLib|MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
 
 [LibraryClasses.IA32.DXE_CORE]
   CcExitLib|UefiCpuPkg/Library/CcExitLibNull/CcExitLibNull.inf
@@ -304,6 +305,10 @@
   MdeModulePkg/Bus/Spi/SpiHc/SpiHcDxe.inf
   MdeModulePkg/Bus/Spi/SpiHc/SpiHcSmm.inf
 
+  MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf {
+    <LibraryClasses>
+      MemoryPoolLib|MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
+  }
   MdeModulePkg/Core/DxeIplPeim/DxeIpl.inf
   MdeModulePkg/Core/Pei/PeiMain.inf
   MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
@@ -370,6 +375,7 @@
   MdeModulePkg/Library/DxeCoreDxeServicesTableLib/DxeCoreDxeServicesTableLib.inf
   MdeModulePkg/Library/DxeCoreUefiBootServicesTableLib/DxeCoreUefiBootServicesTableLib.inf
   MdeModulePkg/Library/DxeCoreUefiRuntimeServicesTableLib/DxeCoreUefiRuntimeServicesTableLib.inf
+  MdeModulePkg/Library/MemoryPoolLib/MemoryPoolLib.inf
 
   MdeModulePkg/Universal/BdsDxe/BdsDxe.inf
   MdeModulePkg/Application/BootManagerMenuApp/BootManagerMenuApp.inf

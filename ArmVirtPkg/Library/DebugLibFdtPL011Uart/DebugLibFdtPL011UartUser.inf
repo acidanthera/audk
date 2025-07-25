@@ -1,0 +1,48 @@
+## @file
+# DebugLib instance that produces debug output directly via PL011UartLib.
+#
+# Copyright (C) Red Hat
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION    = 1.27
+  BASE_NAME      = DebugLibFdtPL011UartUser
+  FILE_GUID      = 5932FA0B-FC1A-43B9-B149-5C16137622B1
+  MODULE_TYPE    = UEFI_DRIVER
+  VERSION_STRING = 1.0
+  LIBRARY_CLASS  = DebugLib|DXE_DRIVER UEFI_DRIVER UEFI_APPLICATION
+  CONSTRUCTOR    = DebugLibFdtPL011UartUserConstructor
+
+[Sources]
+  DebugLib.c
+  User.c
+
+[Packages]
+  ArmPlatformPkg/ArmPlatformPkg.dec
+  ArmVirtPkg/ArmVirtPkg.dec
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugPrintErrorLevelLib
+  PL011UartLib
+  PcdLib
+  PrintLib
+
+[Pcd]
+  gEfiMdePkgTokenSpaceGuid.PcdDebugClearMemoryValue
+  gEfiMdePkgTokenSpaceGuid.PcdDebugPropertyMask
+  gEfiMdePkgTokenSpaceGuid.PcdFixedDebugPrintErrorLevel
+
+[FixedPcd]
+  gArmPlatformTokenSpaceGuid.PL011UartClkInHz
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultBaudRate
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultDataBits
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultParity
+  gEfiMdePkgTokenSpaceGuid.PcdUartDefaultStopBits
+
+[Guids]
+  gEarlyPL011BaseAddressGuid

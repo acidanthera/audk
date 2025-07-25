@@ -61,6 +61,10 @@ FfsAttributes2FvFileAttributes (
     FileAttribute |= EFI_FV_FILE_ATTRIB_FIXED;
   }
 
+  if ((FfsAttributes & FFS_ATTRIB_USER) == FFS_ATTRIB_USER) {
+    FileAttribute |= EFI_FV_FILE_ATTRIB_USER;
+  }
+
   return FileAttribute;
 }
 

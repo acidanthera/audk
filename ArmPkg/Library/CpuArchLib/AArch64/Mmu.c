@@ -91,8 +91,14 @@ PageAttributeToGcdAttribute (
   }
 
   // Process eXecute Never attribute
-  if ((PageAttributes & (TT_PXN_MASK | TT_UXN_MASK)) != 0) {
+  if ((PageAttributes & (TT_PXN_MASK | TT_UXN_MASK)) == (TT_PXN_MASK | TT_UXN_MASK)) {
     GcdAttributes |= EFI_MEMORY_XP;
+  }
+
+  if (((PageAttributes & TT_AP_MASK) == TT_AP_RW_RW) ||
+      ((PageAttributes & TT_AP_MASK) == TT_AP_RO_RO))
+  {
+    GcdAttributes |= EFI_MEMORY_USER;
   }
 
   return GcdAttributes;
@@ -385,13 +391,27 @@ EfiAttributeToArmAttribute (
   }
 
   // Determine protection attributes
-  if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
-    ArmAttributes |= TT_AP_NO_RO;
+  if ((EfiAttributes & EFI_MEMORY_USER) != 0) {
+    ArmAttributes |= TT_PXN_MASK;
+
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_AP_RO_RO;
+    } else {
+      ArmAttributes |= TT_AP_RW_RW;
+    }
+  } else {
+    ArmAttributes |= TT_UXN_MASK;
+
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_AP_NO_RO;
+    } else {
+      ArmAttributes |= TT_AP_NO_RW;
+    }
   }
 
   // Process eXecute Never attribute
   if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
-    ArmAttributes |= TT_PXN_MASK;
+    ArmAttributes |= TT_PXN_MASK | TT_UXN_MASK;
   }
 
   return ArmAttributes;
@@ -502,6 +522,7 @@ GetMemoryRegionRec (
                                     updated to the end address of the retrieved region.
   @param[out]     RegionLength      The length of the retrieved memory region.
   @param[out]     RegionAttributes  The attributes of the retrieved memory region.
+  @param[in]      UserPageTable     The base address of the User page table.
 
   @retval EFI_STATUS              Returns EFI_SUCCESS if the memory region is
                                   retrieved successfully, or the status of the
@@ -515,7 +536,8 @@ EFI_STATUS
 GetMemoryRegion (
   IN OUT UINTN  *BaseAddress,
   OUT    UINTN  *RegionLength,
-  OUT    UINTN  *RegionAttributes
+  OUT    UINTN  *RegionAttributes,
+  IN     UINTN  UserPageTable  OPTIONAL
   )
 {
   EFI_STATUS  Status;
@@ -529,7 +551,12 @@ GetMemoryRegion (
     return EFI_INVALID_PARAMETER;
   }
 
-  TranslationTable = ArmGetTTBR0BaseAddress ();
+  if (UserPageTable == 0) {
+    TranslationTable = ArmGetTTBR0BaseAddress ();
+  } else {
+    TranslationTable = (UINT64 *)UserPageTable;
+  }
+
 
   // Initialize the output parameters. These paramaters are only valid if the
   // result is EFI_SUCCESS.

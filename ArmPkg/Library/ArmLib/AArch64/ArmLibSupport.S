@@ -133,6 +133,13 @@ ASM_FUNC(ArmInvalidateTlb)
    isb
    ret
 
+ASM_FUNC(ArmWriteCptr)
+  EL1_OR_EL2(x1)
+1:ret
+2:msr     cptr_el2, x0
+  isb
+  ret
+
 ASM_FUNC(ArmCallWFE)
   wfe
   ret

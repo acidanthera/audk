@@ -64,6 +64,10 @@ ASM_FUNC(ArmReadIdMmfr4)
   mrc    p15,0,r0,c0,c2,6     @ Read ID_MMFR4 Register
   bx     lr
 
+ASM_FUNC(ArmReadIdMmfr3)
+  mrc    p15,0,r0,c0,c1,7     @ Read ID_MMFR3 Register
+  bx     lr
+
 // UINTN
 // ReadCCSIDR (
 //   IN UINT32 CSSELR
