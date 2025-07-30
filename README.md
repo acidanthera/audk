@@ -23,6 +23,7 @@ Available stable branches:<br>
 * [Introduced CpuArchLib to move the CPU Architectural initialization to DxeCore](https://github.com/tianocore/projects/issues/26) ([Bugzilla Bug 3223](https://bugzilla.tianocore.org/show_bug.cgi?id=3223))<br>
 * CI checks not only compilation results of various packages but also boot results of Windows 10 / Linux kernels for [OVMF](.github/workflows/build_x86.yaml) and [ArmVirtQemu](.github/workflows/build_arm.yaml)<br>
 * Introduced [new image protection policy](MdePkg/MdePkg.dec#L2388-L2407), which forbids loading of unaligned images<br>
+* Replaced [PE/COFF resource sections](https://github.com/tianocore/edk2/issues/9583) with a [single C struct](https://github.com/acidanthera/audk/blob/master/BaseTools/ImageTool/ImageTool.c#L24-L116)
 
 ## PE loader designed with formal methods
 
