@@ -42,4 +42,3 @@ ASM_PFX(InternalSwitchStack):
     ;
     lea     rsp, [r9 - 0x20]
     call    rax
-

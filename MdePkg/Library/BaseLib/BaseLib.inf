@@ -154,6 +154,7 @@
   Ia32/ARShiftU64.c | MSFT
   Ia32/EnableCache.c | MSFT
   Ia32/DisableCache.c | MSFT
+  Ia32/WriteEflags.nasm
 
 
   Ia32/GccInline.c | GCC
@@ -294,6 +295,7 @@
   X64/ReadCr2.nasm| MSFT
   X64/ReadCr0.nasm| MSFT
   X64/ReadEflags.nasm| MSFT
+  X64/WriteEflags.nasm
 
   X64/TdCall.nasm
   X64/TdVmcall.nasm

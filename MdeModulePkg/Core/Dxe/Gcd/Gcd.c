@@ -267,7 +267,7 @@ CoreAcquireGcdMemoryLock (
   VOID
   )
 {
-  CoreAcquireLock (&mGcdMemorySpaceLock);
+  EfiAcquireLock (&mGcdMemorySpaceLock);
 }
 
 /**
@@ -279,7 +279,7 @@ CoreReleaseGcdMemoryLock (
   VOID
   )
 {
-  CoreReleaseLock (&mGcdMemorySpaceLock);
+  EfiReleaseLock (&mGcdMemorySpaceLock);
 }
 
 /**
@@ -291,7 +291,7 @@ CoreAcquireGcdIoLock (
   VOID
   )
 {
-  CoreAcquireLock (&mGcdIoSpaceLock);
+  EfiAcquireLock (&mGcdIoSpaceLock);
 }
 
 /**
@@ -303,7 +303,7 @@ CoreReleaseGcdIoLock (
   VOID
   )
 {
-  CoreReleaseLock (&mGcdIoSpaceLock);
+  EfiReleaseLock (&mGcdIoSpaceLock);
 }
 
 //
@@ -2269,7 +2269,7 @@ CoreInitializeMemoryServices (
   // Initialize the spin locks and maps in the memory services.
   // Also fill in the memory services into the EFI Boot Services Table
   //
-  CoreInitializePool ();
+  CoreInitializePool (TRUE);
 
   //
   // Initialize Local Variables

@@ -40,7 +40,7 @@
 #include "ArchInterruptDefs.h"
 
 #define CPU_STACK_SWITCH_EXCEPTION_NUMBER \
-  FixedPcdGetSize (PcdCpuStackSwitchExceptionList)
+  (FixedPcdGetSize (PcdCpuStackSwitchExceptionList) + 1)
 
 #define CPU_STACK_SWITCH_EXCEPTION_LIST \
   FixedPcdGetPtr (PcdCpuStackSwitchExceptionList)
