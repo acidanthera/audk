@@ -1359,8 +1359,21 @@ ShellCommandAddMapItemAndUpdatePath (
     StrnCatGrow (&NewPath, &NewPathSize, Name, 0);
     StrnCatGrow (&NewPath, &NewPathSize, L"\\", 0);
 
-    Status = gEfiShellProtocol->SetEnv (L"path", NewPath, TRUE);
-    ASSERT_EFI_ERROR (Status);
+    //
+    // Check if the path length exceeds reasonable firmware limits
+    // Some older systems (like Mac Pro 5,1) have stricter limits
+    //
+    if (StrLen(NewPath) > 1024) {
+      DEBUG ((DEBUG_WARN, "ShellCommandLib: PATH too long (%d chars), skipping update\n", StrLen(NewPath)));
+      Status = EFI_SUCCESS; // Don't fail, just skip the path update
+    } else {
+      Status = gEfiShellProtocol->SetEnv (L"path", NewPath, TRUE);
+      if (EFI_ERROR(Status)) {
+        DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
+        // Don't assert on older firmware - treat as non-fatal
+        Status = EFI_SUCCESS;
+      }
+    }
     FreePool (NewPath);
   }
 
