@@ -1371,25 +1371,11 @@ ShellCommandAddMapItemAndUpdatePath (
     if (StrLen(NewPath) > MAX_PATH_LENGTH_FOR_LEGACY_FIRMWARE) {
       DEBUG ((DEBUG_WARN, "ShellCommandLib: PATH too long (%d chars), skipping update\n", StrLen(NewPath)));
       Status = EFI_BUFFER_TOO_SMALL; // Indicate path was too long
-    if (StrLen(NewPath) > 1024) {
-      DEBUG ((DEBUG_WARN, "ShellCommandLib: PATH too long (%d chars), skipping update\n", StrLen(NewPath)));
-      Status = EFI_BUFFER_TOO_SMALL; // Indicate path was too long
-    if (StrLen(NewPath) > 1024) {
-      DEBUG ((DEBUG_WARN, "ShellCommandLib: PATH too long (%d chars), skipping update\n", StrLen(NewPath)));
-      Status = EFI_BUFFER_TOO_SMALL; // Indicate path was too long
     } else {
       Status = gEfiShellProtocol->SetEnv (L"path", NewPath, TRUE);
       if (EFI_ERROR(Status)) {
         DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
         // Don't assert on older firmware - treat as non-fatal, but preserve error indication
-        Status = EFI_WARN_WRITE_FAILURE;
-      if (EFI_ERROR(Status)) {
-        DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
-        // Don't assert on older firmware - treat as non-fatal, but preserve error status
-        Status = EFI_WARN_WRITE_FAILURE;
-      if (EFI_ERROR(Status)) {
-        DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
-        // Don't assert on older firmware - treat as non-fatal, but preserve error status
         Status = EFI_WARN_WRITE_FAILURE;
       }
     }
