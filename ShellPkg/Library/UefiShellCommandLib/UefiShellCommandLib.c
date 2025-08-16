@@ -1383,6 +1383,10 @@ ShellCommandAddMapItemAndUpdatePath (
         DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
         // Don't assert on older firmware - treat as non-fatal, but preserve error indication
         Status = EFI_WARN_WRITE_FAILURE;
+      if (EFI_ERROR(Status)) {
+        DEBUG ((DEBUG_WARN, "ShellCommandLib: SetEnv failed with %r, PATH length: %d\n", Status, StrLen(NewPath)));
+        // Don't assert on older firmware - treat as non-fatal, but preserve error status
+        Status = EFI_WARN_WRITE_FAILURE;
       }
     }
     FreePool (NewPath);
