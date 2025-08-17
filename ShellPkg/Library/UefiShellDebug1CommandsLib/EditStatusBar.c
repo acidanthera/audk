@@ -140,9 +140,9 @@ StatusBarRefresh (
   // print insert mode field
   //
   if (InsertMode) {
-    ShellPrintEx ((INT32)(LastCol) - 21, (INT32)(LastRow) - 1, L"|%s|   Help: Ctrl-E", L"INS");
+    ShellPrintEx ((INT32)(LastCol) - 21, (INT32)(LastRow) - 1, L"|%s|   Help: F10", L"INS");
   } else {
-    ShellPrintEx ((INT32)(LastCol) - 21, (INT32)(LastRow) - 1, L"|%s|   Help: Ctrl-E", L"OVR");
+    ShellPrintEx ((INT32)(LastCol) - 21, (INT32)(LastRow) - 1, L"|%s|   Help: F10", L"OVR");
   }
 
   //

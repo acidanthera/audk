@@ -167,6 +167,7 @@ EFI_STRING_ID  MainMenuHelpInfo[] = {
   STRING_TOKEN (STR_EDIT_HELP_PASTE_LINE),
   STRING_TOKEN (STR_EDIT_HELP_OPEN_FILE),
   STRING_TOKEN (STR_EDIT_HELP_FILE_TYPE),
+  STRING_TOKEN (STR_EDIT_HELP_HELP),
   STRING_TOKEN (STR_EDIT_HELP_BLANK),
   STRING_TOKEN (STR_EDIT_HELP_EXIT_HELP),
   STRING_TOKEN (STR_EDIT_HELP_BLANK),
@@ -257,6 +258,11 @@ EDITOR_MENU_ITEM  MainMenuItems[] = {
     STRING_TOKEN (STR_EDIT_LIBMENUBAR_FILE_TYPE),
     STRING_TOKEN (STR_EDIT_LIBMENUBAR_F9),
     MainCommandSwitchFileType
+  },
+  {
+    STRING_TOKEN (STR_EDIT_LIBMENUBAR_HELP),
+    STRING_TOKEN (STR_EDIT_LIBMENUBAR_F10),
+    MainCommandDisplayHelp
   },
   {
     STRING_TOKEN (STR_EDIT_LIBMENUBAR_FILE_TYPE),
@@ -1384,7 +1390,7 @@ MainCommandDisplayHelp (
   }
 
   //
-  // scan for ctrl+w
+  // scan for ctrl+w or ESC
   //
   while (TRUE) {
     Status = gBS->WaitForEvent (1, &MainEditor.TextInputEx->WaitForKeyEx, &EventIndex);
@@ -1395,6 +1401,13 @@ MainCommandDisplayHelp (
     Status = MainEditor.TextInputEx->ReadKeyStrokeEx (MainEditor.TextInputEx, &KeyData);
     if (EFI_ERROR (Status)) {
       continue;
+    }
+
+    //
+    // Check for ESC key
+    //
+    if (KeyData.Key.ScanCode == SCAN_ESC) {
+      break;
     }
 
     if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) == 0)
