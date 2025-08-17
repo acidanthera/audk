@@ -383,4 +383,29 @@ RestoreBufferList (
   IN OUT LIST_ENTRY  *OldBufferList
   );
 
+/**
+  Install SimpleTextInputEx compatibility protocol on the console input handle.
+  This function checks if SimpleTextInputEx is already available, and if not,
+  installs a compatibility version that wraps SimpleTextInput.
+  
+  @retval EFI_SUCCESS          Protocol installed successfully or already present
+  @retval Others               Installation failed
+**/
+EFI_STATUS
+InstallSimpleTextInputExCompat (
+  VOID
+  );
+
+/**
+  Uninstall SimpleTextInputEx compatibility protocol.
+  This should be called during shell cleanup.
+  
+  @retval EFI_SUCCESS          Protocol uninstalled successfully
+  @retval Others               Uninstallation failed
+**/
+EFI_STATUS
+UninstallSimpleTextInputExCompat (
+  VOID
+  );
+
 #endif //_SHELL_INTERNAL_HEADER_

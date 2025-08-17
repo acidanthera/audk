@@ -42,6 +42,7 @@
   ConsoleLogger.h
   ConsoleWrappers.c
   ConsoleWrappers.h
+  SimpleTextInputExCompat.c
 
 [Packages]
   MdePkg/MdePkg.dec

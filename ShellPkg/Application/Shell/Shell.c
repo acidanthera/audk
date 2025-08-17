@@ -441,6 +441,16 @@ UefiMain (
     }
 
     //
+    // Install SimpleTextInputEx compatibility if needed
+    // This must be done early so protocols are available for Ctrl-C/Ctrl-S support
+    //
+    Status = InstallSimpleTextInputExCompat ();
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_WARN, "Shell: Failed to install SimpleTextInputEx compatibility - %r\n", Status));
+      // Don't fail shell startup if compatibility installation fails
+    }
+
+    //
     // create and install the EfiShellParametersProtocol
     //
     Status = CreatePopulateInstallShellParametersProtocol (&ShellInfoObject.NewShellParametersProtocol, &ShellInfoObject.RootShellInstance);
@@ -670,6 +680,12 @@ FreeResources:
   //
   // uninstall protocols / free memory / etc...
   //
+  
+  //
+  // Uninstall SimpleTextInputEx compatibility if it was installed
+  //
+  UninstallSimpleTextInputExCompat ();
+  
   if (ShellInfoObject.UserBreakTimer != NULL) {
     gBS->CloseEvent (ShellInfoObject.UserBreakTimer);
     DEBUG_CODE (
