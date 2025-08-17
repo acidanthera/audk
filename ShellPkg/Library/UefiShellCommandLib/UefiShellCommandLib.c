@@ -25,6 +25,11 @@ STATIC UINTN                              mFsMaxCount  = 0;
 STATIC UINTN                              mBlkMaxCount = 0;
 STATIC BUFFER_LIST                        mFileHandleList;
 
+//
+// Maximum PATH length for legacy systems (like Mac Pro 5,1) with stricter limits
+//
+#define MAX_PATH_LENGTH_LEGACY  1024
+
 STATIC CONST CHAR8  Hex[] = {
   '0',
   '1',
@@ -1363,7 +1368,7 @@ ShellCommandAddMapItemAndUpdatePath (
     // Check if the path length exceeds reasonable firmware limits
     // Some older systems (like Mac Pro 5,1) have stricter limits
     //
-    if (StrLen(NewPath) > 1024) {
+    if (StrLen(NewPath) > MAX_PATH_LENGTH_LEGACY) {
       DEBUG ((DEBUG_WARN, "ShellCommandLib: PATH too long (%d chars), skipping update\n", StrLen(NewPath)));
       Status = EFI_SUCCESS; // Don't fail, just skip the path update
     } else {
