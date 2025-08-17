@@ -1390,7 +1390,7 @@ MainCommandDisplayHelp (
   }
 
   //
-  // scan for ctrl+w or ESC
+  // scan for Ctrl+W or ESC
   //
   while (TRUE) {
     Status = gBS->WaitForEvent (1, &MainEditor.TextInputEx->WaitForKeyEx, &EventIndex);
