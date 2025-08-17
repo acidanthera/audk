@@ -4,7 +4,8 @@
   Provides EFI 1.1 compatibility by implementing SimpleTextInputEx protocol
   as a wrapper around the standard SimpleTextInput protocol.
   
-  Copyright (c) 2024, startergo. All rights reserved.
+  Copyright (c) 2025, Enhanced Shell Compatibility Layer
+   All rights reserved.
   
   SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
@@ -188,17 +189,19 @@ InstallSimpleTextInputExCompat (
   VOID
   )
 {
-  EFI_STATUS  Status;
+  EFI_STATUS                         Status;
+  EFI_SIMPLE_TEXT_INPUT_EX_PROTOCOL  *NativeSimpleTextInputEx = NULL;
   
   // Check if SimpleTextInputEx is already available
   Status = gBS->HandleProtocol (
                   gST->ConsoleInHandle,
                   &gEfiSimpleTextInputExProtocolGuid,
-                  (VOID **)&mOriginalSimpleTextInputEx
+                  (VOID **)&NativeSimpleTextInputEx
                   );
                   
   if (!EFI_ERROR (Status)) {
     // Protocol already exists, no need for compatibility
+    mOriginalSimpleTextInputEx = NativeSimpleTextInputEx;
     DEBUG ((DEBUG_INFO, "Shell SimpleTextInputEx: Native protocol found, compatibility not needed\n"));
     return EFI_SUCCESS;
   }
