@@ -10,6 +10,7 @@
 **/
 
 #include "Shell.h"
+#include <Library/OcTextInputLib.h>
 
 //
 // Initialize the global structure
@@ -597,6 +598,11 @@ UefiMain (
     FreePool (TempString);
 
     if (!EFI_ERROR (Status)) {
+      //
+      // Initialize OpenCore text input compatibility layer
+      //
+      OcInstallSimpleTextInputEx ();
+
       if (!ShellInfoObject.ShellInitSettings.BitUnion.Bits.NoInterrupt) {
         //
         // Set up the event for CTRL-C monitoring...
@@ -667,6 +673,11 @@ UefiMain (
   }
 
 FreeResources:
+  //
+  // Cleanup OpenCore text input compatibility layer
+  //
+  OcUninstallSimpleTextInputEx ();
+
   //
   // uninstall protocols / free memory / etc...
   //
