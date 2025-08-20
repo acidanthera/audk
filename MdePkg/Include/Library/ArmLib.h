@@ -497,7 +497,7 @@ ArmEnableVFP (
   VOID
   );
 
-UINT32
+UINTN
 EFIAPI
 ArmReadSctlr (
   VOID
@@ -506,7 +506,7 @@ ArmReadSctlr (
 VOID
 EFIAPI
 ArmWriteSctlr (
-  IN  UINT32  Value
+  IN  UINTN  Value
   );
 
 UINTN
@@ -707,6 +707,30 @@ ArmHasGicSystemRegisters (
 BOOLEAN
 EFIAPI
 ArmHasCcidx (
+  VOID
+  );
+
+/**
+  Checks whether the CPU implements the Privileged Access Never.
+
+  @retval TRUE  FEAT_PAN is implemented.
+  @retval FALSE FEAT_PAN is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasPan (
+  VOID
+  );
+
+VOID
+EFIAPI
+ArmSetPan (
+  VOID
+  );
+
+VOID
+EFIAPI
+ArmClearPan (
   VOID
   );
 

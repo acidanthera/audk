@@ -145,6 +145,7 @@ typedef union {
 
 #define IA32_PG_P   BIT0
 #define IA32_PG_RW  BIT1
+#define IA32_PG_U   BIT2
 #define IA32_PG_PS  BIT7
 
 #define PAGING_PAE_INDEX_MASK  0x1FF

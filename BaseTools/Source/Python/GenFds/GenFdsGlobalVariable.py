@@ -535,13 +535,15 @@ class GenFdsGlobalVariable:
 
     @staticmethod
     def GenerateFfs(Output, Input, Type, Guid, Fixed=False, CheckSum=False, Align=None,
-                    SectionAlign=None, MakefilePath=None):
+                    SectionAlign=None, MakefilePath=None, User=False):
         Cmd = ["GenFfs", "-t", Type, "-g", Guid]
         mFfsValidAlign = ["0", "8", "16", "128", "512", "1K", "4K", "32K", "64K", "128K", "256K", "512K", "1M", "2M", "4M", "8M", "16M"]
         if Fixed == True:
             Cmd.append("-x")
         if CheckSum:
             Cmd.append("-s")
+        if User:
+            Cmd.append("-u")
         if Align:
             if Align not in mFfsValidAlign:
                 Align = GenFdsGlobalVariable.GetAlignment (Align)

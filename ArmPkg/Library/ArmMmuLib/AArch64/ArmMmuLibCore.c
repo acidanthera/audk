@@ -20,6 +20,8 @@
 #include <Library/BaseLib.h>
 #include <Library/DebugLib.h>
 #include <Library/HobLib.h>
+#include <Library/PcdLib.h>
+
 #include "ArmMmuLibInternal.h"
 
 STATIC  ARM_REPLACE_LIVE_TRANSLATION_ENTRY  mReplaceLiveEntryFunc = ArmReplaceLiveTranslationEntry;
@@ -63,6 +65,7 @@ ArmMemoryAttributeToPageAttribute (
       }
 
       break;
+
     default:
       Permissions = 0;
       break;
@@ -475,12 +478,28 @@ GcdAttributeToPageAttribute (
     }
   }
 
-  if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
-    PageAttributes |= TT_AP_NO_RO;
-  }
-
   if ((GcdAttributes & EFI_MEMORY_RP) == 0) {
     PageAttributes |= TT_AF;
+  }
+
+  if ((GcdAttributes & EFI_MEMORY_USER) != 0) {
+    PageAttributes |= TT_PXN_MASK;
+
+    if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
+      PageAttributes |= TT_AP_RO_RO;
+    } else {
+      PageAttributes |= TT_AP_RW_RW;
+    }
+  } else {
+    if (PcdGetBool (PcdEnableUserSpace) || (ArmReadCurrentEL () == AARCH64_EL1)) {
+      PageAttributes |= TT_UXN_MASK;
+    }
+
+    if ((GcdAttributes & EFI_MEMORY_RO) != 0) {
+      PageAttributes |= TT_AP_NO_RO;
+    } else {
+      PageAttributes |= TT_AP_NO_RW;
+    }
   }
 
   return PageAttributes;
@@ -510,6 +529,7 @@ GcdAttributeToPageAttribute (
   @param[in]  Length          The size in bytes of the memory region.
   @param[in]  Attributes      Mask of memory attributes to set.
   @param[in]  AttributeMask   Mask of memory attributes to take into account.
+  @param[in]  UserPageTable   The base address of the User page table.
 
   @retval EFI_SUCCESS           The attributes were set for the memory region.
   @retval EFI_INVALID_PARAMETER BaseAddress or Length is not suitably aligned.
@@ -524,7 +544,8 @@ ArmSetMemoryAttributes (
   IN EFI_PHYSICAL_ADDRESS  BaseAddress,
   IN UINT64                Length,
   IN UINT64                Attributes,
-  IN UINT64                AttributeMask
+  IN UINT64                AttributeMask,
+  IN UINTN                 UserPageTable  OPTIONAL
   )
 {
   UINT64  PageAttributes;
@@ -559,14 +580,25 @@ ArmSetMemoryAttributes (
     }
   }
 
-  return UpdateRegionMapping (
-           BaseAddress,
-           Length,
-           PageAttributes,
-           PageAttributeMask,
-           ArmGetTTBR0BaseAddress (),
-           TRUE
-           );
+  if (UserPageTable == 0) {
+    return UpdateRegionMapping (
+             BaseAddress,
+             Length,
+             PageAttributes,
+             PageAttributeMask,
+             ArmGetTTBR0BaseAddress (),
+             TRUE
+             );
+  } else {
+    return UpdateRegionMapping (
+             BaseAddress,
+             Length,
+             PageAttributes,
+             PageAttributeMask,
+             (UINT64 *)UserPageTable,
+             FALSE
+             );
+  }
 }
 
 EFI_STATUS
@@ -584,6 +616,7 @@ ArmConfigureMmu (
   UINTN       RootTableEntryCount;
   UINT64      TCR;
   EFI_STATUS  Status;
+  UINTN       Hcr;
 
   ASSERT (ArmReadCurrentEL () < AARCH64_EL3);
   if (ArmReadCurrentEL () == AARCH64_EL3) {
@@ -607,6 +640,24 @@ ArmConfigureMmu (
 
   T0SZ                = 64 - MaxAddressBits;
   RootTableEntryCount = GetRootTableEntryCount (T0SZ);
+
+  //
+  // Set TCR that allows us to retrieve T0SZ in the subsequent functions
+  //
+  // Ideally we will be running at EL2, but should support EL1 as well.
+  // UEFI should not run at EL3.
+  if (PcdGetBool (PcdEnableUserSpace) && (ArmReadCurrentEL () == AARCH64_EL2)) {
+    //
+    // Switch to EL2&0 translation regime.
+    //
+    Hcr  = ArmReadHcr ();
+    Hcr |= ARM_HCR_E2H | ARM_HCR_TGE;
+    ArmWriteHcr (Hcr);
+    //
+    // Allow access to the Advanced SIMD and floating-point registers.
+    //
+    ArmWriteCptr (AARCH64_CPTR_FPEN);
+  }
 
   //
   // Set TCR that allows us to retrieve T0SZ in the subsequent functions
@@ -746,6 +797,50 @@ ArmConfigureMmu (
 FreeTranslationTable:
   FreePages (TranslationTable, 1);
   return Status;
+}
+
+EFI_STATUS
+EFIAPI
+ArmMakeUserPageTableTemplate (
+  IN  ARM_MEMORY_REGION_DESCRIPTOR  *MemoryTable,
+  OUT UINTN                         *TranslationTableBase,
+  OUT UINTN                         *TranslationTableSize
+  )
+{
+  VOID        *TranslationTable;
+  UINTN       MaxAddressBits;
+  UINTN       T0SZ;
+  UINTN       RootTableEntryCount;
+  EFI_STATUS  Status;
+
+  MaxAddressBits      = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
+  T0SZ                = 64 - MaxAddressBits;
+  RootTableEntryCount = GetRootTableEntryCount (T0SZ);
+
+  TranslationTable = AllocatePages (1);
+  if (TranslationTable == NULL) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  ZeroMem (TranslationTable, RootTableEntryCount * sizeof (UINT64));
+
+  Status = UpdateRegionMapping (
+             MemoryTable->VirtualBase,
+             MemoryTable->Length,
+             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes),
+             0,
+             TranslationTable,
+             FALSE
+             );
+  if (EFI_ERROR (Status)) {
+    FreePages (TranslationTable, 1);
+    return Status;
+  }
+
+  *TranslationTableBase = (UINTN)TranslationTable;
+  *TranslationTableSize = RootTableEntryCount * sizeof (UINT64);
+
+  return EFI_SUCCESS;
 }
 
 RETURN_STATUS
