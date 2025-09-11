@@ -35,7 +35,7 @@ USER = $(OC_USER)\User\Library
 OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj QuickSort.obj LinkedList.obj
 OBJECTS = $(OBJECTS) {$(OUT)}DebugLib.obj {$(PRIN)}PrintLib.obj PrintLibInternal.obj {$(ERRO)}BaseDebugPrintErrorLevelLib.obj
 OBJECTS = $(OBJECTS) {$(UIMG)}UefiImageLib.obj UeSupport.obj PeSupport.obj CommonSupport.obj
-OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserBootServices.obj
+OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserEvent.obj UserBootServices.obj
 OBJECTS = $(OBJECTS) {$(BMPN)}BaseMemoryProfileLibNull.obj {$(CMEM)}CommonMemoryAllocationLib.obj {$(CMEM)}CommonMemoryAllocationLibEx.obj
 
 INC = -I . -I $(OC_USER)\User\Include -I $(OC_USER)\Include\Acidanthera
