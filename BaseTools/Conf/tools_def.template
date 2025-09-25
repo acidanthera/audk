@@ -1575,7 +1575,7 @@ RELEASE_CLANGDWARF_RISCV64_DLINK_FLAGS = DEF(CLANGDWARF_RISCV64_DLINK_FLAGS) -fl
 # image. This also makes the usage of "-read_only_relocs suppress" safe, as
 # relocations can now target __TEXT without triggering the same issue.
 #
-DEFINE XCODE5_RORELOCS_ARGS = -segprot __RO_RELOCS rw- rw- -segment_order __RO_RELOCS:__TEXT:__DATA_CONST:__DATA:__HII -rename_section __TEXT __text __RO_RELOCS __text -rename_section __RO_RELOCS __text __TEXT __text
+DEFINE XCODE5_RORELOCS_ARGS = -sectcreate __RO_RELOCS __ro_relocs $(EDK_TOOLS_PATH)/XcodeRoRelocsEmptyFile -segprot __RO_RELOCS rw- rw- -segment_order __RO_RELOCS:__TEXT:__DATA_CONST:__DATA:__HII
 DEFINE XCODE5_RODATA_ARGS   = DEF(XCODE5_RORELOCS_ARGS) -segprot __DATA_CONST r-- r-- -rename_section __DATA __const __DATA_CONST __const -rename_section __TEXT __const __DATA_CONST __text_const -rename_section __TEXT __cstring __DATA_CONST __cstring -rename_section __TEXT __ustring __DATA_CONST __ustring
 
 ##################
