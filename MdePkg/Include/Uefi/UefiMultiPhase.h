@@ -108,6 +108,10 @@ typedef enum {
   /// by a corresponding call to the underlying isolation architecture.
   ///
   EfiUnacceptedMemoryType,
+  ///
+  /// Memory allocated for (by) UserSpace Images.
+  ///
+  EfiUserSpaceMemoryType,
   EfiMaxMemoryType,
   //
   // +---------------------------------------------------+

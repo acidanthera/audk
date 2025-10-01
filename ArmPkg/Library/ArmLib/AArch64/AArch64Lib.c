@@ -66,6 +66,21 @@ ArmHasVhe (
 }
 
 /**
+  Checks whether the CPU implements the Privileged Access Never.
+
+  @retval TRUE  FEAT_PAN is implemented.
+  @retval FALSE FEAT_PAN is not mplemented.
+**/
+BOOLEAN
+EFIAPI
+ArmHasPan (
+  VOID
+  )
+{
+  return ((ArmReadIdAA64Mmfr1 () & AARCH64_MMFR1_PAN) != 0);
+}
+
+/**
   Checks whether the CPU implements the Trace Buffer Extension.
 
   @retval TRUE  FEAT_TRBE is implemented.

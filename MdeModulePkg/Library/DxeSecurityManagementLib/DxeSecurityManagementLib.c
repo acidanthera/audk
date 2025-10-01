@@ -221,6 +221,7 @@ ExecuteSecurityHandlers (
   EFI_HANDLE                Handle;
   EFI_DEVICE_PATH_PROTOCOL  *Node;
   EFI_DEVICE_PATH_PROTOCOL  *FilePathToVerfiy;
+  EFI_FV_FILE_ATTRIBUTES    FileAttributes;
 
   if (FilePath == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -252,12 +253,12 @@ ExecuteSecurityHandlers (
         //
         // Try to get image by FALSE boot policy for the exact boot file path.
         //
-        FileBuffer = GetFileBufferByFilePath (FALSE, FilePath, &FileSize, &AuthenticationStatus);
+        FileBuffer = GetFileBufferByFilePath (FALSE, FilePath, &FileSize, &FileAttributes, &AuthenticationStatus);
         if (FileBuffer == NULL) {
           //
           // Try to get image by TRUE boot policy for the inexact boot file path.
           //
-          FileBuffer = GetFileBufferByFilePath (TRUE, FilePath, &FileSize, &AuthenticationStatus);
+          FileBuffer = GetFileBufferByFilePath (TRUE, FilePath, &FileSize, &FileAttributes, &AuthenticationStatus);
         }
 
         if ((FileBuffer != NULL) && (!EFI_ERROR (Status))) {

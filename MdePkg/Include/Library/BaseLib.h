@@ -5530,6 +5530,160 @@ typedef union {
   UINTN    UintN;
 } IA32_CR4;
 
+#pragma pack (1)
+
+//
+// Global Descriptor Entry structures
+//
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  UINT8     Type : 4;
+  UINT8     S    : 1;
+  UINT8     DPL  : 2;
+  UINT8     P    : 1;
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     AVL                : 1;
+  UINT8     L                  : 1;
+  UINT8     D_B                : 1;
+  UINT8     G                  : 1;
+  UINT8     BaseAddress_31_24;
+} SEGMENT_DESCRIPTOR;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  //
+  // Type
+  //
+  UINT8     Accessed           : 1;
+  UINT8     Writable           : 1;
+  UINT8     ExpansionDirection : 1;
+  UINT8     IsCode             : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Available          : 1;
+  UINT8     Reserved           : 1;
+  UINT8     UpperBound         : 1;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} DATA_SEGMENT_32;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+  //
+  // Type
+  //
+  UINT8     Accessed   : 1;
+  UINT8     Readable   : 1;
+  UINT8     Conforming : 1;
+  UINT8     IsCode     : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Available          : 1;
+  UINT8     Reserved           : 1;
+  UINT8     Is32Bit            : 1;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} CODE_SEGMENT_32;
+
+typedef struct {
+  UINT32    Reserved1;
+  UINT8     Reserved2;
+  //
+  // Type
+  //
+  UINT8     Accessed   : 1;
+  UINT8     Readable   : 1;
+  UINT8     Conforming : 1;
+  UINT8     IsCode     : 1;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     Reserved3   : 4;
+  UINT8     Available   : 1;
+  UINT8     LongMode    : 1;
+  UINT8     Is32Bit     : 1;
+  UINT8     Granularity : 1;
+  UINT8     Reserved4;
+} CODE_SEGMENT_64;
+
+typedef struct {
+  UINT16    SegmentLimit_15_0;
+  UINT16    BaseAddress_15_0;
+  UINT8     BaseAddress_23_16;
+
+  UINT8     Type                     : 4;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+
+  UINT8     SegmentLimit_19_16 : 4;
+  UINT8     Reserved           : 3;
+  UINT8     Granularity        : 1;
+  UINT8     BaseAddress_31_24;
+} SYSTEM_SEGMENT;
+
+typedef struct {
+  UINT16    OffsetInSegment_15_0;
+  UINT16    SegmentSelector;
+
+  UINT8     ParameterCount : 5;
+  UINT8     Reserved       : 3;
+
+  UINT8     Type                     : 4;
+  UINT8     IsNotSystemSegment       : 1;
+  UINT8     DescriptorPrivilegeLevel : 2;
+  UINT8     SegmentPresent           : 1;
+  UINT16    OffsetInSegment_31_16;
+} CALL_GATE_32;
+
+typedef struct {
+  CALL_GATE_32  Common;
+  UINT32        OffsetInSegment_63_31;
+  UINT32        Reserved;
+} CALL_GATE_64;
+
+typedef struct {
+  SEGMENT_DESCRIPTOR Null;
+  DATA_SEGMENT_32    Linear;
+  CODE_SEGMENT_32    LinearCode;
+  CODE_SEGMENT_32    SysCode;
+  DATA_SEGMENT_32    SysData;
+  CODE_SEGMENT_32    Ring3Code32;
+  DATA_SEGMENT_32    Ring3Data32;
+  CODE_SEGMENT_32    SysCode16;
+  CODE_SEGMENT_64    LinearCode64;
+  DATA_SEGMENT_32    LinearData64;
+  SEGMENT_DESCRIPTOR Spare5;
+  DATA_SEGMENT_32    Ring3Data64;
+  CODE_SEGMENT_64    Ring3Code64;
+} GDT;
+
+#pragma pack ()
+
+#define RING0_DATA32_SEL   OFFSET_OF (GDT, SysData)
+#define RING0_CODE32_SEL   OFFSET_OF (GDT, SysCode)
+#define RING3_DATA32_SEL   OFFSET_OF (GDT, Ring3Data32)
+#define RING3_CODE32_SEL   OFFSET_OF (GDT, Ring3Code32)
+
+#define RING0_DATA64_SEL   OFFSET_OF (GDT, LinearData64)
+#define RING0_CODE64_SEL   OFFSET_OF (GDT, LinearCode64)
+#define RING3_DATA64_SEL   OFFSET_OF (GDT, Ring3Data64)
+#define RING3_CODE64_SEL   OFFSET_OF (GDT, Ring3Code64)
+
 ///
 /// Byte packed structure for a segment descriptor in a GDT/LDT.
 ///
@@ -5562,10 +5716,10 @@ typedef struct {
 } IA32_DESCRIPTOR;
   #pragma pack ()
 
-#define IA32_IDT_GATE_TYPE_TASK          0x85
+#define IA32_IDT_GATE_TYPE_TASK          0xE5
 #define IA32_IDT_GATE_TYPE_INTERRUPT_16  0x86
 #define IA32_IDT_GATE_TYPE_TRAP_16       0x87
-#define IA32_IDT_GATE_TYPE_INTERRUPT_32  0x8E
+#define IA32_IDT_GATE_TYPE_INTERRUPT_32  0xEE
 #define IA32_IDT_GATE_TYPE_TRAP_32       0x8F
 
 #define IA32_GDT_TYPE_TSS   0x9
@@ -5629,6 +5783,7 @@ typedef struct {
   UINT16    Reserved_98;
   UINT16    T;
   UINT16    IOMapBaseAddress;
+  UINT32    SSP;
 } IA32_TASK_STATE_SEGMENT;
 
 typedef union {
@@ -6600,6 +6755,24 @@ UINTN
 EFIAPI
 AsmReadCr4 (
   VOID
+  );
+
+/**
+  Writes a value to the EFLAGS register.
+
+  Writes and returns a new value to the EFLAGS register. This function is
+  only available on IA-32 and x64. This writes a 32-bit value on IA-32 and
+  a 64-bit value on x64.
+
+  @param  EFLAGS The value to write to EFLAGS.
+
+  @return The value written to EFLAGS.
+
+**/
+UINTN
+EFIAPI
+AsmWriteEflags (
+  UINTN  Eflags
   );
 
 /**

@@ -206,8 +206,11 @@
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeNonCcFvBase|0x0|UINT32|0x6a
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfDxeNonCcFvSize|0x0|UINT32|0x6b
 
-  ## This flag is used to control the destination port for PlatformDebugLibIoPort
+  ## Controls the destination port for PlatformDebugLibIoPort
   gUefiOvmfPkgTokenSpaceGuid.PcdDebugIoPort|0x402|UINT16|4
+
+  ## Controls the destination ports for SerialPortLib
+  gUefiOvmfPkgTokenSpaceGuid.PcdUartBase|0x3F8|UINT16|0x104
 
   ## When VirtioScsiDxe is instantiated for a HBA, the numbers of targets and
   #  LUNs are retrieved from the host during virtio-scsi setup.

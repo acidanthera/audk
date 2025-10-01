@@ -48,16 +48,36 @@ endstruc
 
 %define VC_EXCEPTION 29
 
-extern ASM_PFX(mErrorCodeFlag)    ; Error code flags for exceptions
 extern ASM_PFX(mDoFarReturnFlag)  ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
 SECTION .data
+ALIGN   4096
+
+global ASM_PFX(CorePageTable)
+ASM_PFX(CorePageTable):
+  resq 1
+
+;
+; Error code flag indicating whether or not an error code will be
+; pushed on the stack if an exception occurs.
+;
+; 1 means an error code will be pushed, otherwise 0
+;
+global ASM_PFX(mErrorCodeFlag)
+ASM_PFX(mErrorCodeFlag):
+  dd 0x20227d00
+
+ALIGN   4096
+Padding:
+  db 0x0
 
 DEFAULT REL
 SECTION .text
 
-ALIGN   8
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerBase)
+ASM_PFX(ExceptionHandlerBase):
 
 ; Generate NUM_VECTORS IDT vectors.
 AsmIdtVectorBegin:
@@ -174,6 +194,21 @@ HasErrorCode:
     ; is 16-byte aligned
     ;
 
+    ; Check whether User Space process was interrupted.
+    push    rax
+    mov     rax, [rbp + 8*4] ; CS
+    and     rax, 3
+    jz      NoCr3Switch
+    mov     rax, cr3
+    push    rax              ; UserPageTable
+    mov     rax, [ASM_PFX(CorePageTable)]
+    mov     cr3, rax
+    mov     rax, [rsp + 8]   ; rax
+    push    rax
+
+NoCr3Switch:
+    pop     rax
+
 ;; UINT64  Rdi, Rsi, Rbp, Rsp, Rbx, Rdx, Rcx, Rax;
 ;; UINT64  R8, R9, R10, R11, R12, R13, R14, R15;
     push r15
@@ -206,6 +241,12 @@ HasErrorCode:
     push    rax
     mov     rax, gs
     push    rax
+
+    mov     ax, ss
+    mov     ds, ax
+    mov     es, ax
+    mov     fs, ax
+    mov     gs, ax
 
     mov     [rbp + 8], rcx               ; save vector number
 
@@ -356,7 +397,6 @@ DrFinish:
     incsspq rax                 ; SSP should be 0xFC0 now
 CetDone:
 %endif
-
     cli
 ;; UINT64  ExceptionData;
     add     rsp, 8
@@ -398,10 +438,9 @@ CetDone:
 
 ;; UINT64  Gs, Fs, Es, Ds, Cs, Ss;
     pop     rax
-    ; mov     gs, rax ; not for gs
+    mov     gs, rax
     pop     rax
-    ; mov     fs, rax ; not for fs
-    ; (X64 will not use fs and gs, so we do not restore it)
+    mov     fs, rax
     pop     rax
     mov     es, rax
     pop     rax
@@ -413,7 +452,7 @@ CetDone:
 ;; UINT64  R8, R9, R10, R11, R12, R13, R14, R15;
     pop     rdi
     pop     rsi
-    add     rsp, 8               ; not for rbp
+    add     rsp, 8           ; not for rbp
     pop     qword [rbp + 48] ; for rsp
     pop     rbx
     pop     rdx
@@ -427,6 +466,13 @@ CetDone:
     pop     r13
     pop     r14
     pop     r15
+
+    ; Check whether User Space process was interrupted.
+    push    rax
+    mov     rax, [rbp + 8*4] ; CS
+    and     rax, 3
+    pop     rax
+    jnz     ReturnToRing3
 
     mov     rsp, rbp
     pop     rbp
@@ -454,6 +500,18 @@ DoReturn:
     retfq
 DoIret:
     iretq
+ReturnToRing3:
+    pop     rax ; UserPageTable
+    mov     cr3, rax
+    pop     rax
+    mov     rsp, rbp
+    pop     rbp
+    add     rsp, 16
+    iretq
+
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerEnd)
+ASM_PFX(ExceptionHandlerEnd):
 
 ;-------------------------------------------------------------------------------------
 ;  GetTemplateAddressMap (&AddressMap);

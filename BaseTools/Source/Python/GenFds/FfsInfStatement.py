@@ -899,7 +899,8 @@ class FfsInfStatement(FfsInfStatementClassObject):
                                              self.ModuleGuid, Fixed=Rule.Fixed,
                                              CheckSum=Rule.CheckSum, Align=Rule.Alignment,
                                              SectionAlign=SectionAlignments,
-                                             MakefilePath=MakefilePath
+                                             MakefilePath=MakefilePath,
+                                             User=self.User
                                              )
         return FfsOutput
 
@@ -1072,7 +1073,8 @@ class FfsInfStatement(FfsInfStatementClassObject):
                                              self.ModuleGuid, Fixed=Rule.Fixed,
                                              CheckSum=Rule.CheckSum, Align=Rule.Alignment,
                                              SectionAlign=Alignments,
-                                             MakefilePath=MakefilePath
+                                             MakefilePath=MakefilePath,
+                                             User=self.User
                                              )
         return FfsOutput
 

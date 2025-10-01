@@ -41,6 +41,20 @@ extern UINTN                   gMaxExceptionNumber;
 extern EFI_EXCEPTION_CALLBACK  gExceptionHandlers[];
 extern PHYSICAL_ADDRESS        gExceptionVectorAlignmentMask;
 
+EXCEPTION_ADDRESSES   mAddresses;
+
+VOID
+ExceptionHandlerBase (
+  VOID
+  );
+
+VOID
+ExceptionHandlerFinal (
+  VOID
+  );
+
+extern UINTN          CorePageTable;
+
 /**
 Initializes all CPU exceptions entries and provides the default exception handlers.
 
@@ -131,7 +145,7 @@ RegisterCpuInterruptHandler (
   return RETURN_SUCCESS;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 CommonCExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
@@ -141,14 +155,14 @@ CommonCExceptionHandler (
   if ((UINTN)ExceptionType <= gMaxExceptionNumber) {
     if (gExceptionHandlers[ExceptionType]) {
       gExceptionHandlers[ExceptionType](ExceptionType, SystemContext);
-      return;
+      return EFI_SUCCESS;
     }
   } else {
     DEBUG ((DEBUG_ERROR, "Unknown exception type %d\n", ExceptionType));
     ASSERT (FALSE);
   }
 
-  DefaultExceptionHandler (ExceptionType, SystemContext);
+  return DefaultExceptionHandler (ExceptionType, SystemContext);
 }
 
 /**
@@ -173,4 +187,29 @@ InitializeSeparateExceptionStacks (
   )
 {
   return EFI_SUCCESS;
+}
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
+  )
+{
+  return &mAddresses;
+}
+
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  mAddresses.ExceptionStackBase   = (UINTN)Buffer;
+  mAddresses.ExceptionStackSize   = BufferSize;
+  mAddresses.ExceptionHandlerBase = (UINTN)ExceptionHandlerBase;
+  mAddresses.ExceptionHandlerSize = (UINTN)ExceptionHandlerFinal - mAddresses.ExceptionHandlerBase;
+  mAddresses.ExceptionDataBase    = (UINTN)&CorePageTable;
+
+  CorePageTable = (UINTN)ArmGetTTBR0BaseAddress ();
 }

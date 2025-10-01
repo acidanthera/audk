@@ -104,3 +104,21 @@ InitializeSeparateExceptionStacks (
 {
   return EFI_UNSUPPORTED;
 }
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
+  )
+{
+  return NULL;
+}
+
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+}

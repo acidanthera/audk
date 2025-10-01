@@ -86,6 +86,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/OrderedCollectionLib.h>
 #include <Library/CpuArchLib.h>
+#include <Library/MemoryPoolLib.h>
 
 //
 // attributes for reserved memory before it is promoted to system memory
@@ -113,6 +114,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 /// Define the initial size of the dependency expression evaluation stack
 ///
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
+
+#define STACK_SIZE                  0x20000
+#define USER_SPACE_INTERFACES_PAGES 20
 
 typedef struct {
   EFI_GUID     *ProtocolGuid;
@@ -224,8 +228,18 @@ typedef struct {
   /// Status returned by LoadImage() service.
   EFI_STATUS                              LoadImageStatus;
 
-  VOID *HiiData;
+  VOID                                    *HiiData;
+  BOOLEAN                                 IsUserImage;
+  UINTN                                   UserPageTable;
 } LOADED_IMAGE_PRIVATE_DATA;
+
+typedef struct {
+  VOID        *CoreWrapper;
+  VOID        *UserSpaceDriver;
+  UINTN       UserPageTable;
+  UINT8       NumberOfCalls;
+  LIST_ENTRY  Link;
+} USER_SPACE_DRIVER;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \
           CR(a, LOADED_IMAGE_PRIVATE_DATA, Info, LOADED_IMAGE_PRIVATE_DATA_SIGNATURE)
@@ -265,18 +279,17 @@ extern EFI_RUNTIME_ARCH_PROTOCOL         gRuntimeTemplate;
 extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfigurationTable;
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
 extern LOADED_IMAGE_PRIVATE_DATA  *                mCurrentImage;
+
+extern USER_SPACE_DATA                   *gUserSpaceData;
+extern VOID                              *gUserSpaceInterfaces;
+extern VOID                              *gUserSpaceEntryPoint;
+extern UINTN                             gUserPageTable;
+extern UINTN                             gCorePageTable;
+extern LIST_ENTRY                        gUserSpaceDriversHead;
+
 //
 // Service Initialization Functions
 //
-
-/**
-  Called to initialize the pool.
-
-**/
-VOID
-CoreInitializePool (
-  VOID
-  );
 
 VOID
 CoreSetMemoryTypeInformationRange (
@@ -1230,80 +1243,6 @@ CoreGetMemoryMap (
   );
 
 /**
-  Allocate pool of a particular type.
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  Buffer                 The address to return a pointer to the allocated
-                                 pool
-
-  @retval EFI_INVALID_PARAMETER  PoolType not valid or Buffer is NULL
-  @retval EFI_OUT_OF_RESOURCES   Size exceeds max pool size or allocation failed.
-  @retval EFI_SUCCESS            Pool successfully allocated.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreAllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  );
-
-/**
-  Allocate pool of a particular type.
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  Buffer                 The address to return a pointer to the allocated
-                                 pool
-
-  @retval EFI_INVALID_PARAMETER  PoolType not valid or Buffer is NULL
-  @retval EFI_OUT_OF_RESOURCES   Size exceeds max pool size or allocation failed.
-  @retval EFI_SUCCESS            Pool successfully allocated.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreInternalAllocatePool (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  OUT VOID            **Buffer
-  );
-
-/**
-  Frees pool.
-
-  @param  Buffer                 The allocated pool entry to free
-
-  @retval EFI_INVALID_PARAMETER  Buffer is not a valid value.
-  @retval EFI_SUCCESS            Pool successfully freed.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreFreePool (
-  IN VOID  *Buffer
-  );
-
-/**
-  Frees pool.
-
-  @param  Buffer                 The allocated pool entry to free
-  @param  PoolType               Pointer to pool type
-
-  @retval EFI_INVALID_PARAMETER  Buffer is not a valid value.
-  @retval EFI_SUCCESS            Pool successfully freed.
-
-**/
-EFI_STATUS
-EFIAPI
-CoreInternalFreePool (
-  IN VOID              *Buffer,
-  OUT EFI_MEMORY_TYPE  *PoolType OPTIONAL
-  );
-
-/**
   Loads an EFI image into memory and returns a handle to the image.
 
   @param  BootPolicy              If TRUE, indicates that the request originates
@@ -1357,7 +1296,7 @@ CoreLoadImage (
   @retval EFI_SUCCESS             The image has been unloaded.
   @retval EFI_UNSUPPORTED         The image has been started, and does not support
                                   unload.
-  @retval EFI_INVALID_PARAMPETER  ImageHandle is not a valid image handle.
+  @retval EFI_INVALID_PARAMETER   ImageHandle is not a valid image handle.
 
 **/
 EFI_STATUS
@@ -2460,52 +2399,6 @@ ProduceFVBProtocolOnBuffer (
   );
 
 /**
-  Raising to the task priority level of the mutual exclusion
-  lock, and then acquires ownership of the lock.
-
-  @param  Lock               The lock to acquire
-
-  @return Lock owned
-
-**/
-VOID
-CoreAcquireLock (
-  IN EFI_LOCK  *Lock
-  );
-
-/**
-  Initialize a basic mutual exclusion lock.   Each lock
-  provides mutual exclusion access at it's task priority
-  level.  Since there is no-premption (at any TPL) or
-  multiprocessor support, acquiring the lock only consists
-  of raising to the locks TPL.
-
-  @param  Lock               The EFI_LOCK structure to initialize
-
-  @retval EFI_SUCCESS        Lock Owned.
-  @retval EFI_ACCESS_DENIED  Reentrant Lock Acquisition, Lock not Owned.
-
-**/
-EFI_STATUS
-CoreAcquireLockOrFail (
-  IN EFI_LOCK  *Lock
-  );
-
-/**
-  Releases ownership of the mutual exclusion lock, and
-  restores the previous task priority level.
-
-  @param  Lock               The lock to release
-
-  @return Lock unowned
-
-**/
-VOID
-CoreReleaseLock (
-  IN EFI_LOCK  *Lock
-  );
-
-/**
   Read data from Firmware Block by FVB protocol Read.
   The data may cross the multi block ranges.
 
@@ -2728,12 +2621,14 @@ RemoveImageRecord (
   @param[in]  LoadedImage              The loaded image protocol
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[in]  IsUserImage              Whether the loaded image is in user space.
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
-  IN UINT8                         ImageOrigin,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UINT8                            ImageOrigin,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN BOOLEAN                          IsUserImage
   );
 
 /**
@@ -2746,6 +2641,11 @@ VOID
 UnprotectUefiImage (
   IN EFI_LOADED_IMAGE_PROTOCOL  *LoadedImage,
   IN EFI_DEVICE_PATH_PROTOCOL   *LoadedImageDevicePath
+  );
+
+UEFI_IMAGE_RECORD *
+GetUefiImageRecord (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
 /**
@@ -2807,6 +2707,88 @@ MergeMemoryMap (
 EFI_STATUS
 CoreInitializeHandleServices (
   VOID
+  );
+
+/**
+  Set UEFI image memory attributes.
+
+  @param[in]  BaseAddress            Specified start address
+  @param[in]  Length                 Specified length
+  @param[in]  Attributes             Specified attributes
+**/
+VOID
+SetUefiImageMemoryAttributes (
+  IN UINT64  BaseAddress,
+  IN UINT64  Length,
+  IN UINT64  Attributes
+  );
+
+/**
+  Set UEFI image protection attributes.
+
+  @param[in]  ImageRecord    A UEFI image record
+  @param[in]  IsUser         Whether UEFI image record is User Image.
+**/
+VOID
+SetUefiImageProtectionAttributes (
+  IN UEFI_IMAGE_RECORD  *ImageRecord,
+  IN BOOLEAN            IsUser
+  );
+
+EFI_STATUS
+EFIAPI
+CoreBootServices (
+  IN UINT8  Type,
+  ...
+  );
+
+EFI_STATUS
+EFIAPI
+CallBootService (
+  IN UINT8  Type,
+  IN UINT8  NumberOfArguments,
+  IN UINTN  *UserArguments,
+  IN UINTN  ReturnSP
+  );
+
+VOID
+EFIAPI
+AllowSupervisorAccessToUserMemory (
+  VOID
+  );
+
+VOID
+EFIAPI
+ForbidSupervisorAccessToUserMemory (
+  VOID
+  );
+
+EFI_STATUS
+EFIAPI
+GoToUserSpace (
+  IN UINT8              Number,
+  IN VOID               *EntryPoint,
+  IN USER_SPACE_DRIVER  *UserDriver,
+  ...
+  );
+
+EFI_STATUS
+EFIAPI
+InitializeUserSpace (
+  IN EFI_HANDLE                 ImageHandle,
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  );
+
+VOID
+EFIAPI
+FreeProtocolsList (
+  VOID
+  );
+
+UINTN
+EFIAPI
+InitializeUserPageTable (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
   );
 
 #endif
