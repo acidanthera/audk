@@ -1145,10 +1145,12 @@ ApplyMemoryProtectionPolicy (
     //
     // FreePages
     //
-    gCpu->GetMemoryAttributes (gCpu, Memory, &CurrentAttributes);
+    if (gUserPageTable != 0) {
+      gCpu->GetMemoryAttributes (gCpu, Memory, &CurrentAttributes);
 
-    if ((gUserPageTable != 0) && ((CurrentAttributes & EFI_MEMORY_USER) != 0)) {
-      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
+      if ((CurrentAttributes & EFI_MEMORY_USER) != 0) {
+        gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
+      }
     }
   }
 
