@@ -53,6 +53,10 @@ CHAR8 *SysCallNames[] = {
   "SysCallUnicodeStrUpr",
   "SysCallUnicodeFatToStr",
   "SysCallUnicodeStrToFat",
+  //
+  // Helper functions
+  //
+  "SysCallGetUserPageTable",
   "SysCallMax"
 };
 
@@ -1358,7 +1362,7 @@ CallBootService (
         gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + 2 * (Arguments[2] + 1) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
-        Argument5 = (UINTN)AllocatePool (2 * (Arguments[2] + 1));
+        Argument5 = (UINTN)AllocateZeroPool (2 * (Arguments[2] + 1));
         if ((VOID *)Argument5 == NULL) {
           if ((VOID *)Argument4 != NULL) {
             FreePool ((VOID *)Argument4);
