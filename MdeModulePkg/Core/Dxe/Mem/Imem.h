@@ -65,41 +65,6 @@ CoreFreePoolPages (
   );
 
 /**
-  Internal function to allocate pool of a particular type.
-  Caller must have the memory lock held
-
-  @param  PoolType               Type of pool to allocate
-  @param  Size                   The amount of pool to allocate
-  @param  NeedGuard              Flag to indicate Guard page is needed or not
-
-  @return The allocate pool, or NULL
-
-**/
-VOID *
-CoreAllocatePoolI (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            Size,
-  IN BOOLEAN          NeedGuard
-  );
-
-/**
-  Internal function to free a pool entry.
-  Caller must have the memory lock held
-
-  @param  Buffer                 The allocated pool entry to free
-  @param  PoolType               Pointer to pool type
-
-  @retval EFI_INVALID_PARAMETER  Buffer not valid
-  @retval EFI_SUCCESS            Buffer successfully freed.
-
-**/
-EFI_STATUS
-CoreFreePoolI (
-  IN VOID              *Buffer,
-  OUT EFI_MEMORY_TYPE  *PoolType OPTIONAL
-  );
-
-/**
   Enter critical section by gaining lock on gMemoryLock.
 
 **/

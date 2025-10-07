@@ -150,15 +150,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
   }
 
 //
-// Memory type to guard (matching the related PCD definition)
-//
-#define GUARD_HEAP_TYPE_PAGE   BIT0
-#define GUARD_HEAP_TYPE_POOL   BIT1
-#define GUARD_HEAP_TYPE_FREED  BIT4
-#define GUARD_HEAP_TYPE_ALL         \
-        (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
-
-//
 // Debug message level
 //
 #define HEAP_GUARD_DEBUG_LEVEL  (DEBUG_POOL|DEBUG_PAGE)
@@ -291,20 +282,6 @@ AdjustMemoryS (
   );
 
 /**
-  Check to see if the pool at the given address should be guarded or not.
-
-  @param[in]  MemoryType      Pool type to check.
-
-
-  @return TRUE  The given type of pool should be guarded.
-  @return FALSE The given type of pool should not be guarded.
-**/
-BOOLEAN
-IsPoolTypeToGuard (
-  IN EFI_MEMORY_TYPE  MemoryType
-  );
-
-/**
   Check to see if the page at the given address should be guarded or not.
 
   @param[in]  MemoryType      Page type to check.
@@ -354,53 +331,6 @@ VOID
 EFIAPI
 DumpGuardedMemoryBitmap (
   VOID
-  );
-
-/**
-  Adjust the pool head position to make sure the Guard page is adjavent to
-  pool tail or pool head.
-
-  @param[in]  Memory    Base address of memory allocated.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadA (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  );
-
-/**
-  Get the page base address according to pool head address.
-
-  @param[in]  Memory    Head address of pool to free.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadF (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  );
-
-/**
-  Check to see if the heap guard is enabled for page and/or pool allocation.
-
-  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
-
-  @return TRUE/FALSE.
-**/
-BOOLEAN
-IsHeapGuardEnabled (
-  UINT8  GuardType
   );
 
 /**

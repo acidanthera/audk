@@ -63,19 +63,23 @@ SectionToGcdAttributes (
   // determine protection attributes
   switch (SectionAttributes & TT_DESCRIPTOR_SECTION_AP_MASK) {
     case TT_DESCRIPTOR_SECTION_AP_NO_RW:
+      break;
     case TT_DESCRIPTOR_SECTION_AP_RW_RW:
-      // normal read/write access, do not add additional attributes
+      *GcdAttributes |= EFI_MEMORY_USER;
       break;
 
     // read only cases map to write-protect
     case TT_DESCRIPTOR_SECTION_AP_NO_RO:
-    case TT_DESCRIPTOR_SECTION_AP_RO_RO:
       *GcdAttributes |= EFI_MEMORY_RO;
+      break;
+    case TT_DESCRIPTOR_SECTION_AP_RO_RO:
+      *GcdAttributes |= EFI_MEMORY_USER | EFI_MEMORY_RO;
       break;
   }
 
   // now process eXectue Never attribute
-  if ((SectionAttributes & TT_DESCRIPTOR_SECTION_XN_MASK) != 0) {
+  if ((SectionAttributes & (TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK))
+    == (TT_DESCRIPTOR_SECTION_XN_MASK | TT_DESCRIPTOR_SECTION_PXN_MASK)) {
     *GcdAttributes |= EFI_MEMORY_XP;
   }
 
@@ -156,20 +160,24 @@ PageToGcdAttributes (
   // determine protection attributes
   switch (PageAttributes & TT_DESCRIPTOR_PAGE_AP_MASK) {
     case TT_DESCRIPTOR_PAGE_AP_NO_RW:
+      break;
     case TT_DESCRIPTOR_PAGE_AP_RW_RW:
-      // normal read/write access, do not add additional attributes
+      *GcdAttributes |= EFI_MEMORY_USER;
       break;
 
     // read only cases map to write-protect
     case TT_DESCRIPTOR_PAGE_AP_NO_RO:
-    case TT_DESCRIPTOR_PAGE_AP_RO_RO:
       *GcdAttributes |= EFI_MEMORY_RO;
+      break;
+    case TT_DESCRIPTOR_PAGE_AP_RO_RO:
+      *GcdAttributes |= EFI_MEMORY_RO | EFI_MEMORY_USER;
       break;
   }
 
   // now process eXectue Never attribute
-  if ((PageAttributes & TT_DESCRIPTOR_PAGE_XN_MASK) != 0) {
-    *GcdAttributes |= EFI_MEMORY_XP;
+  if (((PageAttributes & TT_DESCRIPTOR_PAGE_XN_MASK) != 0)
+    && ((*GcdAttributes & EFI_MEMORY_USER) != 0)) {
+      *GcdAttributes |= EFI_MEMORY_XP;
   }
 
   if ((PageAttributes & TT_DESCRIPTOR_PAGE_AF) == 0) {
@@ -468,15 +476,31 @@ EfiAttributeToArmAttribute (
   }
 
   // Determine protection attributes
-  if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
-  } else {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
-  }
+  if ((EfiAttributes & EFI_MEMORY_USER) != 0) {
+    // Determine eXecute Never attribute
+    if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_XN_MASK;
+    }
 
-  // Determine eXecute Never attribute
-  if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
-    ArmAttributes |= TT_DESCRIPTOR_SECTION_XN_MASK;
+    //
+    // TODO: Add PXN for Translation table descriptors.
+    //
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RO_RO;
+    } else {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_RW_RW;
+    }
+  } else {
+    // Determine eXecute Never attribute
+    if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_PXN_MASK;
+    }
+
+    if ((EfiAttributes & EFI_MEMORY_RO) != 0) {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RO;
+    } else {
+      ArmAttributes |= TT_DESCRIPTOR_SECTION_AP_NO_RW;
+    }
   }
 
   if ((EfiAttributes & EFI_MEMORY_RP) == 0) {
@@ -560,6 +584,7 @@ GetMemoryRegionPage (
                                       On output, the base address of the region found.
   @param[out]       RegionLength      The length of the region found.
   @param[out]       RegionAttributes  The attributes of the region found.
+  @param[in]        UserPageTable     The base address of the User page table.
 
   @retval   EFI_SUCCESS             Region found
   @retval   EFI_NOT_FOUND           Region not found
@@ -572,7 +597,8 @@ EFI_STATUS
 GetMemoryRegion (
   IN OUT UINTN  *BaseAddress,
   OUT    UINTN  *RegionLength,
-  OUT    UINTN  *RegionAttributes
+  OUT    UINTN  *RegionAttributes,
+  IN     UINTN  UserPageTable  OPTIONAL
   )
 {
   EFI_STATUS                  Status;
@@ -588,7 +614,11 @@ GetMemoryRegion (
   *RegionLength = 0;
 
   // Obtain page table base
-  FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
+  if (UserPageTable == 0) {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)ArmGetTTBR0BaseAddress ();
+  } else {
+    FirstLevelTable = (ARM_FIRST_LEVEL_DESCRIPTOR *)UserPageTable;
+  }
 
   // Calculate index into first level translation table for start of modification
   TableIndex = TT_DESCRIPTOR_SECTION_BASE_ADDRESS (*BaseAddress) >> TT_DESCRIPTOR_SECTION_BASE_SHIFT;
