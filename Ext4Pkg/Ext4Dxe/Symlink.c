@@ -133,7 +133,7 @@ Ext4ReadSlowSymlink (
   //
   if (SymlinkSizeTmp >= EXT4_EFI_PATH_MAX) {
     DEBUG ((
-      DEBUG_WARN,
+      DEBUG_INFO,
       "[ext4] Warn: symlink path maximum length was hit!\n"
       ));
     return EFI_INVALID_PARAMETER;
@@ -206,7 +206,7 @@ Ext4ReadSymlink (
   // Skip reading, just check encryption flag
   //
   if ((File->Inode->i_flags & EXT4_ENCRYPT_FL) != 0) {
-    DEBUG ((DEBUG_WARN, "[ext4] Warn: symlink is encrypted\n"));
+    DEBUG ((DEBUG_INFO, "[ext4] Warn: symlink is encrypted\n"));
     return EFI_ACCESS_DENIED;
   }
 
