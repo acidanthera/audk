@@ -90,7 +90,7 @@ Ext4SuperblockValidate (
   }
 
   if ((Sb->s_state & EXT4_FS_STATE_UNMOUNTED) == 0) {
-    DEBUG ((DEBUG_WARN, "[ext4] Filesystem was not unmounted cleanly\n"));
+    DEBUG ((DEBUG_INFO, "[ext4] Filesystem was not unmounted cleanly\n"));
   }
 
   return TRUE;
@@ -215,7 +215,7 @@ Ext4OpenSuperblock (
   }
 
   if (EXT4_HAS_INCOMPAT (Partition, EXT4_FEATURE_INCOMPAT_RECOVER)) {
-    DEBUG ((DEBUG_WARN, "[ext4] Needs journal recovery, mounting read-only\n"));
+    DEBUG ((DEBUG_INFO, "[ext4] Needs journal recovery, mounting read-only\n"));
     Partition->ReadOnly = TRUE;
   }
 
@@ -233,7 +233,7 @@ Ext4OpenSuperblock (
   UnsupportedRoCompat = Partition->FeaturesRoCompat & ~gSupportedRoCompatFeat;
 
   if (UnsupportedRoCompat != 0) {
-    DEBUG ((DEBUG_WARN, "[ext4] Unsupported ro compat %x\n", UnsupportedRoCompat));
+    DEBUG ((DEBUG_INFO, "[ext4] Unsupported ro compat %x\n", UnsupportedRoCompat));
     Partition->ReadOnly = TRUE;
   }
 
