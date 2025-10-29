@@ -237,7 +237,7 @@ CheckToolImageReloc (
   // FIXME: Update drivers?
   if (Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER &&
        Segment->Write) {
-    printf("!!! writable reloc at %x !!!\n", Reloc->Target);
+    printf("WARNING: Writable reloc at %x!\n", Reloc->Target);
     //DEBUG_RAISE ();
     //return false;
   }
@@ -311,6 +311,7 @@ CheckToolImageDebugInfo (
 {
   if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
     DEBUG_RAISE ();
+    printf("ERROR: Debug symbol path exceeds maximum allowed range of %u bytes!\n", MAX_UINT8);
     return false;
   }
 
