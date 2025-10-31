@@ -856,24 +856,24 @@ SmmEndOfS3ResumeHandler (
 /**
   Place holder function until all the SMM System Table Service are available.
 
-  @param  Arg1                   Undefined
-  @param  Arg2                   Undefined
-  @param  Arg3                   Undefined
-  @param  Arg4                   Undefined
-  @param  Arg5                   Undefined
+  @param[in]      This              Undefined
+  @param[in]      Width             Undefined
+  @param[in]      Address           Undefined
+  @param[in]      Count             Undefined
+  @param[in,out]  Buffer            Undefined
 
   @return EFI_NOT_AVAILABLE_YET
 
 **/
 EFI_STATUS
 EFIAPI
-SmmEfiNotAvailableYetArg5 (
-  UINTN  Arg1,
-  UINTN  Arg2,
-  UINTN  Arg3,
-  UINTN  Arg4,
-  UINTN  Arg5
-  );
+SmmEfiNotAvailableYetMmCpuIo (
+  IN     CONST EFI_MM_CPU_IO_PROTOCOL    *This,
+  IN     EFI_MM_IO_WIDTH                 Width,
+  IN     UINT64                          Address,
+  IN     UINTN                           Count,
+  IN OUT VOID                            *Buffer
+);
 
 //
 // Functions used during debug builds
