@@ -23,6 +23,25 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/Tpm2CommandLib.h>
 #include <Library/HashLib.h>
 
+BOOLEAN
+EFIAPI
+HashUpdateWrapper (
+  IN OUT VOID        *HashContext,
+  IN     CONST VOID  *Data,
+  IN     UINTN       DataSize
+  )
+{
+  EFI_STATUS    Status;
+
+  Status = HashUpdate (
+    (HASH_HANDLE) HashContext,
+    (VOID *) Data,
+    DataSize
+  );
+
+  return (!EFI_ERROR (Status));
+}
+
 STATIC
 EFI_STATUS
 EFIAPI
@@ -34,7 +53,7 @@ UifiImageHashUpdate (
   return UefiImageHashImageDefault (
            ImageContext,
            (VOID *)HashHandle,
-           (UEFI_IMAGE_LOADER_HASH_UPDATE)HashUpdate
+           (UEFI_IMAGE_LOADER_HASH_UPDATE)HashUpdateWrapper
            ) ? EFI_SUCCESS : EFI_ABORTED;
 }
 
