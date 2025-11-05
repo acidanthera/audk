@@ -63,7 +63,7 @@ ALIGN   8
 AsmIdtVectorBegin:
 %assign Vector 0
 %rep  NUM_VECTORS
-    push    strict dword %[Vector] ; This instruction pushes sign-extended 8-byte value on stack
+    push    strict qword %[Vector] ; This instruction pushes sign-extended 8-byte value on stack
     push    rax
     ; This code is not copied, thus relative addressing is safe.
     lea     rax, [ASM_PFX(CommonInterruptEntry)]
@@ -73,7 +73,7 @@ AsmIdtVectorBegin:
 AsmIdtVectorEnd:
 
 HookAfterStubHeaderBegin:
-    push    strict dword 0      ; 0 will be fixed
+    push    strict qword 0      ; 0 will be fixed
 VectorNum:
     push    rax
     ; This code is copied, thus relative addressing would not be safe and we
