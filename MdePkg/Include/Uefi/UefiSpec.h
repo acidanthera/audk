@@ -114,6 +114,11 @@ typedef enum {
 // capable of being dynamically removed from the platform at runtime.
 //
 #define EFI_MEMORY_HOT_PLUGGABLE  0x0000000000100000
+//
+// If this flag is set, the memory region contains user code or data.
+// If this flag is clear, the memory region contains supervisor code or data.
+//
+#define EFI_MEMORY_USER  0x0000000000200000ULL
 
 //
 // Runtime memory attribute
@@ -140,7 +145,7 @@ typedef enum {
 //
 #define EFI_CACHE_ATTRIBUTE_MASK   (EFI_MEMORY_UC | EFI_MEMORY_WC | EFI_MEMORY_WT | EFI_MEMORY_WB | EFI_MEMORY_UCE | EFI_MEMORY_WP)
 #define EFI_MEMORY_ACCESS_MASK     (EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_RO)
-#define EFI_MEMORY_ATTRIBUTE_MASK  (EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_SP | EFI_MEMORY_CPU_CRYPTO)
+#define EFI_MEMORY_ATTRIBUTE_MASK  (EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_SP | EFI_MEMORY_CPU_CRYPTO | EFI_MEMORY_USER)
 
 ///
 /// Memory descriptor version number.
@@ -2020,6 +2025,54 @@ typedef struct {
   EFI_CREATE_EVENT_EX                           CreateEventEx;
 } EFI_BOOT_SERVICES;
 
+typedef enum {
+  //
+  // BootServices
+  //
+  SysCallReturnToCore,
+  SysCallLocateProtocol,
+  SysCallOpenProtocol,
+  SysCallInstallMultipleProtocolInterfaces,
+  SysCallCloseProtocol,
+  SysCallHandleProtocol,
+  SysCallAllocatePages,
+  SysCallFreePages = 7,
+  SysCallRaiseTpl,
+  SysCallRestoreTpl,
+  SysCallLocateHandleBuffer,
+  SysCallCalculateCrc32,
+  //
+  // RuntimeServices
+  //
+  SysCallGetVariable,
+  //
+  // Protocols
+  //
+  SysCallBlockIoReset,
+  SysCallBlockIoRead = 14,
+  SysCallBlockIoWrite = 15,
+  SysCallBlockIoFlush,
+  SysCallDiskIoRead = 17,
+  SysCallDiskIoWrite = 18,
+  SysCallUnicodeStriColl,
+  SysCallUnicodeMetaiMatch,
+  SysCallUnicodeStrLwr,
+  SysCallUnicodeStrUpr,
+  SysCallUnicodeFatToStr,
+  SysCallUnicodeStrToFat,
+  //
+  // Helper functions
+  //
+  SysCallGetUserPageTable,
+  SysCallMax
+} SYS_CALL_TYPE;
+
+#define SC_FREE_PAGES     7
+#define SC_BLOCK_IO_READ  14
+#define SC_BLOCK_IO_WRITE 15
+#define SC_DISK_IO_READ   17
+#define SC_DISK_IO_WRITE  18
+
 ///
 /// Contains a set of GUID/pointer pairs comprised of the ConfigurationTable field in the
 /// EFI System Table.
@@ -2104,6 +2157,19 @@ typedef struct {
   ///
   EFI_CONFIGURATION_TABLE            *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
+
+typedef struct {
+  EFI_SYSTEM_TABLE     SystemTable;
+  VOID                 *EntryPoint;
+  EFI_BOOT_SERVICES    *BootServices;
+  EFI_RUNTIME_SERVICES *RuntimeServices;
+} USER_SPACE_DATA;
+
+typedef struct {
+  UINT8  NumberOfArguments;
+  VOID   *EntryPoint;
+  UINTN  Arguments[];
+} USER_SPACE_CALL_DATA;
 
 /**
   This is the declaration of an EFI image entry point. This entry point is

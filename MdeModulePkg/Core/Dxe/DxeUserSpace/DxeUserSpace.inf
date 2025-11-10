@@ -1,0 +1,69 @@
+## @file
+#
+#  UserSpace driver for SysCalls.
+#
+#  Copyright (c) 2024, Mikhail Krichanov. All rights reserved.
+#  SPDX-License-Identifier: BSD-3-Clause
+#
+##
+
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = DxeUserSpace
+  FILE_GUID                      = 88EA50C2-0DEA-4F13-B691-B506554E632B
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = UserSpaceInitialization
+
+#
+# The following information is for reference only and not required by the build tools.
+#
+#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
+#
+
+[Sources]
+  UserSpace.h
+  DxeUserSpace.c
+  UserSpaceUefiBootServices.c
+  UserSpaceUefiRuntimeServices.c
+  UserSpaceProtocols.c
+
+[Sources.IA32]
+  IA32/SysCall.nasm
+
+[Sources.X64]
+  X64/SysCall.nasm
+
+[Sources.ARM]
+  ARM/SysCall.S
+
+[Sources.AARCH64]
+  AARCH64/SysCall.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  ArmPkg/ArmPkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  DebugLib
+  MemoryPoolLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiRuntimeServicesTableLib
+
+[Protocols]
+  gEfiDevicePathUtilitiesProtocolGuid  ## SOMETIMES_CONSUMES
+  gEfiLoadedImageProtocolGuid          ## SOMETIMES_CONSUMES
+  gEfiDiskIoProtocolGuid               ## SOMETIMES_CONSUMES
+  gEfiBlockIoProtocolGuid              ## SOMETIMES_CONSUMES
+  gEfiDevicePathProtocolGuid           ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollationProtocolGuid     ## SOMETIMES_CONSUMES
+
+[Pcd]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType  ## CONSUMES
+  
+[Depex]
+  TRUE

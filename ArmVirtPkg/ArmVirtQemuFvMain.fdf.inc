@@ -38,6 +38,13 @@ READ_STATUS        = TRUE
 READ_LOCK_CAP      = TRUE
 READ_LOCK_STATUS   = TRUE
 
+APRIORI DXE {
+  INF MdeModulePkg/Universal/DevicePathDxe/DevicePathDxe.inf
+  # The driver responsible for UserSpace initialization (DxeUserSpace.inf)
+  # must be the first USER driver in APRIORI list.
+  INF MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf
+}
+
   INF MdeModulePkg/Core/Dxe/DxeMain.inf
   INF MdeModulePkg/Universal/PCD/Dxe/Pcd.inf
   INF OvmfPkg/Fdt/VirtioFdtDxe/VirtioFdtDxe.inf
@@ -81,8 +88,9 @@ READ_LOCK_STATUS   = TRUE
   #
   INF MdeModulePkg/Universal/Disk/DiskIoDxe/DiskIoDxe.inf
   INF MdeModulePkg/Universal/Disk/PartitionDxe/PartitionDxe.inf
-  INF FatPkg/EnhancedFatDxe/Fat.inf
-  INF MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
+  INF USER FatPkg/EnhancedFatDxe/Fat.inf
+  INF USER MdeModulePkg/Core/Dxe/DxeUserSpace/DxeUserSpace.inf
+  INF USER MdeModulePkg/Universal/Disk/UnicodeCollation/EnglishDxe/EnglishDxe.inf
   INF MdeModulePkg/Universal/Disk/UdfDxe/UdfDxe.inf
   INF OvmfPkg/VirtioFsDxe/VirtioFsDxe.inf
 

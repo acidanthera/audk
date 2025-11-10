@@ -507,6 +507,9 @@ typedef struct {
   UINT32    DFAR;
   UINT32    IFSR;
   UINT32    IFAR;
+  UINT32    SVC_LR;
+  UINT32    TTBR0;
+  UINT32    SP_EL1;
 } EFI_SYSTEM_CONTEXT_ARM;
 
 ///
@@ -591,11 +594,14 @@ typedef struct {
   UINT64    V30[2];
   UINT64    V31[2];
 
-  UINT64    ELR;  // Exception Link Register
-  UINT64    SPSR; // Saved Processor Status Register
-  UINT64    FPSR; // Floating Point Status Register
-  UINT64    ESR;  // Exception syndrome register
-  UINT64    FAR;  // Fault Address Register
+  UINT64    ELR;    // Exception Link Register
+  UINT64    SPSR;   // Saved Processor Status Register
+  UINT64    FPSR;   // Floating Point Status Register
+  UINT64    ESR;    // Exception syndrome register
+  UINT64    FAR;    // Fault Address Register
+  UINT64    Type;   // Exception Type
+  UINT64    TTBR0;  // User Page Table
+  UINT64    SP_EL0; // User Stack Pointer
 } EFI_SYSTEM_CONTEXT_AARCH64;
 
 ///

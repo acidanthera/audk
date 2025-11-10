@@ -21,6 +21,16 @@
 
 #define ASM_FUNC(Name)  _ASM_FUNC(ASM_PFX(Name), .text. ## Name)
 
+#define _ASM_FUNC_ALIGN(Name, Section, Align)       \
+  .global   Name                                  ; \
+  .section  #Section, "ax"                        ; \
+  .type     Name, %function                       ; \
+  .balign   Align                                 ; \
+  Name:
+
+#define ASM_FUNC_ALIGN(Name, Align)  \
+  _ASM_FUNC_ALIGN(ASM_PFX(Name), .text. ## Name, Align)
+
 #define MOV32(Reg, Val)                       \
   movw      Reg, #(Val) & 0xffff            ; \
   movt      Reg, #(Val) >> 16

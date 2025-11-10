@@ -9,6 +9,12 @@
 #ifndef DEFAULT_EXCEPTION_HANDLER_LIB_H_
 #define DEFAULT_EXCEPTION_HANDLER_LIB_H_
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_SYS_CALL_BOOT_SERVICE)(
+  IN EFI_SYSTEM_CONTEXT  Context
+  );
+
 /**
   This is the default action to take on an unexpected exception
 
@@ -16,10 +22,17 @@
   @param  SystemContext    Register state at the time of the Exception
 
 **/
-VOID
+EFI_STATUS
+EFIAPI
 DefaultExceptionHandler (
   IN     EFI_EXCEPTION_TYPE  ExceptionType,
   IN OUT EFI_SYSTEM_CONTEXT  SystemContext
+  );
+
+VOID
+EFIAPI
+InitializeSysCallHandler (
+  IN EFI_SYS_CALL_BOOT_SERVICE  Handler
   );
 
 #endif // DEFAULT_EXCEPTION_HANDLER_LIB_H_

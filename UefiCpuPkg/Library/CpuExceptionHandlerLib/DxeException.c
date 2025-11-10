@@ -30,6 +30,12 @@ UINT8  mBuffer[CPU_STACK_SWITCH_EXCEPTION_NUMBER * CPU_KNOWN_GOOD_STACK_SIZE
 
 STATIC CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER *mDebugImageInfoTable = NULL;
 
+EXCEPTION_ADDRESSES  mAddresses;
+
+extern UINTN         ExceptionHandlerBase;
+extern UINTN         ExceptionHandlerEnd;
+extern UINTN         CorePageTable;
+
 /**
   Common exception handler.
 
@@ -188,4 +194,29 @@ GetImageInfoByIp (
   }
 
   return FALSE;
+}
+
+EXCEPTION_ADDRESSES *
+EFIAPI
+GetExceptionAddresses (
+  VOID
+  )
+{
+  return &mAddresses;
+}
+
+VOID
+EFIAPI
+SetExceptionAddresses (
+  IN VOID   *Buffer,
+  IN UINTN  BufferSize
+  )
+{
+  mAddresses.ExceptionStackBase   = (UINTN)Buffer;
+  mAddresses.ExceptionStackSize   = BufferSize;
+  mAddresses.ExceptionHandlerBase = (UINTN)&ExceptionHandlerBase;
+  mAddresses.ExceptionHandlerSize = (UINTN)&ExceptionHandlerEnd - mAddresses.ExceptionHandlerBase;
+  mAddresses.ExceptionDataBase    = (UINTN)&CorePageTable;
+
+  CorePageTable = AsmReadCr3 ();
 }

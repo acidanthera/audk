@@ -23,6 +23,7 @@ typedef struct {
 STATIC LIST_ENTRY  mAvailableEmulators;
 STATIC EFI_EVENT   mPeCoffEmuProtocolRegistrationEvent;
 STATIC VOID        *mPeCoffEmuProtocolNotifyRegistration;
+STATIC BOOLEAN     mDxeUserSpace = TRUE;
 
 extern BOOLEAN     gBdsStarted;
 
@@ -64,7 +65,10 @@ LOADED_IMAGE_PRIVATE_DATA  mCorePrivateImage = {
   0,                          // Machine
   NULL,                       // PeCoffEmu
   NULL,                       // RuntimeData
-  NULL                        // LoadedImageDevicePath
+  NULL,                       // LoadedImageDevicePath
+  EFI_SUCCESS,                // LoadImageStatus
+  NULL,                       // HiiData
+  FALSE                       // IsUserImage
 };
 //
 // The field is define for Loading modules at fixed address feature to tracker the PEI code
@@ -828,7 +832,7 @@ Done:
   if (DstBufAlocated) {
     ZeroMem ((VOID *)(UINTN)BufferAddress, EFI_PAGES_TO_SIZE (Image->NumberOfPages));
     FreeAlignedPages ((VOID *)(UINTN)BufferAddress, Image->NumberOfPages);
-    Image->ImageBasePage             = 0;
+    Image->ImageBasePage = 0;
   }
 
   if (RelocationData != NULL) {
@@ -1104,6 +1108,7 @@ CoreLoadImageCommon (
   BOOLEAN                         ImageIsFromLoadFile;
   UEFI_IMAGE_LOADER_IMAGE_CONTEXT ImageContext;
   UINT8                           ImageOrigin;
+  EFI_FV_FILE_ATTRIBUTES          FileAttributes;
 
   SecurityStatus = EFI_SUCCESS;
 
@@ -1134,6 +1139,7 @@ CoreLoadImageCommon (
   AuthenticationStatus = 0;
   ImageIsFromFv        = FALSE;
   ImageIsFromLoadFile  = FALSE;
+  FileAttributes       = 0;
 
   //
   // If the caller passed a copy of the file, then just use it
@@ -1205,6 +1211,7 @@ CoreLoadImageCommon (
                      BootPolicy,
                      FilePath,
                      &FHand.SourceSize,
+                     &FileAttributes,
                      &AuthenticationStatus
                      );
     if (FHand.Source == NULL) {
@@ -1340,6 +1347,16 @@ CoreLoadImageCommon (
   Image->Info.Revision     = EFI_LOADED_IMAGE_PROTOCOL_REVISION;
   Image->Info.FilePath     = DuplicateDevicePath (FilePath);
   Image->Info.ParentHandle = ParentImageHandle;
+  Image->IsUserImage       = (FileAttributes & EFI_FV_FILE_ATTRIB_USER) != 0;
+
+  if ((!PcdGetBool (PcdEnableUserSpace)) && Image->IsUserImage && mDxeUserSpace) {
+    //
+    // Do not load DxeUserSpace driver, if UserSpace is disabled.
+    //
+    mDxeUserSpace = FALSE;
+    Status        = EFI_NOT_STARTED;
+    goto Done;
+  }
 
   if (NumberOfPages != NULL) {
     Image->NumberOfPages = *NumberOfPages;
@@ -1435,7 +1452,11 @@ CoreLoadImageCommon (
   }
 
   Status = EFI_SUCCESS;
-  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext);
+  ProtectUefiImage (&Image->Info, ImageOrigin, &ImageContext, Image->IsUserImage);
+
+  if (PcdGetBool (PcdEnableUserSpace) && (gUserSpaceData != NULL) && Image->IsUserImage) {
+    Image->UserPageTable = InitializeUserPageTable (Image);
+  }
 
   RegisterMemoryProfileImage (
     Image->LoadedImageDevicePath,
@@ -1592,6 +1613,8 @@ CoreStartImage (
   UINT64                     HandleDatabaseKey;
   UINTN                      SetJumpFlag;
   EFI_HANDLE                 Handle;
+  UINT64                     Attributes;
+  USER_SPACE_DRIVER          *UserDriver;
 
   Handle = ImageHandle;
 
@@ -1683,7 +1706,43 @@ CoreStartImage (
     // Call the image's entry point
     //
     Image->Started = TRUE;
-    Image->Status  = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+
+    if (PcdGetBool (PcdEnableUserSpace) && (Image->IsUserImage)) {
+      if (gUserSpaceData == NULL) {
+        Image->Status = InitializeUserSpace (ImageHandle, Image);
+        if (EFI_ERROR (Image->Status)) {
+          DEBUG ((DEBUG_ERROR, "Core: Failed to initialize User address space - %r.\n", Image->Status));
+          CpuDeadLoop ();
+        }
+      } else {
+        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
+        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+
+        gUserPageTable = Image->UserPageTable;
+
+        UserDriver = AllocatePool (sizeof (USER_SPACE_DRIVER));
+        if (UserDriver != NULL) {
+          UserDriver->CoreWrapper     = NULL;
+          UserDriver->UserSpaceDriver = (VOID *)Image->EntryPoint;
+          UserDriver->UserPageTable   = Image->UserPageTable;
+          UserDriver->NumberOfCalls   = 0;
+
+          InsertTailList (&gUserSpaceDriversHead, &UserDriver->Link);
+
+          Image->Status = GoToUserSpace (
+                            2,
+                            (VOID *)Image->EntryPoint,
+                            UserDriver,
+                            ImageHandle,
+                            gUserSpaceData
+                            );
+        } else {
+          Image->Status = EFI_OUT_OF_RESOURCES;
+        }
+      }
+    } else {
+      Image->Status = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+    }
 
     //
     // Add some debug information if the image returned with error.
@@ -1893,7 +1952,7 @@ Done:
   @retval EFI_SUCCESS             The image has been unloaded.
   @retval EFI_UNSUPPORTED         The image has been started, and does not support
                                   unload.
-  @retval EFI_INVALID_PARAMPETER  ImageHandle is not a valid image handle.
+  @retval EFI_INVALID_PARAMETER   ImageHandle is not a valid image handle.
 
 **/
 EFI_STATUS
@@ -1920,6 +1979,10 @@ CoreUnloadImage (
     //
     Status = EFI_UNSUPPORTED;
     if (Image->Info.Unload != NULL) {
+      //
+      // TODO: If Image->IsUserImage, use FindInterface() to locate UserSpace
+      // EFI_LOADED_IMAGE_PROTOCOL->Unload() and GoToUserSpace().
+      //
       Status = Image->Info.Unload (ImageHandle);
     }
   } else {

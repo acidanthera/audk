@@ -221,6 +221,24 @@ CpuSetMemoryAttributes (
   IN UINT64                 Attributes
   );
 
+EFI_STATUS
+EFIAPI
+CpuGetMemoryAttributes (
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  EFI_PHYSICAL_ADDRESS   Address,
+  OUT UINT64                 *Attributes
+  );
+
+EFI_STATUS
+EFIAPI
+CpuSetUserMemoryAttributes (
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN UINTN                  UserPageTable,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 Attributes
+  );
+
 /**
   Initialize Global Descriptor Table.
 

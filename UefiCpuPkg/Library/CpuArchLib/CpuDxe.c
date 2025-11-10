@@ -31,7 +31,9 @@ EFI_CPU_ARCH_PROTOCOL  gCpuImpl = {
   CpuGetTimerValue,
   CpuSetMemoryAttributes,
   1,                          // NumberOfTimers
-  4                           // DmaBufferAlignment
+  4,                          // DmaBufferAlignment
+  CpuGetMemoryAttributes,
+  CpuSetUserMemoryAttributes
 };
 
 EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob2 = NULL;
@@ -726,8 +728,9 @@ InitInterruptDescriptorTable (
     //
     // Increase Interrupt Descriptor Table and Copy the old IDT table in
     //
-    IdtTable = AllocateZeroPool (sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM);
+    IdtTable = AllocatePages (EFI_SIZE_TO_PAGES (sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM));
     ASSERT (IdtTable != NULL);
+    SetMem (IdtTable, sizeof (IA32_IDT_GATE_DESCRIPTOR) * CPU_INTERRUPT_NUM, 0);
     CopyMem (IdtTable, (VOID *)IdtDescriptor.Base, sizeof (IA32_IDT_GATE_DESCRIPTOR) * IdtEntryCount);
 
     //

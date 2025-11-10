@@ -2500,6 +2500,8 @@ class FdfParser:
                 raise Warning.Expected("ARCH name", self.FileName, self.CurrentLineNumber)
             FfsInfObj.UseArch = self._Token
 
+        if self._IsKeyword("USER"):
+            FfsInfObj.User = True
 
         if self._GetNextToken():
             p = compile(r'([a-zA-Z0-9\-]+|\$\(TARGET\)|\*)_([a-zA-Z0-9\-]+|\$\(TOOL_CHAIN_TAG\)|\*)_([a-zA-Z0-9\-]+|\$\(ARCH\))')

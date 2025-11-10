@@ -98,6 +98,38 @@ jobs:
               cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
               done
           done
+          rm -r ./Build/*
+        env:
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: GCC
+
+      - name: Build ArmVirtQemu for Linux
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: GCC
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC_ARM_PREFIX: arm-linux-gnueabi-
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
+          BUILD_ARGUMENTS: -D USER_SPACE
+
+      - name: Prepare artifacts with firmwares for Linux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/Linux/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/Linux/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
         env:
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
@@ -194,6 +226,36 @@ jobs:
               cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
               done
           done
+          rm -r ./Build/*
+        env:
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGDWARF
+
+      - name: Build ArmVirtQemu for Linux
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: ARM,AARCH64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D USER_SPACE
+
+      - name: Prepare artifacts with firmwares for Linux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/Linux/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/Linux/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
         env:
           ARCHS: ARM,AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
@@ -272,6 +334,8 @@ jobs:
             for arch in "${ARCHS[@]}"; do
                 echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
                 python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch "$arch"
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN" for Linux
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/Linux/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch "$arch"
             done
           done
         env:
@@ -289,6 +353,8 @@ jobs:
             for arch in "${ARCHS[@]}"; do
               echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
                 python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux --fw-arch "$arch"
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN" for Linux
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/Linux/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux --fw-arch "$arch"
             done
           done
         env:

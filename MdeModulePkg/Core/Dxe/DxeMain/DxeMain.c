@@ -247,6 +247,9 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO         *VectorInfoList;
   EFI_VECTOR_HANDOFF_INFO         *VectorInfo;
 
+  gUserSpaceData = NULL;
+  gUserPageTable = 0;
+
   //
   // Setup Stack Guard
   //
@@ -332,7 +335,7 @@ DxeMain (
 
   CoreInitializeMemoryProtection ();
 
-  ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext);
+  ProtectUefiImage (&mCurrentImage->Info, UefiImageOriginFv, &ImageContext, mCurrentImage->IsUserImage);
 
   //
   // Call constructor for all libraries
@@ -770,6 +773,34 @@ CoreExitBootServices (
   )
 {
   EFI_STATUS  Status;
+
+  //
+  // Free resources allocated for UserSpace.
+  //
+  if (gUserSpaceData != NULL) {
+    AllowSupervisorAccessToUserMemory ();
+    if (gUserSpaceData->SystemTable.ConfigurationTable != NULL) {
+      CoreFreePages (
+        (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData->SystemTable.ConfigurationTable,
+        EFI_SIZE_TO_PAGES (gUserSpaceData->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE))
+      );
+    }
+    ForbidSupervisorAccessToUserMemory ();
+
+    CoreFreePages (
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+      EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
+    );
+
+    gUserSpaceData = NULL;
+
+    CoreFreePages (
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceInterfaces,
+      USER_SPACE_INTERFACES_PAGES
+    );
+
+    FreeProtocolsList ();
+  }
 
   //
   // Notify other drivers of their last chance to use boot services

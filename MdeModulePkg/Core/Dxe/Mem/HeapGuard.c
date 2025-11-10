@@ -573,79 +573,6 @@ UnsetGuardPage (
 }
 
 /**
-  Check to see if the memory at the given address should be guarded or not.
-
-  @param[in]  MemoryType      Memory type to check.
-  @param[in]  AllocateType    Allocation type to check.
-  @param[in]  PageOrPool      Indicate a page allocation or pool allocation.
-
-
-  @return TRUE  The given type of memory should be guarded.
-  @return FALSE The given type of memory should not be guarded.
-**/
-BOOLEAN
-IsMemoryTypeToGuard (
-  IN EFI_MEMORY_TYPE    MemoryType,
-  IN EFI_ALLOCATE_TYPE  AllocateType,
-  IN UINT8              PageOrPool
-  )
-{
-  UINT64  TestBit;
-  UINT64  ConfigBit;
-
-  if (AllocateType == AllocateAddress) {
-    return FALSE;
-  }
-
-  if ((PcdGet8 (PcdHeapGuardPropertyMask) & PageOrPool) == 0) {
-    return FALSE;
-  }
-
-  if (PageOrPool == GUARD_HEAP_TYPE_POOL) {
-    ConfigBit = PcdGet64 (PcdHeapGuardPoolType);
-  } else if (PageOrPool == GUARD_HEAP_TYPE_PAGE) {
-    ConfigBit = PcdGet64 (PcdHeapGuardPageType);
-  } else {
-    ConfigBit = (UINT64)-1;
-  }
-
-  if ((UINT32)MemoryType >= MEMORY_TYPE_OS_RESERVED_MIN) {
-    TestBit = BIT63;
-  } else if ((UINT32)MemoryType >= MEMORY_TYPE_OEM_RESERVED_MIN) {
-    TestBit = BIT62;
-  } else if (MemoryType < EfiMaxMemoryType) {
-    TestBit = LShiftU64 (1, MemoryType);
-  } else if (MemoryType == EfiMaxMemoryType) {
-    TestBit = (UINT64)-1;
-  } else {
-    TestBit = 0;
-  }
-
-  return ((ConfigBit & TestBit) != 0);
-}
-
-/**
-  Check to see if the pool at the given address should be guarded or not.
-
-  @param[in]  MemoryType      Pool type to check.
-
-
-  @return TRUE  The given type of pool should be guarded.
-  @return FALSE The given type of pool should not be guarded.
-**/
-BOOLEAN
-IsPoolTypeToGuard (
-  IN EFI_MEMORY_TYPE  MemoryType
-  )
-{
-  return IsMemoryTypeToGuard (
-           MemoryType,
-           AllocateAnyPages,
-           GUARD_HEAP_TYPE_POOL
-           );
-}
-
-/**
   Check to see if the page at the given address should be guarded or not.
 
   @param[in]  MemoryType      Page type to check.
@@ -661,21 +588,6 @@ IsPageTypeToGuard (
   )
 {
   return IsMemoryTypeToGuard (MemoryType, AllocateType, GUARD_HEAP_TYPE_PAGE);
-}
-
-/**
-  Check to see if the heap guard is enabled for page and/or pool allocation.
-
-  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
-
-  @return TRUE/FALSE.
-**/
-BOOLEAN
-IsHeapGuardEnabled (
-  UINT8  GuardType
-  )
-{
-  return IsMemoryTypeToGuard (EfiMaxMemoryType, AllocateAnyPages, GuardType);
 }
 
 /**
@@ -999,71 +911,6 @@ AdjustMemoryA (
     *Memory        -= EFI_PAGE_SIZE;
     *NumberOfPages += 1;
   }
-}
-
-/**
-  Adjust the pool head position to make sure the Guard page is adjavent to
-  pool tail or pool head.
-
-  @param[in]  Memory    Base address of memory allocated.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadA (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  )
-{
-  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
-    //
-    // Pool head is put near the head Guard
-    //
-    return (VOID *)(UINTN)Memory;
-  }
-
-  //
-  // Pool head is put near the tail Guard
-  //
-  Size = ALIGN_VALUE (Size, 8);
-  return (VOID *)(UINTN)(Memory + EFI_PAGES_TO_SIZE (NoPages) - Size);
-}
-
-/**
-  Get the page base address according to pool head address.
-
-  @param[in]  Memory    Head address of pool to free.
-  @param[in]  NoPages   Number of pages actually allocated.
-  @param[in]  Size      Size of memory requested.
-                        (plus pool head/tail overhead)
-
-  @return Address of pool head.
-**/
-VOID *
-AdjustPoolHeadF (
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages,
-  IN UINTN                 Size
-  )
-{
-  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
-    //
-    // Pool head is put near the head Guard
-    //
-    return (VOID *)(UINTN)Memory;
-  }
-
-  //
-  // Pool head is put near the tail Guard. We need to exactly undo the addition done in AdjustPoolHeadA
-  // because we may not have allocated the pool head on the first allocated page, since we are aligned to
-  // the tail and on some architectures, the runtime page allocation granularity is > one page. So we allocate
-  // more pages than we need and put the pool head somewhere past the first page.
-  //
-  return (VOID *)(UINTN)(Memory + Size - EFI_PAGES_TO_SIZE (NoPages));
 }
 
 /**

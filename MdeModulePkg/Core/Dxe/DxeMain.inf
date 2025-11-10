@@ -22,7 +22,7 @@
 #
 # The following information is for reference only and not required by the build tools.
 #
-#  VALID_ARCHITECTURES           = IA32 X64 EBC (EBC is for build only)
+#  VALID_ARCHITECTURES           = IA32 X64 EBC (EBC is for build only) ARM AARCH64
 #
 
 [Sources]
@@ -36,7 +36,6 @@
   Misc/InstallConfigurationTable.c
   Misc/MemoryAttributesTable.c
   Misc/MemoryProtection.c
-  Library/Library.c
   Hand/DriverSupport.c
   Hand/Notify.c
   Hand/Locate.c
@@ -44,7 +43,6 @@
   Hand/Handle.h
   Gcd/Gcd.c
   Gcd/Gcd.h
-  Mem/Pool.c
   Mem/Page.c
   Mem/MemData.c
   Mem/Imem.h
@@ -67,12 +65,34 @@
   Dispatcher/Dispatcher.c
   DxeMain/DxeProtocolNotify.c
   DxeMain/DxeMain.c
+  SysCall/BootServices.c
+  SysCall/Initialization.c
+  SysCall/SupportedProtocols.h
+  SysCall/SupportedProtocols.c
+
+[Sources.IA32]
+  SysCall/IA32/InitializeIA32.c
+  SysCall/IA32/CoreBootServices.nasm
+
+[Sources.X64]
+  SysCall/X64/InitializeX64.c
+  SysCall/X64/CoreBootServices.nasm
+
+[Sources.ARM]
+  SysCall/ARM/InitializeARM.c
+  SysCall/ARM/CoreBootServices.S
+
+[Sources.AARCH64]
+  SysCall/AARCH64/InitializeAARCH64.c
+  SysCall/AARCH64/CoreBootServices.S
 
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
   OvmfPkg/OvmfPkg.dec
+  ArmPkg/ArmPkg.dec
+  ArmVirtPkg/ArmVirtPkg.dec
 
 [LibraryClasses]
   BaseMemoryLib
@@ -98,6 +118,7 @@
   ImagePropertiesRecordLib
   OrderedCollectionLib
   CpuArchLib
+  MemoryPoolLib
 
 [Guids]
   gEfiEventMemoryMapChangeGuid                  ## PRODUCES             ## Event
@@ -128,6 +149,11 @@
   gEfiEndOfDxeEventGroupGuid                    ## SOMETIMES_CONSUMES   ## Event
   gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_CONSUMES   ## SystemTable
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
+  gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
+
+[Guids.ARM, Guids.AARCH64]
+  gArmVirtSystemMemorySizeGuid                  ## SOMETIMES_CONSUMES   ## SysCall
+  gEarlyPL011BaseAddressGuid                    ## SOMETIMES_CONSUMES   ## SysCall
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB
@@ -159,6 +185,12 @@
   gEfiHiiPackageListProtocolGuid                ## SOMETIMES_PRODUCES
   gEfiSmmBase2ProtocolGuid                      ## SOMETIMES_CONSUMES
   gEdkiiPeCoffImageEmulatorProtocolGuid         ## SOMETIMES_CONSUMES
+  gEfiDevicePathUtilitiesProtocolGuid           ## SOMETIMES_CONSUMES
+  gEfiComponentNameProtocolGuid                 ## SOMETIMES_CONSUMES
+  gEfiDiskIoProtocolGuid                        ## SOMETIMES_CONSUMES
+  gEfiBlockIoProtocolGuid                       ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollationProtocolGuid              ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollation2ProtocolGuid             ## SOMETIMES_CONSUMES
 
   # Arch Protocols
   gEfiBdsArchProtocolGuid                       ## CONSUMES
@@ -192,8 +224,19 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdCpuStackGuard                           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdFwVolDxeMaxEncapsulationDepth           ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdImageLargeAddressLoad                   ## CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdEnableUserSpace                         ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdDebugRaisePropertyMask                        ## CONSUMES
   gEfiMdePkgTokenSpaceGuid.PcdImageProtectionPolicy                         ## CONSUMES
+
+[Pcd.IA32, Pcd.X64]
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUse1GPageTable                          ## SOMETIMES_CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdUse5LevelPageTable                      ## SOMETIMES_CONSUMES
+  gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask        ## CONSUMES
+  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
+  gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
+
+[Pcd.ARM, Pcd.AARCH64]
+  gArmTokenSpaceGuid.PcdSystemMemoryBase                                    ## CONSUMES
 
 # [Hob]
 # RESOURCE_DESCRIPTOR   ## CONSUMES

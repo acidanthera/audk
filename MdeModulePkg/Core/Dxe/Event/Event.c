@@ -95,7 +95,7 @@ CoreAcquireEventLock (
   VOID
   )
 {
-  CoreAcquireLock (&gEventQueueLock);
+  EfiAcquireLock (&gEventQueueLock);
 }
 
 /**
@@ -107,7 +107,7 @@ CoreReleaseEventLock (
   VOID
   )
 {
-  CoreReleaseLock (&gEventQueueLock);
+  EfiReleaseLock (&gEventQueueLock);
 }
 
 /**

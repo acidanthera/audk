@@ -81,6 +81,7 @@ class FfsInfStatementClassObject(FfsClassObject):
         self.KeyStringList = []
         self.KeepReloc = None
         self.UseArch = None
+        self.User = False
 
 ## section data in FDF
 #

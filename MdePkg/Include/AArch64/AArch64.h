@@ -25,9 +25,11 @@
 #define AARCH64_CPTR_TFP      (1 << 10)
 #define AARCH64_CPTR_RES1     0x33ff
 #define AARCH64_CPTR_DEFAULT  AARCH64_CPTR_RES1
+#define AARCH64_CPTR_FPEN     (3 << 20)
 
 // ID_AA64MMFR1 - AArch64 Memory Model Feature Register 0 definitions
 #define AARCH64_MMFR1_VH  (0xF << 8)
+#define AARCH64_MMFR1_PAN (0xF << 20)
 
 // ID_AA64PFR0 - AArch64 Processor Feature Register 0 definitions
 #define AARCH64_PFR0_FP   (0xF << 16)
@@ -44,6 +46,9 @@
 #define SCR_EA   (1 << 3)
 #define SCR_FW   (1 << 4)
 #define SCR_AW   (1 << 5)
+
+// SCTLR - System Control Register definitions
+#define SCTLR_EPAN          BIT57
 
 // MIDR - Main ID Register definitions
 #define ARM_CPU_TYPE_SHIFT  4
@@ -73,6 +78,7 @@
 #define AARCH64_ESR_ISS(Ecr)  ((0x1FFFFFF) & (Ecr))
 
 #define AARCH64_ESR_EC_SMC32  (0x13 << 26)
+#define AARCH64_ESR_EC_SVC64  (0x15 << 26)
 #define AARCH64_ESR_EC_SMC64  (0x17 << 26)
 
 // AArch64 Exception Level
@@ -239,6 +245,11 @@ ArmReadHcr (
 UINTN
 ArmReadCurrentEL (
   VOID
+  );
+
+UINTN
+ArmWriteCptr (
+  IN  UINT64  Cptr
   );
 
 UINT32

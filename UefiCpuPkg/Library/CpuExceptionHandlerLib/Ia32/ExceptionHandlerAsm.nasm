@@ -23,16 +23,34 @@
 ;
 ; CommonExceptionHandler()
 ;
+extern ASM_PFX(mDoFarReturnFlag)          ; Do far return flag
 extern ASM_PFX(CommonExceptionHandler)
 
 SECTION .data
+ALIGN   4096
 
-extern ASM_PFX(mErrorCodeFlag)            ; Error code flags for exceptions
-extern ASM_PFX(mDoFarReturnFlag)          ; Do far return flag
+global ASM_PFX(CorePageTable)
+ASM_PFX(CorePageTable):
+  resd 1
+
+;
+; Error code flag indicating whether or not an error code will be
+; pushed on the stack if an exception occurs.
+;
+; 1 means an error code will be pushed, otherwise 0
+;
+global ASM_PFX(mErrorCodeFlag)
+ASM_PFX(mErrorCodeFlag):
+  dd 0x20227d00
+
+ALIGN   4096
+Padding:
+  db 0x0
 
 SECTION .text
-
-ALIGN   8
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerBase)
+ASM_PFX(ExceptionHandlerBase):
 
 ;
 ; exception handler stub table
@@ -167,6 +185,10 @@ ErrorCodeAndVectorOnStack:
     ;
     ; Stack:
     ; +---------------------+
+    ; +    Old SS           + on CPL change
+    ; +---------------------+
+    ; +    Old ESP          + on CPL change
+    ; +---------------------+
     ; +    EFlags           +
     ; +---------------------+
     ; +    CS               +
@@ -192,22 +214,50 @@ ErrorCodeAndVectorOnStack:
     push    0            ; clear EXCEPTION_HANDLER_CONTEXT.OldIdtHandler
     push    0            ; clear EXCEPTION_HANDLER_CONTEXT.ExceptionDataFlag
 
+    ; Check whether User Space process was interrupted.
+    push    eax
+    mov     eax, [ebp + 4 * 4] ; CS
+    and     eax, 3
+    jz      NoCr3Switch
+    mov     eax, cr3
+    push    eax                ; UserPageTable
+    mov     eax, [ASM_PFX(CorePageTable)]
+    mov     cr3, eax
+    mov     eax, [esp + 4]     ; eax
+    sub     esp, 8
+    push    eax
+
+NoCr3Switch:
+    pop     eax
+
 ;; UINT32  Edi, Esi, Ebp, Esp, Ebx, Edx, Ecx, Eax;
     push    eax
     push    ecx
     push    edx
     push    ebx
     lea     ecx, [ebp + 6 * 4]
-    push    ecx                          ; ESP
+    ; Check whether User Space process was interrupted.
+    mov     eax, [ebp + 4 * 4] ; CS
+    and     eax, 3
+    jz      sameCPL_0
+    mov     ecx, [ecx]
+sameCPL_0:
+    push    ecx                      ; ESP
     push    dword [ebp]              ; EBP
     push    esi
     push    edi
 
 ;; UINT32  Gs, Fs, Es, Ds, Cs, Ss;
     mov     eax, ss
-    push    eax
+    ; Check whether User Space process was interrupted.
+    mov     ecx, [ebp + 4 * 4] ; CS
+    and     ecx, 3
+    jz      sameCPL_1
+    movzx   eax, word [ebp + 7 * 4]
+sameCPL_1:
+    push    eax                     ; for ss
     movzx   eax, word [ebp + 4 * 4]
-    push    eax
+    push    eax                     ; for cs
     mov     eax, ds
     push    eax
     mov     eax, es
@@ -216,6 +266,12 @@ ErrorCodeAndVectorOnStack:
     push    eax
     mov     eax, gs
     push    eax
+
+    mov     eax, ss
+    mov     ds, eax
+    mov     es, eax
+    mov     fs, eax
+    mov     gs, eax
 
 ;; UINT32  Eip;
     mov     eax, [ebp + 3 * 4]
@@ -367,7 +423,15 @@ ErrorCodeAndVectorOnStack:
     pop     es
     pop     ds
     pop     dword [ebp + 4 * 4]
+    ; Check whether User Space process was interrupted.
+    mov     ecx, [ebp + 4 * 4] ; CS
+    and     ecx, 3
+    jz      sameCPL_2
+    pop     dword [ebp + 7 * 4]
+    jmp     continue
+sameCPL_2:
     pop     ss
+continue:
 
 ;; UINT32  Edi, Esi, Ebp, Esp, Ebx, Edx, Ecx, Eax;
     pop     edi
@@ -378,6 +442,13 @@ ErrorCodeAndVectorOnStack:
     pop     edx
     pop     ecx
     pop     eax
+
+    ; Check whether User Space process was interrupted.
+    push    eax
+    mov     eax, [ebp + 4 * 4] ; CS
+    and     eax, 3
+    pop     eax
+    jnz     ReturnToRing3
 
     pop     dword [ebp - 8]
     pop     dword [ebp - 4]
@@ -406,6 +477,19 @@ DoReturn:
 
 DoIret:
     iretd
+ReturnToRing3:
+    add     esp, 8
+    pop     eax ; UserPageTable
+    mov     cr3, eax
+    pop     eax
+    mov     esp, ebp
+    pop     ebp
+    add     esp, 8
+    iretd
+
+ALIGN   4096
+global ASM_PFX(ExceptionHandlerEnd)
+ASM_PFX(ExceptionHandlerEnd):
 
 ;---------------------------------------;
 ; _AsmGetTemplateAddressMap                  ;

@@ -6,9 +6,14 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include "DxeMain.h"
-#include "Imem.h"
-#include "HeapGuard.h"
+#include <Guid/MemoryProfile.h>
+
+#include <Library/DebugLib.h>
+#include <Library/MemoryPoolLib.h>
+#include <Library/PcdLib.h>
+#include <Library/UefiLib.h>
+
+#include "InternalPool.h"
 
 STATIC EFI_LOCK  mPoolMemoryLock = EFI_INITIALIZE_LOCK_VARIABLE (TPL_NOTIFY);
 
@@ -75,12 +80,83 @@ typedef struct {
 //
 // Pool header for each memory type.
 //
-POOL  mPoolHead[EfiMaxMemoryType];
+POOL  mPoolHead[MAX_MEMORY_TYPE];
+
+STATIC_ASSERT (MAX_MEMORY_TYPE > EfiMaxMemoryType, "PcdMaxMemoryType must be greater than EfiMaxMemoryType");
+
+STATIC BOOLEAN  mIsCore;
 
 //
 // List of pool header to search for the appropriate memory type.
 //
 LIST_ENTRY  mPoolHeadList = INITIALIZE_LIST_HEAD_VARIABLE (mPoolHeadList);
+
+/**
+  Adjust the pool head position to make sure the Guard page is adjavent to
+  pool tail or pool head.
+
+  @param[in]  Memory    Base address of memory allocated.
+  @param[in]  NoPages   Number of pages actually allocated.
+  @param[in]  Size      Size of memory requested.
+                        (plus pool head/tail overhead)
+
+  @return Address of pool head.
+**/
+STATIC
+VOID *
+AdjustPoolHeadA (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages,
+  IN UINTN                 Size
+  )
+{
+  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
+    //
+    // Pool head is put near the head Guard
+    //
+    return (VOID *)(UINTN)Memory;
+  }
+
+  //
+  // Pool head is put near the tail Guard
+  //
+  Size = ALIGN_VALUE (Size, 8);
+  return (VOID *)(UINTN)(Memory + EFI_PAGES_TO_SIZE (NoPages) - Size);
+}
+
+/**
+  Get the page base address according to pool head address.
+
+  @param[in]  Memory    Head address of pool to free.
+  @param[in]  NoPages   Number of pages actually allocated.
+  @param[in]  Size      Size of memory requested.
+                        (plus pool head/tail overhead)
+
+  @return Address of pool head.
+**/
+STATIC
+VOID *
+AdjustPoolHeadF (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages,
+  IN UINTN                 Size
+  )
+{
+  if ((Memory == 0) || ((PcdGet8 (PcdHeapGuardPropertyMask) & BIT7) != 0)) {
+    //
+    // Pool head is put near the head Guard
+    //
+    return (VOID *)(UINTN)Memory;
+  }
+
+  //
+  // Pool head is put near the tail Guard. We need to exactly undo the addition done in AdjustPoolHeadA
+  // because we may not have allocated the pool head on the first allocated page, since we are aligned to
+  // the tail and on some architectures, the runtime page allocation granularity is > one page. So we allocate
+  // more pages than we need and put the pool head somewhere past the first page.
+  //
+  return (VOID *)(UINTN)(Memory + Size - EFI_PAGES_TO_SIZE (NoPages));
+}
 
 /**
   Get pool size table index from the specified size.
@@ -113,11 +189,13 @@ GetPoolIndexFromSize (
 **/
 VOID
 CoreInitializePool (
-  VOID
+  IN BOOLEAN  IsCore
   )
 {
   UINTN  Type;
   UINTN  Index;
+
+  mIsCore = IsCore;
 
   for (Type = 0; Type < EfiMaxMemoryType; Type++) {
     mPoolHead[Type].Signature  = 0;
@@ -137,6 +215,7 @@ CoreInitializePool (
   @return Pointer of Corresponding pool head.
 
 **/
+STATIC
 POOL *
 LookupPoolHead (
   IN EFI_MEMORY_TYPE  MemoryType
@@ -145,6 +224,14 @@ LookupPoolHead (
   LIST_ENTRY  *Link;
   POOL        *Pool;
   UINTN       Index;
+
+  if (!mIsCore) {
+    if ((UINT32)MemoryType < MAX_MEMORY_TYPE) {
+      return &mPoolHead[MemoryType];
+    }
+
+    return NULL;
+  }
 
   if ((UINT32)MemoryType < EfiMaxMemoryType) {
     return &mPoolHead[MemoryType];
@@ -212,8 +299,8 @@ CoreInternalAllocatePool (
   //
   // If it's not a valid type, fail it
   //
-  if (((PoolType >= EfiMaxMemoryType) && (PoolType < MEMORY_TYPE_OEM_RESERVED_MIN)) ||
-      (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType))
+  if (mIsCore && (((PoolType >= EfiMaxMemoryType) && (PoolType < MEMORY_TYPE_OEM_RESERVED_MIN)) ||
+      (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType)))
   {
     return EFI_INVALID_PARAMETER;
   }
@@ -237,13 +324,13 @@ CoreInternalAllocatePool (
   //
   // Acquire the memory lock and make the allocation
   //
-  Status = CoreAcquireLockOrFail (&mPoolMemoryLock);
+  Status = EfiAcquireLockOrFail (&mPoolMemoryLock);
   if (EFI_ERROR (Status)) {
     return EFI_OUT_OF_RESOURCES;
   }
 
   *Buffer = CoreAllocatePoolI (PoolType, Size, NeedGuard);
-  CoreReleaseLock (&mPoolMemoryLock);
+  EfiReleaseLock (&mPoolMemoryLock);
   return (*Buffer != NULL) ? EFI_SUCCESS : EFI_OUT_OF_RESOURCES;
 }
 
@@ -289,54 +376,6 @@ CoreAllocatePool (
 }
 
 /**
-  Internal function.  Used by the pool functions to allocate pages
-  to back pool allocation requests.
-
-  @param  PoolType               The type of memory for the new pool pages
-  @param  NoPages                No of pages to allocate
-  @param  Granularity            Bits to align.
-  @param  NeedGuard              Flag to indicate Guard page is needed or not
-
-  @return The allocated memory, or NULL
-
-**/
-STATIC
-VOID *
-CoreAllocatePoolPagesI (
-  IN EFI_MEMORY_TYPE  PoolType,
-  IN UINTN            NoPages,
-  IN UINTN            Granularity,
-  IN BOOLEAN          NeedGuard
-  )
-{
-  VOID        *Buffer;
-  EFI_STATUS  Status;
-
-  Status = CoreAcquireLockOrFail (&gMemoryLock);
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
-
-  Buffer = CoreAllocatePoolPages (PoolType, NoPages, Granularity, NeedGuard);
-  CoreReleaseMemoryLock ();
-
-  if (Buffer != NULL) {
-    if (NeedGuard) {
-      SetGuardForMemory ((EFI_PHYSICAL_ADDRESS)(UINTN)Buffer, NoPages);
-    }
-
-    ApplyMemoryProtectionPolicy (
-      EfiConventionalMemory,
-      PoolType,
-      (EFI_PHYSICAL_ADDRESS)(UINTN)Buffer,
-      EFI_PAGES_TO_SIZE (NoPages)
-      );
-  }
-
-  return Buffer;
-}
-
-/**
   Internal function to allocate pool of a particular type.
   Caller must have the memory lock held
 
@@ -370,10 +409,11 @@ CoreAllocatePoolI (
 
   ASSERT_LOCKED (&mPoolMemoryLock);
 
-  if ((PoolType == EfiReservedMemoryType) ||
+  if (mIsCore &&
+     ((PoolType == EfiReservedMemoryType) ||
       (PoolType == EfiACPIMemoryNVS) ||
       (PoolType == EfiRuntimeServicesCode) ||
-      (PoolType == EfiRuntimeServicesData))
+      (PoolType == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {
@@ -571,9 +611,9 @@ CoreInternalFreePool (
     return EFI_INVALID_PARAMETER;
   }
 
-  CoreAcquireLock (&mPoolMemoryLock);
+  EfiAcquireLock (&mPoolMemoryLock);
   Status = CoreFreePoolI (Buffer, PoolType);
-  CoreReleaseLock (&mPoolMemoryLock);
+  EfiReleaseLock (&mPoolMemoryLock);
   return Status;
 }
 
@@ -609,71 +649,6 @@ CoreFreePool (
   }
 
   return Status;
-}
-
-/**
-  Internal function.  Frees pool pages allocated via CoreAllocatePoolPagesI().
-
-  @param  PoolType               The type of memory for the pool pages
-  @param  Memory                 The base address to free
-  @param  NoPages                The number of pages to free
-
-**/
-STATIC
-VOID
-CoreFreePoolPagesI (
-  IN EFI_MEMORY_TYPE       PoolType,
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages
-  )
-{
-  CoreAcquireMemoryLock ();
-  CoreFreePoolPages (Memory, NoPages);
-  CoreReleaseMemoryLock ();
-
-  GuardFreedPagesChecked (Memory, NoPages);
-  ApplyMemoryProtectionPolicy (
-    PoolType,
-    EfiConventionalMemory,
-    (EFI_PHYSICAL_ADDRESS)(UINTN)Memory,
-    EFI_PAGES_TO_SIZE (NoPages)
-    );
-}
-
-/**
-  Internal function.  Frees guarded pool pages.
-
-  @param  PoolType               The type of memory for the pool pages
-  @param  Memory                 The base address to free
-  @param  NoPages                The number of pages to free
-
-**/
-STATIC
-VOID
-CoreFreePoolPagesWithGuard (
-  IN EFI_MEMORY_TYPE       PoolType,
-  IN EFI_PHYSICAL_ADDRESS  Memory,
-  IN UINTN                 NoPages
-  )
-{
-  EFI_PHYSICAL_ADDRESS  MemoryGuarded;
-  UINTN                 NoPagesGuarded;
-
-  MemoryGuarded  = Memory;
-  NoPagesGuarded = NoPages;
-
-  AdjustMemoryF (&Memory, &NoPages);
-  //
-  // It's safe to unset Guard page inside memory lock because there should
-  // be no memory allocation occurred in updating memory page attribute at
-  // this point. And unsetting Guard page before free will prevent Guard
-  // page just freed back to pool from being allocated right away before
-  // marking it usable (from non-present to present).
-  //
-  UnsetGuardForMemory (MemoryGuarded, NoPagesGuarded);
-  if (NoPages > 0) {
-    CoreFreePoolPagesI (PoolType, Memory, NoPages);
-  }
 }
 
 /**
@@ -764,10 +739,11 @@ CoreFreePoolI (
   Pool->Used -= Size;
   DEBUG ((DEBUG_POOL, "FreePool: %p (len %lx) %,ld\n", Head->Data, (UINT64)(Head->Size - POOL_OVERHEAD), (UINT64)Pool->Used));
 
-  if ((Head->Type == EfiReservedMemoryType) ||
+  if (mIsCore &&
+     ((Head->Type == EfiReservedMemoryType) ||
       (Head->Type == EfiACPIMemoryNVS) ||
       (Head->Type == EfiRuntimeServicesCode) ||
-      (Head->Type == EfiRuntimeServicesData))
+      (Head->Type == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {
@@ -879,4 +855,96 @@ CoreFreePoolI (
   }
 
   return EFI_SUCCESS;
+}
+
+/**
+  Check to see if the heap guard is enabled for page and/or pool allocation.
+
+  @param[in]  GuardType   Specify the sub-type(s) of Heap Guard.
+
+  @return TRUE/FALSE.
+**/
+BOOLEAN
+IsHeapGuardEnabled (
+  UINT8  GuardType
+  )
+{
+  return IsMemoryTypeToGuard (EfiMaxMemoryType, AllocateAnyPages, GuardType);
+}
+
+/**
+  Check to see if the pool at the given address should be guarded or not.
+
+  @param[in]  MemoryType      Pool type to check.
+
+
+  @return TRUE  The given type of pool should be guarded.
+  @return FALSE The given type of pool should not be guarded.
+**/
+BOOLEAN
+IsPoolTypeToGuard (
+  IN EFI_MEMORY_TYPE  MemoryType
+  )
+{
+  return IsMemoryTypeToGuard (
+           MemoryType,
+           AllocateAnyPages,
+           GUARD_HEAP_TYPE_POOL
+           );
+}
+
+/**
+  Check to see if the memory at the given address should be guarded or not.
+
+  @param[in]  MemoryType      Memory type to check.
+  @param[in]  AllocateType    Allocation type to check.
+  @param[in]  PageOrPool      Indicate a page allocation or pool allocation.
+
+
+  @return TRUE  The given type of memory should be guarded.
+  @return FALSE The given type of memory should not be guarded.
+**/
+BOOLEAN
+IsMemoryTypeToGuard (
+  IN EFI_MEMORY_TYPE    MemoryType,
+  IN EFI_ALLOCATE_TYPE  AllocateType,
+  IN UINT8              PageOrPool
+  )
+{
+  UINT64  TestBit;
+  UINT64  ConfigBit;
+
+  if (!mIsCore) {
+    return FALSE;
+  }
+
+  if (AllocateType == AllocateAddress) {
+    return FALSE;
+  }
+
+  if ((PcdGet8 (PcdHeapGuardPropertyMask) & PageOrPool) == 0) {
+    return FALSE;
+  }
+
+  if (PageOrPool == GUARD_HEAP_TYPE_POOL) {
+    ConfigBit = PcdGet64 (PcdHeapGuardPoolType);
+  } else if (PageOrPool == GUARD_HEAP_TYPE_PAGE) {
+    ConfigBit = PcdGet64 (PcdHeapGuardPageType);
+  } else {
+    ConfigBit = (UINT64)-1;
+  }
+
+  if ((UINT32)MemoryType >= MEMORY_TYPE_OS_RESERVED_MIN) {
+    TestBit = BIT63;
+  } else if ((UINT32)MemoryType >= MEMORY_TYPE_OEM_RESERVED_MIN) {
+    TestBit = BIT62;
+  } else if (MemoryType < EfiMaxMemoryType) {
+    TestBit = LShiftU64 (1, MemoryType);
+  } else if (MemoryType == EfiMaxMemoryType) {
+    TestBit = (UINT64)-1;
+  } else {
+    TestBit = 0;
+  }
+
+  return ((ConfigBit & TestBit) != 0);
 }

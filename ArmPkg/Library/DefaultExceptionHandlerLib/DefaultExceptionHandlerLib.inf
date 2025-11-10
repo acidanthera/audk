@@ -36,6 +36,7 @@
   DebugLib
   SerialPortLib
   UefiBootServicesTableLib
+  ArmLib
 
 [Guids]
   gEfiDebugImageInfoTableGuid

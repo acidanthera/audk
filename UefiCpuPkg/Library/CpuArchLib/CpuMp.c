@@ -623,6 +623,7 @@ InitializeExceptionStackSwitchHandlers (
   EXCEPTION_STACK_SWITCH_CONTEXT  *SwitchStackData;
   UINTN                           Index;
   EFI_STATUS                      Status;
+  MSR_IA32_APIC_BASE_REGISTER     ApicBaseMsr;
 
   Status = MpInitLibWhoAmI (&Index);
 
@@ -631,7 +632,8 @@ InitializeExceptionStackSwitchHandlers (
     return;
   }
 
-  SwitchStackData = (EXCEPTION_STACK_SWITCH_CONTEXT *)Buffer;
+  SwitchStackData    = (EXCEPTION_STACK_SWITCH_CONTEXT *)Buffer;
+  ApicBaseMsr.Uint64 = AsmReadMsr64 (MSR_IA32_APIC_BASE);
 
   //
   // This may be called twice for each Cpu. Only run InitializeSeparateExceptionStacks
@@ -639,6 +641,9 @@ InitializeExceptionStackSwitchHandlers (
   //
   if ((SwitchStackData[Index].Status == EFI_NOT_STARTED) || (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL)) {
     SwitchStackData[Index].Status = InitializeSeparateExceptionStacks (SwitchStackData[Index].Buffer, &SwitchStackData[Index].BufferSize);
+    if ((ApicBaseMsr.Bits.BSP != 0) && (SwitchStackData[Index].Status == EFI_SUCCESS)) {
+      SetExceptionAddresses (SwitchStackData[Index].Buffer, SwitchStackData[Index].BufferSize);
+    }
   }
 }
 
@@ -687,6 +692,7 @@ InitializeMpExceptionStackSwitchHandlers (
   for (Index = 0; Index < mNumberOfProcessors; ++Index) {
     if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
       ASSERT (SwitchStackData[Index].BufferSize != 0);
+      SwitchStackData[Index].BufferSize = ALIGN_VALUE (SwitchStackData[Index].BufferSize, EFI_PAGE_SIZE);
       BufferSize += SwitchStackData[Index].BufferSize;
     } else {
       ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);

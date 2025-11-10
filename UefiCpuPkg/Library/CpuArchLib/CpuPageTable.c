@@ -38,7 +38,7 @@
 #define IA32_PG_NX      BIT63
 
 #define PAGE_ATTRIBUTE_BITS             (IA32_PG_D | IA32_PG_A | IA32_PG_U | IA32_PG_RW | IA32_PG_P)
-#define PAGE_ATTRIBUTE_BITS_POST_SPLIT  (IA32_PG_RW | IA32_PG_P)
+#define PAGE_ATTRIBUTE_BITS_POST_SPLIT  (IA32_PG_RW | IA32_PG_P | IA32_PG_U)
 
 //
 // Bits 1, 2, 5, 6 are reserved in the IA32 PAE PDPTE
@@ -398,7 +398,73 @@ GetAttributesFromPageEntry (
     Attributes |= EFI_MEMORY_XP;
   }
 
+  if ((*PageEntry & IA32_PG_U) != 0) {
+    Attributes |= EFI_MEMORY_USER;
+  }
+
   return Attributes;
+}
+
+EFI_STATUS
+EFIAPI
+CpuGetMemoryAttributes (
+  IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  EFI_PHYSICAL_ADDRESS   Address,
+  OUT UINT64                 *Attributes
+  )
+{
+  PAGE_TABLE_LIB_PAGING_CONTEXT  PagingContext;
+  PAGE_ATTRIBUTE                 PageAttribute;
+  UINT64                         *PageEntry;
+
+  ASSERT (Attributes != NULL);
+
+  GetCurrentPagingContext (&PagingContext);
+
+  if ((PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) &&
+    ((PagingContext.ContextData.Ia32.Attributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) == 0)) {
+    *Attributes = 0;
+    return EFI_UNSUPPORTED;
+  }
+
+  PageEntry = GetPageTableEntry (&PagingContext, Address, &PageAttribute);
+  if (PageEntry == NULL) {
+    *Attributes = 0;
+    return EFI_NOT_FOUND;
+  }
+
+  *Attributes = GetAttributesFromPageEntry (PageEntry);
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+CpuSetUserMemoryAttributes (
+  IN EFI_CPU_ARCH_PROTOCOL  *This,
+  IN UINTN                  UserPageTable,
+  IN EFI_PHYSICAL_ADDRESS   BaseAddress,
+  IN UINT64                 Length,
+  IN UINT64                 Attributes
+  )
+{
+  UINT64                         MemoryAttributes;
+  PAGE_TABLE_LIB_PAGING_CONTEXT  PagingContext;
+
+  MemoryAttributes = Attributes & EFI_MEMORY_ATTRIBUTE_MASK;
+
+  GetCurrentPagingContext (&PagingContext);
+
+  if (PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) {
+    PagingContext.ContextData.Ia32.PageTableBase = (UINT32)UserPageTable;
+  } else {
+    PagingContext.ContextData.X64.PageTableBase = (UINT64)UserPageTable;
+  }
+
+  //
+  // Set memory attribute by page table
+  //
+  return AssignMemoryPageAttributes (&PagingContext, BaseAddress, Length, MemoryAttributes, AllocatePages);
 }
 
 /**
@@ -460,6 +526,27 @@ ConvertPageEntryAttribute (
     switch (PageAction) {
       case PageActionAssign:
         NewPageEntry |= IA32_PG_RW;
+        break;
+      case PageActionSet:
+      case PageActionClear:
+        break;
+    }
+  }
+
+  if ((Attributes & EFI_MEMORY_USER) != 0) {
+    switch (PageAction) {
+      case PageActionAssign:
+      case PageActionSet:
+        NewPageEntry |= IA32_PG_U;
+        break;
+      case PageActionClear:
+        NewPageEntry &= ~(UINT64)IA32_PG_U;
+        break;
+    }
+  } else {
+    switch (PageAction) {
+      case PageActionAssign:
+        NewPageEntry &= ~(UINT64)IA32_PG_U;
         break;
       case PageActionSet:
       case PageActionClear:
@@ -991,9 +1078,9 @@ RefreshGcdMemoryAttributesFromPaging (
   PageLength    = 0;
 
   if (IsExecuteDisableEnabled ()) {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_USER;
   } else {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_USER;
   }
 
   for (Index = 0; Index < NumberOfDescriptors; Index++) {

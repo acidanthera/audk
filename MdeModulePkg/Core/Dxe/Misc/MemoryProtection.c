@@ -46,9 +46,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "ProcessorBind.h"
 #include "Uefi/UefiMultiPhase.h"
 
-#define MEMORY_TYPE_OS_RESERVED_MIN   0x80000000
-#define MEMORY_TYPE_OEM_RESERVED_MIN  0x70000000
-
 #define PREVIOUS_MEMORY_DESCRIPTOR(MemoryDescriptor, Size) \
   ((EFI_MEMORY_DESCRIPTOR *)((UINT8 *)(MemoryDescriptor) - (Size)))
 
@@ -91,15 +88,20 @@ SetUefiImageMemoryAttributes (
   Set UEFI image protection attributes.
 
   @param[in]  ImageRecord    A UEFI image record
+  @param[in]  IsUser         Whether UEFI image record is User Image.
 **/
 VOID
 SetUefiImageProtectionAttributes (
-  IN UEFI_IMAGE_RECORD  *ImageRecord
+  IN UEFI_IMAGE_RECORD  *ImageRecord,
+  IN BOOLEAN            IsUser
   )
 {
   UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
   UINTN                      SectionAddress;
   UINT32                     Index;
+  UINT32                     Attribute;
+
+  Attribute = IsUser ? EFI_MEMORY_USER : 0;
 
   SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumSegments; Index++) {
@@ -107,7 +109,7 @@ SetUefiImageProtectionAttributes (
     SetUefiImageMemoryAttributes (
       SectionAddress,
       ImageRecordSegment->Size,
-      ImageRecordSegment->Attributes
+      ImageRecordSegment->Attributes | Attribute
       );
 
     SectionAddress += ImageRecordSegment->Size;
@@ -167,12 +169,14 @@ IsMemoryProtectionSectionAligned (
   @param[in]  LoadedImage              The loaded image protocol
   @param[in]  ImageOrigin              Where File comes from.
   @param[in]  LoadedImageDevicePath    The loaded image device path protocol
+  @param[in]  IsUserImage              Whether the loaded image is in user space.
 **/
 VOID
 ProtectUefiImage (
-  IN EFI_LOADED_IMAGE_PROTOCOL     *LoadedImage,
-  IN UINT8                         ImageOrigin,
-  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UINT8                            ImageOrigin,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN BOOLEAN                          IsUserImage
   )
 {
   RETURN_STATUS      PdbStatus;
@@ -231,7 +235,11 @@ ProtectUefiImage (
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    SetUefiImageProtectionAttributes (ImageRecord);
+    if (PcdGetBool (PcdEnableUserSpace)) {
+      SetUefiImageProtectionAttributes (ImageRecord, IsUserImage);
+    } else {
+      SetUefiImageProtectionAttributes (ImageRecord, FALSE);
+    }
   }
 
 Finish:
@@ -279,6 +287,32 @@ UnprotectUefiImage (
   }
 }
 
+UEFI_IMAGE_RECORD *
+GetUefiImageRecord (
+  IN LOADED_IMAGE_PRIVATE_DATA  *Image
+  )
+{
+  UEFI_IMAGE_RECORD  *ImageRecord;
+  LIST_ENTRY         *ImageRecordLink;
+
+  for (ImageRecordLink = mProtectedImageRecordList.ForwardLink;
+        ImageRecordLink != &mProtectedImageRecordList;
+        ImageRecordLink = ImageRecordLink->ForwardLink) {
+    ImageRecord = CR (
+                    ImageRecordLink,
+                    UEFI_IMAGE_RECORD,
+                    Link,
+                    UEFI_IMAGE_RECORD_SIGNATURE
+                    );
+
+    if (ImageRecord->StartAddress == (EFI_PHYSICAL_ADDRESS)(UINTN)Image->Info.ImageBase) {
+      return ImageRecord;
+    }
+  }
+
+  return NULL;
+}
+
 /**
   Return the EFI memory permission attribute associated with memory
   type 'MemoryType' under the configured DXE memory protection policy.
@@ -292,6 +326,9 @@ GetPermissionAttributeForMemoryType (
   )
 {
   UINT64  TestBit;
+  UINT64  Attributes;
+
+  Attributes = 0;
 
   if ((UINT32)MemoryType >= MEMORY_TYPE_OS_RESERVED_MIN) {
     TestBit = BIT63;
@@ -302,10 +339,14 @@ GetPermissionAttributeForMemoryType (
   }
 
   if ((PcdGet64 (PcdDxeNxMemoryProtectionPolicy) & TestBit) != 0) {
-    return EFI_MEMORY_XP;
-  } else {
-    return 0;
+    Attributes |= EFI_MEMORY_XP;
   }
+
+  if (MemoryType == EfiUserSpaceMemoryType) {
+    Attributes |= EFI_MEMORY_USER;
+  }
+
+  return Attributes;
 }
 
 /**
@@ -663,7 +704,7 @@ MemoryProtectionCpuArchProtocolNotify (
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    SetUefiImageProtectionAttributes (ImageRecord);
+    SetUefiImageProtectionAttributes (ImageRecord, FALSE);
   }
 
 Done:
@@ -868,6 +909,7 @@ ApplyMemoryProtectionPolicy (
 {
   UINT64  OldAttributes;
   UINT64  NewAttributes;
+  UINT64  CurrentAttributes;
 
   //
   // The policy configured in PcdDxeNxMemoryProtectionPolicy
@@ -923,14 +965,29 @@ ApplyMemoryProtectionPolicy (
   NewAttributes = GetPermissionAttributeForMemoryType (NewType);
 
   if (OldType != EfiMaxMemoryType) {
+    //
+    // AllocatePages
+    //
     OldAttributes = GetPermissionAttributeForMemoryType (OldType);
     if (OldAttributes == NewAttributes) {
       // policy is the same between OldType and NewType
       return EFI_SUCCESS;
     }
-  } else if (NewAttributes == 0) {
-    // newly added region of a type that does not require protection
-    return EFI_SUCCESS;
+
+    if ((gUserPageTable != 0) && (NewType == EfiUserSpaceMemoryType)) {
+      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, NewAttributes);
+    }
+  } else {
+    //
+    // FreePages
+    //
+    if (gUserPageTable != 0) {
+      gCpu->GetMemoryAttributes (gCpu, Memory, &CurrentAttributes);
+
+      if ((CurrentAttributes & EFI_MEMORY_USER) != 0) {
+        gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
+      }
+    }
   }
 
   return gCpu->SetMemoryAttributes (gCpu, Memory, Length, NewAttributes);

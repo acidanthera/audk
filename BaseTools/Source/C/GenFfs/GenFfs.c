@@ -592,6 +592,13 @@ Returns:
       continue;
     }
 
+    if ((stricmp (argv[0], "-u") == 0) || (stricmp (argv[0], "--user") == 0)) {
+      FfsAttrib |= FFS_ATTRIB_USER;
+      argc -= 1;
+      argv += 1;
+      continue;
+    }
+
     if ((stricmp (argv[0], "-a") == 0) || (stricmp (argv[0], "--align") == 0)) {
       if (argv[1] == NULL || argv[1][0] == '-') {
         Error (NULL, 0, 1003, "Invalid option value", "Align value is missing for -a option");

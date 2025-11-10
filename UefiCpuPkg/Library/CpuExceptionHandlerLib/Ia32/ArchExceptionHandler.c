@@ -135,6 +135,9 @@ ArchSetupExceptionStack (
   UINT8                           *StackSwitchExceptions;
   UINTN                           NeedBufferSize;
   EXCEPTION_HANDLER_TEMPLATE_MAP  TemplateMap;
+  UINT8                           *IOBitMap;
+  UINT8                           *IOBitMapPointer;
+  UINT8                           Offset;
 
   if (BufferSize == NULL) {
     return EFI_INVALID_PARAMETER;
@@ -201,30 +204,63 @@ ArchSetupExceptionStack (
   // be filled by processor during task switching.
   //
   TssBase = (UINTN)Tss;
-
+  //
+  // Last byte of bitmap must be followed by a byte with all bits set.
+  //
   TssDesc->Uint64         = 0;
-  TssDesc->Bits.LimitLow  = sizeof (IA32_TASK_STATE_SEGMENT) - 1;
+  TssDesc->Bits.LimitLow  = (UINT16)(sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE - 2);
   TssDesc->Bits.BaseLow   = (UINT16)TssBase;
   TssDesc->Bits.BaseMid   = (UINT8)(TssBase >> 16);
   TssDesc->Bits.Type      = IA32_GDT_TYPE_TSS;
+  TssDesc->Bits.DPL       = 3;
   TssDesc->Bits.P         = 1;
-  TssDesc->Bits.LimitHigh = 0;
+  TssDesc->Bits.LimitHigh = (sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE - 2) >> 16;
   TssDesc->Bits.BaseHigh  = (UINT8)(TssBase >> 24);
 
   //
-  // Fixup exception task descriptor and task-state segment
+  // Set I/O Permission Bit Map
   //
-  AsmGetTssTemplateMap (&TemplateMap);
+  ZeroMem (Tss, sizeof (*Tss));
   //
   // Plus 1 byte is for compact stack layout in case StackTop is already aligned.
   //
   StackTop = StackTop - CPU_STACK_ALIGNMENT + 1;
   StackTop = (UINTN)ALIGN_POINTER (StackTop, CPU_STACK_ALIGNMENT);
-  IdtTable = (IA32_IDT_GATE_DESCRIPTOR  *)Idtr.Base;
-  for (Index = 0; Index < CPU_STACK_SWITCH_EXCEPTION_NUMBER; ++Index) {
-    TssDesc += 1;
-    Tss     += 1;
 
+  Tss->ESP0             = StackTop;
+  StackTop             -= CPU_KNOWN_GOOD_STACK_SIZE;
+  Tss->SS0              = AsmReadSs ();
+  Tss->IOMapBaseAddress = sizeof (IA32_TASK_STATE_SEGMENT);
+
+  IOBitMap = (UINT8 *)((UINTN)Tss + Tss->IOMapBaseAddress);
+  SetMem (IOBitMap, IO_BIT_MAP_SIZE, 0xFF);
+
+  if (!PcdGetBool (PcdSerialUseMmio)) {
+    //
+    // Allow access to gUartBase = 0x3F8 and Offsets: 0x01, 0x03, 0x04, 0x05, 0x06;
+    // and DebugIoPort = 0x402.
+    //
+    IOBitMapPointer             = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdUartBase) / 8);
+    Offset                      = (UINT8)(FixedPcdGet16 (PcdUartBase) & 0x7U);
+    *(UINT16 *)IOBitMapPointer &= ~((1U << Offset) | (1U << (Offset + 1))
+                                  | (1U << (Offset + 3)) | (1U << (Offset + 4))
+                                  | (1U << (Offset + 5)) | (1U << (Offset + 6)));
+
+    IOBitMapPointer   = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdDebugIoPort) / 8);
+    Offset            = (UINT8)(FixedPcdGet16 (PcdDebugIoPort) & 0x7U);
+    *IOBitMapPointer &= ~(1U << Offset);
+  }
+
+  Tss = (IA32_TASK_STATE_SEGMENT *)((UINTN)Tss + sizeof (IA32_TASK_STATE_SEGMENT) + IO_BIT_MAP_SIZE);
+  ++TssDesc;
+
+  //
+  // Fixup exception task descriptor and task-state segment
+  //
+  AsmGetTssTemplateMap (&TemplateMap);
+
+  IdtTable = (IA32_IDT_GATE_DESCRIPTOR  *)Idtr.Base;
+  for (Index = 0; Index < CPU_STACK_SWITCH_EXCEPTION_NUMBER; ++Index, ++TssDesc, ++Tss) {
     //
     // Fixup TSS descriptor
     //
@@ -235,6 +271,7 @@ ArchSetupExceptionStack (
     TssDesc->Bits.BaseLow   = (UINT16)TssBase;
     TssDesc->Bits.BaseMid   = (UINT8)(TssBase >> 16);
     TssDesc->Bits.Type      = IA32_GDT_TYPE_TSS;
+    TssDesc->Bits.DPL       = 3;
     TssDesc->Bits.P         = 1;
     TssDesc->Bits.LimitHigh = 0;
     TssDesc->Bits.BaseHigh  = (UINT8)(TssBase >> 24);

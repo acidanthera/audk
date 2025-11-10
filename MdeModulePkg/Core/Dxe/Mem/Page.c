@@ -63,6 +63,7 @@ EFI_MEMORY_TYPE_STATISTICS  mMemoryTypeStatistics[EfiMaxMemoryType + 1] = {
   { 0, MAX_ALLOC_ADDRESS, 0, 0, EfiMaxMemoryType, TRUE,  TRUE  },  // EfiPalCode
   { 0, MAX_ALLOC_ADDRESS, 0, 0, EfiMaxMemoryType, FALSE, FALSE },  // EfiPersistentMemory
   { 0, MAX_ALLOC_ADDRESS, 0, 0, EfiMaxMemoryType, TRUE,  FALSE },  // EfiUnacceptedMemoryType
+  { 0, MAX_ALLOC_ADDRESS, 0, 0, EfiMaxMemoryType, FALSE, FALSE },  // EfiUserSpaceMemoryType
   { 0, MAX_ALLOC_ADDRESS, 0, 0, EfiMaxMemoryType, FALSE, FALSE }   // EfiMaxMemoryType
 };
 
@@ -86,6 +87,7 @@ EFI_MEMORY_TYPE_INFORMATION  gMemoryTypeInformation[EfiMaxMemoryType + 1] = {
   { EfiPalCode,                 0 },
   { EfiPersistentMemory,        0 },
   { EfiGcdMemoryTypeUnaccepted, 0 },
+  { EfiUserSpaceMemoryType,     0 },
   { EfiMaxMemoryType,           0 }
 };
 //
@@ -104,7 +106,7 @@ CoreAcquireMemoryLock (
   VOID
   )
 {
-  CoreAcquireLock (&gMemoryLock);
+  EfiAcquireLock (&gMemoryLock);
 }
 
 /**
@@ -116,7 +118,7 @@ CoreReleaseMemoryLock (
   VOID
   )
 {
-  CoreReleaseLock (&gMemoryLock);
+  EfiReleaseLock (&gMemoryLock);
 }
 
 /**
@@ -1742,6 +1744,13 @@ CoreFreePages (
   EFI_STATUS       Status;
   EFI_MEMORY_TYPE  MemoryType;
 
+  ApplyMemoryProtectionPolicy (
+    EfiMaxMemoryType,
+    EfiConventionalMemory,
+    Memory,
+    EFI_PAGES_TO_SIZE (NumberOfPages)
+    );
+
   Status = CoreInternalFreePages (Memory, NumberOfPages, &MemoryType);
   if (!EFI_ERROR (Status)) {
     GuardFreedPagesChecked (Memory, NumberOfPages);
@@ -1754,12 +1763,6 @@ CoreFreePages (
       NULL
       );
     InstallMemoryAttributesTableOnMemoryAllocation (MemoryType);
-    ApplyMemoryProtectionPolicy (
-      MemoryType,
-      EfiConventionalMemory,
-      Memory,
-      EFI_PAGES_TO_SIZE (NumberOfPages)
-      );
   }
 
   return Status;
@@ -2178,6 +2181,116 @@ Done:
     );
 
   return Status;
+}
+
+/**
+  Internal function.  Used by the pool functions to allocate pages
+  to back pool allocation requests.
+
+  @param  PoolType               The type of memory for the new pool pages
+  @param  NoPages                No of pages to allocate
+  @param  Granularity            Bits to align.
+  @param  NeedGuard              Flag to indicate Guard page is needed or not
+
+  @return The allocated memory, or NULL
+
+**/
+VOID *
+CoreAllocatePoolPagesI (
+  IN EFI_MEMORY_TYPE  PoolType,
+  IN UINTN            NoPages,
+  IN UINTN            Granularity,
+  IN BOOLEAN          NeedGuard
+  )
+{
+  VOID        *Buffer;
+  EFI_STATUS  Status;
+
+  Status = EfiAcquireLockOrFail (&gMemoryLock);
+  if (EFI_ERROR (Status)) {
+    return NULL;
+  }
+
+  Buffer = CoreAllocatePoolPages (PoolType, NoPages, Granularity, NeedGuard);
+  CoreReleaseMemoryLock ();
+
+  if (Buffer != NULL) {
+    if (NeedGuard) {
+      SetGuardForMemory ((EFI_PHYSICAL_ADDRESS)(UINTN)Buffer, NoPages);
+    }
+
+    ApplyMemoryProtectionPolicy (
+      EfiConventionalMemory,
+      PoolType,
+      (EFI_PHYSICAL_ADDRESS)(UINTN)Buffer,
+      EFI_PAGES_TO_SIZE (NoPages)
+      );
+  }
+
+  return Buffer;
+}
+
+/**
+  Internal function.  Frees pool pages allocated via CoreAllocatePoolPagesI().
+
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
+
+**/
+VOID
+CoreFreePoolPagesI (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  CoreAcquireMemoryLock ();
+  CoreFreePoolPages (Memory, NoPages);
+  CoreReleaseMemoryLock ();
+
+  GuardFreedPagesChecked (Memory, NoPages);
+  ApplyMemoryProtectionPolicy (
+    PoolType,
+    EfiConventionalMemory,
+    (EFI_PHYSICAL_ADDRESS)(UINTN)Memory,
+    EFI_PAGES_TO_SIZE (NoPages)
+    );
+}
+
+/**
+  Internal function.  Frees guarded pool pages.
+
+  @param  PoolType               The type of memory for the pool pages
+  @param  Memory                 The base address to free
+  @param  NoPages                The number of pages to free
+
+**/
+VOID
+CoreFreePoolPagesWithGuard (
+  IN EFI_MEMORY_TYPE       PoolType,
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 NoPages
+  )
+{
+  EFI_PHYSICAL_ADDRESS  MemoryGuarded;
+  UINTN                 NoPagesGuarded;
+
+  MemoryGuarded  = Memory;
+  NoPagesGuarded = NoPages;
+
+  AdjustMemoryF (&Memory, &NoPages);
+  //
+  // It's safe to unset Guard page inside memory lock because there should
+  // be no memory allocation occurred in updating memory page attribute at
+  // this point. And unsetting Guard page before free will prevent Guard
+  // page just freed back to pool from being allocated right away before
+  // marking it usable (from non-present to present).
+  //
+  UnsetGuardForMemory (MemoryGuarded, NoPagesGuarded);
+  if (NoPages > 0) {
+    CoreFreePoolPagesI (PoolType, Memory, NoPages);
+  }
 }
 
 /**
