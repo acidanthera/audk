@@ -9,6 +9,7 @@
 **/
 
 #include "UnitTestPeiServicesTablePointerLib.h"
+#include <Library/BaseEfiMemWrapper.h>
 
 ///
 /// Pei service instance
@@ -39,8 +40,8 @@ EFI_PEI_SERVICES  mPeiServices = {
   UnitTestInstallPeiMemory, // InstallPeiMemory
   UnitTestPeiAllocatePages, // AllocatePages
   UnitTestPeiAllocatePool,  // AllocatePool
-  (EFI_PEI_COPY_MEM)CopyMem,
-  (EFI_PEI_SET_MEM)SetMem,
+  EfiCopyMem,
+  EfiSetMem,
 
   UnitTestReportStatusCode, // ReportStatusCode
   UnitTestResetSystem,      // ResetSystem
