@@ -7,6 +7,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "PeiMain.h"
+#include <Library/BaseEfiMemWrapper.h>
 
 EFI_PEI_PPI_DESCRIPTOR  mMemoryDiscoveredPpi = {
   (EFI_PEI_PPI_DESCRIPTOR_PPI | EFI_PEI_PPI_DESCRIPTOR_TERMINATE_LIST),
@@ -48,8 +49,8 @@ EFI_PEI_SERVICES  gPs = {
   PeiInstallPeiMemory,
   PeiAllocatePages,
   PeiAllocatePool,
-  (EFI_PEI_COPY_MEM)CopyMem,
-  (EFI_PEI_SET_MEM)SetMem,
+  EfiCopyMem,
+  EfiSetMem,
 
   PeiReportStatusCode,
   PeiResetSystem,
