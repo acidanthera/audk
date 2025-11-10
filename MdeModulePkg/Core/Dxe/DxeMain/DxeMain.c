@@ -7,6 +7,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 **/
 
 #include "DxeMain.h"
+#include <Library/BaseEfiMemWrapper.h>
 
 //
 // DXE Core Global Variables for Protocols from PEI
@@ -87,8 +88,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)CoreInstallMultipleProtocolInterfaces,        // InstallMultipleProtocolInterfaces
   (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)CoreUninstallMultipleProtocolInterfaces,    // UninstallMultipleProtocolInterfaces
   (EFI_CALCULATE_CRC32)CoreEfiNotAvailableYetArg3,                                        // CalculateCrc32
-  (EFI_COPY_MEM)CopyMem,                                                                  // CopyMem
-  (EFI_SET_MEM)SetMem,                                                                    // SetMem
+  (EFI_COPY_MEM)EfiCopyMem,                                                               // CopyMem
+  (EFI_SET_MEM)EfiSetMem,                                                                 // SetMem
   (EFI_CREATE_EVENT_EX)CoreCreateEventEx                                                  // CreateEventEx
 };
 
