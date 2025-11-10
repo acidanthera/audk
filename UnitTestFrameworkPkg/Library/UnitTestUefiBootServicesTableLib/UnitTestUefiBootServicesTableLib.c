@@ -15,6 +15,7 @@
 **/
 
 #include "UnitTestUefiBootServicesTableLib.h"
+#include <Library/BaseEfiMemWrapper.h>
 
 EFI_HANDLE        gImageHandle = NULL;
 EFI_SYSTEM_TABLE  *gST         = NULL;
@@ -68,8 +69,8 @@ STATIC EFI_BOOT_SERVICES  mBootServices = {
   (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)UnitTestInstallMultipleProtocolInterfaces,        // InstallMultipleProtocolInterfaces
   (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)UnitTestUninstallMultipleProtocolInterfaces,    // UninstallMultipleProtocolInterfaces
   (EFI_CALCULATE_CRC32)UnitTestCalculateCrc32,                                                // CalculateCrc32
-  (EFI_COPY_MEM)CopyMem,                                                                      // CopyMem
-  (EFI_SET_MEM)SetMem,                                                                        // SetMem
+  (EFI_COPY_MEM)EfiCopyMem,                                                                   // CopyMem
+  (EFI_SET_MEM)EfiSetMem,                                                                     // SetMem
   (EFI_CREATE_EVENT_EX)UnitTestCreateEventEx                                                  // CreateEventEx
 };
 
