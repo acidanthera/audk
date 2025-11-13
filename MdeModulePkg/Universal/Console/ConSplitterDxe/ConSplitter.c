@@ -3377,7 +3377,7 @@ ConSplitterTextOutDeleteDevice (
     return EFI_NOT_FOUND;
   }
 
-  if ((Private->CurrentNumberOfGraphicsOutput == 0) && (Private->CurrentNumberOfUgaDraw == 0)) {
+  if ((Private->CurrentNumberOfGraphicsOutput == 0)) {
     //
     // If there is not any physical GOP and UGA device in system,
     // Consplitter GOP or UGA protocol will be uninstalled
