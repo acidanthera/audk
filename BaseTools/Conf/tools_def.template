@@ -991,7 +991,7 @@ DEFINE GCC5_RISCV_OPENSBI_TYPES                   = -DOPENSBI_EXTERNAL_SBI_TYPES
 
 DEFINE GCC5_RISCV64_ARCH                   = rv64gc
 DEFINE GCC5_RISCV32_RISCV64_ASLDLINK_FLAGS = DEF(GCC5_RISCV_ALL_DLINK_COMMON) -Wl,--entry,ReferenceAcpiTable -u ReferenceAcpiTable
-DEFINE GCC5_RISCV64_CC_FLAGS               = DEF(GCC5_RISCV_ALL_CC_FLAGS) DEF(GCC5_RISCV_ALL_CC_FLAGS_WARNING_DISABLE) DEF(GCC5_RISCV_OPENSBI_TYPES) -march=DEF(GCC5_RISCV64_ARCH) -fno-builtin -fno-builtin-memcpy -fno-stack-protector -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -Wno-unused-but-set-variable -fpack-struct=8 -mcmodel=medany -mabi=lp64 -mno-relax
+DEFINE GCC5_RISCV64_CC_FLAGS               = DEF(GCC5_RISCV_ALL_CC_FLAGS) DEF(GCC5_RISCV_ALL_CC_FLAGS_WARNING_DISABLE) DEF(GCC5_RISCV_OPENSBI_TYPES) -march=DEF(GCC5_RISCV64_ARCH) -fno-builtin -fno-builtin-memcpy -fno-stack-protector -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fpack-struct=8 -mcmodel=medany -mabi=lp64 -mno-relax
 DEFINE GCC5_RISCV64_DLINK_FLAGS            = DEF(GCC5_RISCV_ALL_DLINK_FLAGS) -Wl,-melf64lriscv,--oformat=elf64-littleriscv,--no-relax
 DEFINE GCC5_RISCV64_DLINK2_FLAGS           = DEF(GCC5_RISCV_ALL_DLINK2_FLAGS)
 DEFINE GCC5_RISCV64_ASM_FLAGS              = DEF(GCC5_RISCV_ALL_ASM_FLAGS) -march=DEF(GCC5_RISCV64_ARCH) -mcmodel=medany -mabi=lp64
@@ -1048,7 +1048,7 @@ DEFINE GCC5_LOONGARCH64_PP_FLAGS           = -mabi=lp64d -march=loongarch64 DEF(
   DEBUG_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) DEF(LTO) -Os
   DEBUG_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
-RELEASE_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) DEF(LTO) -Os -Wno-unused-but-set-variable -Wno-unused-const-variable
+RELEASE_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) DEF(LTO) -Os
 RELEASE_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i386,--oformat=elf32-i386
 
   NOOPT_GCC_IA32_CC_FLAGS       = DEF(GCC5_IA32_CC_FLAGS) -O0
@@ -1078,7 +1078,7 @@ RELEASE_GCC_IA32_DLINK_FLAGS    = DEF(GCC5_IA32_X64_DLINK_FLAGS) -Wl,-q,-m,elf_i
   DEBUG_GCC_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) DEF(X64_LTO)
   DEBUG_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS)
 
-RELEASE_GCC_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) DEF(X64_LTO) -Wno-unused-but-set-variable -Wno-unused-const-variable
+RELEASE_GCC_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) DEF(X64_LTO)
 RELEASE_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS)
 
   NOOPT_GCC_X64_CC_FLAGS        = DEF(GCC5_X64_CC_FLAGS) -O0
@@ -1108,10 +1108,10 @@ RELEASE_GCC_X64_DLINK_FLAGS     = DEF(GCC5_X64_DLINK_FLAGS)
 *_GCC_ARM_VFRPP_FLAGS           = DEF(GCC_VFRPP_FLAGS) -mthumb -march=armv7-a
 *_GCC_ARM_CC_SECPEIFLAGS        = DEF(GCC_ARM_CC_SECPEIFLAGS)
 
-  DEBUG_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) DEF(LTO) -Wno-unused-but-set-variable -Wno-unused-const-variable
+  DEBUG_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) DEF(LTO)
   DEBUG_GCC_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) DEF(ARM_LTO)
 
-RELEASE_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) DEF(LTO) -Wno-unused-but-set-variable -Wno-unused-const-variable
+RELEASE_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) DEF(LTO)
 RELEASE_GCC_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) DEF(ARM_LTO)
 
   NOOPT_GCC_ARM_CC_FLAGS        = DEF(GCC5_ARM_CC_FLAGS) -O0
@@ -1141,11 +1141,11 @@ RELEASE_GCC_ARM_DLINK_FLAGS     = DEF(GCC5_ARM_DLINK_FLAGS) DEF(ARM_LTO)
 *_GCC_AARCH64_VFRPP_FLAGS       = DEF(GCC_VFRPP_FLAGS)
 *_GCC_AARCH64_CC_SECPEIFLAGS    = DEF(GCC_AARCH64_CC_SECPEIFLAGS)
 
-  DEBUG_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) DEF(LTO) -Wno-unused-but-set-variable -Wno-unused-const-variable
+  DEBUG_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) DEF(LTO)
   DEBUG_GCC_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) DEF(AARCH64_LTO)
   DEBUG_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
 
-RELEASE_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) DEF(LTO) -Wno-unused-but-set-variable -Wno-unused-const-variable
+RELEASE_GCC_AARCH64_CC_FLAGS    = DEF(GCC5_AARCH64_CC_FLAGS) DEF(LTO)
 RELEASE_GCC_AARCH64_DLINK_FLAGS = DEF(GCC5_AARCH64_DLINK_FLAGS) DEF(AARCH64_LTO)
 RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
 
@@ -1201,7 +1201,7 @@ RELEASE_GCC_AARCH64_DLINK_SECPEIFLAGS = DEF(GCC_ALIGN)
 *_GCC_LOONGARCH64_PP_FLAGS             = DEF(GCC5_LOONGARCH64_PP_FLAGS)
 
 DEBUG_GCC_LOONGARCH64_CC_FLAGS         = DEF(GCC5_LOONGARCH64_CC_FLAGS)
-RELEASE_GCC_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-unused-but-set-variable -Wno-unused-variable
+RELEASE_GCC_LOONGARCH64_CC_FLAGS       = DEF(GCC5_LOONGARCH64_CC_FLAGS) -Wno-unused-variable
 
 ####################################################################################
 #
@@ -1227,7 +1227,7 @@ DEFINE CLANGPDB_X64_PREFIX           = ENV(CLANG_BIN)
 DEFINE CLANGPDB_IA32_TARGET          = -target i686-unknown-windows-gnu
 DEFINE CLANGPDB_X64_TARGET           = -target x86_64-unknown-windows-gnu
 
-DEFINE CLANGPDB_WARNING_OVERRIDES    = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-unused-const-variable -Wno-varargs -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-unaligned-access -Wno-microsoft-enum-forward-reference
+DEFINE CLANGPDB_WARNING_OVERRIDES    = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access -Wno-microsoft-enum-forward-reference
 DEFINE CLANGPDB_ALL_CC_FLAGS         = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGPDB_WARNING_OVERRIDES) -fno-stack-protector -funsigned-char -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -Wno-null-dereference -mno-implicit-float -mms-bitfields -mno-stack-arg-probe -nostdlib -nostdlibinc -fseh-exceptions
 
 ###########################
@@ -1330,7 +1330,7 @@ DEFINE CLANGDWARF_IA32_X64_ASLDLINK_FLAGS = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON
 DEFINE CLANGDWARF_IA32_X64_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map,--whole-archive
 DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
 
-DEFINE CLANGDWARF_WARNING_OVERRIDES = -Wno-parentheses-equality -Wno-empty-body -Wno-unused-const-variable -Wno-varargs -Wno-unknown-warning-option -Wno-unused-but-set-variable -Wno-unused-const-variable -Wno-unaligned-access
+DEFINE CLANGDWARF_WARNING_OVERRIDES = -Wno-parentheses-equality -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access
 DEFINE CLANGDWARF_ALL_CC_FLAGS      = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGDWARF_WARNING_OVERRIDES) -fno-stack-protector -mms-bitfields -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -msoft-float -mno-implicit-float  -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -funsigned-char -fno-ms-extensions -Wno-null-dereference
 
 ###########################
@@ -1491,7 +1491,7 @@ RELEASE_CLANGDWARF_AARCH64_DLINK_FLAGS = DEF(CLANGDWARF_AARCH64_DLINK_FLAGS) -L$
 # CLANGDWARF RISCV64 definitions
 ##################
 DEFINE CLANGDWARF_RISCV64_TARGET    = -target riscv64-linux-gnu
-DEFINE CLANGDWARF_RISCV64_CC_COMMON = DEF(GCC5_RISCV_ALL_CC_FLAGS) DEF(GCC5_RISCV_ALL_CC_FLAGS_WARNING_DISABLE) DEF(GCC5_RISCV_OPENSBI_TYPES) -march=DEF(GCC5_RISCV64_ARCH) -fno-builtin -fno-builtin-memcpy -fno-stack-protector -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -Wno-unused-but-set-variable -fpack-struct=8 -mcmodel=medany -mabi=lp64 -mno-relax
+DEFINE CLANGDWARF_RISCV64_CC_COMMON = DEF(GCC5_RISCV_ALL_CC_FLAGS) DEF(GCC5_RISCV_ALL_CC_FLAGS_WARNING_DISABLE) DEF(GCC5_RISCV_OPENSBI_TYPES) -march=DEF(GCC5_RISCV64_ARCH) -fno-builtin -fno-builtin-memcpy -fno-stack-protector -Wno-address -fno-asynchronous-unwind-tables -fno-unwind-tables -fpack-struct=8 -mcmodel=medany -mabi=lp64 -mno-relax
 DEFINE CLANGDWARF_RISCV64_CC_FLAGS  = DEF(CLANGDWARF_RISCV64_CC_COMMON) DEF(CLANGDWARF_RISCV64_TARGET) DEF(CLANGDWARF_WARNING_OVERRIDES)
 
 # This is similar to GCC flags but without -n
@@ -1610,7 +1610,7 @@ RELEASE_XCODE5_IA32_ASM_FLAGS  = -arch i386
 
 
   DEBUG_XCODE5_IA32_CC_FLAGS   = -arch i386 -c -g -flto -Os -Wall -Werror -include AutoGen.h -funsigned-char -fno-stack-protector -fno-builtin -fshort-wchar -fasm-blocks -mdynamic-no-pic -mno-implicit-float -mms-bitfields -msoft-float -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang
-RELEASE_XCODE5_IA32_CC_FLAGS   = -arch i386 -c    -flto -Os -Wall -Werror -include AutoGen.h -funsigned-char -fno-stack-protector -fno-builtin -fshort-wchar -fasm-blocks -mdynamic-no-pic -mno-implicit-float -mms-bitfields -msoft-float -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -Wno-unused-const-variable -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang
+RELEASE_XCODE5_IA32_CC_FLAGS   = -arch i386 -c    -flto -Os -Wall -Werror -include AutoGen.h -funsigned-char -fno-stack-protector -fno-builtin -fshort-wchar -fasm-blocks -mdynamic-no-pic -mno-implicit-float -mms-bitfields -msoft-float -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang
   NOOPT_XCODE5_IA32_CC_FLAGS   = -arch i386 -c -g       -O0 -Wall -Werror -include AutoGen.h -funsigned-char -fno-stack-protector -fno-builtin -fshort-wchar -fasm-blocks -mdynamic-no-pic -mno-implicit-float -mms-bitfields -msoft-float -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang
 
 ##################
@@ -1630,7 +1630,7 @@ RELEASE_XCODE5_X64_ASM_FLAGS  = -arch x86_64
 
   DEBUG_XCODE5_X64_CC_FLAGS   = -target x86_64-pc-win32-macho -c -g -gdwarf -flto -Os -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-implicit-float -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -D NO_MSABI_VA_FUNCS
   NOOPT_XCODE5_X64_CC_FLAGS   = -target x86_64-pc-win32-macho -c -g -gdwarf       -O0 -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-implicit-float -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -D NO_MSABI_VA_FUNCS
-RELEASE_XCODE5_X64_CC_FLAGS   = -target x86_64-pc-win32-macho -c            -flto -Os -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-implicit-float -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unused-const-variable -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -D NO_MSABI_VA_FUNCS
+RELEASE_XCODE5_X64_CC_FLAGS   = -target x86_64-pc-win32-macho -c            -flto -Os -Wall -Werror -Wextra -include AutoGen.h -funsigned-char -fno-ms-extensions -fno-stack-protector -fno-builtin -fshort-wchar -mno-implicit-float -mms-bitfields -Wno-unused-parameter -Wno-missing-braces -Wno-missing-field-initializers -Wno-tautological-compare -Wno-sign-compare -Wno-varargs -Wno-unknown-warning-option -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -D NO_MSABI_VA_FUNCS
 
 #################
 # ASM 16 linker definitions
