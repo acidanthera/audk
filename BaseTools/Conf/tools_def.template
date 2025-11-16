@@ -1227,7 +1227,7 @@ DEFINE CLANGPDB_X64_PREFIX           = ENV(CLANG_BIN)
 DEFINE CLANGPDB_IA32_TARGET          = -target i686-unknown-windows-gnu
 DEFINE CLANGPDB_X64_TARGET           = -target x86_64-unknown-windows-gnu
 
-DEFINE CLANGPDB_WARNING_OVERRIDES    = -Wno-parentheses-equality -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access -Wno-microsoft-enum-forward-reference
+DEFINE CLANGPDB_WARNING_OVERRIDES    = -Wunused-but-set-parameter -Wno-tautological-compare -Wno-tautological-constant-out-of-range-compare -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access -Wno-microsoft-enum-forward-reference
 DEFINE CLANGPDB_ALL_CC_FLAGS         = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGPDB_WARNING_OVERRIDES) -fno-stack-protector -funsigned-char -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -Wno-null-dereference -mno-implicit-float -mms-bitfields -mno-stack-arg-probe -nostdlib -nostdlibinc -fseh-exceptions
 
 ###########################
@@ -1330,7 +1330,7 @@ DEFINE CLANGDWARF_IA32_X64_ASLDLINK_FLAGS = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON
 DEFINE CLANGDWARF_IA32_X64_DLINK_FLAGS    = DEF(CLANGDWARF_IA32_X64_DLINK_COMMON) -Wl,--entry,$(IMAGE_ENTRY_POINT) -u $(IMAGE_ENTRY_POINT) -Wl,-Map,$(DEST_DIR_DEBUG)/$(BASE_NAME).map,--whole-archive
 DEFINE CLANGDWARF_IA32_DLINK2_FLAGS       = -no-pie
 
-DEFINE CLANGDWARF_WARNING_OVERRIDES = -Wno-parentheses-equality -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access
+DEFINE CLANGDWARF_WARNING_OVERRIDES = -Wunused-but-set-parameter -Wno-empty-body -Wno-varargs -Wno-unknown-warning-option -Wno-unaligned-access
 DEFINE CLANGDWARF_ALL_CC_FLAGS      = DEF(GCC5_ALL_CC_FLAGS) DEF(CLANGDWARF_WARNING_OVERRIDES) -fno-stack-protector -mms-bitfields -Wno-address -Wno-shift-negative-value -Wno-unknown-pragmas -Wno-incompatible-library-redeclaration -fno-asynchronous-unwind-tables -mno-sse -mno-mmx -msoft-float -mno-implicit-float  -ftrap-function=undefined_behavior_has_been_optimized_away_by_clang -funsigned-char -fno-ms-extensions -Wno-null-dereference
 
 ###########################
