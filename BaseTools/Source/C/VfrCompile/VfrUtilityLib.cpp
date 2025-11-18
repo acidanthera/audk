@@ -1489,6 +1489,7 @@ CVfrVarDataTypeDB::Dump (
 {
   SVfrDataType  *pTNode;
   SVfrDataField *pFNode;
+  CHAR8         *FieldTypeName;
 
   fprintf (File, "\n\n***************************************************************\n");
   fprintf (File, "\t\tmPackAlign = %x\n", mPackAlign);
@@ -1496,12 +1497,13 @@ CVfrVarDataTypeDB::Dump (
     fprintf (File, "\t\tstruct %s : mAlign [%d] mTotalSize [0x%x]\n\n", pTNode->mTypeName, pTNode->mAlign, pTNode->mTotalSize);
     fprintf (File, "\t\tstruct %s {\n", pTNode->mTypeName);
     for (pFNode = pTNode->mMembers; pFNode != NULL; pFNode = pFNode->mNext) {
+      FieldTypeName = (pFNode->mFieldType == NULL) ? NULL : pFNode->mFieldType->mTypeName;
       if (pFNode->mArrayNum > 0) {
         fprintf (File, "\t\t\t+%08d[%08x] %s[%d] <%s>\n", pFNode->mOffset, pFNode->mOffset,
-                  pFNode->mFieldName, pFNode->mArrayNum, pFNode->mFieldType->mTypeName);
+                  pFNode->mFieldName, pFNode->mArrayNum, FieldTypeName);
       } else {
         fprintf (File, "\t\t\t+%08d[%08x] %s <%s>\n", pFNode->mOffset, pFNode->mOffset,
-                  pFNode->mFieldName, pFNode->mFieldType->mTypeName);
+                  pFNode->mFieldName, FieldTypeName);
       }
     }
     fprintf (File, "\t\t};\n");
