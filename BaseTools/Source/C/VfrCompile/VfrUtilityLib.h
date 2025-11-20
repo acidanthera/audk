@@ -218,7 +218,7 @@ struct SVfrDataField {
   CHAR8            mFieldName[MAX_NAME_LEN];
   SVfrDataType     *mFieldType;
   UINT32           mOffset;
-  UINT32           mArrayNum;
+  UINT32           mArrayNum;          ///< Holds array length, or zero for non-array.
   BOOLEAN          mIsBitField;
   UINT8            mBitWidth;
   UINT32           mBitOffset;
@@ -352,7 +352,7 @@ private:
     );
 
   UINT8
-  GetFieldWidth (
+  GetFieldType (
     IN SVfrDataField *
     );
 
@@ -436,7 +436,7 @@ public:
     );
 
   EFI_VFR_RETURN_CODE
-  ExtractFieldNameAndArrary (
+  ExtractFieldNameAndArrayIdx (
     IN CHAR8 * &,
     OUT CHAR8 *,
     OUT UINT32 &
