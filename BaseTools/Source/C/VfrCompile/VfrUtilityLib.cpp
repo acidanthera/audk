@@ -649,7 +649,7 @@ CVfrVarDataTypeDB::IsThisBitField (
   CHECK_ERROR_RETURN (GetDataType (TName, &pType), VFR_RETURN_SUCCESS);
 
   while (*VarStr != '\0') {
-    CHECK_ERROR_RETURN(ExtractFieldNameAndArrary(VarStr, FName, ArrayIdx), VFR_RETURN_SUCCESS);
+    CHECK_ERROR_RETURN(ExtractFieldNameAndArrayIdx(VarStr, FName, ArrayIdx), VFR_RETURN_SUCCESS);
     CHECK_ERROR_RETURN(GetTypeField (FName, pType, pField), VFR_RETURN_SUCCESS);
     pType  = pField->mFieldType;
   }
@@ -661,7 +661,7 @@ CVfrVarDataTypeDB::IsThisBitField (
 }
 
 EFI_VFR_RETURN_CODE
-CVfrVarDataTypeDB::ExtractFieldNameAndArrary (
+CVfrVarDataTypeDB::ExtractFieldNameAndArrayIdx (
   IN  CHAR8   *&VarStr,
   IN  CHAR8   *FName,
   OUT UINT32 &ArrayIdx
@@ -766,17 +766,17 @@ CVfrVarDataTypeDB::GetFieldOffset (
   }
 
   if ((ArrayIdx != INVALID_ARRAY_INDEX) && ((Field->mArrayNum == 0) || (Field->mArrayNum <= ArrayIdx))) {
-    return VFR_RETURN_ERROR_ARRARY_NUM;
+    return VFR_RETURN_ERROR_ARRAY_NUM;
   }
 
   //
   // Be compatible with the current usage
-  // If ArraryIdx is not specified, the first one is used.
+  // If ArrayIdx is not specified, the first one is used.
   //
-  // if ArrayNum is larger than zero, ArraryIdx must be specified.
+  // if ArrayNum is larger than zero, ArrayIdx must be specified.
   //
   // if ((ArrayIdx == INVALID_ARRAY_INDEX) && (Field->mArrayNum > 0)) {
-  //   return VFR_RETURN_ERROR_ARRARY_NUM;
+  //   return VFR_RETURN_ERROR_ARRAY_NUM;
   // }
   //
   if (IsBitField) {
@@ -788,7 +788,7 @@ CVfrVarDataTypeDB::GetFieldOffset (
 }
 
 UINT8
-CVfrVarDataTypeDB::GetFieldWidth (
+CVfrVarDataTypeDB::GetFieldType (
   IN SVfrDataField *Field
   )
 {
@@ -1183,7 +1183,7 @@ CVfrVarDataTypeDB::DataTypeAddBitField (
       }
     } else {
       //
-      // The bit filed start a new memory
+      // The bit field start a new memory
       //
       pNewField->mBitOffset = mNewDataType->mTotalSize * 8;
       UpdateTotalSize = TRUE;
@@ -1241,6 +1241,7 @@ CVfrVarDataTypeDB::DataTypeAddField (
   pNewField->mFieldType    = pFieldType;
   pNewField->mArrayNum     = ArrayNum;
   pNewField->mIsBitField   = FALSE;
+  pNewField->mBitWidth     = 0;
   if ((mNewDataType->mTotalSize % Align) == 0) {
     pNewField->mOffset     = mNewDataType->mTotalSize;
   } else {
@@ -1407,7 +1408,7 @@ CVfrVarDataTypeDB::GetDataFieldInfo (
   Size  = pType->mTotalSize;
 
   while (*VarStr != '\0') {
-    CHECK_ERROR_RETURN(ExtractFieldNameAndArrary(VarStr, FName, ArrayIdx), VFR_RETURN_SUCCESS);
+    CHECK_ERROR_RETURN(ExtractFieldNameAndArrayIdx(VarStr, FName, ArrayIdx), VFR_RETURN_SUCCESS);
     CHECK_ERROR_RETURN(GetTypeField (FName, pType, pField), VFR_RETURN_SUCCESS);
     pType  = pField->mFieldType;
     CHECK_ERROR_RETURN(GetFieldOffset (pField, ArrayIdx, Tmp, pField->mIsBitField), VFR_RETURN_SUCCESS);
@@ -1416,7 +1417,7 @@ CVfrVarDataTypeDB::GetDataFieldInfo (
     } else {
       Offset = (UINT16) (Offset + Tmp);
     }
-    Type   = GetFieldWidth (pField);
+    Type   = GetFieldType (pField);
     Size   = GetFieldSize (pField, ArrayIdx, BitField);
   }
   return VFR_RETURN_SUCCESS;
@@ -1488,6 +1489,7 @@ CVfrVarDataTypeDB::Dump (
 {
   SVfrDataType  *pTNode;
   SVfrDataField *pFNode;
+  CHAR8         *FieldTypeName;
 
   fprintf (File, "\n\n***************************************************************\n");
   fprintf (File, "\t\tmPackAlign = %x\n", mPackAlign);
@@ -1495,12 +1497,13 @@ CVfrVarDataTypeDB::Dump (
     fprintf (File, "\t\tstruct %s : mAlign [%d] mTotalSize [0x%x]\n\n", pTNode->mTypeName, pTNode->mAlign, pTNode->mTotalSize);
     fprintf (File, "\t\tstruct %s {\n", pTNode->mTypeName);
     for (pFNode = pTNode->mMembers; pFNode != NULL; pFNode = pFNode->mNext) {
+      FieldTypeName = (pFNode->mFieldType == NULL) ? NULL : pFNode->mFieldType->mTypeName;
       if (pFNode->mArrayNum > 0) {
         fprintf (File, "\t\t\t+%08d[%08x] %s[%d] <%s>\n", pFNode->mOffset, pFNode->mOffset,
-                  pFNode->mFieldName, pFNode->mArrayNum, pFNode->mFieldType->mTypeName);
+                  pFNode->mFieldName, pFNode->mArrayNum, FieldTypeName);
       } else {
         fprintf (File, "\t\t\t+%08d[%08x] %s <%s>\n", pFNode->mOffset, pFNode->mOffset,
-                  pFNode->mFieldName, pFNode->mFieldType->mTypeName);
+                  pFNode->mFieldName, FieldTypeName);
       }
     }
     fprintf (File, "\t\t};\n");

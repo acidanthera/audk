@@ -879,6 +879,7 @@ typedef struct _EFI_IFR_FORM_SET {
   EFI_STRING_ID        FormSetTitle;
   EFI_STRING_ID        Help;
   UINT8                Flags;
+  UINT8                Align;
   // EFI_GUID              ClassGuid[];
 } EFI_IFR_FORM_SET;
 
