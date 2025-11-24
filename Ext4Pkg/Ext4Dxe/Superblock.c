@@ -199,6 +199,21 @@ Ext4OpenSuperblock (
     // GOOD_OLD_REV
     Partition->FeaturesCompat = Partition->FeaturesIncompat = Partition->FeaturesRoCompat = 0;
     Partition->InodeSize      = EXT4_GOOD_OLD_INODE_SIZE;
+
+    //
+    // We must ensure that Sb->s_feature_incompat is also zero; otherwise,
+    // we must not mount this file system.
+    //
+    if (Sb->s_feature_incompat != 0) {
+      return EFI_VOLUME_CORRUPTED;
+    }
+
+    //
+    // Check that Sb->s_inode_size is valid, otherwise the partition is likely corrupted.
+    //
+    if (Sb->s_inode_size > EXT4_GOOD_OLD_INODE_SIZE) {
+      return EFI_VOLUME_CORRUPTED;
+    }
   }
 
   // Now, check for the feature set of the filesystem
