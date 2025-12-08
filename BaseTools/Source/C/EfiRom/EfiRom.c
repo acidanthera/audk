@@ -45,7 +45,6 @@ Returns:
   FILE_LIST  *FList;
   UINT32     TotalSize;
   UINT32     Size;
-  CHAR8      *Ptr0;
 
   SetUtilityName (UTILITY_NAME);
 
@@ -76,7 +75,7 @@ Returns:
   //
   if (mOptions.DumpOption == 1) {
     if (mOptions.FileList != NULL) {
-      if ((Ptr0 = strstr ((CONST CHAR8 *)mOptions.FileList->FileName, DEFAULT_OUTPUT_EXTENSION)) != NULL) {
+      if (strstr ((CONST CHAR8 *)mOptions.FileList->FileName, DEFAULT_OUTPUT_EXTENSION) != NULL) {
         DumpImage (mOptions.FileList);
         goto BailOut;
       } else {
