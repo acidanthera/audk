@@ -1059,7 +1059,7 @@ RefreshGcdMemoryAttributesFromPaging (
         //
         // Get the mask for the memory encryption bit for Tdx and Sev
         //
-        AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask);
+        AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask;
         if (AddressEncMask == 0) {
           AddressEncMask = PcdGet64 (PcdTdxSharedBitMask);
         }

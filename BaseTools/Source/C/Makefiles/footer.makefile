@@ -29,7 +29,6 @@ $(EDK2_OBJPATH)/%.o : $(EDK2_PATH)/%.c
 
 .PHONY: clean
 clean:
-	$(RM) -f $(OBJECTS) $(LIBRARY) $(DEPFILES)
-	$(RM) -rf $(EDK2_OBJPATH)
+	$(RM) $(OBJECTS) $(LIBRARY) $(DEPFILES)
 
 -include $(DEPFILES)

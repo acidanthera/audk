@@ -11,6 +11,11 @@
 
 **/
 
+PHDRS {
+  text      PT_LOAD     FLAGS(5);  /* R_X */
+  data      PT_LOAD     FLAGS(6);  /* RW_ */
+}
+
 SECTIONS {
 
   . = ALIGNED_PE_HEADER_SIZE;
@@ -29,12 +34,12 @@ SECTIONS {
      * emitted GUIDs here.
      */
     *:AutoGen.obj(.data.g*Guid)
-  }
+  } :text
 
   .data : ALIGN(CONSTANT(MAXPAGESIZE)) {
     *(.data .data.* .gnu.linkonce.d.*)
     *(.bss .bss.*)
-  }
+  } :data
 
   .eh_frame : ALIGN(CONSTANT(MAXPAGESIZE)) {
     KEEP (*(.eh_frame))
