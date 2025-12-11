@@ -26,7 +26,7 @@ jobs:
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip gcc-arm-linux-gnueabi gcc-aarch64-linux-gnu
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip gcc-aarch64-linux-gnu
 
       - name: CI Bootstrap
         run: |
@@ -52,11 +52,10 @@ jobs:
           SELFPKG: ArmPkg
           SELFPKG_DIR: ArmPkg
           TOOLCHAINS: GCC
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC_ARM_PREFIX: arm-linux-gnueabi-
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Build ArmPlatformPkg
@@ -66,11 +65,10 @@ jobs:
           SELFPKG: ArmPlatformPkg
           SELFPKG_DIR: ArmPlatformPkg
           TOOLCHAINS: GCC
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC_ARM_PREFIX: arm-linux-gnueabi-
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Build ArmVirtQemu
@@ -80,11 +78,10 @@ jobs:
           SELFPKG: ArmVirtQemu
           SELFPKG_DIR: ArmVirtPkg
           TOOLCHAINS: GCC
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          GCC_ARM_PREFIX: arm-linux-gnueabi-
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
 
       - name: Prepare artifacts with firmwares
@@ -99,7 +96,7 @@ jobs:
               done
           done
         env:
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: GCC
 
@@ -154,7 +151,7 @@ jobs:
           SELFPKG: ArmPkg
           SELFPKG_DIR: ArmPkg
           TOOLCHAINS: CLANGDWARF
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
@@ -166,7 +163,7 @@ jobs:
           SELFPKG: ArmPlatformPkg
           SELFPKG_DIR: ArmPlatformPkg
           TOOLCHAINS: CLANGDWARF
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
@@ -178,7 +175,7 @@ jobs:
           SELFPKG: ArmVirtQemu
           SELFPKG_DIR: ArmVirtPkg
           TOOLCHAINS: CLANGDWARF
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
@@ -195,7 +192,7 @@ jobs:
               done
           done
         env:
-          ARCHS: ARM,AARCH64
+          ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: CLANGDWARF
 
@@ -217,8 +214,8 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "ArmVirtQemu", archs: "ARM,AARCH64", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "ArmVirtQemu", archs: "AARCH64", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "ArmVirtQemu", archs: "AARCH64", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
         ]
     steps:
       - name: Checkout ocbuild repository
