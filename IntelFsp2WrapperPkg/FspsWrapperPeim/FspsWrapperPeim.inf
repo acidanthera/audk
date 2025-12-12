@@ -45,7 +45,7 @@
   FspWrapperApiTestLib
   FspMeasurementLib
   FspWrapperMultiPhaseProcessLib
-  PeCoffLib
+  UefiImageOnlyFvLib
   FvLib
 
 [Packages]
