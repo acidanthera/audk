@@ -65,7 +65,6 @@ cleanall:
   @if not defined PYTHON_COMMAND $(PYTHON_HOME)\python.exe Makefiles\NmakeSubdirs.py cleanall $(LIBRARIES) $(APPLICATIONS)
 # Next line protects the libs pseudo target from inadvertent GNU make activity
   if exist libs RMDIR /S /Q libs
-	if exist $(EDK2_OBJPATH) RMDIR /S /Q $(EDK2_OBJPATH)/..
+  if exist $(EDK2_OBJPATH) RMDIR /S /Q $(EDK2_OBJPATH)/..
 
 !INCLUDE Makefiles\ms.rule
-

@@ -481,6 +481,9 @@
   MpInitLib|UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
   CpuPageTableLib|UefiCpuPkg/Library/CpuPageTableLib/CpuPageTableLib.inf
 
+[LibraryClasses.AARCH64.DXE_CORE]
+  CpuArchLib|ArmPkg/Library/CpuArchLib/CpuArchLib.inf
+
 [LibraryClasses.common.DXE_DRIVER]
   PcdLib|MdePkg/Library/DxePcdLib/DxePcdLib.inf
   MemoryAllocationLib|MdePkg/Library/UefiMemoryAllocationLib/UefiMemoryAllocationLib.inf
@@ -1193,8 +1196,6 @@
 !endif
 
 [Components.X64]
-  UefiCpuPkg/CpuDxe/CpuDxe.inf
-
 !if $(TIMER_SUPPORT) == "HPET"
   PcAtChipsetPkg/HpetTimerDxe/HpetTimerDxe.inf
 !elseif $(TIMER_SUPPORT) == "LAPIC"
@@ -1208,7 +1209,6 @@
 
 [Components.AARCH64]
   ArmPkg/Drivers/ArmPciCpuIo2Dxe/ArmPciCpuIo2Dxe.inf
-  ArmPkg/Drivers/CpuDxe/CpuDxe.inf
   UefiCpuPkg/Library/ArmMmuLib/ArmMmuBaseLib.inf
 
   EmbeddedPkg/RealTimeClockRuntimeDxe/RealTimeClockRuntimeDxe.inf

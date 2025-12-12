@@ -72,8 +72,8 @@ DEFINE X64_LTO     =
 DEFINE ARM_LTO     =
 DEFINE AARCH64_LTO =
 !else
-DEFINE LTO         = -flto
-DEFINE X64_LTO     = -flto -DUSING_LTO
+DEFINE LTO         = -flto=auto
+DEFINE X64_LTO     = -flto=auto -DUSING_LTO
 DEFINE ARM_LTO     = -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-arm -Wl,-plugin-opt=-pass-through=-llto-arm
 DEFINE AARCH64_LTO = -L$(WORKSPACE)/BaseTools/Bin/GccLto -llto-aarch64 -Wl,-plugin-opt=-pass-through=-llto-aarch64 -Wno-lto-type-mismatch
 !endif

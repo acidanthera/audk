@@ -24,7 +24,6 @@
 [Sources]
   MemoryIntrinsics.c
   CopyMem.c
-  Math.c                    | GCC
 
 [Sources.IA32]
   Ia32/MathDivU64xU64Rem.c  | MSFT
@@ -36,6 +35,7 @@
   Ia32/MathUlldiv.nasm      | MSFT
   Ia32/MathUlldvrm.asm      | MSFT
   Ia32/MathLldiv.asm        | MSFT
+  Ia32/MathUllrem.asm       | MSFT
 
   Ia32/MathDivU64xU64Rem.c  | INTEL
   Ia32/MathLShiftS64.c      | INTEL
@@ -50,6 +50,9 @@
   Ia32/MathModU64x64.c      | GCC
 
   Ia32/MathUlldiv.nasm      | CLANGPDB
+
+[Sources.X64]
+    Math.c                  | GCC
 
 [Packages]
   MdePkg/MdePkg.dec
