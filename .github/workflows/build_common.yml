@@ -21,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Add Linux Toolchain
         run: brew tap FiloSottile/homebrew-musl-cross
@@ -155,7 +155,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Install Dependencies
         run: |
@@ -273,7 +273,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
@@ -409,7 +409,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
@@ -545,7 +545,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          submodules: true
 
       - name: Use Docker in rootless mode.
         uses: ScribeMD/rootless-docker@0.2.2
