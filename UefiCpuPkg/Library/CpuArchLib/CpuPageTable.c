@@ -1061,7 +1061,7 @@ RefreshGcdMemoryAttributesFromPaging (
         //
         AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask;
         if (AddressEncMask == 0) {
-          AddressEncMask = PcdGet64 (PcdTdxSharedBitMask);
+          AddressEncMask = mPlatformInfoHob2->PcdTdxSharedBitMask;
         }
 
         //
