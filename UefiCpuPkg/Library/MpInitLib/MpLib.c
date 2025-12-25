@@ -1137,7 +1137,7 @@ RestoreWakeupBuffer (
   CopyMem (
     (VOID *)CpuMpData->WakeupBuffer,
     (VOID *)CpuMpData->BackupBuffer,
-    CpuMpData->BackupBufferSize
+    CpuMpData->AddressMap.ModeTransitionOffset
     );
 }
 
