@@ -23,6 +23,8 @@
 #
 
 [Sources]
+  AlignedPages.h
+  AlignedPages.c
   CommonMemoryAllocationLib.c
   CommonMemoryAllocationLibEx.c
 
