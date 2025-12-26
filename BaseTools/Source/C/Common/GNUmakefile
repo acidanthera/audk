@@ -92,4 +92,11 @@ OBJECTS += \
   $(EDK2_OBJPATH)/MdePkg/Library/BasePrintLib/PrintLib.o \
   $(EDK2_OBJPATH)/MdePkg/Library/BasePrintLib/PrintLibInternal.o
 
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdeModulePkg/Library/BaseMemoryProfileLibNull/BaseMemoryProfileLibNull.o
+
+OBJECTS += \
+  $(EDK2_OBJPATH)/MdeModulePkg/Library/CommonMemoryAllocationLib/CommonMemoryAllocationLib.o \
+  $(EDK2_OBJPATH)/MdeModulePkg/Library/CommonMemoryAllocationLib/CommonMemoryAllocationLibEx.o
+
 include $(MAKEROOT)/Makefiles/lib.makefile
