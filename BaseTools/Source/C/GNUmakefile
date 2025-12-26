@@ -64,5 +64,6 @@ clean: localClean
 localClean:
 	$(RM) $(MAKEROOT)/bin/*
 	-$(RD) $(MAKEROOT)/libs $(MAKEROOT)/bin
+	$(RD) $(EDK2_OBJPATH) $(EDK2_OBJPATH)/..
 
 include Makefiles/footer.makefile

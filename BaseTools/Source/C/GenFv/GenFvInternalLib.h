@@ -20,8 +20,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Common/PiFirmwareFile.h>
 #include <Common/PiFirmwareVolume.h>
-#include <Guid/PiFirmwareFileSystem.h>
-#include <IndustryStandard/PeImage.h>
+#include <Guid/FirmwareFileSystem2.h>
+#include <Guid/FirmwareFileSystem3.h>
+#include <Common/PeImageEx.h>
 
 #include "CommonLib.h"
 #include "ParseInf.h"

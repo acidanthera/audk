@@ -10,7 +10,14 @@ APPNAME = DevicePath
 
 LIBS = $(LIB_PATH)\Common.lib
 
-OBJECTS = DevicePath.obj UefiDevicePathLib.obj DevicePathFromText.obj  DevicePathUtilities.obj
+OBJECTS = DevicePath.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\DevicePathFromText.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\DevicePathToText.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\DevicePathUtilities.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\DevicePathUtilitiesBase.obj \
+  $(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\UefiDevicePathLib.obj
 
 #CFLAGS = $(CFLAGS) /nodefaultlib:libc.lib
 
