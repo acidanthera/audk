@@ -14,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <stdlib.h>
 
 #include <Common/UefiBaseTypes.h>
-#include <IndustryStandard/PeImage.h> // for PE32 structure definitions
+#include <Common/PeImageEx.h> // for PE32 structure definitions
 
 #include <IndustryStandard/Pci22.h>  // for option ROM header structures
 #include <IndustryStandard/Pci30.h>
@@ -25,14 +25,14 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Version of this utility
 //
-#define UTILITY_NAME "EfiRom"
-#define UTILITY_MAJOR_VERSION 0
-#define UTILITY_MINOR_VERSION 1
+#define UTILITY_NAME           "EfiRom"
+#define UTILITY_MAJOR_VERSION  0
+#define UTILITY_MINOR_VERSION  1
 
 //
 // Define the max length of a filename
 //
-#define MAX_PATH                  200
+#define MAX_PATH  200
 
 //
 // Define the default file extension name
@@ -42,7 +42,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 // Max size for an option ROM image
 //
-#define MAX_OPTION_ROM_SIZE (1024 * 1024 * 16)  // 16MB
+#define MAX_OPTION_ROM_SIZE  (1024 * 1024 * 16) // 16MB
 
 //
 // Values for the indicator field in the PCI data structure
@@ -61,34 +61,34 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 // specified on the command line.
 //
 typedef struct _FILE_LIST {
-  struct _FILE_LIST *Next;
-  CHAR8             *FileName;
-  UINT32            FileFlags;
-  UINT32            ClassCode;
-  UINT16            CodeRevision;
+  struct _FILE_LIST    *Next;
+  CHAR8                *FileName;
+  UINT32               FileFlags;
+  UINT32               ClassCode;
+  UINT16               CodeRevision;
 } FILE_LIST;
 
 //
 // Use this to track our command-line options
 //
 typedef struct {
-  CHAR8     OutFileName[MAX_PATH];
-  INT8      NoLast;
-  UINT16    ClassCode;
-  UINT16    PciRevision;
-  UINT16    VendId;
-  UINT16    *DevIdList;
-  UINT32    DevIdCount;
-  UINT8     VendIdValid;
-  INT8      Verbose;
-  INT8      Quiet;
-  INT8      Debug;
-  INT8      Pci23;
-  INT8      Pci30;
-  INT8      DumpOption;
-//  INT8      Help;
-//  INT8      Version;
-  FILE_LIST *FileList;
+  CHAR8        OutFileName[MAX_PATH];
+  INT8         NoLast;
+  UINT16       ClassCode;
+  UINT16       PciRevision;
+  UINT16       VendId;
+  UINT16       *DevIdList;
+  UINT32       DevIdCount;
+  UINT8        VendIdValid;
+  INT8         Verbose;
+  INT8         Quiet;
+  INT8         Debug;
+  INT8         Pci23;
+  INT8         Pci30;
+  INT8         DumpOption;
+  //  INT8      Help;
+  //  INT8      Version;
+  FILE_LIST    *FileList;
 } OPTIONS;
 
 //
@@ -100,29 +100,29 @@ static OPTIONS  mOptions;
 // Use these to convert from machine type value to a named type
 //
 typedef struct {
-  UINT16  Value;
-  CHAR8   *Name;
+  UINT16    Value;
+  CHAR8     *Name;
 } STRING_LOOKUP;
 
 //
 // Machine Types
 //
 static STRING_LOOKUP  mMachineTypes[] = {
-  { IMAGE_FILE_MACHINE_I386, "IA32" },
-  { IMAGE_FILE_MACHINE_X64, "X64" },
-  { IMAGE_FILE_MACHINE_EBC, "EBC" },
+  { IMAGE_FILE_MACHINE_I386,  "IA32" },
+  { IMAGE_FILE_MACHINE_X64,   "X64"  },
+  { IMAGE_FILE_MACHINE_EBC,   "EBC"  },
   { IMAGE_FILE_MACHINE_ARM64, "AA64" },
-  { 0, NULL }
+  { 0,                        NULL   }
 };
 
 //
 // Subsystem Types
 //
 static STRING_LOOKUP  mSubsystemTypes[] = {
-  { EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION, "EFI application" },
+  { EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION,         "EFI application"         },
   { EFI_IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER, "EFI boot service driver" },
-  { EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER, "EFI runtime driver" },
-  { 0, NULL }
+  { EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER,      "EFI runtime driver"      },
+  { 0,                                           NULL                      }
 };
 
 //
@@ -133,6 +133,7 @@ void
 Version (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -155,6 +156,7 @@ void
 Usage (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -175,10 +177,11 @@ Returns:
 static
 int
 ParseCommandLine (
-  int       Argc,
-  char      *Argv[],
-  OPTIONS   *Options
+  int      Argc,
+  char     *Argv[],
+  OPTIONS  *Options
   )
+
 /*++
 
 Routine Description:
@@ -203,10 +206,11 @@ Returns:
 static
 int
 CheckPE32File (
-  FILE      *Fptr,
-  UINT16    *MachineType,
-  UINT16    *SubSystem
+  FILE    *Fptr,
+  UINT16  *MachineType,
+  UINT16  *SubSystem
   )
+
 /*++
 
 Routine Description:
@@ -231,12 +235,13 @@ Returns:
 static
 int
 ProcessEfiFile (
-  FILE      *OutFptr,
-  FILE_LIST *InFile,
-  UINT16    VendId,
-  UINT16    DevId,
-  UINT32    *Size
+  FILE       *OutFptr,
+  FILE_LIST  *InFile,
+  UINT16     VendId,
+  UINT16     DevId,
+  UINT32     *Size
   )
+
 /*++
 
 Routine Description:
@@ -261,10 +266,11 @@ Returns:
 static
 int
 ProcessBinFile (
-  FILE      *OutFptr,
-  FILE_LIST *InFile,
-  UINT32    *Size
+  FILE       *OutFptr,
+  FILE_LIST  *InFile,
+  UINT32     *Size
   )
+
 /*++
 
 Routine Description:
@@ -287,8 +293,9 @@ Returns:
 static
 void
 DumpImage (
-  FILE_LIST *InFile
+  FILE_LIST  *InFile
   )
+
 /*++
 
 Routine Description:
@@ -308,8 +315,9 @@ Returns:
 
 char                  *
 GetMachineTypeStr (
-  UINT16    MachineType
+  UINT16  MachineType
   )
+
 /*++
 
 Routine Description:
@@ -332,6 +340,7 @@ char                  *
 GetSubsystemTypeStr (
   UINT16  SubsystemType
   )
+
 /*++
 
 Routine Description:

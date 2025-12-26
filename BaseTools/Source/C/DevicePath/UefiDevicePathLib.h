@@ -5,6 +5,7 @@ Copyright (c) 2017, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
+
 #ifndef _UEFI_DEVICE_PATH_LIB_H_
 #define _UEFI_DEVICE_PATH_LIB_H_
 
@@ -14,9 +15,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <ctype.h>
 #include <assert.h>
 #ifdef __GNUC__
-#include <unistd.h>
+  #include <unistd.h>
 #else
-#include <direct.h>
+  #include <direct.h>
 #endif
 #include <Common/UefiBaseTypes.h>
 #include <Protocol/DevicePath.h>
@@ -24,9 +25,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
 
-#define END_DEVICE_PATH_LENGTH               (sizeof (EFI_DEVICE_PATH_PROTOCOL))
-#define MAX_DEVICE_PATH_NODE_COUNT   1024
-#define SIZE_64KB   0x00010000
+#include <Protocol/DebugPort.h>
+#define EFI_UART_DEVICE_PATH_GUID  DEVICE_PATH_MESSAGING_UART_FLOW_CONTROL
+
+#define END_DEVICE_PATH_LENGTH      (sizeof (EFI_DEVICE_PATH_PROTOCOL))
+#define MAX_DEVICE_PATH_NODE_COUNT  1024
+#define SIZE_64KB                   0x00010000
 
 //
 // Private Data structure
@@ -34,90 +38,89 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 typedef
 EFI_DEVICE_PATH_PROTOCOL  *
 (*DEVICE_PATH_FROM_TEXT) (
-  IN  CHAR16 *Str
- );
+  IN  CHAR16  *Str
+  );
 
 typedef struct {
-  CHAR16  *Str;
-  UINTN   Count;
-  UINTN   Capacity;
+  CHAR16    *Str;
+  UINTN     Count;
+  UINTN     Capacity;
 } POOL_PRINT;
 
-
 typedef struct {
-  CHAR16                    *DevicePathNodeText;
-  DEVICE_PATH_FROM_TEXT     Function;
+  CHAR16                   *DevicePathNodeText;
+  DEVICE_PATH_FROM_TEXT    Function;
 } DEVICE_PATH_FROM_TEXT_TABLE;
 
 typedef struct {
-  BOOLEAN ClassExist;
-  UINT8   Class;
-  BOOLEAN SubClassExist;
-  UINT8   SubClass;
+  BOOLEAN    ClassExist;
+  UINT8      Class;
+  BOOLEAN    SubClassExist;
+  UINT8      SubClass;
 } USB_CLASS_TEXT;
 
-#define USB_CLASS_AUDIO            1
-#define USB_CLASS_CDCCONTROL       2
-#define USB_CLASS_HID              3
-#define USB_CLASS_IMAGE            6
-#define USB_CLASS_PRINTER          7
-#define USB_CLASS_MASS_STORAGE     8
-#define USB_CLASS_HUB              9
-#define USB_CLASS_CDCDATA          10
-#define USB_CLASS_SMART_CARD       11
-#define USB_CLASS_VIDEO            14
-#define USB_CLASS_DIAGNOSTIC       220
-#define USB_CLASS_WIRELESS         224
+#define USB_CLASS_AUDIO         1
+#define USB_CLASS_CDCCONTROL    2
+#define USB_CLASS_HID           3
+#define USB_CLASS_IMAGE         6
+#define USB_CLASS_PRINTER       7
+#define USB_CLASS_MASS_STORAGE  8
+#define USB_CLASS_HUB           9
+#define USB_CLASS_CDCDATA       10
+#define USB_CLASS_SMART_CARD    11
+#define USB_CLASS_VIDEO         14
+#define USB_CLASS_DIAGNOSTIC    220
+#define USB_CLASS_WIRELESS      224
 
-#define USB_CLASS_RESERVE          254
-#define USB_SUBCLASS_FW_UPDATE     1
-#define USB_SUBCLASS_IRDA_BRIDGE   2
-#define USB_SUBCLASS_TEST          3
+#define USB_CLASS_RESERVE         254
+#define USB_SUBCLASS_FW_UPDATE    1
+#define USB_SUBCLASS_IRDA_BRIDGE  2
+#define USB_SUBCLASS_TEST         3
 
-#define RFC_1700_UDP_PROTOCOL      17
-#define RFC_1700_TCP_PROTOCOL      6
+#define RFC_1700_UDP_PROTOCOL  17
+#define RFC_1700_TCP_PROTOCOL  6
 
 #pragma pack(1)
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  EFI_GUID                  Guid;
-  UINT8                     VendorDefinedData[1];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  EFI_GUID                    Guid;
+  UINT8                       VendorDefinedData[1];
 } VENDOR_DEFINED_HARDWARE_DEVICE_PATH;
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  EFI_GUID                  Guid;
-  UINT8                     VendorDefinedData[1];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  EFI_GUID                    Guid;
+  UINT8                       VendorDefinedData[1];
 } VENDOR_DEFINED_MESSAGING_DEVICE_PATH;
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  EFI_GUID                  Guid;
-  UINT8                     VendorDefinedData[1];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  EFI_GUID                    Guid;
+  UINT8                       VendorDefinedData[1];
 } VENDOR_DEFINED_MEDIA_DEVICE_PATH;
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  UINT32                    Hid;
-  UINT32                    Uid;
-  UINT32                    Cid;
-  CHAR8                     HidUidCidStr[3];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  UINT32                      Hid;
+  UINT32                      Uid;
+  UINT32                      Cid;
+  CHAR8                       HidUidCidStr[3];
 } ACPI_EXTENDED_HID_DEVICE_PATH_WITH_STR;
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  UINT16                    NetworkProtocol;
-  UINT16                    LoginOption;
-  UINT64                    Lun;
-  UINT16                    TargetPortalGroupTag;
-  CHAR8                     TargetName[1];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  UINT16                      NetworkProtocol;
+  UINT16                      LoginOption;
+  UINT64                      Lun;
+  UINT16                      TargetPortalGroupTag;
+  CHAR8                       TargetName[1];
 } ISCSI_DEVICE_PATH_WITH_NAME;
 
 typedef struct {
-  EFI_DEVICE_PATH_PROTOCOL  Header;
-  EFI_GUID                  Guid;
-  UINT8                     VendorDefinedData[1];
+  EFI_DEVICE_PATH_PROTOCOL    Header;
+  EFI_GUID                    Guid;
+  UINT8                       VendorDefinedData[1];
 } VENDOR_DEVICE_PATH_WITH_DATA;
 
 #pragma pack()
@@ -137,7 +140,7 @@ typedef struct {
 **/
 UINTN
 UefiDevicePathLibGetDevicePathSize (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 /**
@@ -158,7 +161,7 @@ UefiDevicePathLibGetDevicePathSize (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibDuplicateDevicePath (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 /**
@@ -187,8 +190,8 @@ UefiDevicePathLibDuplicateDevicePath (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibAppendDevicePath (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *FirstDevicePath,  OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath  OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *FirstDevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath  OPTIONAL
   );
 
 /**
@@ -221,8 +224,8 @@ UefiDevicePathLibAppendDevicePath (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibAppendDevicePathNode (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,     OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode  OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode  OPTIONAL
   );
 
 /**
@@ -250,8 +253,8 @@ UefiDevicePathLibAppendDevicePathNode (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibAppendDevicePathInstance (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,        OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance OPTIONAL
   );
 
 /**
@@ -284,8 +287,8 @@ UefiDevicePathLibAppendDevicePathInstance (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibGetNextDevicePathInstance (
-   EFI_DEVICE_PATH_PROTOCOL    **DevicePath,
-   UINTN                          *Size
+  EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
+  UINTN                     *Size
   );
 
 /**
@@ -309,9 +312,9 @@ UefiDevicePathLibGetNextDevicePathInstance (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibCreateDeviceNode (
-   UINT8                           NodeType,
-   UINT8                           NodeSubType,
-   UINT16                          NodeLength
+  UINT8   NodeType,
+  UINT8   NodeSubType,
+  UINT16  NodeLength
   );
 
 /**
@@ -331,7 +334,7 @@ UefiDevicePathLibCreateDeviceNode (
 **/
 BOOLEAN
 UefiDevicePathLibIsDevicePathMultiInstance (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 /**
@@ -347,7 +350,7 @@ UefiDevicePathLibIsDevicePathMultiInstance (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibConvertTextToDeviceNode (
-   CONST CHAR16 *TextDeviceNode
+  CONST CHAR16  *TextDeviceNode
   );
 
 /**
@@ -364,76 +367,180 @@ UefiDevicePathLibConvertTextToDeviceNode (
 **/
 EFI_DEVICE_PATH_PROTOCOL *
 UefiDevicePathLibConvertTextToDevicePath (
-   CONST CHAR16 *TextDevicePath
+  CONST CHAR16  *TextDevicePath
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 CreateDeviceNode (
-   UINT8                           NodeType,
-   UINT8                           NodeSubType,
-   UINT16                          NodeLength
+  UINT8   NodeType,
+  UINT8   NodeSubType,
+  UINT16  NodeLength
   );
 
 BOOLEAN
 IsDevicePathMultiInstance (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 GetNextDevicePathInstance (
-    EFI_DEVICE_PATH_PROTOCOL    **DevicePath,
-   UINTN                          *Size
+  EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
+  UINTN                     *Size
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 AppendDevicePathInstance (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,        OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance OPTIONAL
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 AppendDevicePathNode (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,     OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode  OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *DevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode  OPTIONAL
   );
+
 EFI_DEVICE_PATH_PROTOCOL *
 AppendDevicePath (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *FirstDevicePath,  OPTIONAL
-   CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath  OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL *FirstDevicePath, OPTIONAL
+  CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath  OPTIONAL
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 DuplicateDevicePath (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 UINTN
 GetDevicePathSize (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 CHAR16 *
 ConvertDeviceNodeToText (
-   CONST EFI_DEVICE_PATH_PROTOCOL  *DeviceNode,
-   BOOLEAN                         DisplayOnly,
-   BOOLEAN                         AllowShortcuts
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DeviceNode,
+  BOOLEAN                         DisplayOnly,
+  BOOLEAN                         AllowShortcuts
   );
 
 CHAR16 *
 ConvertDevicePathToText (
-   CONST EFI_DEVICE_PATH_PROTOCOL   *DevicePath,
-   BOOLEAN                          DisplayOnly,
-   BOOLEAN                          AllowShortcuts
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+  BOOLEAN                         DisplayOnly,
+  BOOLEAN                         AllowShortcuts
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 ConvertTextToDeviceNode (
-   CONST CHAR16 *TextDeviceNode
+  CONST CHAR16  *TextDeviceNode
   );
 
 EFI_DEVICE_PATH_PROTOCOL *
 ConvertTextToDevicePath (
-   CONST CHAR16 *TextDevicePath
+  CONST CHAR16  *TextDevicePath
+  );
+
+VOID
+SetDevicePathEndNode (
+  VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathValid (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+  UINTN                           MaxSize
+  );
+
+UINT8
+DevicePathType (
+  CONST VOID  *Node
+  );
+
+UINT8
+DevicePathSubType (
+  CONST VOID  *Node
+  );
+
+UINTN
+DevicePathNodeLength (
+  CONST VOID  *Node
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+NextDevicePathNode (
+  CONST VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathEndType (
+  CONST VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathEnd (
+  CONST VOID  *Node
+  );
+
+BOOLEAN
+IsDevicePathEndInstance (
+  CONST VOID  *Node
+  );
+
+UINT16
+SetDevicePathNodeLength (
+  VOID   *Node,
+  UINTN  Length
+  );
+
+VOID
+SetDevicePathEndNode (
+  VOID  *Node
+  );
+
+UINTN
+UefiDevicePathLibGetDevicePathSize (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibDuplicateDevicePath (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePath (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *FirstDevicePath,
+  CONST EFI_DEVICE_PATH_PROTOCOL  *SecondDevicePath
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePathNode (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathNode
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibAppendDevicePathInstance (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath,
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePathInstance
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibGetNextDevicePathInstance (
+  EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
+  UINTN                     *Size
+  );
+
+EFI_DEVICE_PATH_PROTOCOL *
+UefiDevicePathLibCreateDeviceNode (
+  UINT8   NodeType,
+  UINT8   NodeSubType,
+  UINT16  NodeLength
+  );
+
+BOOLEAN
+UefiDevicePathLibIsDevicePathMultiInstance (
+  CONST EFI_DEVICE_PATH_PROTOCOL  *DevicePath
   );
 
 #endif

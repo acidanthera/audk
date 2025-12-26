@@ -13,9 +13,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <ctype.h>
 #include <assert.h>
 #ifdef __GNUC__
-#include <unistd.h>
+  #include <unistd.h>
 #else
-#include <direct.h>
+  #include <direct.h>
 #endif
 
 #include <FvLib.h>
@@ -23,9 +23,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Common/UefiCapsule.h>
 #include <Common/PiFirmwareFile.h>
 #include <Common/PiFirmwareVolume.h>
-#include <Guid/PiFirmwareFileSystem.h>
-#include <IndustryStandard/PeImage.h>
-#include <Protocol/GuidedSectionExtraction.h>
+#include <Guid/FirmwareFileSystem2.h>
+#include <Common/PeImageEx.h>
+#include <Common/GuidedSectionExtractionEx.h>
 
 #include "Compress.h"
 #include "Decompress.h"
@@ -44,40 +44,44 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 //
 
 EFI_GUID  gEfiCrc32GuidedSectionExtractionProtocolGuid = EFI_CRC32_GUIDED_SECTION_EXTRACTION_PROTOCOL_GUID;
-EFI_GUID  gPeiAprioriFileNameGuid = { 0x1b45cc0a, 0x156a, 0x428a, { 0XAF, 0x62,  0x49, 0x86, 0x4d, 0xa0, 0xe6, 0xe6 }};
-EFI_GUID  gAprioriGuid = { 0xFC510EE7, 0xFFDC, 0x11D4, { 0xBD, 0x41, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81 }};
+EFI_GUID  gPeiAprioriFileNameGuid                      = {
+  0x1b45cc0a, 0x156a, 0x428a, { 0XAF, 0x62, 0x49, 0x86, 0x4d, 0xa0, 0xe6, 0xe6 }
+};
+EFI_GUID  gAprioriGuid = {
+  0xFC510EE7, 0xFFDC, 0x11D4, { 0xBD, 0x41, 0x00, 0x80, 0xC7, 0x3C, 0x88, 0x81 }
+};
 
-#define UTILITY_MAJOR_VERSION      1
-#define UTILITY_MINOR_VERSION      0
+#define UTILITY_MAJOR_VERSION  1
+#define UTILITY_MINOR_VERSION  0
 
-#define UTILITY_NAME         "VolInfo"
+#define UTILITY_NAME  "VolInfo"
 
-#define EFI_SECTION_ERROR EFIERR (100)
+#define EFI_SECTION_ERROR  EFIERR (100)
 
 //
 // Structure to keep a list of guid-to-basenames
 //
 typedef struct _GUID_TO_BASENAME {
-  struct _GUID_TO_BASENAME  *Next;
-  INT8                      Guid[PRINTED_GUID_BUFFER_SIZE];
-  INT8                      BaseName[MAX_LINE_LEN];
+  struct _GUID_TO_BASENAME    *Next;
+  INT8                        Guid[PRINTED_GUID_BUFFER_SIZE];
+  INT8                        BaseName[MAX_LINE_LEN];
 } GUID_TO_BASENAME;
 
-static GUID_TO_BASENAME *mGuidBaseNameList = NULL;
+static GUID_TO_BASENAME  *mGuidBaseNameList = NULL;
 
 //
 // Store GUIDed Section guid->tool mapping
 //
-EFI_HANDLE mParsedGuidedSectionTools = NULL;
+EFI_HANDLE  mParsedGuidedSectionTools = NULL;
 
-CHAR8* mUtilityFilename = NULL;
+CHAR8  *mUtilityFilename = NULL;
 
-BOOLEAN EnableHash = FALSE;
-CHAR8 *OpenSslPath = NULL;
+BOOLEAN  EnableHash   = FALSE;
+CHAR8    *OpenSslPath = NULL;
 
 EFI_STATUS
 ParseGuidBaseNameFile (
-  CHAR8    *FileName
+  CHAR8  *FileName
   );
 
 EFI_STATUS
@@ -87,33 +91,33 @@ FreeGuidBaseNameList (
 
 EFI_STATUS
 PrintGuidName (
-  IN UINT8    *GuidStr
+  IN UINT8  *GuidStr
   );
 
 EFI_STATUS
 ParseSection (
-  IN UINT8  *SectionBuffer,
-  IN UINT32 BufferLength
+  IN UINT8   *SectionBuffer,
+  IN UINT32  BufferLength
   );
 
 EFI_STATUS
 DumpDepexSection (
-  IN UINT8    *Ptr,
-  IN UINT32   SectionLength
+  IN UINT8   *Ptr,
+  IN UINT32  SectionLength
   );
 
 STATIC
 EFI_STATUS
 ReadHeader (
-  IN FILE       *InputFile,
-  OUT UINT32    *FvSize,
-  OUT BOOLEAN   *ErasePolarity
+  IN FILE      *InputFile,
+  OUT UINT32   *FvSize,
+  OUT BOOLEAN  *ErasePolarity
   );
 
 STATIC
 EFI_STATUS
 PrintAprioriFile (
-  EFI_FFS_FILE_HEADER         *FileHeader
+  EFI_FFS_FILE_HEADER  *FileHeader
   );
 
 STATIC
@@ -127,22 +131,22 @@ PrintFileInfo (
 static
 EFI_STATUS
 PrintFvInfo (
-  IN VOID                         *Fv,
-  IN BOOLEAN                      IsChildFv
+  IN VOID     *Fv,
+  IN BOOLEAN  IsChildFv
   );
 
 static
 VOID
 LoadGuidedSectionToolsTxt (
-  IN CHAR8* FirmwareVolumeFilename
+  IN CHAR8  *FirmwareVolumeFilename
   );
 
 EFI_STATUS
 CombinePath (
-  IN  CHAR8* DefaultPath,
-  IN  CHAR8* AppendPath,
-  OUT CHAR8* NewPath
-);
+  IN  CHAR8  *DefaultPath,
+  IN  CHAR8  *AppendPath,
+  OUT CHAR8  *NewPath
+  );
 
 void
 Usage (
@@ -151,57 +155,60 @@ Usage (
 
 UINT32
 UnicodeStrLen (
-  IN CHAR16 *String
+  IN CHAR16  *String
   )
-  /*++
 
-  Routine Description:
+/*++
 
-  Returns the length of a null-terminated unicode string.
+Routine Description:
 
-  Arguments:
+Returns the length of a null-terminated unicode string.
 
-    String - The pointer to a null-terminated unicode string.
+Arguments:
 
-  Returns:
+  String - The pointer to a null-terminated unicode string.
 
-    N/A
+Returns:
 
-  --*/
+  N/A
+
+--*/
 {
   UINT32  Length;
 
   for (Length = 0; *String != L'\0'; String++, Length++) {
-    ;
   }
+
   return Length;
 }
 
 VOID
 Unicode2AsciiString (
-  IN  CHAR16 *Source,
-  OUT CHAR8  *Destination
+  IN  CHAR16  *Source,
+  OUT CHAR8   *Destination
   )
-  /*++
 
-  Routine Description:
+/*++
 
-  Convert a null-terminated unicode string to a null-terminated ascii string.
+Routine Description:
 
-  Arguments:
+Convert a null-terminated unicode string to a null-terminated ascii string.
 
-    Source      - The pointer to the null-terminated input unicode string.
-    Destination - The pointer to the null-terminated output ascii string.
+Arguments:
 
-  Returns:
+  Source      - The pointer to the null-terminated input unicode string.
+  Destination - The pointer to the null-terminated output ascii string.
 
-    N/A
+Returns:
 
-  --*/
+  N/A
+
+--*/
 {
   while (*Source != '\0') {
-    *(Destination++) = (CHAR8) *(Source++);
+    *(Destination++) = (CHAR8)*(Source++);
   }
+
   //
   // End the ascii with a NULL.
   //
@@ -210,9 +217,10 @@ Unicode2AsciiString (
 
 int
 main (
-  int       argc,
-  char      *argv[]
+  int   argc,
+  char  *argv[]
   )
+
 /*++
 
 Routine Description:
@@ -245,7 +253,8 @@ Returns:
   //
   // Print utility header
   //
-  printf ("%s Version %d.%d Build %s\n",
+  printf (
+    "%s Version %d.%d Build %s\n",
     UTILITY_NAME,
     UTILITY_MAJOR_VERSION,
     UTILITY_MINOR_VERSION,
@@ -260,21 +269,23 @@ Returns:
   argc--;
   argv++;
   LogLevel = 0;
-  Offset = 0;
+  Offset   = 0;
 
   //
   // Look for help options
   //
-  if ((strcmp(argv[0], "-h") == 0) || (strcmp(argv[0], "--help") == 0) ||
-      (strcmp(argv[0], "-?") == 0) || (strcmp(argv[0], "/?") == 0)) {
-    Usage();
-    return  STATUS_SUCCESS;
+  if ((strcmp (argv[0], "-h") == 0) || (strcmp (argv[0], "--help") == 0) ||
+      (strcmp (argv[0], "-?") == 0) || (strcmp (argv[0], "/?") == 0))
+  {
+    Usage ();
+    return STATUS_SUCCESS;
   }
+
   //
   // Version has already be printed, so just return success
   //
-  if (strcmp(argv[0], "--version") == 0) {
-    return  STATUS_SUCCESS;
+  if (strcmp (argv[0], "--version") == 0) {
+    return STATUS_SUCCESS;
   }
 
   //
@@ -284,14 +295,15 @@ Returns:
   // here.
   //
   while (argc > 0) {
-    if ((strcmp(argv[0], "-x") == 0) || (strcmp(argv[0], "--xref") == 0)) {
+    if ((strcmp (argv[0], "-x") == 0) || (strcmp (argv[0], "--xref") == 0)) {
       ParseGuidBaseNameFile (argv[1]);
-      printf("ParseGuidBaseNameFile: %s\n", argv[1]);
+      printf ("ParseGuidBaseNameFile: %s\n", argv[1]);
       argc -= 2;
       argv += 2;
       continue;
     }
-    if (strcmp(argv[0], "--offset") == 0) {
+
+    if (strcmp (argv[0], "--offset") == 0) {
       //
       // Hex or decimal?
       //
@@ -305,6 +317,7 @@ Returns:
           Error (NULL, 0, 1003, "Invalid option value", "Offset = %s", argv[1]);
           return GetUtilityStatus ();
         }
+
         //
         // See if they said something like "64K"
         //
@@ -317,51 +330,56 @@ Returns:
       argv += 2;
       continue;
     }
+
     if ((stricmp (argv[0], "--hash") == 0)) {
       if (EnableHash == TRUE) {
         //
         // --hash already given in the option, ignore this one
         //
-        argc --;
-        argv ++;
+        argc--;
+        argv++;
         continue;
       }
-      EnableHash = TRUE;
+
+      EnableHash     = TRUE;
       OpenSslCommand = "openssl";
-      OpenSslEnv = getenv("OPENSSL_PATH");
+      OpenSslEnv     = getenv ("OPENSSL_PATH");
       if (OpenSslEnv == NULL) {
         OpenSslPath = OpenSslCommand;
       } else {
         //
         // We add quotes to the Openssl Path in case it has space characters
         //
-        OpenSslPath = malloc(2+strlen(OpenSslEnv)+strlen(OpenSslCommand)+1);
+        OpenSslPath = malloc (2+strlen (OpenSslEnv)+strlen (OpenSslCommand)+1);
         if (OpenSslPath == NULL) {
           Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
           return GetUtilityStatus ();
         }
-        CombinePath(OpenSslEnv, OpenSslCommand, OpenSslPath);
+
+        CombinePath (OpenSslEnv, OpenSslCommand, OpenSslPath);
       }
-      if (OpenSslPath == NULL){
+
+      if (OpenSslPath == NULL) {
         Error (NULL, 0, 3000, "Open SSL command not available.  Please verify PATH or set OPENSSL_PATH.", NULL);
         return GetUtilityStatus ();
       }
-      argc --;
-      argv ++;
+
+      argc--;
+      argv++;
       continue;
     }
 
     if ((stricmp (argv[0], "-v") == 0) || (stricmp (argv[0], "--verbose") == 0)) {
       SetPrintLevel (VERBOSE_LOG_LEVEL);
-      argc --;
-      argv ++;
+      argc--;
+      argv++;
       continue;
     }
 
     if ((stricmp (argv[0], "-q") == 0) || (stricmp (argv[0], "--quiet") == 0)) {
       SetPrintLevel (KEY_LOG_LEVEL);
-      argc --;
-      argv ++;
+      argc--;
+      argv++;
       continue;
     }
 
@@ -371,10 +389,12 @@ Returns:
         Error (NULL, 0, 1003, "Invalid option value", "%s = %s", argv[0], argv[1]);
         return -1;
       }
+
       if (LogLevel > 9) {
-        Error (NULL, 0, 1003, "Invalid option value", "Debug Level range is 0-9, current input level is %d", (int) LogLevel);
+        Error (NULL, 0, 1003, "Invalid option value", "Debug Level range is 0-9, current input level is %d", (int)LogLevel);
         return -1;
       }
+
       SetPrintLevel (LogLevel);
       DebugMsg (NULL, 0, 9, "Debug Mode Set", "Debug Output Mode Level %s is set!", argv[1]);
       argc -= 2;
@@ -383,8 +403,8 @@ Returns:
     }
 
     mUtilityFilename = argv[0];
-    argc --;
-    argv ++;
+    argc--;
+    argv++;
   }
 
   //
@@ -394,11 +414,13 @@ Returns:
     Error (NULL, 0, 1001, "Missing option", "Input files are not specified");
     return GetUtilityStatus ();
   }
+
   InputFile = fopen (LongFilePath (mUtilityFilename), "rb");
   if (InputFile == NULL) {
     Error (NULL, 0, 0001, "Error opening the input file", mUtilityFilename);
     return GetUtilityStatus ();
   }
+
   //
   // Skip over pad bytes if specified. This is used if they prepend 0xff
   // data to the FV image binary.
@@ -406,6 +428,7 @@ Returns:
   if (Offset != 0) {
     fseek (InputFile, Offset, SEEK_SET);
   }
+
   //
   // Determine size of FV
   //
@@ -415,6 +438,7 @@ Returns:
     fclose (InputFile);
     return GetUtilityStatus ();
   }
+
   //
   // Allocate a buffer for the FV image
   //
@@ -424,13 +448,14 @@ Returns:
     fclose (InputFile);
     return GetUtilityStatus ();
   }
+
   //
   // Seek to the start of the image, then read the entire FV to the buffer
   //
   fseek (InputFile, Offset, SEEK_SET);
   BytesRead = fread (FvImage, 1, FvSize, InputFile);
   fclose (InputFile);
-  if ((unsigned int) BytesRead != FvSize) {
+  if ((unsigned int)BytesRead != FvSize) {
     Error (NULL, 0, 0004, "error reading FvImage from", mUtilityFilename);
     free (FvImage);
     return GetUtilityStatus ();
@@ -448,13 +473,13 @@ Returns:
   return GetUtilityStatus ();
 }
 
-
 static
 EFI_STATUS
 PrintFvInfo (
-  IN VOID                         *Fv,
-  IN BOOLEAN                      IsChildFv
+  IN VOID     *Fv,
+  IN BOOLEAN  IsChildFv
   )
+
 /*++
 
 Routine Description:
@@ -472,29 +497,30 @@ Returns:
 
 --*/
 {
-  EFI_STATUS                  Status;
-  UINTN                       NumberOfFiles;
-  BOOLEAN                     ErasePolarity;
-  UINTN                       FvSize;
-  EFI_FFS_FILE_HEADER         *CurrentFile;
-  UINTN                       Key;
+  EFI_STATUS           Status;
+  UINTN                NumberOfFiles;
+  BOOLEAN              ErasePolarity;
+  UINTN                FvSize;
+  EFI_FFS_FILE_HEADER  *CurrentFile;
+  UINTN                Key;
 
   Status = FvBufGetSize (Fv, &FvSize);
 
   NumberOfFiles = 0;
   ErasePolarity =
-    (((EFI_FIRMWARE_VOLUME_HEADER*)Fv)->Attributes & EFI_FVB2_ERASE_POLARITY) ?
-      TRUE : FALSE;
+    (((EFI_FIRMWARE_VOLUME_HEADER *)Fv)->Attributes & EFI_FVB2_ERASE_POLARITY) ?
+    TRUE : FALSE;
 
   //
   // Get the first file
   //
-  Key = 0;
-  Status = FvBufFindNextFile (Fv, &Key, (VOID **) &CurrentFile);
+  Key    = 0;
+  Status = FvBufFindNextFile (Fv, &Key, (VOID **)&CurrentFile);
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 0003, "error parsing FV image", "cannot find the first file in the FV image");
     return GetUtilityStatus ();
   }
+
   //
   // Display information about files found
   //
@@ -512,10 +538,11 @@ Returns:
       Error (NULL, 0, 0003, "error parsing FV image", "failed to parse a file in the FV");
       return GetUtilityStatus ();
     }
+
     //
     // Get the next file
     //
-    Status = FvBufFindNextFile (Fv, &Key, (VOID **) &CurrentFile);
+    Status = FvBufFindNextFile (Fv, &Key, (VOID **)&CurrentFile);
     if (Status == EFI_NOT_FOUND) {
       CurrentFile = NULL;
     } else if (EFI_ERROR (Status)) {
@@ -525,9 +552,9 @@ Returns:
   }
 
   if (IsChildFv) {
-    printf ("There are a total of %d files in the child FV\n", (int) NumberOfFiles);
+    printf ("There are a total of %d files in the child FV\n", (int)NumberOfFiles);
   } else {
-    printf ("There are a total of %d files in this FV\n", (int) NumberOfFiles);
+    printf ("There are a total of %d files in this FV\n", (int)NumberOfFiles);
   }
 
   return EFI_SUCCESS;
@@ -538,6 +565,7 @@ GetOccupiedSize (
   IN UINT32  ActualSize,
   IN UINT32  Alignment
   )
+
 /*++
 
 Routine Description:
@@ -570,8 +598,9 @@ Returns:
 static
 CHAR8 *
 SectionNameToStr (
-  IN EFI_SECTION_TYPE   Type
+  IN EFI_SECTION_TYPE  Type
   )
+
 /*++
 
 Routine Description:
@@ -588,8 +617,8 @@ Returns:
 
 --*/
 {
-  CHAR8 *SectionStr;
-  CHAR8 *SectionTypeStringTable[] = {
+  CHAR8  *SectionStr;
+  CHAR8  *SectionTypeStringTable[] = {
     //
     // 0X00
     //
@@ -721,6 +750,7 @@ Returns:
     printf ("Error: Out of memory resources.\n");
     return SectionStr;
   }
+
   strcpy (SectionStr, SectionTypeStringTable[Type]);
   return SectionStr;
 }
@@ -728,10 +758,11 @@ Returns:
 STATIC
 EFI_STATUS
 ReadHeader (
-  IN FILE       *InputFile,
-  OUT UINT32    *FvSize,
-  OUT BOOLEAN   *ErasePolarity
+  IN FILE      *InputFile,
+  OUT UINT32   *FvSize,
+  OUT BOOLEAN  *ErasePolarity
   )
+
 /*++
 
 Routine Description:
@@ -765,10 +796,11 @@ Returns:
   //
   // Check input parameters
   //
-  if (InputFile == NULL || FvSize == NULL || ErasePolarity == NULL) {
+  if ((InputFile == NULL) || (FvSize == NULL) || (ErasePolarity == NULL)) {
     Error (__FILE__, __LINE__, 0, "application error", "invalid parameter to function");
     return EFI_INVALID_PARAMETER;
   }
+
   //
   // Read the header
   //
@@ -776,15 +808,16 @@ Returns:
   if (ReadSize != 1) {
     return EFI_ABORTED;
   }
-  BytesRead     = sizeof (EFI_FIRMWARE_VOLUME_HEADER) - sizeof (EFI_FV_BLOCK_MAP_ENTRY);
-  Signature[0]  = VolumeHeader.Signature;
-  Signature[1]  = 0;
+
+  BytesRead    = sizeof (EFI_FIRMWARE_VOLUME_HEADER) - sizeof (EFI_FV_BLOCK_MAP_ENTRY);
+  Signature[0] = VolumeHeader.Signature;
+  Signature[1] = 0;
 
   //
   // Print FV header information
   //
-  printf ("Signature:        %s (%X)\n", (char *) Signature, (unsigned) VolumeHeader.Signature);
-  printf ("Attributes:       %X\n", (unsigned) VolumeHeader.Attributes);
+  printf ("Signature:        %s (%X)\n", (char *)Signature, (unsigned)VolumeHeader.Signature);
+  printf ("Attributes:       %X\n", (unsigned)VolumeHeader.Attributes);
 
   if (VolumeHeader.Attributes & EFI_FVB2_READ_DISABLED_CAP) {
     printf ("       EFI_FVB2_READ_DISABLED_CAP\n");
@@ -831,7 +864,7 @@ Returns:
     *ErasePolarity = TRUE;
   }
 
-#if (PI_SPECIFICATION_VERSION < 0x00010000)
+ #if (PI_SPECIFICATION_VERSION < 0x00010000)
   if (VolumeHeader.Attributes & EFI_FVB2_ALIGNMENT) {
     printf ("       EFI_FVB2_ALIGNMENT\n");
   }
@@ -900,7 +933,7 @@ Returns:
     printf ("        EFI_FVB2_ALIGNMENT_64K\n");
   }
 
-#else
+ #else
 
   if (VolumeHeader.Attributes & EFI_FVB2_READ_LOCK_CAP) {
     printf ("       EFI_FVB2_READ_LOCK_CAP\n");
@@ -920,135 +953,135 @@ Returns:
 
   switch (VolumeHeader.Attributes & EFI_FVB2_ALIGNMENT) {
     case EFI_FVB2_ALIGNMENT_1:
-    printf ("       EFI_FVB2_ALIGNMENT_1\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_1\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_2:
-    printf ("       EFI_FVB2_ALIGNMENT_2\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_2\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_4:
-    printf ("       EFI_FVB2_ALIGNMENT_4\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_4\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_8:
-    printf ("       EFI_FVB2_ALIGNMENT_8\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_8\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_16:
-    printf ("       EFI_FVB2_ALIGNMENT_16\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_16\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_32:
-    printf ("       EFI_FVB2_ALIGNMENT_32\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_32\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_64:
-    printf ("       EFI_FVB2_ALIGNMENT_64\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_64\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_128:
-    printf ("       EFI_FVB2_ALIGNMENT_128\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_128\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_256:
-    printf ("       EFI_FVB2_ALIGNMENT_256\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_256\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_512:
-    printf ("       EFI_FVB2_ALIGNMENT_512\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_512\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_1K:
-    printf ("       EFI_FVB2_ALIGNMENT_1K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_1K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_2K:
-    printf ("       EFI_FVB2_ALIGNMENT_2K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_2K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_4K:
-    printf ("       EFI_FVB2_ALIGNMENT_4K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_4K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_8K:
-    printf ("       EFI_FVB2_ALIGNMENT_8K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_8K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_16K:
-    printf ("       EFI_FVB2_ALIGNMENT_16K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_16K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_32K:
-    printf ("       EFI_FVB2_ALIGNMENT_32K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_32K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_64K:
-    printf ("       EFI_FVB2_ALIGNMENT_64K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_64K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_128K:
-    printf ("       EFI_FVB2_ALIGNMENT_128K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_128K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_256K:
-    printf ("       EFI_FVB2_ALIGNMENT_256K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_256K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_512K:
-    printf ("       EFI_FVB2_ALIGNMENT_512K\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_512K\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_1M:
-    printf ("       EFI_FVB2_ALIGNMENT_1M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_1M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_2M:
-    printf ("       EFI_FVB2_ALIGNMENT_2M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_2M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_4M:
-    printf ("       EFI_FVB2_ALIGNMENT_4M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_4M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_8M:
-    printf ("       EFI_FVB2_ALIGNMENT_8M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_8M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_16M:
-    printf ("       EFI_FVB2_ALIGNMENT_16M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_16M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_32M:
-    printf ("       EFI_FVB2_ALIGNMENT_32M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_32M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_64M:
-    printf ("       EFI_FVB2_ALIGNMENT_64M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_64M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_128M:
-    printf ("       EFI_FVB2_ALIGNMENT_128M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_128M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_256M:
-    printf ("       EFI_FVB2_ALIGNMENT_256M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_256M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_512M:
-    printf ("       EFI_FVB2_ALIGNMENT_512M\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_512M\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_1G:
-    printf ("       EFI_FVB2_ALIGNMENT_1G\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_1G\n");
+      break;
 
     case EFI_FVB2_ALIGNMENT_2G:
-    printf ("       EFI_FVB2_ALIGNMENT_2G\n");
-    break;
+      printf ("       EFI_FVB2_ALIGNMENT_2G\n");
+      break;
   }
 
-#endif
+ #endif
   printf ("Header Length:         0x%08X\n", VolumeHeader.HeaderLength);
   printf ("File System ID:        ");
   PrintGuid (&VolumeHeader.FileSystemGuid);
@@ -1062,14 +1095,14 @@ Returns:
     if (ReadSize != 1) {
       return EFI_ABORTED;
     }
+
     BytesRead += sizeof (EFI_FV_BLOCK_MAP_ENTRY);
 
     if (BlockMap.NumBlocks != 0) {
-      printf ("Number of Blocks:      0x%08X\n", (unsigned) BlockMap.NumBlocks);
-      printf ("Block Length:          0x%08X\n", (unsigned) BlockMap.Length);
+      printf ("Number of Blocks:      0x%08X\n", (unsigned)BlockMap.NumBlocks);
+      printf ("Block Length:          0x%08X\n", (unsigned)BlockMap.Length);
       Size += BlockMap.NumBlocks * BlockMap.Length;
     }
-
   } while (!(BlockMap.NumBlocks == 0 && BlockMap.Length == 0));
 
   if (BytesRead != VolumeHeader.HeaderLength) {
@@ -1082,7 +1115,7 @@ Returns:
     return EFI_ABORTED;
   }
 
-  printf ("Total Volume Size:     0x%08X\n", (unsigned) Size);
+  printf ("Total Volume Size:     0x%08X\n", (unsigned)Size);
 
   *FvSize = Size;
 
@@ -1095,8 +1128,9 @@ Returns:
 STATIC
 EFI_STATUS
 PrintAprioriFile (
-  EFI_FFS_FILE_HEADER         *FileHeader
+  EFI_FFS_FILE_HEADER  *FileHeader
   )
+
 /*++
 
 Routine Description:
@@ -1114,21 +1148,25 @@ Returns:
 
 --*/
 {
-  UINT8               GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
-  UINT32              HeaderSize;
+  UINT8   GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
+  UINT32  HeaderSize;
 
   HeaderSize = FvBufGetFfsHeaderSize (FileHeader);
 
-  if (FileHeader->Type != EFI_FV_FILETYPE_FREEFORM)
+  if (FileHeader->Type != EFI_FV_FILETYPE_FREEFORM) {
     return EFI_SECTION_ERROR;
+  }
 
-  EFI_COMMON_SECTION_HEADER* SectionHeader = (EFI_COMMON_SECTION_HEADER *) ((UINTN) FileHeader + HeaderSize);
-  if (SectionHeader->Type != EFI_SECTION_RAW)
+  EFI_COMMON_SECTION_HEADER  *SectionHeader = (EFI_COMMON_SECTION_HEADER *)((UINTN)FileHeader + HeaderSize);
+
+  if (SectionHeader->Type != EFI_SECTION_RAW) {
     return EFI_SECTION_ERROR;
+  }
 
-  UINT32 SectionLength = GetSectionFileLength (SectionHeader);
-  EFI_GUID* FileName = (EFI_GUID *) ((UINT8 *) SectionHeader + sizeof (EFI_COMMON_SECTION_HEADER));
-  while (((UINT8 *) FileName) < ((UINT8 *) SectionHeader + SectionLength)) {
+  UINT32    SectionLength = GetSectionFileLength (SectionHeader);
+  EFI_GUID  *FileName     = (EFI_GUID *)((UINT8 *)SectionHeader + sizeof (EFI_COMMON_SECTION_HEADER));
+
+  while (((UINT8 *)FileName) < ((UINT8 *)SectionHeader + SectionLength)) {
     PrintGuidToBuffer (FileName, GuidBuffer, sizeof (GuidBuffer), TRUE);
     printf ("%s  ", GuidBuffer);
     PrintGuidName (GuidBuffer);
@@ -1146,6 +1184,7 @@ PrintFileInfo (
   EFI_FFS_FILE_HEADER         *FileHeader,
   BOOLEAN                     ErasePolarity
   )
+
 /*++
 
 Routine Description:
@@ -1165,20 +1204,21 @@ Returns:
 
 --*/
 {
-  UINT32              FileLength;
-  UINT8               FileState;
-  UINT8               Checksum;
-  EFI_FFS_FILE_HEADER2 BlankHeader;
-  EFI_STATUS          Status;
-  UINT8               GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
-  UINT32              HeaderSize;
-#if (PI_SPECIFICATION_VERSION < 0x00010000)
-  UINT16              *Tail;
-#endif
+  UINT32                FileLength;
+  UINT8                 FileState;
+  UINT8                 Checksum;
+  EFI_FFS_FILE_HEADER2  BlankHeader;
+  EFI_STATUS            Status;
+  UINT8                 GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
+  UINT32                HeaderSize;
+
+ #if (PI_SPECIFICATION_VERSION < 0x00010000)
+  UINT16  *Tail;
+ #endif
   //
   // Check if we have free space
   //
-  HeaderSize = FvBufGetFfsHeaderSize(FileHeader);
+  HeaderSize = FvBufGetFfsHeaderSize (FileHeader);
   if (ErasePolarity) {
     memset (&BlankHeader, -1, HeaderSize);
   } else {
@@ -1188,6 +1228,7 @@ Returns:
   if (memcmp (&BlankHeader, FileHeader, HeaderSize) == 0) {
     return EFI_SUCCESS;
   }
+
   //
   // Print file information.
   //
@@ -1204,8 +1245,8 @@ Returns:
   //  printf ("\n");
   //
   FileLength = FvBufGetFfsFileSize (FileHeader);
-  printf ("File Offset:      0x%08X\n", (unsigned) ((UINTN) FileHeader - (UINTN) FvImage));
-  printf ("File Length:      0x%08X\n", (unsigned) FileLength);
+  printf ("File Offset:      0x%08X\n", (unsigned)((UINTN)FileHeader - (UINTN)FvImage));
+  printf ("File Length:      0x%08X\n", (unsigned)FileLength);
   printf ("File Attributes:  0x%02X\n", FileHeader->Attributes);
   printf ("File State:       0x%02X\n", FileHeader->State);
 
@@ -1215,202 +1256,209 @@ Returns:
   FileState = GetFileState (ErasePolarity, FileHeader);
 
   switch (FileState) {
+    case EFI_FILE_HEADER_CONSTRUCTION:
+      printf ("        EFI_FILE_HEADER_CONSTRUCTION\n");
+      return EFI_SUCCESS;
 
-  case EFI_FILE_HEADER_CONSTRUCTION:
-    printf ("        EFI_FILE_HEADER_CONSTRUCTION\n");
-    return EFI_SUCCESS;
+    case EFI_FILE_HEADER_INVALID:
+      printf ("        EFI_FILE_HEADER_INVALID\n");
+      return EFI_SUCCESS;
 
-  case EFI_FILE_HEADER_INVALID:
-    printf ("        EFI_FILE_HEADER_INVALID\n");
-    return EFI_SUCCESS;
-
-  case EFI_FILE_HEADER_VALID:
-    printf ("        EFI_FILE_HEADER_VALID\n");
-    Checksum  = CalculateSum8 ((UINT8 *) FileHeader, HeaderSize);
-    Checksum  = (UINT8) (Checksum - FileHeader->IntegrityCheck.Checksum.File);
-    Checksum  = (UINT8) (Checksum - FileHeader->State);
-    if (Checksum != 0) {
-      printf ("ERROR: Header checksum invalid.\n");
-      return EFI_ABORTED;
-    }
-
-    return EFI_SUCCESS;
-
-  case EFI_FILE_DELETED:
-    printf ("        EFI_FILE_DELETED\n");
-
-  case EFI_FILE_MARKED_FOR_UPDATE:
-    printf ("        EFI_FILE_MARKED_FOR_UPDATE\n");
-
-  case EFI_FILE_DATA_VALID:
-    printf ("        EFI_FILE_DATA_VALID\n");
-
-    //
-    // Calculate header checksum
-    //
-    Checksum  = CalculateSum8 ((UINT8 *) FileHeader, HeaderSize);
-    Checksum  = (UINT8) (Checksum - FileHeader->IntegrityCheck.Checksum.File);
-    Checksum  = (UINT8) (Checksum - FileHeader->State);
-    if (Checksum != 0) {
-      Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid header checksum", GuidBuffer);
-      return EFI_ABORTED;
-    }
-
-    FileLength = FvBufGetFfsFileSize (FileHeader);
-
-    if (FileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
-      //
-      // Calculate file checksum
-      //
-      Checksum  = CalculateSum8 ((UINT8 *)FileHeader + HeaderSize, FileLength - HeaderSize);
-      Checksum  = Checksum + FileHeader->IntegrityCheck.Checksum.File;
+    case EFI_FILE_HEADER_VALID:
+      printf ("        EFI_FILE_HEADER_VALID\n");
+      Checksum = CalculateSum8 ((UINT8 *)FileHeader, HeaderSize);
+      Checksum = (UINT8)(Checksum - FileHeader->IntegrityCheck.Checksum.File);
+      Checksum = (UINT8)(Checksum - FileHeader->State);
       if (Checksum != 0) {
-        Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid file checksum", GuidBuffer);
+        printf ("ERROR: Header checksum invalid.\n");
         return EFI_ABORTED;
       }
-    } else {
-      if (FileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM) {
-        Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid header checksum -- not set to fixed value of 0xAA", GuidBuffer);
-        return EFI_ABORTED;
-      }
-    }
-#if (PI_SPECIFICATION_VERSION < 0x00010000)
-    //
-    // Verify tail if present
-    //
-    if (FileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
-      //
-      // Verify tail is complement of integrity check field in the header.
-      //
-      Tail = (UINT16 *) ((UINTN) FileHeader + GetLength (FileHeader->Size) - sizeof (EFI_FFS_INTEGRITY_CHECK));
-      if (FileHeader->IntegrityCheck.TailReference != (UINT16)~(*Tail)) {
-        Error (NULL, 0, 0003, "error parsing FFS file", \
-        "FFS file with Guid %s failed in the integrity check, tail is not the complement of the header field", GuidBuffer);
-        return EFI_ABORTED;
-      }
-    }
- #endif
-    break;
 
-  default:
-    Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has the invalid/unrecognized file state bits", GuidBuffer);
-    return EFI_ABORTED;
+      return EFI_SUCCESS;
+
+    case EFI_FILE_DELETED:
+      printf ("        EFI_FILE_DELETED\n");
+
+    case EFI_FILE_MARKED_FOR_UPDATE:
+      printf ("        EFI_FILE_MARKED_FOR_UPDATE\n");
+
+    case EFI_FILE_DATA_VALID:
+      printf ("        EFI_FILE_DATA_VALID\n");
+
+      //
+      // Calculate header checksum
+      //
+      Checksum = CalculateSum8 ((UINT8 *)FileHeader, HeaderSize);
+      Checksum = (UINT8)(Checksum - FileHeader->IntegrityCheck.Checksum.File);
+      Checksum = (UINT8)(Checksum - FileHeader->State);
+      if (Checksum != 0) {
+        Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid header checksum", GuidBuffer);
+        return EFI_ABORTED;
+      }
+
+      FileLength = FvBufGetFfsFileSize (FileHeader);
+
+      if (FileHeader->Attributes & FFS_ATTRIB_CHECKSUM) {
+        //
+        // Calculate file checksum
+        //
+        Checksum = CalculateSum8 ((UINT8 *)FileHeader + HeaderSize, FileLength - HeaderSize);
+        Checksum = Checksum + FileHeader->IntegrityCheck.Checksum.File;
+        if (Checksum != 0) {
+          Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid file checksum", GuidBuffer);
+          return EFI_ABORTED;
+        }
+      } else {
+        if (FileHeader->IntegrityCheck.Checksum.File != FFS_FIXED_CHECKSUM) {
+          Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has invalid header checksum -- not set to fixed value of 0xAA", GuidBuffer);
+          return EFI_ABORTED;
+        }
+      }
+
+ #if (PI_SPECIFICATION_VERSION < 0x00010000)
+      //
+      // Verify tail if present
+      //
+      if (FileHeader->Attributes & FFS_ATTRIB_TAIL_PRESENT) {
+        //
+        // Verify tail is complement of integrity check field in the header.
+        //
+        Tail = (UINT16 *)((UINTN)FileHeader + GetLength (FileHeader->Size) - sizeof (EFI_FFS_INTEGRITY_CHECK));
+        if (FileHeader->IntegrityCheck.TailReference != (UINT16) ~(*Tail)) {
+          Error (
+            NULL,
+            0,
+            0003,
+            "error parsing FFS file", \
+            "FFS file with Guid %s failed in the integrity check, tail is not the complement of the header field",
+            GuidBuffer
+            );
+          return EFI_ABORTED;
+        }
+      }
+
+ #endif
+      break;
+
+    default:
+      Error (NULL, 0, 0003, "error parsing FFS file", "FFS file with Guid %s has the invalid/unrecognized file state bits", GuidBuffer);
+      return EFI_ABORTED;
   }
 
   printf ("File Type:        0x%02X  ", FileHeader->Type);
 
   switch (FileHeader->Type) {
+    case EFI_FV_FILETYPE_RAW:
+      printf ("EFI_FV_FILETYPE_RAW\n");
+      break;
 
-  case EFI_FV_FILETYPE_RAW:
-    printf ("EFI_FV_FILETYPE_RAW\n");
-    break;
+    case EFI_FV_FILETYPE_FREEFORM:
+      printf ("EFI_FV_FILETYPE_FREEFORM\n");
+      break;
 
-  case EFI_FV_FILETYPE_FREEFORM:
-    printf ("EFI_FV_FILETYPE_FREEFORM\n");
-    break;
+    case EFI_FV_FILETYPE_SECURITY_CORE:
+      printf ("EFI_FV_FILETYPE_SECURITY_CORE\n");
+      break;
 
-  case EFI_FV_FILETYPE_SECURITY_CORE:
-    printf ("EFI_FV_FILETYPE_SECURITY_CORE\n");
-    break;
+    case EFI_FV_FILETYPE_PEI_CORE:
+      printf ("EFI_FV_FILETYPE_PEI_CORE\n");
+      break;
 
-  case EFI_FV_FILETYPE_PEI_CORE:
-    printf ("EFI_FV_FILETYPE_PEI_CORE\n");
-    break;
+    case EFI_FV_FILETYPE_DXE_CORE:
+      printf ("EFI_FV_FILETYPE_DXE_CORE\n");
+      break;
 
-  case EFI_FV_FILETYPE_DXE_CORE:
-    printf ("EFI_FV_FILETYPE_DXE_CORE\n");
-    break;
+    case EFI_FV_FILETYPE_PEIM:
+      printf ("EFI_FV_FILETYPE_PEIM\n");
+      break;
 
-  case EFI_FV_FILETYPE_PEIM:
-    printf ("EFI_FV_FILETYPE_PEIM\n");
-    break;
+    case EFI_FV_FILETYPE_DRIVER:
+      printf ("EFI_FV_FILETYPE_DRIVER\n");
+      break;
 
-  case EFI_FV_FILETYPE_DRIVER:
-    printf ("EFI_FV_FILETYPE_DRIVER\n");
-    break;
+    case EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER:
+      printf ("EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER\n");
+      break;
 
-  case EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER:
-    printf ("EFI_FV_FILETYPE_COMBINED_PEIM_DRIVER\n");
-    break;
+    case EFI_FV_FILETYPE_APPLICATION:
+      printf ("EFI_FV_FILETYPE_APPLICATION\n");
+      break;
 
-  case EFI_FV_FILETYPE_APPLICATION:
-    printf ("EFI_FV_FILETYPE_APPLICATION\n");
-    break;
+    case EFI_FV_FILETYPE_SMM:
+      printf ("EFI_FV_FILETYPE_MM\n");
+      break;
 
-  case EFI_FV_FILETYPE_SMM:
-    printf ("EFI_FV_FILETYPE_MM\n");
-    break;
+    case EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE:
+      printf ("EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE\n");
+      break;
 
-  case EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE:
-    printf ("EFI_FV_FILETYPE_FIRMWARE_VOLUME_IMAGE\n");
-    break;
+    case EFI_FV_FILETYPE_COMBINED_SMM_DXE:
+      printf ("EFI_FV_FILETYPE_COMBINED_MM_DXE\n");
+      break;
 
-  case EFI_FV_FILETYPE_COMBINED_SMM_DXE:
-    printf ("EFI_FV_FILETYPE_COMBINED_MM_DXE\n");
-    break;
+    case EFI_FV_FILETYPE_SMM_CORE:
+      printf ("EFI_FV_FILETYPE_MM_CORE\n");
+      break;
 
-  case EFI_FV_FILETYPE_SMM_CORE:
-    printf ("EFI_FV_FILETYPE_MM_CORE\n");
-    break;
+    case EFI_FV_FILETYPE_MM_STANDALONE:
+      printf ("EFI_FV_FILETYPE_MM_STANDALONE\n");
+      break;
 
-  case EFI_FV_FILETYPE_MM_STANDALONE:
-    printf ("EFI_FV_FILETYPE_MM_STANDALONE\n");
-    break;
+    case EFI_FV_FILETYPE_MM_CORE_STANDALONE:
+      printf ("EFI_FV_FILETYPE_MM_CORE_STANDALONE\n");
+      break;
 
-  case EFI_FV_FILETYPE_MM_CORE_STANDALONE:
-    printf ("EFI_FV_FILETYPE_MM_CORE_STANDALONE\n");
-    break;
+    case EFI_FV_FILETYPE_FFS_PAD:
+      printf ("EFI_FV_FILETYPE_FFS_PAD\n");
+      break;
 
-  case EFI_FV_FILETYPE_FFS_PAD:
-    printf ("EFI_FV_FILETYPE_FFS_PAD\n");
-    break;
-
-  default:
-    printf ("\nERROR: Unrecognized file type %X.\n", FileHeader->Type);
-    return EFI_ABORTED;
-    break;
+    default:
+      printf ("\nERROR: Unrecognized file type %X.\n", FileHeader->Type);
+      return EFI_ABORTED;
+      break;
   }
 
   switch (FileHeader->Type) {
+    case EFI_FV_FILETYPE_ALL:
+    case EFI_FV_FILETYPE_RAW:
+    case EFI_FV_FILETYPE_FFS_PAD:
+      break;
 
-  case EFI_FV_FILETYPE_ALL:
-  case EFI_FV_FILETYPE_RAW:
-  case EFI_FV_FILETYPE_FFS_PAD:
-    break;
+    default:
+      //
+      // All other files have sections
+      //
+      Status = ParseSection (
+                 (UINT8 *)((UINTN)FileHeader + HeaderSize),
+                 FvBufGetFfsFileSize (FileHeader) - HeaderSize
+                 );
+      if (EFI_ERROR (Status)) {
+        //
+        // printf ("ERROR: Parsing the FFS file.\n");
+        //
+        return EFI_ABORTED;
+      }
 
-  default:
-    //
-    // All other files have sections
-    //
-    Status = ParseSection (
-              (UINT8 *) ((UINTN) FileHeader + HeaderSize),
-              FvBufGetFfsFileSize (FileHeader) - HeaderSize
-              );
-    if (EFI_ERROR (Status)) {
-      //
-      // printf ("ERROR: Parsing the FFS file.\n");
-      //
-      return EFI_ABORTED;
-    }
-    break;
+      break;
   }
 
-  if (!CompareGuid (
-       &FileHeader->Name,
-       &gPeiAprioriFileNameGuid
-       ))
+  if (!BtCompareGuid (
+         &FileHeader->Name,
+         &gPeiAprioriFileNameGuid
+         ))
   {
-    printf("\n");
-    printf("PEI APRIORI FILE:\n");
+    printf ("\n");
+    printf ("PEI APRIORI FILE:\n");
     return PrintAprioriFile (FileHeader);
   }
-  if (!CompareGuid (
-       &FileHeader->Name,
-       &gAprioriGuid
-       ))
+
+  if (!BtCompareGuid (
+         &FileHeader->Name,
+         &gAprioriGuid
+         ))
   {
-    printf("\n");
-    printf("DXE APRIORI FILE:\n");
+    printf ("\n");
+    printf ("DXE APRIORI FILE:\n");
     return PrintAprioriFile (FileHeader);
   }
 
@@ -1418,12 +1466,14 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 RebaseImageRead (
   IN     VOID    *FileHandle,
   IN     UINTN   FileOffset,
   IN OUT UINT32  *ReadSize,
   OUT    VOID    *Buffer
   )
+
 /*++
 
 Routine Description:
@@ -1450,9 +1500,9 @@ Returns:
   CHAR8   *Source8;
   UINT32  Length;
 
-  Destination8  = Buffer;
-  Source8       = (CHAR8 *) ((UINTN) FileHandle + FileOffset);
-  Length        = *ReadSize;
+  Destination8 = Buffer;
+  Source8      = (CHAR8 *)((UINTN)FileHandle + FileOffset);
+  Length       = *ReadSize;
   while (Length--) {
     *(Destination8++) = *(Source8++);
   }
@@ -1466,6 +1516,7 @@ SetAddressToSectionHeader (
   IN OUT UINT8   *FileBuffer,
   IN     UINT64  NewPe32BaseAddress
   )
+
 /*++
 
 Routine Description:
@@ -1484,19 +1535,19 @@ Returns:
 
 --*/
 {
-  EFI_STATUS                            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
-  UINTN                                 Index;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION       *ImgHdr;
-  EFI_IMAGE_SECTION_HEADER              *SectionHeader;
+  EFI_STATUS                       Status;
+  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
+  UINTN                            Index;
+  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
+  EFI_IMAGE_SECTION_HEADER         *SectionHeader;
 
   //
   // Initialize context
   //
   memset (&ImageContext, 0, sizeof (ImageContext));
-  ImageContext.Handle     = (VOID *) FileBuffer;
-  ImageContext.ImageRead  = (PE_COFF_LOADER_READ_FILE) RebaseImageRead;
-  Status                  = PeCoffLoaderGetImageInfo (&ImageContext);
+  ImageContext.Handle    = (VOID *)FileBuffer;
+  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)RebaseImageRead;
+  Status                 = PeCoffLoaderGetImageInfo (&ImageContext);
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "The input PeImage %s is not valid", FileName);
     return Status;
@@ -1515,17 +1566,17 @@ Returns:
   //
   // Get section header list
   //
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-    (UINTN) ImgHdr +
-    sizeof (UINT32) +
-    sizeof (EFI_IMAGE_FILE_HEADER) +
-    ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-    );
+  SectionHeader = (EFI_IMAGE_SECTION_HEADER *)(
+                                               (UINTN)ImgHdr +
+                                               sizeof (UINT32) +
+                                               sizeof (EFI_IMAGE_FILE_HEADER) +
+                                               ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
+                                               );
 
   //
   // Set base address into the first section header that doesn't point to code section.
   //
-  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index ++, SectionHeader ++) {
+  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index++, SectionHeader++) {
     if ((SectionHeader->Characteristics & EFI_IMAGE_SCN_CNT_CODE) == 0) {
       *(UINT64 *) &SectionHeader->PointerToRelocations = NewPe32BaseAddress;
       break;
@@ -1544,6 +1595,7 @@ RebaseImage (
   IN OUT UINT8   *FileBuffer,
   IN     UINT64  NewPe32BaseAddress
   )
+
 /*++
 
 Routine Description:
@@ -1563,20 +1615,20 @@ Returns:
 
 --*/
 {
-  EFI_STATUS                            Status;
-  PE_COFF_LOADER_IMAGE_CONTEXT          ImageContext;
-  UINTN                                 Index;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION       *ImgHdr;
-  UINT8                                 *MemoryImagePointer;
-  EFI_IMAGE_SECTION_HEADER              *SectionHeader;
+  EFI_STATUS                       Status;
+  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
+  UINTN                            Index;
+  EFI_IMAGE_OPTIONAL_HEADER_UNION  *ImgHdr;
+  UINT8                            *MemoryImagePointer;
+  EFI_IMAGE_SECTION_HEADER         *SectionHeader;
 
   //
   // Initialize context
   //
   memset (&ImageContext, 0, sizeof (ImageContext));
-  ImageContext.Handle     = (VOID *) FileBuffer;
-  ImageContext.ImageRead  = (PE_COFF_LOADER_READ_FILE) RebaseImageRead;
-  Status                  = PeCoffLoaderGetImageInfo (&ImageContext);
+  ImageContext.Handle    = (VOID *)FileBuffer;
+  ImageContext.ImageRead = (PE_COFF_LOADER_READ_FILE)RebaseImageRead;
+  Status                 = PeCoffLoaderGetImageInfo (&ImageContext);
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "The input PeImage %s is not valid", FileName);
     return Status;
@@ -1595,18 +1647,19 @@ Returns:
   //
   // Load and Relocate Image Data
   //
-  MemoryImagePointer = (UINT8 *) malloc ((UINTN) ImageContext.ImageSize + ImageContext.SectionAlignment);
+  MemoryImagePointer = (UINT8 *)malloc ((UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
   if (MemoryImagePointer == NULL) {
     Error (NULL, 0, 4001, "Resource", "memory cannot be allocated on rebase of %s", FileName);
     return EFI_OUT_OF_RESOURCES;
   }
-  memset ((VOID *) MemoryImagePointer, 0, (UINTN) ImageContext.ImageSize + ImageContext.SectionAlignment);
-  ImageContext.ImageAddress = ((UINTN) MemoryImagePointer + ImageContext.SectionAlignment - 1) & (~((INT64)ImageContext.SectionAlignment - 1));
+
+  memset ((VOID *)MemoryImagePointer, 0, (UINTN)ImageContext.ImageSize + ImageContext.SectionAlignment);
+  ImageContext.ImageAddress = ((UINTN)MemoryImagePointer + ImageContext.SectionAlignment - 1) & (~((INT64)ImageContext.SectionAlignment - 1));
 
   Status =  PeCoffLoaderLoadImage (&ImageContext);
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "LocateImage() call failed on rebase of %s", FileName);
-    free ((VOID *) MemoryImagePointer);
+    free ((VOID *)MemoryImagePointer);
     return Status;
   }
 
@@ -1614,39 +1667,44 @@ Returns:
   Status                          = PeCoffLoaderRelocateImage (&ImageContext);
   if (EFI_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "RelocateImage() call failed on rebase of %s", FileName);
-    free ((VOID *) MemoryImagePointer);
+    free ((VOID *)MemoryImagePointer);
     return Status;
   }
 
   //
   // Copy Relocated data to raw image file.
   //
-  SectionHeader = (EFI_IMAGE_SECTION_HEADER *) (
-    (UINTN) ImgHdr +
-    sizeof (UINT32) +
-    sizeof (EFI_IMAGE_FILE_HEADER) +
-    ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
-    );
+  SectionHeader = (EFI_IMAGE_SECTION_HEADER *)(
+                                               (UINTN)ImgHdr +
+                                               sizeof (UINT32) +
+                                               sizeof (EFI_IMAGE_FILE_HEADER) +
+                                               ImgHdr->Pe32.FileHeader.SizeOfOptionalHeader
+                                               );
 
-  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index ++, SectionHeader ++) {
+  for (Index = 0; Index < ImgHdr->Pe32.FileHeader.NumberOfSections; Index++, SectionHeader++) {
     CopyMem (
       FileBuffer + SectionHeader->PointerToRawData,
-      (VOID*) (UINTN) (ImageContext.ImageAddress + SectionHeader->VirtualAddress),
+      (VOID *)(UINTN)(ImageContext.ImageAddress + SectionHeader->VirtualAddress),
       SectionHeader->SizeOfRawData
       );
   }
 
-  free ((VOID *) MemoryImagePointer);
+  free ((VOID *)MemoryImagePointer);
 
   //
   // Update Image Base Address
   //
   if (ImgHdr->Pe32.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    ImgHdr->Pe32.OptionalHeader.ImageBase = (UINT32) NewPe32BaseAddress;
+    ImgHdr->Pe32.OptionalHeader.ImageBase = (UINT32)NewPe32BaseAddress;
   } else if (ImgHdr->Pe32Plus.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
     ImgHdr->Pe32Plus.OptionalHeader.ImageBase = NewPe32BaseAddress;
   } else {
-    Error (NULL, 0, 3000, "Invalid", "unknown PE magic signature %X in PE32 image %s",
+    Error (
+      NULL,
+      0,
+      3000,
+      "Invalid",
+      "unknown PE magic signature %X in PE32 image %s",
       ImgHdr->Pe32.OptionalHeader.Magic,
       FileName
       );
@@ -1663,39 +1721,43 @@ Returns:
 
 EFI_STATUS
 CombinePath (
-  IN  CHAR8* DefaultPath,
-  IN  CHAR8* AppendPath,
-  OUT CHAR8* NewPath
-)
+  IN  CHAR8  *DefaultPath,
+  IN  CHAR8  *AppendPath,
+  OUT CHAR8  *NewPath
+  )
 {
-  UINT32 DefaultPathLen;
-  UINT64 Index;
-  CHAR8  QuotesStr[] = "\"";
-  strcpy(NewPath, QuotesStr);
-  DefaultPathLen = strlen(DefaultPath);
-  strcat(NewPath, DefaultPath);
+  UINT32  DefaultPathLen;
+  UINT64  Index;
+  CHAR8   QuotesStr[] = "\"";
+
+  strcpy (NewPath, QuotesStr);
+  DefaultPathLen = strlen (DefaultPath);
+  strcat (NewPath, DefaultPath);
   Index = 0;
-  for (; Index < DefaultPathLen + 1; Index ++) {
-    if (NewPath[Index] == '\\' || NewPath[Index] == '/') {
+  for ( ; Index < DefaultPathLen + 1; Index++) {
+    if ((NewPath[Index] == '\\') || (NewPath[Index] == '/')) {
       if (NewPath[Index + 1] != '\0') {
         NewPath[Index] = '/';
       }
     }
   }
+
   if (NewPath[Index -1] != '/') {
-    NewPath[Index] = '/';
+    NewPath[Index]     = '/';
     NewPath[Index + 1] = '\0';
   }
-  strcat(NewPath, AppendPath);
-  strcat(NewPath, QuotesStr);
+
+  strcat (NewPath, AppendPath);
+  strcat (NewPath, QuotesStr);
   return EFI_SUCCESS;
 }
 
 EFI_STATUS
 ParseSection (
-  IN UINT8  *SectionBuffer,
-  IN UINT32 BufferLength
+  IN UINT8   *SectionBuffer,
+  IN UINT32  BufferLength
   )
+
 /*++
 
 Routine Description:
@@ -1718,55 +1780,55 @@ Returns:
 
 --*/
 {
-  EFI_SECTION_TYPE    Type;
-  UINT8               *Ptr;
-  UINT32              SectionLength;
-  UINT32              SectionHeaderLen;
-  CHAR8               *SectionName;
-  EFI_STATUS          Status;
-  UINT32              ParsedLength;
-  UINT8               *CompressedBuffer;
-  UINT32              CompressedLength;
-  UINT8               *UncompressedBuffer;
-  UINT32              UncompressedLength;
-  UINT8               *ToolOutputBuffer;
-  UINT32              ToolOutputLength;
-  UINT8               CompressionType;
-  UINT32              DstSize;
-  UINT32              ScratchSize;
-  UINT8               *ScratchBuffer;
-  DECOMPRESS_FUNCTION DecompressFunction;
-  GETINFO_FUNCTION    GetInfoFunction;
+  EFI_SECTION_TYPE     Type;
+  UINT8                *Ptr;
+  UINT32               SectionLength;
+  UINT32               SectionHeaderLen;
+  CHAR8                *SectionName;
+  EFI_STATUS           Status;
+  UINT32               ParsedLength;
+  UINT8                *CompressedBuffer;
+  UINT32               CompressedLength;
+  UINT8                *UncompressedBuffer;
+  UINT32               UncompressedLength;
+  UINT8                *ToolOutputBuffer;
+  UINT32               ToolOutputLength;
+  UINT8                CompressionType;
+  UINT32               DstSize;
+  UINT32               ScratchSize;
+  UINT8                *ScratchBuffer;
+  DECOMPRESS_FUNCTION  DecompressFunction;
+  GETINFO_FUNCTION     GetInfoFunction;
   // CHAR16              *name;
-  CHAR8               *ExtractionTool;
-  CHAR8               *ToolInputFile;
-  CHAR8               *ToolOutputFile;
-  CHAR8               *SystemCommand;
-  EFI_GUID            *EfiGuid;
-  UINT16              DataOffset;
-  UINT16              Attributes;
-  UINT32              RealHdrLen;
-  CHAR8               *ToolInputFileName;
-  CHAR8               *ToolOutputFileName;
-  CHAR8               *UIFileName;
-  CHAR8               *VersionString;
+  CHAR8     *ExtractionTool;
+  CHAR8     *ToolInputFile;
+  CHAR8     *ToolOutputFile;
+  CHAR8     *SystemCommand;
+  EFI_GUID  *EfiGuid;
+  UINT16    DataOffset;
+  UINT16    Attributes;
+  UINT32    RealHdrLen;
+  CHAR8     *ToolInputFileName;
+  CHAR8     *ToolOutputFileName;
+  CHAR8     *UIFileName;
+  CHAR8     *VersionString;
 
-  ParsedLength = 0;
-  ToolInputFileName = NULL;
+  ParsedLength       = 0;
+  ToolInputFileName  = NULL;
   ToolOutputFileName = NULL;
 
   while (ParsedLength < BufferLength) {
-    Ptr           = SectionBuffer + ParsedLength;
+    Ptr = SectionBuffer + ParsedLength;
 
-    SectionLength = GetLength (((EFI_COMMON_SECTION_HEADER *) Ptr)->Size);
-    Type          = ((EFI_COMMON_SECTION_HEADER *) Ptr)->Type;
+    SectionLength = GetLength (((EFI_COMMON_SECTION_HEADER *)Ptr)->Size);
+    Type          = ((EFI_COMMON_SECTION_HEADER *)Ptr)->Type;
 
     //
     // This is sort of an odd check, but is necessary because FFS files are
     // padded to a QWORD boundary, meaning there is potentially a whole section
     // header worth of 0xFF bytes.
     //
-    if (SectionLength == 0xffffff && Type == 0xff) {
+    if ((SectionLength == 0xffffff) && (Type == 0xff)) {
       ParsedLength += 4;
       continue;
     }
@@ -1774,394 +1836,420 @@ Returns:
     //
     // Get real section file size
     //
-    SectionLength = GetSectionFileLength ((EFI_COMMON_SECTION_HEADER *) Ptr);
-    SectionHeaderLen = GetSectionHeaderLength((EFI_COMMON_SECTION_HEADER *)Ptr);
+    SectionLength    = GetSectionFileLength ((EFI_COMMON_SECTION_HEADER *)Ptr);
+    SectionHeaderLen = GetSectionHeaderLength ((EFI_COMMON_SECTION_HEADER *)Ptr);
 
     SectionName = SectionNameToStr (Type);
     if (SectionName != NULL) {
       printf ("------------------------------------------------------------\n");
-      printf ("  Type:  %s\n  Size:  0x%08X\n", SectionName, (unsigned) SectionLength);
+      printf ("  Type:  %s\n  Size:  0x%08X\n", SectionName, (unsigned)SectionLength);
       free (SectionName);
     }
 
     switch (Type) {
-    case EFI_SECTION_RAW:
-    case EFI_SECTION_PIC:
-    case EFI_SECTION_TE:
-      // default is no more information
-      break;
+      case EFI_SECTION_RAW:
+      case EFI_SECTION_PIC:
+      case EFI_SECTION_TE:
+        // default is no more information
+        break;
 
-    case EFI_SECTION_PE32:
-      if (EnableHash) {
-        ToolInputFileName  = "edk2Temp_InputEfi.tmp";
-        ToolOutputFileName = "edk2Temp_OutputHash.tmp";
-        RebaseImage(ToolInputFileName, (UINT8*)Ptr + SectionHeaderLen, 0);
-        PutFileImage (
-          ToolInputFileName,
-          (CHAR8*)Ptr + SectionHeaderLen,
-          SectionLength - SectionHeaderLen
-          );
+      case EFI_SECTION_PE32:
+        if (EnableHash) {
+          ToolInputFileName  = "edk2Temp_InputEfi.tmp";
+          ToolOutputFileName = "edk2Temp_OutputHash.tmp";
+          RebaseImage (ToolInputFileName, (UINT8 *)Ptr + SectionHeaderLen, 0);
+          PutFileImage (
+            ToolInputFileName,
+            (CHAR8 *)Ptr + SectionHeaderLen,
+            SectionLength - SectionHeaderLen
+            );
 
-        SystemCommand = malloc (
-          strlen (OPENSSL_COMMAND_FORMAT_STRING) +
-          strlen (OpenSslPath) +
-          strlen (ToolInputFileName) +
-          strlen (ToolOutputFileName) +
-          1
-          );
-        if (SystemCommand == NULL) {
+          SystemCommand = malloc (
+                            strlen (OPENSSL_COMMAND_FORMAT_STRING) +
+                            strlen (OpenSslPath) +
+                            strlen (ToolInputFileName) +
+                            strlen (ToolOutputFileName) +
+                            1
+                            );
+          if (SystemCommand == NULL) {
+            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+            return EFI_OUT_OF_RESOURCES;
+          }
+
+          sprintf (
+            SystemCommand,
+            OPENSSL_COMMAND_FORMAT_STRING,
+            OpenSslPath,
+            ToolOutputFileName,
+            ToolInputFileName
+            );
+
+          if (system (SystemCommand) != EFI_SUCCESS) {
+            Error (NULL, 0, 3000, "Open SSL command not available.  Please verify PATH or set OPENSSL_PATH.", NULL);
+          } else {
+            FILE    *fp;
+            CHAR8   *StrLine;
+            CHAR8   *NewStr;
+            UINT32  nFileLen;
+            if ((fp = fopen (ToolOutputFileName, "r")) == NULL) {
+              Error (NULL, 0, 0004, "Hash the PE32 image failed.", NULL);
+            } else {
+              fseek (fp, 0, SEEK_SET);
+              fseek (fp, 0, SEEK_END);
+              nFileLen = ftell (fp);
+              fseek (fp, 0, SEEK_SET);
+              StrLine = malloc (nFileLen);
+              if (StrLine == NULL) {
+                fclose (fp);
+                free (SystemCommand);
+                Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+                return EFI_OUT_OF_RESOURCES;
+              }
+
+              fgets (StrLine, nFileLen, fp);
+              NewStr = strrchr (StrLine, '=');
+              printf ("  SHA1: %s\n", NewStr + 1);
+              free (StrLine);
+              fclose (fp);
+            }
+          }
+
+          remove (ToolInputFileName);
+          remove (ToolOutputFileName);
+          free (SystemCommand);
+        }
+
+        break;
+
+      case EFI_SECTION_USER_INTERFACE:
+        UIFileName = (CHAR8 *)malloc (UnicodeStrLen (((EFI_USER_INTERFACE_SECTION *)Ptr)->FileNameString) + 1);
+        if (UIFileName == NULL) {
           Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
           return EFI_OUT_OF_RESOURCES;
         }
-        sprintf (
-          SystemCommand,
-          OPENSSL_COMMAND_FORMAT_STRING,
-          OpenSslPath,
-          ToolOutputFileName,
-          ToolInputFileName
-          );
 
-        if (system (SystemCommand) != EFI_SUCCESS) {
-          Error (NULL, 0, 3000, "Open SSL command not available.  Please verify PATH or set OPENSSL_PATH.", NULL);
+        Unicode2AsciiString (((EFI_USER_INTERFACE_SECTION *)Ptr)->FileNameString, UIFileName);
+        printf ("  String: %s\n", UIFileName);
+        free (UIFileName);
+        break;
+
+      case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
+        printf ("/------------ Firmware Volume section start ---------------\\\n");
+        Status = PrintFvInfo (Ptr + SectionHeaderLen, TRUE);
+        if (EFI_ERROR (Status)) {
+          Error (NULL, 0, 0003, "printing of FV section contents failed", NULL);
+          return EFI_SECTION_ERROR;
         }
-        else {
-          FILE *fp;
-          CHAR8 *StrLine;
-          CHAR8 *NewStr;
-          UINT32 nFileLen;
-          if((fp = fopen(ToolOutputFileName,"r")) == NULL) {
-            Error (NULL, 0, 0004, "Hash the PE32 image failed.", NULL);
+
+        printf ("\\------------ Firmware Volume section end -----------------/\n");
+        break;
+
+      case EFI_SECTION_COMPATIBILITY16:
+        //
+        // Section does not contain any further header information.
+        //
+        break;
+
+      case EFI_SECTION_FREEFORM_SUBTYPE_GUID:
+        printf ("  Guid:  ");
+        if (SectionHeaderLen == sizeof (EFI_COMMON_SECTION_HEADER)) {
+          PrintGuid (&((EFI_FREEFORM_SUBTYPE_GUID_SECTION *)Ptr)->SubTypeGuid);
+        } else {
+          PrintGuid (&((EFI_FREEFORM_SUBTYPE_GUID_SECTION2 *)Ptr)->SubTypeGuid);
+        }
+
+        printf ("\n");
+        break;
+
+      case EFI_SECTION_PEI_DEPEX:
+      case EFI_SECTION_DXE_DEPEX:
+      case EFI_SECTION_SMM_DEPEX:
+        DumpDepexSection (Ptr, SectionLength);
+        break;
+
+      case EFI_SECTION_VERSION:
+        printf ("  Build Number:  0x%04X\n", *(UINT16 *)(Ptr + SectionHeaderLen));
+        VersionString = (CHAR8 *)malloc (UnicodeStrLen (((EFI_VERSION_SECTION *)Ptr)->VersionString) + 1);
+        if (VersionString == NULL) {
+          Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+          return EFI_OUT_OF_RESOURCES;
+        }
+
+        Unicode2AsciiString (((EFI_VERSION_SECTION *)Ptr)->VersionString, VersionString);
+        printf ("  Version String:  %s\n", VersionString);
+        break;
+
+      case EFI_SECTION_COMPRESSION:
+        UncompressedBuffer = NULL;
+        if (SectionHeaderLen == sizeof (EFI_COMMON_SECTION_HEADER)) {
+          RealHdrLen         = sizeof (EFI_COMPRESSION_SECTION);
+          UncompressedLength = ((EFI_COMPRESSION_SECTION *)Ptr)->UncompressedLength;
+          CompressionType    = ((EFI_COMPRESSION_SECTION *)Ptr)->CompressionType;
+        } else {
+          RealHdrLen         = sizeof (EFI_COMPRESSION_SECTION2);
+          UncompressedLength = ((EFI_COMPRESSION_SECTION2 *)Ptr)->UncompressedLength;
+          CompressionType    = ((EFI_COMPRESSION_SECTION2 *)Ptr)->CompressionType;
+        }
+
+        CompressedLength = SectionLength - RealHdrLen;
+        printf ("  Uncompressed Length:  0x%08X\n", (unsigned)UncompressedLength);
+
+        if (CompressionType == EFI_NOT_COMPRESSED) {
+          printf ("  Compression Type:  EFI_NOT_COMPRESSED\n");
+          if (CompressedLength != UncompressedLength) {
+            Error (
+              NULL,
+              0,
+              0,
+              "file is not compressed, but the compressed length does not match the uncompressed length",
+              NULL
+              );
+            return EFI_SECTION_ERROR;
           }
-          else {
-            fseek(fp,0,SEEK_SET);
-            fseek(fp,0,SEEK_END);
-            nFileLen = ftell(fp);
-            fseek(fp,0,SEEK_SET);
-            StrLine = malloc(nFileLen);
-            if (StrLine == NULL) {
-              fclose(fp);
-              free (SystemCommand);
-              Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-              return EFI_OUT_OF_RESOURCES;
+
+          UncompressedBuffer = Ptr + RealHdrLen;
+        } else if (CompressionType == EFI_STANDARD_COMPRESSION) {
+          GetInfoFunction    = EfiGetInfo;
+          DecompressFunction = EfiDecompress;
+          printf ("  Compression Type:  EFI_STANDARD_COMPRESSION\n");
+
+          CompressedBuffer = Ptr + RealHdrLen;
+
+          Status = GetInfoFunction (CompressedBuffer, CompressedLength, &DstSize, &ScratchSize);
+          if (EFI_ERROR (Status)) {
+            Error (NULL, 0, 0003, "error getting compression info from compression section", NULL);
+            return EFI_SECTION_ERROR;
+          }
+
+          if (DstSize != UncompressedLength) {
+            Error (NULL, 0, 0003, "compression error in the compression section", NULL);
+            return EFI_SECTION_ERROR;
+          }
+
+          ScratchBuffer = malloc (ScratchSize);
+          if (ScratchBuffer == NULL) {
+            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+            return EFI_OUT_OF_RESOURCES;
+          }
+
+          UncompressedBuffer = malloc (UncompressedLength);
+          if (UncompressedBuffer == NULL) {
+            free (ScratchBuffer);
+            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+            return EFI_OUT_OF_RESOURCES;
+          }
+
+          Status = DecompressFunction (
+                     CompressedBuffer,
+                     CompressedLength,
+                     UncompressedBuffer,
+                     UncompressedLength,
+                     ScratchBuffer,
+                     ScratchSize
+                     );
+          free (ScratchBuffer);
+          if (EFI_ERROR (Status)) {
+            Error (NULL, 0, 0003, "decompress failed", NULL);
+            free (UncompressedBuffer);
+            return EFI_SECTION_ERROR;
+          }
+        } else {
+          Error (NULL, 0, 0003, "unrecognized compression type", "type 0x%X", CompressionType);
+          return EFI_SECTION_ERROR;
+        }
+
+        printf ("/------------ Encapsulation section start -----------------\\\n");
+        Status = ParseSection (UncompressedBuffer, UncompressedLength);
+        printf ("\\------------ Encapsulation section end -------------------/\n");
+
+        if (CompressionType == EFI_STANDARD_COMPRESSION) {
+          //
+          // We need to deallocate Buffer
+          //
+          free (UncompressedBuffer);
+        }
+
+        if (EFI_ERROR (Status)) {
+          Error (NULL, 0, 0003, "failed to parse section", NULL);
+          return EFI_SECTION_ERROR;
+        }
+
+        break;
+
+      case EFI_SECTION_GUID_DEFINED:
+        if (SectionHeaderLen == sizeof (EFI_COMMON_SECTION_HEADER)) {
+          EfiGuid    = &((EFI_GUID_DEFINED_SECTION *)Ptr)->SectionDefinitionGuid;
+          DataOffset = ((EFI_GUID_DEFINED_SECTION *)Ptr)->DataOffset;
+          Attributes = ((EFI_GUID_DEFINED_SECTION *)Ptr)->Attributes;
+        } else {
+          EfiGuid    = &((EFI_GUID_DEFINED_SECTION2 *)Ptr)->SectionDefinitionGuid;
+          DataOffset = ((EFI_GUID_DEFINED_SECTION2 *)Ptr)->DataOffset;
+          Attributes = ((EFI_GUID_DEFINED_SECTION2 *)Ptr)->Attributes;
+        }
+
+        printf ("  SectionDefinitionGuid:  ");
+        PrintGuid (EfiGuid);
+        printf ("\n");
+        printf ("  DataOffset:             0x%04X\n", (unsigned)DataOffset);
+        printf ("  Attributes:             0x%04X\n", (unsigned)Attributes);
+
+        ExtractionTool =
+          LookupGuidedSectionToolPath (
+            mParsedGuidedSectionTools,
+            EfiGuid
+            );
+
+        if (ExtractionTool != NULL) {
+ #ifndef __GNUC__
+          ToolInputFile  = CloneString (tmpnam (NULL));
+          ToolOutputFile = CloneString (tmpnam (NULL));
+ #else
+          char  tmp1[] = "/tmp/fileXXXXXX";
+          char  tmp2[] = "/tmp/fileXXXXXX";
+          int   fd1;
+          int   fd2;
+          fd1            = mkstemp (tmp1);
+          fd2            = mkstemp (tmp2);
+          ToolInputFile  = CloneString (tmp1);
+          ToolOutputFile = CloneString (tmp2);
+          close (fd1);
+          close (fd2);
+ #endif
+
+          if ((ToolInputFile == NULL) || (ToolOutputFile == NULL)) {
+            if (ToolInputFile != NULL) {
+              free (ToolInputFile);
             }
-            fgets(StrLine, nFileLen, fp);
-            NewStr = strrchr (StrLine, '=');
-            printf ("  SHA1: %s\n", NewStr + 1);
-            free (StrLine);
-            fclose(fp);
+
+            if (ToolOutputFile != NULL) {
+              free (ToolOutputFile);
+            }
+
+            free (ExtractionTool);
+
+            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+            return EFI_OUT_OF_RESOURCES;
           }
-        }
-        remove(ToolInputFileName);
-        remove(ToolOutputFileName);
-        free (SystemCommand);
-      }
-      break;
 
-    case EFI_SECTION_USER_INTERFACE:
-      UIFileName = (CHAR8 *) malloc (UnicodeStrLen (((EFI_USER_INTERFACE_SECTION *) Ptr)->FileNameString) + 1);
-      if (UIFileName == NULL) {
-        Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-        return EFI_OUT_OF_RESOURCES;
-      }
-      Unicode2AsciiString (((EFI_USER_INTERFACE_SECTION *) Ptr)->FileNameString, UIFileName);
-      printf ("  String: %s\n", UIFileName);
-      free (UIFileName);
-      break;
+          //
+          // Construction 'system' command string
+          //
+          SystemCommand = malloc (
+                            strlen (EXTRACT_COMMAND_FORMAT_STRING) +
+                            strlen (ExtractionTool) +
+                            strlen (ToolInputFile) +
+                            strlen (ToolOutputFile) +
+                            1
+                            );
+          if (SystemCommand == NULL) {
+            free (ToolInputFile);
+            free (ToolOutputFile);
+            free (ExtractionTool);
 
-    case EFI_SECTION_FIRMWARE_VOLUME_IMAGE:
-      printf ("/------------ Firmware Volume section start ---------------\\\n");
-      Status = PrintFvInfo (Ptr + SectionHeaderLen, TRUE);
-      if (EFI_ERROR (Status)) {
-        Error (NULL, 0, 0003, "printing of FV section contents failed", NULL);
-        return EFI_SECTION_ERROR;
-      }
-      printf ("\\------------ Firmware Volume section end -----------------/\n");
-      break;
+            Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
+            return EFI_OUT_OF_RESOURCES;
+          }
 
-    case EFI_SECTION_COMPATIBILITY16:
-      //
-      // Section does not contain any further header information.
-      //
-      break;
+          sprintf (
+            SystemCommand,
+            EXTRACT_COMMAND_FORMAT_STRING,
+            ExtractionTool,
+            ToolOutputFile,
+            ToolInputFile
+            );
+          free (ExtractionTool);
 
-    case EFI_SECTION_FREEFORM_SUBTYPE_GUID:
-      printf ("  Guid:  ");
-      if (SectionHeaderLen == sizeof (EFI_COMMON_SECTION_HEADER))
-        PrintGuid (&((EFI_FREEFORM_SUBTYPE_GUID_SECTION *)Ptr)->SubTypeGuid);
-      else
-        PrintGuid (&((EFI_FREEFORM_SUBTYPE_GUID_SECTION2 *)Ptr)->SubTypeGuid);
-      printf ("\n");
-      break;
+          if (!BtCompareGuid (
+                 EfiGuid,
+                 &gEfiCrc32GuidedSectionExtractionProtocolGuid
+                 )
+              )
+          {
+            DataOffset -= 4;
+          }
 
-    case EFI_SECTION_PEI_DEPEX:
-    case EFI_SECTION_DXE_DEPEX:
-    case EFI_SECTION_SMM_DEPEX:
-      DumpDepexSection (Ptr, SectionLength);
-      break;
+          Status =
+            PutFileImage (
+              ToolInputFile,
+              (CHAR8 *)Ptr + DataOffset,
+              SectionLength - DataOffset
+              );
 
-    case EFI_SECTION_VERSION:
-      printf ("  Build Number:  0x%04X\n", *(UINT16 *)(Ptr + SectionHeaderLen));
-      VersionString = (CHAR8 *) malloc (UnicodeStrLen (((EFI_VERSION_SECTION *) Ptr)->VersionString) + 1);
-      if (VersionString == NULL) {
-        Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-        return EFI_OUT_OF_RESOURCES;
-      }
-      Unicode2AsciiString (((EFI_VERSION_SECTION *) Ptr)->VersionString, VersionString);
-      printf ("  Version String:  %s\n", VersionString);
-      break;
+          system (SystemCommand);
+          remove (ToolInputFile);
+          free (ToolInputFile);
 
-    case EFI_SECTION_COMPRESSION:
-      UncompressedBuffer  = NULL;
-      if (SectionHeaderLen == sizeof (EFI_COMMON_SECTION_HEADER)) {
-        RealHdrLen = sizeof(EFI_COMPRESSION_SECTION);
-        UncompressedLength  = ((EFI_COMPRESSION_SECTION *)Ptr)->UncompressedLength;
-        CompressionType     = ((EFI_COMPRESSION_SECTION *)Ptr)->CompressionType;
-      } else {
-        RealHdrLen = sizeof(EFI_COMPRESSION_SECTION2);
-        UncompressedLength  = ((EFI_COMPRESSION_SECTION2 *)Ptr)->UncompressedLength;
-        CompressionType     = ((EFI_COMPRESSION_SECTION2 *)Ptr)->CompressionType;
-      }
-      CompressedLength    = SectionLength - RealHdrLen;
-      printf ("  Uncompressed Length:  0x%08X\n", (unsigned) UncompressedLength);
+          Status =
+            GetFileImage (
+              ToolOutputFile,
+              (CHAR8 **)&ToolOutputBuffer,
+              &ToolOutputLength
+              );
+          remove (ToolOutputFile);
+          free (ToolOutputFile);
+          free (SystemCommand);
+          if (EFI_ERROR (Status)) {
+            Error (NULL, 0, 0004, "unable to read decoded GUIDED section", NULL);
+            return EFI_SECTION_ERROR;
+          }
 
-      if (CompressionType == EFI_NOT_COMPRESSED) {
-        printf ("  Compression Type:  EFI_NOT_COMPRESSED\n");
-        if (CompressedLength != UncompressedLength) {
+          printf ("/------------ Encapsulation section start -----------------\\\n");
+          Status = ParseSection (
+                     ToolOutputBuffer,
+                     ToolOutputLength
+                     );
+          if (EFI_ERROR (Status)) {
+            Error (NULL, 0, 0003, "parse of decoded GUIDED section failed", NULL);
+            return EFI_SECTION_ERROR;
+          }
+
+          printf ("\\------------ Encapsulation section end -------------------/\n");
+
+          //
+          // Check for CRC32 sections which we can handle internally if needed.
+          //
+        } else if (!BtCompareGuid (
+                      EfiGuid,
+                      &gEfiCrc32GuidedSectionExtractionProtocolGuid
+                      )
+                   )
+        {
+          //
+          // CRC32 guided section
+          //
+          printf ("/------------ Encapsulation section start -----------------\\\n");
+          Status = ParseSection (
+                     Ptr + DataOffset,
+                     SectionLength - DataOffset
+                     );
+          if (EFI_ERROR (Status)) {
+            Error (NULL, 0, 0003, "parse of CRC32 GUIDED section failed", NULL);
+            return EFI_SECTION_ERROR;
+          }
+
+          printf ("\\------------ Encapsulation section end -------------------/\n");
+        } else {
+          //
+          // We don't know how to parse it now.
+          //
           Error (
             NULL,
             0,
-            0,
-            "file is not compressed, but the compressed length does not match the uncompressed length",
-            NULL
+            0003,
+            "Error parsing section", \
+            "EFI_SECTION_GUID_DEFINED cannot be parsed at this time. Tool to decode this section should have been defined in GuidedSectionTools.txt (built in the FV directory)."
             );
-          return EFI_SECTION_ERROR;
+          return EFI_UNSUPPORTED;
         }
 
-        UncompressedBuffer = Ptr + RealHdrLen;
-      } else if (CompressionType == EFI_STANDARD_COMPRESSION) {
-        GetInfoFunction     = EfiGetInfo;
-        DecompressFunction  = EfiDecompress;
-        printf ("  Compression Type:  EFI_STANDARD_COMPRESSION\n");
+        break;
 
-        CompressedBuffer  = Ptr + RealHdrLen;
-
-        Status            = GetInfoFunction (CompressedBuffer, CompressedLength, &DstSize, &ScratchSize);
-        if (EFI_ERROR (Status)) {
-          Error (NULL, 0, 0003, "error getting compression info from compression section", NULL);
-          return EFI_SECTION_ERROR;
-        }
-
-        if (DstSize != UncompressedLength) {
-          Error (NULL, 0, 0003, "compression error in the compression section", NULL);
-          return EFI_SECTION_ERROR;
-        }
-
-        ScratchBuffer       = malloc (ScratchSize);
-        if (ScratchBuffer == NULL) {
-          Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-          return EFI_OUT_OF_RESOURCES;
-        }
-        UncompressedBuffer  = malloc (UncompressedLength);
-        if (UncompressedBuffer == NULL) {
-          free (ScratchBuffer);
-          Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-          return EFI_OUT_OF_RESOURCES;
-        }
-        Status = DecompressFunction (
-                  CompressedBuffer,
-                  CompressedLength,
-                  UncompressedBuffer,
-                  UncompressedLength,
-                  ScratchBuffer,
-                  ScratchSize
-                  );
-        free (ScratchBuffer);
-        if (EFI_ERROR (Status)) {
-          Error (NULL, 0, 0003, "decompress failed", NULL);
-          free (UncompressedBuffer);
-          return EFI_SECTION_ERROR;
-        }
-      } else {
-        Error (NULL, 0, 0003, "unrecognized compression type", "type 0x%X", CompressionType);
+      default:
+        //
+        // Unknown section, return error
+        //
+        Error (NULL, 0, 0003, "unrecognized section type found", "section type = 0x%X", Type);
         return EFI_SECTION_ERROR;
-      }
-
-      printf ("/------------ Encapsulation section start -----------------\\\n");
-      Status = ParseSection (UncompressedBuffer, UncompressedLength);
-      printf ("\\------------ Encapsulation section end -------------------/\n");
-
-      if (CompressionType == EFI_STANDARD_COMPRESSION) {
-        //
-        // We need to deallocate Buffer
-        //
-        free (UncompressedBuffer);
-      }
-
-      if (EFI_ERROR (Status)) {
-        Error (NULL, 0, 0003, "failed to parse section", NULL);
-        return EFI_SECTION_ERROR;
-      }
-      break;
-
-    case EFI_SECTION_GUID_DEFINED:
-      if (SectionHeaderLen == sizeof(EFI_COMMON_SECTION_HEADER)) {
-        EfiGuid = &((EFI_GUID_DEFINED_SECTION *) Ptr)->SectionDefinitionGuid;
-        DataOffset = ((EFI_GUID_DEFINED_SECTION *) Ptr)->DataOffset;
-        Attributes = ((EFI_GUID_DEFINED_SECTION *) Ptr)->Attributes;
-      } else {
-        EfiGuid = &((EFI_GUID_DEFINED_SECTION2 *) Ptr)->SectionDefinitionGuid;
-        DataOffset = ((EFI_GUID_DEFINED_SECTION2 *) Ptr)->DataOffset;
-        Attributes = ((EFI_GUID_DEFINED_SECTION2 *) Ptr)->Attributes;
-      }
-      printf ("  SectionDefinitionGuid:  ");
-      PrintGuid (EfiGuid);
-      printf ("\n");
-      printf ("  DataOffset:             0x%04X\n", (unsigned) DataOffset);
-      printf ("  Attributes:             0x%04X\n", (unsigned) Attributes);
-
-      ExtractionTool =
-        LookupGuidedSectionToolPath (
-          mParsedGuidedSectionTools,
-          EfiGuid
-          );
-
-      if (ExtractionTool != NULL) {
-       #ifndef __GNUC__
-        ToolInputFile = CloneString (tmpnam (NULL));
-        ToolOutputFile = CloneString (tmpnam (NULL));
-       #else
-        char tmp1[] = "/tmp/fileXXXXXX";
-        char tmp2[] = "/tmp/fileXXXXXX";
-        int fd1;
-        int fd2;
-        fd1 = mkstemp(tmp1);
-        fd2 = mkstemp(tmp2);
-        ToolInputFile = CloneString(tmp1);
-        ToolOutputFile = CloneString(tmp2);
-        close(fd1);
-        close(fd2);
-       #endif
-
-        if ((ToolInputFile == NULL) || (ToolOutputFile == NULL)) {
-          if (ToolInputFile != NULL) {
-            free (ToolInputFile);
-          }
-          if (ToolOutputFile != NULL) {
-            free (ToolOutputFile);
-          }
-          free (ExtractionTool);
-
-          Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-          return EFI_OUT_OF_RESOURCES;
-        }
-
-        //
-        // Construction 'system' command string
-        //
-        SystemCommand = malloc (
-          strlen (EXTRACT_COMMAND_FORMAT_STRING) +
-          strlen (ExtractionTool) +
-          strlen (ToolInputFile) +
-          strlen (ToolOutputFile) +
-          1
-          );
-        if (SystemCommand == NULL) {
-          free (ToolInputFile);
-          free (ToolOutputFile);
-          free (ExtractionTool);
-
-          Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
-          return EFI_OUT_OF_RESOURCES;
-        }
-        sprintf (
-          SystemCommand,
-          EXTRACT_COMMAND_FORMAT_STRING,
-          ExtractionTool,
-          ToolOutputFile,
-          ToolInputFile
-          );
-        free (ExtractionTool);
-
-        if (!CompareGuid (
-               EfiGuid,
-               &gEfiCrc32GuidedSectionExtractionProtocolGuid
-               )
-           ) {
-          DataOffset -= 4;
-        }
-        Status =
-          PutFileImage (
-            ToolInputFile,
-            (CHAR8*)Ptr + DataOffset,
-            SectionLength - DataOffset
-            );
-
-        system (SystemCommand);
-        remove (ToolInputFile);
-        free (ToolInputFile);
-
-        Status =
-          GetFileImage (
-            ToolOutputFile,
-            (CHAR8 **)&ToolOutputBuffer,
-            &ToolOutputLength
-            );
-        remove (ToolOutputFile);
-        free (ToolOutputFile);
-        free (SystemCommand);
-        if (EFI_ERROR (Status)) {
-          Error (NULL, 0, 0004, "unable to read decoded GUIDED section", NULL);
-          return EFI_SECTION_ERROR;
-        }
-
-        printf ("/------------ Encapsulation section start -----------------\\\n");
-        Status = ParseSection (
-                  ToolOutputBuffer,
-                  ToolOutputLength
-                  );
-        if (EFI_ERROR (Status)) {
-          Error (NULL, 0, 0003, "parse of decoded GUIDED section failed", NULL);
-          return EFI_SECTION_ERROR;
-        }
-        printf ("\\------------ Encapsulation section end -------------------/\n");
-
-      //
-      // Check for CRC32 sections which we can handle internally if needed.
-      //
-      } else if (!CompareGuid (
-                   EfiGuid,
-                   &gEfiCrc32GuidedSectionExtractionProtocolGuid
-                   )
-          ) {
-        //
-        // CRC32 guided section
-        //
-        printf ("/------------ Encapsulation section start -----------------\\\n");
-        Status = ParseSection (
-                  Ptr + DataOffset,
-                  SectionLength - DataOffset
-                  );
-        if (EFI_ERROR (Status)) {
-          Error (NULL, 0, 0003, "parse of CRC32 GUIDED section failed", NULL);
-          return EFI_SECTION_ERROR;
-        }
-        printf ("\\------------ Encapsulation section end -------------------/\n");
-      } else {
-        //
-        // We don't know how to parse it now.
-        //
-        Error (NULL, 0, 0003, "Error parsing section", \
-        "EFI_SECTION_GUID_DEFINED cannot be parsed at this time. Tool to decode this section should have been defined in GuidedSectionTools.txt (built in the FV directory).");
-        return EFI_UNSUPPORTED;
-      }
-      break;
-
-    default:
-      //
-      // Unknown section, return error
-      //
-      Error (NULL, 0, 0003, "unrecognized section type found", "section type = 0x%X", Type);
-      return EFI_SECTION_ERROR;
     }
 
     ParsedLength += SectionLength;
@@ -2181,9 +2269,10 @@ Returns:
 
 EFI_STATUS
 DumpDepexSection (
-  IN UINT8    *Ptr,
-  IN UINT32   SectionLength
+  IN UINT8   *Ptr,
+  IN UINT32  SectionLength
   )
+
 /*++
 
 Routine Description:
@@ -2201,7 +2290,7 @@ Returns:
 
 --*/
 {
-  UINT8 GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
+  UINT8  GuidBuffer[PRINTED_GUID_BUFFER_SIZE];
 
   //
   // Need at least a section header + data
@@ -2210,81 +2299,81 @@ Returns:
     return EFI_SUCCESS;
   }
 
-  Ptr += GetSectionHeaderLength((EFI_COMMON_SECTION_HEADER *)Ptr);
-  SectionLength -= GetSectionHeaderLength((EFI_COMMON_SECTION_HEADER *)Ptr);
+  Ptr           += GetSectionHeaderLength ((EFI_COMMON_SECTION_HEADER *)Ptr);
+  SectionLength -= GetSectionHeaderLength ((EFI_COMMON_SECTION_HEADER *)Ptr);
   while (SectionLength > 0) {
     printf ("        ");
     switch (*Ptr) {
-    case EFI_DEP_BEFORE:
-      printf ("BEFORE\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_BEFORE:
+        printf ("BEFORE\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_AFTER:
-      printf ("AFTER\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_AFTER:
+        printf ("AFTER\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_PUSH:
-      printf ("PUSH\n        ");
-      PrintGuidToBuffer ((EFI_GUID *) (Ptr + 1), GuidBuffer, sizeof (GuidBuffer), TRUE);
-      printf ("%s  ", GuidBuffer);
-      PrintGuidName (GuidBuffer);
-      printf ("\n");
-      //
-      // PrintGuid ((EFI_GUID *)(Ptr + 1));
-      //
-      Ptr += 17;
-      SectionLength -= 17;
-      break;
+      case EFI_DEP_PUSH:
+        printf ("PUSH\n        ");
+        PrintGuidToBuffer ((EFI_GUID *)(Ptr + 1), GuidBuffer, sizeof (GuidBuffer), TRUE);
+        printf ("%s  ", GuidBuffer);
+        PrintGuidName (GuidBuffer);
+        printf ("\n");
+        //
+        // PrintGuid ((EFI_GUID *)(Ptr + 1));
+        //
+        Ptr           += 17;
+        SectionLength -= 17;
+        break;
 
-    case EFI_DEP_AND:
-      printf ("AND\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_AND:
+        printf ("AND\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_OR:
-      printf ("OR\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_OR:
+        printf ("OR\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_NOT:
-      printf ("NOT\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_NOT:
+        printf ("NOT\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_TRUE:
-      printf ("TRUE\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_TRUE:
+        printf ("TRUE\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_FALSE:
-      printf ("FALSE\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_FALSE:
+        printf ("FALSE\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_END:
-      printf ("END DEPEX\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_END:
+        printf ("END DEPEX\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    case EFI_DEP_SOR:
-      printf ("SOR\n");
-      Ptr++;
-      SectionLength--;
-      break;
+      case EFI_DEP_SOR:
+        printf ("SOR\n");
+        Ptr++;
+        SectionLength--;
+        break;
 
-    default:
-      printf ("Unrecognized byte in depex: 0x%X\n", *Ptr);
-      return EFI_SUCCESS;
+      default:
+        printf ("Unrecognized byte in depex: 0x%X\n", *Ptr);
+        return EFI_SUCCESS;
     }
   }
 
@@ -2293,8 +2382,9 @@ Returns:
 
 EFI_STATUS
 PrintGuidName (
-  IN UINT8    *GuidStr
+  IN UINT8  *GuidStr
   )
+
 /*++
 
 Routine Description:
@@ -2313,6 +2403,7 @@ Returns:
 --*/
 {
   GUID_TO_BASENAME  *GPtr;
+
   //
   // If we have a list of guid-to-basenames, then go through the list to
   // look for a guid string match. If found, print the basename to stdout,
@@ -2320,7 +2411,7 @@ Returns:
   //
   GPtr = mGuidBaseNameList;
   while (GPtr != NULL) {
-    if (_stricmp ((CHAR8*) GuidStr, (CHAR8*) GPtr->Guid) == 0) {
+    if (_stricmp ((CHAR8 *)GuidStr, (CHAR8 *)GPtr->Guid) == 0) {
       printf ("%s", GPtr->BaseName);
       return EFI_SUCCESS;
     }
@@ -2333,8 +2424,9 @@ Returns:
 
 EFI_STATUS
 ParseGuidBaseNameFile (
-  CHAR8    *FileName
+  CHAR8  *FileName
   )
+
 /*++
 
 Routine Description:
@@ -2369,8 +2461,8 @@ Returns:
   sprintf (
     FormatString,
     "%%%us %%%us",
-    (unsigned) sizeof (GPtr->Guid) - 1,
-    (unsigned) sizeof (GPtr->BaseName) - 1
+    (unsigned)sizeof (GPtr->Guid) - 1,
+    (unsigned)sizeof (GPtr->BaseName) - 1
     );
 
   while (fgets (Line, sizeof (Line), Fptr) != NULL) {
@@ -2383,7 +2475,7 @@ Returns:
       return EFI_OUT_OF_RESOURCES;
     }
 
-    memset ((char *) GPtr, 0, sizeof (GUID_TO_BASENAME));
+    memset ((char *)GPtr, 0, sizeof (GUID_TO_BASENAME));
     if (sscanf (Line, FormatString, GPtr->Guid, GPtr->BaseName) == 2) {
       GPtr->Next        = mGuidBaseNameList;
       mGuidBaseNameList = GPtr;
@@ -2403,6 +2495,7 @@ EFI_STATUS
 FreeGuidBaseNameList (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -2430,31 +2523,31 @@ Returns:
   return EFI_SUCCESS;
 }
 
-
 static
 VOID
 LoadGuidedSectionToolsTxt (
-  IN CHAR8* FirmwareVolumeFilename
+  IN CHAR8  *FirmwareVolumeFilename
   )
 {
-  CHAR8* PeerFilename;
-  CHAR8* Places[] = {
+  CHAR8  *PeerFilename;
+  CHAR8  *Places[] = {
     NULL,
-    //NULL,
-    };
-  UINTN Index;
+    // NULL,
+  };
+  UINTN  Index;
 
   Places[0] = FirmwareVolumeFilename;
-  //Places[1] = mUtilityFilename;
+  // Places[1] = mUtilityFilename;
 
   mParsedGuidedSectionTools = NULL;
 
-  for (Index = 0; Index < (sizeof(Places)/sizeof(Places[0])); Index++) {
+  for (Index = 0; Index < (sizeof (Places)/sizeof (Places[0])); Index++) {
     PeerFilename = OsPathPeerFilePath (Places[Index], "GuidedSectionTools.txt");
-    //printf("Loading %s...\n", PeerFilename);
+    // printf("Loading %s...\n", PeerFilename);
     if (OsPathExists (PeerFilename)) {
       mParsedGuidedSectionTools = ParseGuidedSectionToolsFile (PeerFilename);
     }
+
     free (PeerFilename);
     if (mParsedGuidedSectionTools != NULL) {
       return;
@@ -2462,11 +2555,11 @@ LoadGuidedSectionToolsTxt (
   }
 }
 
-
 void
 Usage (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -2521,4 +2614,3 @@ Returns:
   fprintf (stdout, "  --sfo\n\
             Reserved for future use\n");
 }
-
