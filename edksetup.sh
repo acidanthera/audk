@@ -101,6 +101,10 @@ SetupEnv()
     echo the EDK2 BuildEnv script.
     return 1
   fi
+
+  if [ "$(uname)" = "Darwin" ]; then
+    export CPATH="$(xcrun --show-sdk-path)/usr/include"
+  fi
 }
 
 SetupPythonCommand()

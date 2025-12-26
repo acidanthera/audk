@@ -98,7 +98,7 @@ FfsFindSectionData (
   IN EFI_SECTION_TYPE     SectionType,
   IN EFI_FFS_FILE_HEADER  *FfsFileHeader,
   OUT VOID                **SectionData,
-  OUT UINT32                       *SectionDataSize
+  OUT UINT32              *SectionDataSize
   );
 
 #endif
