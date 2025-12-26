@@ -5,6 +5,8 @@ Copyright (c) 2004 - 2018, Intel Corporation. All rights reserved.<BR>
 SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
+#include "WinNtInclude.h"
+
 #ifndef __GNUC__
 #define RUNTIME_FUNCTION  _WINNT_DUP_RUNTIME_FUNCTION
   #include <windows.h>
@@ -21,8 +23,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #include <Common/UefiBaseTypes.h>
 #include <Common/PiFirmwareFile.h>
-#include <Protocol/GuidedSectionExtraction.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/GuidedSectionExtractionEx.h>
+#include <Common/PeImageEx.h>
 
 #include "CommonLib.h"
 #include "Compress.h"
@@ -903,7 +905,7 @@ Returns:
              );
 
   if (Status == EFI_BUFFER_TOO_SMALL) {
-    if (CompareGuid (VendorGuid, &mZeroGuid) == 0) {
+    if (BtCompareGuid (VendorGuid, &mZeroGuid) == 0) {
       Offset = sizeof (CRC32_SECTION_HEADER);
       if (InputLength + Offset >= MAX_SECTION_SIZE) {
         Offset = sizeof (CRC32_SECTION_HEADER2);
@@ -964,12 +966,12 @@ Returns:
   //
   // Now data is in FileBuffer + Offset
   //
-  if (CompareGuid (VendorGuid, &mZeroGuid) == 0) {
+  if (BtCompareGuid (VendorGuid, &mZeroGuid) == 0) {
     //
     // Default Guid section is CRC32.
     //
     Crc32Checksum = 0;
-    CalculateCrc32 (FileBuffer + Offset, InputLength, &Crc32Checksum);
+    BtCalculateCrc32 (FileBuffer + Offset, InputLength, &Crc32Checksum);
 
     if (TotalLength >= MAX_SECTION_SIZE) {
       Crc32GuidSect2                                              = (CRC32_SECTION_HEADER2 *)FileBuffer;
@@ -1184,6 +1186,7 @@ Returns:
 }
 
 EFI_STATUS
+EFIAPI
 FfsRebaseImageRead (
   IN      VOID    *FileHandle,
   IN      UINTN   FileOffset,
@@ -1833,7 +1836,7 @@ Returns:
   //
   if ((SectType != EFI_SECTION_GUID_DEFINED) && (SectType != EFI_SECTION_FREEFORM_SUBTYPE_GUID) &&
       (SectionName != NULL) &&
-      (CompareGuid (&VendorGuid, &mZeroGuid) != 0))
+      (BtCompareGuid (&VendorGuid, &mZeroGuid) != 0))
   {
     fprintf (stdout, "Warning: the input guid value is not required for this section type %s\n", SectionName);
   }
@@ -1841,7 +1844,7 @@ Returns:
   //
   // Check whether there is GUID for the SubtypeGuid section
   //
-  if ((SectType == EFI_SECTION_FREEFORM_SUBTYPE_GUID) && (CompareGuid (&VendorGuid, &mZeroGuid) == 0)) {
+  if ((SectType == EFI_SECTION_FREEFORM_SUBTYPE_GUID) && (BtCompareGuid (&VendorGuid, &mZeroGuid) == 0)) {
     Error (NULL, 0, 1001, "Missing options", "GUID");
     goto Finish;
   }
@@ -1899,7 +1902,7 @@ Returns:
       break;
 
     case EFI_SECTION_GUID_DEFINED:
-      if ((InputFileAlign != NULL) && (CompareGuid (&VendorGuid, &mZeroGuid) != 0)) {
+      if ((InputFileAlign != NULL) && (BtCompareGuid (&VendorGuid, &mZeroGuid) != 0)) {
         //
         // Only process alignment for the default known CRC32 guided section.
         // For the unknown guided section, the alignment is processed when the dummy all section (EFI_SECTION_ALL) is generated.
