@@ -10,60 +10,52 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 --*/
 
 #include <Common/UefiBaseTypes.h>
-#include <IndustryStandard/PeImage.h>
+#include <Common/PeImageEx.h>
 #include "PeCoffLib.h"
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
 
+#define IMM64_IMM7B_INST_WORD_X      3
+#define IMM64_IMM7B_SIZE_X           7
+#define IMM64_IMM7B_INST_WORD_POS_X  4
+#define IMM64_IMM7B_VAL_POS_X        0
 
-#define EXT_IMM64(Value, Address, Size, InstPos, ValPos)  \
-    Value |= (((UINT64)((*(Address) >> InstPos) & (((UINT64)1 << Size) - 1))) << ValPos)
+#define IMM64_IMM9D_INST_WORD_X      3
+#define IMM64_IMM9D_SIZE_X           9
+#define IMM64_IMM9D_INST_WORD_POS_X  18
+#define IMM64_IMM9D_VAL_POS_X        7
 
-#define INS_IMM64(Value, Address, Size, InstPos, ValPos)  \
-    *(UINT32*)Address = (*(UINT32*)Address & ~(((1 << Size) - 1) << InstPos)) | \
-          ((UINT32)((((UINT64)Value >> ValPos) & (((UINT64)1 << Size) - 1))) << InstPos)
+#define IMM64_IMM5C_INST_WORD_X      3
+#define IMM64_IMM5C_SIZE_X           5
+#define IMM64_IMM5C_INST_WORD_POS_X  13
+#define IMM64_IMM5C_VAL_POS_X        16
 
-#define IMM64_IMM7B_INST_WORD_X         3
-#define IMM64_IMM7B_SIZE_X              7
-#define IMM64_IMM7B_INST_WORD_POS_X     4
-#define IMM64_IMM7B_VAL_POS_X           0
+#define IMM64_IC_INST_WORD_X      3
+#define IMM64_IC_SIZE_X           1
+#define IMM64_IC_INST_WORD_POS_X  12
+#define IMM64_IC_VAL_POS_X        21
 
-#define IMM64_IMM9D_INST_WORD_X         3
-#define IMM64_IMM9D_SIZE_X              9
-#define IMM64_IMM9D_INST_WORD_POS_X     18
-#define IMM64_IMM9D_VAL_POS_X           7
+#define IMM64_IMM41a_INST_WORD_X      1
+#define IMM64_IMM41a_SIZE_X           10
+#define IMM64_IMM41a_INST_WORD_POS_X  14
+#define IMM64_IMM41a_VAL_POS_X        22
 
-#define IMM64_IMM5C_INST_WORD_X         3
-#define IMM64_IMM5C_SIZE_X              5
-#define IMM64_IMM5C_INST_WORD_POS_X     13
-#define IMM64_IMM5C_VAL_POS_X           16
+#define IMM64_IMM41b_INST_WORD_X      1
+#define IMM64_IMM41b_SIZE_X           8
+#define IMM64_IMM41b_INST_WORD_POS_X  24
+#define IMM64_IMM41b_VAL_POS_X        32
 
-#define IMM64_IC_INST_WORD_X            3
-#define IMM64_IC_SIZE_X                 1
-#define IMM64_IC_INST_WORD_POS_X        12
-#define IMM64_IC_VAL_POS_X              21
+#define IMM64_IMM41c_INST_WORD_X      2
+#define IMM64_IMM41c_SIZE_X           23
+#define IMM64_IMM41c_INST_WORD_POS_X  0
+#define IMM64_IMM41c_VAL_POS_X        40
 
-#define IMM64_IMM41a_INST_WORD_X        1
-#define IMM64_IMM41a_SIZE_X             10
-#define IMM64_IMM41a_INST_WORD_POS_X    14
-#define IMM64_IMM41a_VAL_POS_X          22
+#define IMM64_SIGN_INST_WORD_X      3
+#define IMM64_SIGN_SIZE_X           1
+#define IMM64_SIGN_INST_WORD_POS_X  27
+#define IMM64_SIGN_VAL_POS_X        63
 
-#define IMM64_IMM41b_INST_WORD_X        1
-#define IMM64_IMM41b_SIZE_X             8
-#define IMM64_IMM41b_INST_WORD_POS_X    24
-#define IMM64_IMM41b_VAL_POS_X          32
-
-#define IMM64_IMM41c_INST_WORD_X        2
-#define IMM64_IMM41c_SIZE_X             23
-#define IMM64_IMM41c_INST_WORD_POS_X    0
-#define IMM64_IMM41c_VAL_POS_X          40
-
-#define IMM64_SIGN_INST_WORD_X          3
-#define IMM64_SIGN_SIZE_X               1
-#define IMM64_SIGN_INST_WORD_POS_X      27
-#define IMM64_SIGN_VAL_POS_X            63
-
-UINT32 *RiscVHi20Fixup = NULL;
+UINT32  *RiscVHi20Fixup = NULL;
 
 /**
   Performs an IA-32 specific relocation fixup
@@ -77,10 +69,10 @@ UINT32 *RiscVHi20Fixup = NULL;
 **/
 RETURN_STATUS
 PeCoffLoaderRelocateIa32Image (
-  IN UINT16      *Reloc,
-  IN OUT CHAR8   *Fixup,
-  IN OUT CHAR8   **FixupData,
-  IN UINT64      Adjust
+  IN UINT16     *Reloc,
+  IN OUT CHAR8  *Fixup,
+  IN OUT CHAR8  **FixupData,
+  IN UINT64     Adjust
   )
 {
   return RETURN_UNSUPPORTED;
@@ -98,61 +90,65 @@ PeCoffLoaderRelocateIa32Image (
 **/
 RETURN_STATUS
 PeCoffLoaderRelocateRiscVImage (
-  IN UINT16      *Reloc,
-  IN OUT CHAR8   *Fixup,
-  IN OUT CHAR8   **FixupData,
-  IN UINT64      Adjust
+  IN UINT16     *Reloc,
+  IN OUT CHAR8  *Fixup,
+  IN OUT CHAR8  **FixupData,
+  IN UINT64     Adjust
   )
 {
-  UINT32 Value;
-  UINT32 Value2;
+  UINT32  Value;
+  UINT32  Value2;
 
   switch ((*Reloc) >> 12) {
-  case EFI_IMAGE_REL_BASED_RISCV_HI20:
-      RiscVHi20Fixup = (UINT32 *) Fixup;
+    case EFI_IMAGE_REL_BASED_RISCV_HI20:
+      RiscVHi20Fixup = (UINT32 *)Fixup;
       break;
 
-  case EFI_IMAGE_REL_BASED_RISCV_LOW12I:
+    case EFI_IMAGE_REL_BASED_RISCV_LOW12I:
       if (RiscVHi20Fixup != NULL) {
-        Value = (UINT32)(RV_X(*RiscVHi20Fixup, 12, 20) << 12);
-        Value2 = (UINT32)(RV_X(*(UINT32 *)Fixup, 20, 12));
+        Value  = (UINT32)(RV_X (*RiscVHi20Fixup, 12, 20) << 12);
+        Value2 = (UINT32)(RV_X (*(UINT32 *)Fixup, 20, 12));
         if (Value2 & (RISCV_IMM_REACH/2)) {
           Value2 |= ~(RISCV_IMM_REACH-1);
         }
-        Value += Value2;
-        Value += (UINT32)Adjust;
-        Value2 = RISCV_CONST_HIGH_PART (Value);
+
+        Value                    += Value2;
+        Value                    += (UINT32)Adjust;
+        Value2                    = RISCV_CONST_HIGH_PART (Value);
         *(UINT32 *)RiscVHi20Fixup = (RV_X (Value2, 12, 20) << 12) | \
-                                           (RV_X (*(UINT32 *)RiscVHi20Fixup, 0, 12));
+                                    (RV_X (*(UINT32 *)RiscVHi20Fixup, 0, 12));
         *(UINT32 *)Fixup = (RV_X (Value, 0, 12) << 20) | \
                            (RV_X (*(UINT32 *)Fixup, 0, 20));
       }
+
       RiscVHi20Fixup = NULL;
       break;
 
-  case EFI_IMAGE_REL_BASED_RISCV_LOW12S:
+    case EFI_IMAGE_REL_BASED_RISCV_LOW12S:
       if (RiscVHi20Fixup != NULL) {
-        Value = (UINT32)(RV_X(*RiscVHi20Fixup, 12, 20) << 12);
-        Value2 = (UINT32)(RV_X(*(UINT32 *)Fixup, 7, 5) | (RV_X(*(UINT32 *)Fixup, 25, 7) << 5));
+        Value  = (UINT32)(RV_X (*RiscVHi20Fixup, 12, 20) << 12);
+        Value2 = (UINT32)(RV_X (*(UINT32 *)Fixup, 7, 5) | (RV_X (*(UINT32 *)Fixup, 25, 7) << 5));
         if (Value2 & (RISCV_IMM_REACH/2)) {
           Value2 |= ~(RISCV_IMM_REACH-1);
         }
-        Value += Value2;
-        Value += (UINT32)Adjust;
-        Value2 = RISCV_CONST_HIGH_PART (Value);
+
+        Value                    += Value2;
+        Value                    += (UINT32)Adjust;
+        Value2                    = RISCV_CONST_HIGH_PART (Value);
         *(UINT32 *)RiscVHi20Fixup = (RV_X (Value2, 12, 20) << 12) | \
-                                           (RV_X (*(UINT32 *)RiscVHi20Fixup, 0, 12));
-        Value2 = *(UINT32 *)Fixup & 0x01fff07f;
-        Value &= RISCV_IMM_REACH - 1;
-        *(UINT32 *)Fixup = Value2 | (UINT32)(((RV_X(Value, 0, 5) << 7) | (RV_X(Value, 5, 7) << 25)));
+                                    (RV_X (*(UINT32 *)RiscVHi20Fixup, 0, 12));
+        Value2           = *(UINT32 *)Fixup & 0x01fff07f;
+        Value           &= RISCV_IMM_REACH - 1;
+        *(UINT32 *)Fixup = Value2 | (UINT32)(((RV_X (Value, 0, 5) << 7) | (RV_X (Value, 5, 7) << 25)));
       }
+
       RiscVHi20Fixup = NULL;
       break;
 
-  default:
+    default:
       return EFI_UNSUPPORTED;
-
   }
+
   return RETURN_SUCCESS;
 }
 
@@ -174,10 +170,10 @@ PeCoffLoaderRelocateLoongArch64Image (
   IN UINT64     Adjust
   )
 {
-  UINT8  RelocType;
-  UINT64 Value;
-  UINT64 Tmp1;
-  UINT64 Tmp2;
+  UINT8   RelocType;
+  UINT64  Value;
+  UINT64  Tmp1;
+  UINT64  Tmp2;
 
   RelocType = ((*Reloc) >> 12);
   Value     = 0;

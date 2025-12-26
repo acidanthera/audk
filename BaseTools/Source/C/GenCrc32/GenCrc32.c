@@ -15,18 +15,19 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "CommonLib.h"
 #include "Crc32.h"
 
-#define UTILITY_NAME            "GenCrc32"
-#define UTILITY_MAJOR_VERSION   0
-#define UTILITY_MINOR_VERSION   2
+#define UTILITY_NAME           "GenCrc32"
+#define UTILITY_MAJOR_VERSION  0
+#define UTILITY_MINOR_VERSION  2
 
-#define CRC32_NULL              0
-#define CRC32_ENCODE            1
-#define CRC32_DECODE            2
+#define CRC32_NULL    0
+#define CRC32_ENCODE  1
+#define CRC32_DECODE  2
 
 VOID
 Version (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -50,6 +51,7 @@ VOID
 Usage (
   VOID
   )
+
 /*++
 
 Routine Description:
@@ -94,14 +96,14 @@ Returns:
   fprintf (stdout, "  -o OUTPUT_FILENAME, --output OUTPUT_FILENAME\n\
                         Output file name\n");
   fprintf (stdout, "  --sfo                 Reserved for future use\n");
-
 }
 
 int
 main (
-  int   argc,
-  CHAR8 *argv[]
+  int    argc,
+  CHAR8  *argv[]
   )
+
 /*++
 
 Routine Description:
@@ -119,16 +121,16 @@ Returns:
 
 --*/
 {
-  EFI_STATUS              Status;
-  CHAR8                   *OutputFileName;
-  CHAR8                   *InputFileName;
-  UINT8                   *FileBuffer;
-  UINT32                  FileSize;
-  UINT64                  LogLevel;
-  UINT8                   FileAction;
-  UINT32                  Crc32Value;
-  FILE                    *InFile;
-  FILE                    *OutFile;
+  EFI_STATUS  Status;
+  CHAR8       *OutputFileName;
+  CHAR8       *InputFileName;
+  UINT8       *FileBuffer;
+  UINT32      FileSize;
+  UINT64      LogLevel;
+  UINT8       FileAction;
+  UINT32      Crc32Value;
+  FILE        *InFile;
+  FILE        *OutFile;
 
   //
   // Init local variables
@@ -154,8 +156,8 @@ Returns:
   //
   // Parse command line
   //
-  argc --;
-  argv ++;
+  argc--;
+  argv++;
 
   if ((stricmp (argv[0], "-h") == 0) || (stricmp (argv[0], "--help") == 0)) {
     Usage ();
@@ -169,43 +171,44 @@ Returns:
 
   while (argc > 0) {
     if ((stricmp (argv[0], "-o") == 0) || (stricmp (argv[0], "--output") == 0)) {
-      if (argv[1] == NULL || argv[1][0] == '-') {
+      if ((argv[1] == NULL) || (argv[1][0] == '-')) {
         Error (NULL, 0, 1003, "Invalid option value", "Output File name is missing for -o option");
         goto Finish;
       }
+
       OutputFileName = argv[1];
-      argc -= 2;
-      argv += 2;
+      argc          -= 2;
+      argv          += 2;
       continue;
     }
 
     if ((stricmp (argv[0], "-e") == 0) || (stricmp (argv[0], "--encode") == 0)) {
-      FileAction     = CRC32_ENCODE;
-      argc --;
-      argv ++;
+      FileAction = CRC32_ENCODE;
+      argc--;
+      argv++;
       continue;
     }
 
     if ((stricmp (argv[0], "-d") == 0) || (stricmp (argv[0], "--decode") == 0)) {
-      FileAction     = CRC32_DECODE;
-      argc --;
-      argv ++;
+      FileAction = CRC32_DECODE;
+      argc--;
+      argv++;
       continue;
     }
 
     if ((stricmp (argv[0], "-v") == 0) || (stricmp (argv[0], "--verbose") == 0)) {
       SetPrintLevel (VERBOSE_LOG_LEVEL);
       VerboseMsg ("Verbose output Mode Set!");
-      argc --;
-      argv ++;
+      argc--;
+      argv++;
       continue;
     }
 
     if ((stricmp (argv[0], "-q") == 0) || (stricmp (argv[0], "--quiet") == 0)) {
       SetPrintLevel (KEY_LOG_LEVEL);
       KeyMsg ("Quiet output Mode Set!");
-      argc --;
-      argv ++;
+      argc--;
+      argv++;
       continue;
     }
 
@@ -215,10 +218,12 @@ Returns:
         Error (NULL, 0, 1003, "Invalid option value", "%s = %s", argv[0], argv[1]);
         goto Finish;
       }
+
       if (LogLevel > 9) {
-        Error (NULL, 0, 1003, "Invalid option value", "Debug Level range is 0-9, current input level is %d", (int) LogLevel);
+        Error (NULL, 0, 1003, "Invalid option value", "Debug Level range is 0-9, current input level is %d", (int)LogLevel);
         goto Finish;
       }
+
       SetPrintLevel (LogLevel);
       DebugMsg (NULL, 0, 9, "Debug Mode Set", "Debug Output Mode Level %s is set!", argv[1]);
       argc -= 2;
@@ -235,8 +240,8 @@ Returns:
     // Get Input file file name.
     //
     InputFileName = argv[0];
-    argc --;
-    argv ++;
+    argc--;
+    argv++;
   }
 
   VerboseMsg ("%s tool start.", UTILITY_NAME);
@@ -280,7 +285,7 @@ Returns:
   FileSize = ftell (InFile);
   fseek (InFile, 0, SEEK_SET);
 
-  FileBuffer = (UINT8 *) malloc (FileSize);
+  FileBuffer = (UINT8 *)malloc (FileSize);
   if (FileBuffer == NULL) {
     Error (NULL, 0, 4001, "Resource", "memory cannot be allocated!");
     fclose (InFile);
@@ -289,7 +294,7 @@ Returns:
 
   fread (FileBuffer, 1, FileSize, InFile);
   fclose (InFile);
-  VerboseMsg ("the size of the input file is %u bytes", (unsigned) FileSize);
+  VerboseMsg ("the size of the input file is %u bytes", (unsigned)FileSize);
 
   //
   // Open output file
@@ -304,18 +309,19 @@ Returns:
   // Calculate Crc32 value
   //
   if (FileAction == CRC32_ENCODE) {
-    Status = CalculateCrc32 (FileBuffer, FileSize, &Crc32Value);
+    Status = BtCalculateCrc32 (FileBuffer, FileSize, &Crc32Value);
     if (Status != EFI_SUCCESS) {
       Error (NULL, 0, 3000, "Invalid", "Calculate CRC32 value failed!");
       goto Finish;
     }
+
     //
     // Done, write output file.
     //
     fwrite (&Crc32Value, 1, sizeof (Crc32Value), OutFile);
-    VerboseMsg ("The calculated CRC32 value is 0x%08x", (unsigned) Crc32Value);
+    VerboseMsg ("The calculated CRC32 value is 0x%08x", (unsigned)Crc32Value);
     fwrite (FileBuffer, 1, FileSize, OutFile);
-    VerboseMsg ("the size of the encoded file is %u bytes", (unsigned) FileSize + sizeof (UINT32));
+    VerboseMsg ("the size of the encoded file is %u bytes", (unsigned)FileSize + sizeof (UINT32));
   } else {
     //
     // Verify Crc32 Value
@@ -324,22 +330,25 @@ Returns:
       Error (NULL, 0, 3000, "Invalid", "Input file is invalid!");
       goto Finish;
     }
-    Status = CalculateCrc32 (FileBuffer + sizeof (UINT32), FileSize - sizeof (UINT32), &Crc32Value);
+
+    Status = BtCalculateCrc32 (FileBuffer + sizeof (UINT32), FileSize - sizeof (UINT32), &Crc32Value);
     if (Status != EFI_SUCCESS) {
       Error (NULL, 0, 3000, "Invalid", "Calculate CRC32 value failed!");
       goto Finish;
     }
-    VerboseMsg ("The calculated CRC32 value is 0x%08x and File Crc32 value is 0x%08x", (unsigned) Crc32Value, (unsigned) (*(UINT32 *)FileBuffer));
+
+    VerboseMsg ("The calculated CRC32 value is 0x%08x and File Crc32 value is 0x%08x", (unsigned)Crc32Value, (unsigned)(*(UINT32 *)FileBuffer));
     if (Crc32Value != *(UINT32 *)FileBuffer) {
       Error (NULL, 0, 3000, "Invalid", "CRC32 value of input file is not correct!");
       Status = STATUS_ERROR;
       goto Finish;
     }
+
     //
     // Done, write output file.
     //
     fwrite (FileBuffer + sizeof (UINT32), 1, FileSize - sizeof (UINT32), OutFile);
-    VerboseMsg ("the size of the decoded file is %u bytes", (unsigned) FileSize - sizeof (UINT32));
+    VerboseMsg ("the size of the decoded file is %u bytes", (unsigned)FileSize - sizeof (UINT32));
   }
 
 Finish:
@@ -355,7 +364,3 @@ Finish:
 
   return GetUtilityStatus ();
 }
-
-
-
-
