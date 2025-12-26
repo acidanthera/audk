@@ -3390,7 +3390,7 @@ Returns:
   return EFI_SUCCESS;
 }
 
-EFI_PHYSICAL_ADDRESS
+EFI_STATUS
 AddPadSection (
   IN OUT EFI_PHYSICAL_ADDRESS     *BaseAddress,
   IN     UINT32                   Alignment,
@@ -3403,14 +3403,14 @@ AddPadSection (
   UINT32                    FfsHeaderLength;
   UINT32                    FfsFileLength;
   UINT32                    PadSize;
-  UINTN                     PadAddress;
+  EFI_PHYSICAL_ADDRESS      PadAddress;
   UINT8                     *FfsPart;
   UINT32                    PartSize;
   UINT32                    Offset;
   EFI_FFS_INTEGRITY_CHECK   *IntegrityCheck;
 
   PadAddress = ALIGN_VALUE (*BaseAddress + sizeof (EFI_COMMON_SECTION_HEADER), Alignment);
-  PadSize    = PadAddress - *BaseAddress;
+  PadSize    = (UINT32)(PadAddress - *BaseAddress);
 
   Offset = (UINT32)((UINTN)((*Section).Pe32Section) - (UINTN)(*FfsFile));
   PartSize = GetFfsFileLength (*FfsFile) - Offset;
@@ -3440,7 +3440,7 @@ AddPadSection (
   ++NewSection;
   ZeroMem ((VOID *)NewSection, PadSize - sizeof (EFI_COMMON_SECTION_HEADER));
 
-  *Section = (EFI_FILE_SECTION_POINTER)(EFI_PE32_SECTION *)((UINT8 *)NewSection + PadSize - sizeof (EFI_COMMON_SECTION_HEADER));
+  (*Section).Pe32Section = (EFI_PE32_SECTION *)((UINT8 *)NewSection + PadSize - sizeof (EFI_COMMON_SECTION_HEADER));
 
   CopyMem (
     (UINT8 *)((*Section).Pe32Section),
@@ -3873,7 +3873,7 @@ Returns:
       PdbPointer = FileName;
     }
 
-    WriteMapFile (FvMapFile, PdbPointer, *FfsFile, NewPe32BaseAddress, &OrigImageContext);
+    WriteMapFile (FvMapFile, PdbPointer, *FfsFile, NewPe32BaseAddress, &ImageContext);
   }
 
   if ((*FfsFile)->Type != EFI_FV_FILETYPE_SECURITY_CORE &&

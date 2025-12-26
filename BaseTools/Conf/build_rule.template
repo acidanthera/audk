@@ -290,7 +290,14 @@
     <Command.GCC>
         $(RM) ${dst}
         "$(SLINK)" cr ${dst} $(SLINK_FLAGS) @$(OBJECT_FILES_LIST)
-    
+
+    <Command.RVCT>
+        "$(SLINK)" $(SLINK_FLAGS) ${dst} --via $(OBJECT_FILES_LIST)
+
+    <Command.RVCTCYGWIN>
+        # $(OBJECT_FILES_LIST) has wrong paths for cygwin
+        "$(SLINK)" $(SLINK_FLAGS) ${dst} $(OBJECT_FILES)
+
     <Command.XCODE>
         "$(SLINK)" $(SLINK_FLAGS) ${dst} -filelist $(OBJECT_FILES_LIST)
 
@@ -317,12 +324,11 @@
 
     <Command.GCC>
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(DLINK2_FLAGS)
-        "$(OBJCOPY)" $(OBJCOPY_FLAGS) ${dst}
 
     <Command.XCODE>
         "$(DLINK)" $(DLINK_FLAGS) -o ${dst} $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
-    
-    
+
+
 [Static-Library-File.SEC, Static-Library-File.PEI_CORE, Static-Library-File.PEIM]
     <InputFile>
         *.lib
@@ -340,8 +346,6 @@
 
     <Command.GCC>
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS) $(DLINK_XIPFLAGS) -Wl,--start-group,@$(STATIC_LIBRARY_FILES_LIST),--end-group $(CC_FLAGS) $(CC_XIPFLAGS) $(DLINK2_FLAGS)
-        "$(OBJCOPY)" $(OBJCOPY_FLAGS) ${dst}
-
 
 [Static-Library-File.USER_DEFINED]
     <InputFile>
@@ -385,8 +389,8 @@
 
     <Command.XCODE>
         "$(DLINK)" -o ${dst} $(DLINK_FLAGS)  $(DLINK_SPATH) -filelist $(STATIC_LIBRARY_FILES_LIST)  $(DLINK2_FLAGS)
-      
-      
+
+
 [Dynamic-Library-File]
     <InputFile>
         ?.dll
@@ -397,42 +401,67 @@
         $(DEBUG_DIR)(+)$(MODULE_NAME).efi
 
     <Command.MSFT, Command.INTEL, Command.CLANGPDB>
-        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} ${src}
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
-        -$(CP) $(DEBUG_DIR)(+)*.pdb $(OUTPUT_DIR) 
+        -$(CP) $(DEBUG_DIR)(+)*.pdb $(OUTPUT_DIR)
 
-    <Command.CLANGDWARF>
-        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).debug
-        -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
+    <Command.GCC, Command.CLANGGCC>
+        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+        $(OBJCOPY) $(OBJCOPY_STRIPFLAG) $(DEBUG_DIR)(+)$(MODULE_NAME).strip
 
-        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
 
-    <Command.GCC>
-        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).debug
-        "$(OBJCOPY)" $(OBJCOPY_STRIPFLAG) ${src}
-
-        #
-        #The below 2 lines are only needed for UNIXGCC tool chain, which generates PE image directly
-        #
-        -"$(OBJCOPY)" $(OBJCOPY_ADDDEBUGFLAG) ${src}
-        -$(CP) $(DEBUG_DIR)(+)$(MODULE_NAME).debug $(BIN_DIR)(+)$(MODULE_NAME_GUID).debug
-
-        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} ${src} $(GENFW_FLAGS)
-        $(CP) ${dst} $(DEBUG_DIR)
-        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
-        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
-        
     <Command.XCODE>
         # tool to convert Mach-O to PE/COFF
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS)  ${src}  $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
         # create symbol file for GDB debug
         -$(DSYMUTIL) ${src}
-        "$(GENFW)" -e $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff $(GENFW_FLAGS)
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
+        $(CP) ${dst} $(DEBUG_DIR)
+        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
+        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
+
+[Dynamic-Library-File.UEFI_HII]
+    <InputFile>
+        ?.dll
+
+    <OutputFile>
+        $(OUTPUT_DIR)(+)$(MODULE_NAME).efi
+        $(DEBUG_DIR)(+)$(MODULE_NAME).efi
+        $(OUTPUT_DIR)(+)$(MODULE_NAME).map
+
+    <ExtraDependency>
+        $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
+
+    <Command.MSFT, Command.INTEL, Command.CLANGPDB>
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} ${src}
+        $(CP) ${dst} $(DEBUG_DIR)
+        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
+        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
+        -$(CP) $(DEBUG_DIR)(+)*.pdb $(OUTPUT_DIR)
+
+    <Command.GCC, Command.CLANGGCC>
+        $(CP) ${src} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+        $(OBJCOPY) $(OBJCOPY_STRIPFLAG) $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).strip
+
+        $(CP) ${dst} $(DEBUG_DIR)
+        $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
+        -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
+
+    <Command.XCODE>
+        # tool to convert Mach-O to PE/COFF
+        "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS)  ${src}  $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
+        # create symbol file for GDB debug
+        -$(DSYMUTIL) ${src}
+        ImageTool GenImage -c PE -t $(MODULE_TYPE) -h $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -o ${dst} $(DEBUG_DIR)(+)$(MODULE_NAME).pecoff
         $(CP) ${dst} $(DEBUG_DIR)
         $(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).efi
         -$(CP) $(DEBUG_DIR)(+)*.map $(OUTPUT_DIR)
@@ -466,14 +495,14 @@
     <Command.MSFT, Command.INTEL>
         Trim --asl-file --asl-deps -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.i -i $(INC_LIST) ${src}
         "$(ASLPP)" $(DEPS_FLAGS) $(ASLPP_FLAGS) $(INC) /I${s_path} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.i > $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii
-        Trim --source-code -l -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii 
+        Trim --source-code -l -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii
         "$(ASL)" $(ASL_FLAGS) $(ASL_OUTFLAGS)${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii
         $(CP) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.aml $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.amli
 
     <Command.GCC>
         Trim --asl-file --asl-deps -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.i -i $(INC_LIST) ${src}
         "$(ASLPP)" $(DEPS_FLAGS) $(ASLPP_FLAGS) $(INC) -I${s_path} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.i > $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii
-        Trim --source-code -l -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii 
+        Trim --source-code -l -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iii
         "$(ASL)" $(ASL_FLAGS) $(ASL_OUTFLAGS)${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.iiii
         $(CP) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.aml $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.amli
 
@@ -500,12 +529,12 @@
     <Command.MSFT, Command.INTEL>
         "$(ASLCC)" $(DEPS_FLAGS) /Fo$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(GENFW_FLAGS)
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll
 
     <Command.GCC>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(GENFW_FLAGS)
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll
 
     <Command.CLANGPDB>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
@@ -525,25 +554,24 @@
     <Command.MSFT, Command.INTEL>
         "$(ASLCC)" $(DEPS_FLAGS) /Fo$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(GENFW_FLAGS)
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll
 
     <Command.GCC>
-        "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
-        "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(GENFW_FLAGS)
+        "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
+        "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(CC_FLAGS) $(ASLCC_FLAGS)
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll
 
     <Command.CLANGPDB>
         "$(ASLCC)" $(DEPS_FLAGS) -c -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" /OUT:$(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(GENFW_FLAGS)
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll
 
-    <Command.XCODE>        
+    <Command.XCODE>
         "$(ASLCC)" $(DEPS_FLAGS) -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj  $(ASLCC_FLAGS) $(DEPS_FLAGS) $(INC) ${src}
         "$(ASLDLINK)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(ASLDLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
         "$(MTOC)" -subsystem $(MODULE_TYPE)  $(MTOC_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.dll $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff
-        "$(GENFW)" -o ${dst} -c $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff $(GENFW_FLAGS)
-      
-      
+        ImageTool GetAcpi -o ${dst} $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.pecoff
+
 [Masm16-Code-File]
     <InputFile>
         ?.asm16, ?.Asm16, ?.ASM16, ?.s16, ?.S16
@@ -568,7 +596,7 @@
       Trim --source-code -o ${d_path}(+)${s_base}.iii ${d_path}(+)${s_base}.ii
       "$(ASM)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASM_FLAGS) $(INC) ${d_path}(+)${s_base}.iii
       "$(DLINK)" -o ${dst} $(DLINK_FLAGS) --start-group $(DLINK_SPATH) $(LIBS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj --end-group
-     
+
     <Command.XCODE>
       Trim --asm-file -o ${d_path}(+)${s_base}.i -i $(INC_LIST) ${src}
       "$(PP)" $(DEPS_FLAGS) $(PP_FLAGS) $(INC) ${src} > ${d_path}(+)${s_base}.ii
@@ -576,7 +604,7 @@
       "$(ASM)" -o $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj $(ASM_FLAGS) $(INC) ${d_path}(+)${s_base}.iii
       "$(SLINK)" $(SLINK_FLAGS) $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.slib $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.obj
       otool -t $(OUTPUT_DIR)(+)${s_dir}(+)${s_base}.slib | hex2bin.py ${dst}
-      
+
 
 [Nasm-to-Binary-Code-File]
     <InputFile>
@@ -604,7 +632,7 @@
         $(OUTPUT_DIR)(+)${s_base}.mcb
 
     <Command>
-        "$(GENFW)" -o ${dst} -m ${src} $(GENFW_FLAGS)
+        MicroTool TxtToBin ${src} ${dst}
 
 [Microcode-Binary-File]
     <InputFile>
@@ -617,7 +645,7 @@
         $(OUTPUT_DIR)(+)$(MODULE_NAME).bin
 
     <Command>
-        "$(GENFW)" -o ${dst} -j $(MICROCODE_BINARY_FILES) $(GENFW_FLAGS)
+        MicroTool Merge ${dst} $(MICROCODE_BINARY_FILES)
         -$(CP) ${dst} $(BIN_DIR)(+)$(MODULE_NAME_GUID).bin
 
 [EFI-Image-File]
@@ -700,19 +728,8 @@
     <InputFile>
         *.hpk
 
-    <OutputFile.MSFT, OutputFile.INTEL, OutputFile.GCC, OutputFile.CLANGPDB, OutputFile.CLANGGCC>
-        $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.lib
-
-    <OutputFile.XCODE>
+    <OutputFile>
         $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
 
-    <Command.MSFT, Command.INTEL, Command.CLANGPDB>
-        "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiipackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
-        "$(RC)" /Fo${dst} $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc
-
-    <Command.GCC, Command.CLANGGCC>
-        "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiibinpackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
-        "$(RC)" $(RC_FLAGS) $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc ${dst}
-
-    <Command.XCODE>
-        "$(GENFW)" -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc -g $(MODULE_GUID) --hiibinpackage $(HII_BINARY_PACKAGES) $(GENFW_FLAGS)
+    <Command>
+        ImageTool HiiBin $(MODULE_GUID) -o $(OUTPUT_DIR)(+)$(MODULE_NAME)hii.rc $(HII_BINARY_PACKAGES)
