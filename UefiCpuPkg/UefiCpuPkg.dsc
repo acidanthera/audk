@@ -74,7 +74,7 @@
   HobLib|MdeModulePkg/Library/BaseHobLibNull/BaseHobLibNull.inf
   MemoryAllocationLib|MdeModulePkg/Library/BaseMemoryAllocationLibNull/BaseMemoryAllocationLibNull.inf
   PeiServicesTablePointerLib|MdePkg/Library/PeiServicesTablePointerLib/PeiServicesTablePointerLib.inf
-  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  IntrinsicLib|MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
   CpuArchLib|UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
 
 [LibraryClasses.common.SEC]
@@ -136,7 +136,7 @@
   UefiCpuPkg/Library/CpuExceptionHandlerLib/DxeCpuExceptionHandlerLib.inf
 
 [Components.IA32]
-  CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
 
 [Components.IA32, Components.X64]
   UefiCpuPkg/Application/Cpuid/Cpuid.inf

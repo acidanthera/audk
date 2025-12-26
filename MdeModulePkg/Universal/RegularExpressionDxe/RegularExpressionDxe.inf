@@ -81,6 +81,7 @@
   BaseMemoryLib
   DebugLib
   PrintLib
+  IntrinsicLib
 
 [Guids]
   gEfiRegexSyntaxTypePosixExtendedGuid    ## CONSUMES  ## GUID
