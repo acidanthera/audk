@@ -192,6 +192,7 @@
   MdePkg/Library/TdxLib/TdxLib.inf
   MdePkg/Library/MipiSysTLib/MipiSysTLib.inf
   MdePkg/Library/TraceHubDebugSysTLibNull/TraceHubDebugSysTLibNull.inf
+  MdePkg/Library/BaseOverflowLib/BaseOverflowLib.inf
 
 [Components.X64]
   MdePkg/Library/DynamicStackCookieEntryPointLib/StandaloneMmCoreEntryPoint.inf
