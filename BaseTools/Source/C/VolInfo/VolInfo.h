@@ -9,8 +9,6 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #ifndef _VOLINFO_H_
 #define _VOLINFO_H_ 1
 
-#define PI_SPECIFICATION_VERSION  0x00010000
-
 #define EFI_DEP_BEFORE    0x00
 #define EFI_DEP_AFTER     0x01
 #define EFI_DEP_PUSH      0x02
