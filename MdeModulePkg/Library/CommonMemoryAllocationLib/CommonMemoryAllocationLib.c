@@ -7,7 +7,9 @@
 
 **/
 
-#include <PiDxe.h>
+#include <Base.h>
+#include <Uefi/UefiBaseType.h>
+#include <Uefi/UefiSpec.h>
 
 #include <Library/MemoryAllocationLib.h>
 #include <Library/MemoryAllocationLibEx.h>
@@ -16,6 +18,8 @@
 #include <Library/DebugLib.h>
 
 #include <Library/MemoryProfileLib.h>
+
+#include "AlignedPages.h"
 
 /**
   Allocates one or more 4KB pages of type EfiBootServicesData.
@@ -204,49 +208,6 @@ FreePages (
 }
 
 /**
-  Allocates one or more 4KB pages of a certain memory type at a specified alignment.
-
-  Allocates the number of 4KB pages specified by Pages of a certain memory type with an alignment
-  specified by Alignment.  The allocated buffer is returned.  If Pages is 0, then NULL is returned.
-  If there is not enough memory at the specified alignment remaining to satisfy the request, then
-  NULL is returned.
-  If Alignment is not a power of two and Alignment is not zero, then ASSERT().
-  If Pages plus EFI_SIZE_TO_PAGES (Alignment) overflows, then ASSERT().
-
-  @param  MemoryType            The type of memory to allocate.
-  @param  Pages                 The number of 4 KB pages to allocate.
-  @param  Alignment             The requested alignment of the allocation.  Must be a power of two.
-                                If Alignment is zero, then byte alignment is used.
-
-  @return A pointer to the allocated buffer or NULL if allocation fails.
-
-**/
-STATIC
-VOID *
-InternalAllocateAlignedPages (
-  IN EFI_MEMORY_TYPE  MemoryType,
-  IN UINTN            Pages,
-  IN UINTN            Alignment
-  )
-{
-  EFI_STATUS            Status;
-  EFI_PHYSICAL_ADDRESS  Memory;
-
-  Status = AllocateAlignedPagesEx (
-             AllocateAnyPages,
-             MemoryType,
-             Pages,
-             Alignment,
-             &Memory
-             );
-  if (EFI_ERROR (Status)) {
-    return NULL;
-  }
-
-  return (VOID *)(UINTN)Memory;
-}
-
-/**
   Allocates one or more 4KB pages of type EfiBootServicesData at a specified alignment.
 
   Allocates the number of 4KB pages specified by Pages of type EfiBootServicesData with an
@@ -406,7 +367,7 @@ FreeAlignedPages (
   IN UINTN  Pages
   )
 {
-  FreePages (Buffer, Pages);
+  InternalFreeAlignedPages (Buffer, Pages);
 }
 
 /**

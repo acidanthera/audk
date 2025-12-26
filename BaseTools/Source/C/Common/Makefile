@@ -91,6 +91,13 @@ OBJECTS = $(OBJECTS) \
   $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLib.obj \
   $(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\PrintLibInternal.obj
 
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdeModulePkg\Library\BaseMemoryProfileLibNull\BaseMemoryProfileLibNull.obj
+
+OBJECTS = $(OBJECTS) \
+  $(EDK2_OBJPATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\CommonMemoryAllocationLib.obj \
+  $(EDK2_OBJPATH)\MdeModulePkg\Library\CommonMemoryAllocationLib\CommonMemoryAllocationLibEx.obj
+
 !INCLUDE ..\Makefiles\ms.lib
 
 
