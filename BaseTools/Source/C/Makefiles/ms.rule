@@ -7,6 +7,26 @@
 
 #DEPFILES = $(OBJECTS:%.o=%.d)
 
+{$(EDK2_PATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseDebugPrintErrorLevelLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BaseLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BaseMemoryLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseMemoryLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\BasePrintLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BasePrintLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
+{$(EDK2_PATH)\MdePkg\Library\UefiDevicePathLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\UefiDevicePathLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
 .c.obj :
 	$(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 
