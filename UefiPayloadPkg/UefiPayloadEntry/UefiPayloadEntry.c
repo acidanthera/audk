@@ -36,6 +36,7 @@ EFI_MEMORY_TYPE_INFORMATION  mDefaultMemoryTypeInformation[] = {
   @retval EFI_INVALID_PARAMETER  Invalid parameter provided.
 **/
 EFI_STATUS
+EFIAPI
 MemInfoCallbackMmio (
   IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
   IN VOID              *Params
@@ -115,6 +116,7 @@ MemInfoCallbackMmio (
   @retval EFI_SUCCESS            Successfully updated mTopOfLowerUsableDram.
 **/
 EFI_STATUS
+EFIAPI
 FindToludCallback (
   IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
   IN VOID              *Params
@@ -184,6 +186,7 @@ FindToludCallback (
 
 **/
 EFI_STATUS
+EFIAPI
 FindFreeMemForHobCallback (
   IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
   IN VOID              *Params
@@ -266,7 +269,7 @@ FindFreeMemForHobCallback (
     return EFI_SUCCESS;
   }
 
-  *HobMemBase = MemoryMapEntry->Base;
+  *HobMemBase = (UINTN)MemoryMapEntry->Base;
 
   return EFI_ALREADY_STARTED;
 }
@@ -283,6 +286,7 @@ FindFreeMemForHobCallback (
   @retval RETURN_SUCCESS        Successfully build a HOB.
 **/
 EFI_STATUS
+EFIAPI
 MemInfoCallback (
   IN MEMORY_MAP_ENTRY  *MemoryMapEntry,
   IN VOID              *Params
@@ -334,6 +338,7 @@ MemInfoCallback (
   @retval Others             If it failed to build required HOBs.
 **/
 EFI_STATUS
+EFIAPI
 BuildHobFromBl (
   VOID
   )
@@ -487,6 +492,7 @@ BuildHobFromBl (
 
 **/
 VOID
+EFIAPI
 BuildGenericHob (
   VOID
   )
