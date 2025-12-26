@@ -18,6 +18,12 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include "CommonLib.h"
 #include "EfiUtilityMsgs.h"
 
+#include <Uefi/UefiSpec.h>
+#include <Library/PhaseMemoryAllocationLib.h>
+
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE gPhaseDefaultCodeType = EfiBootServicesCode;
+
 /**
   Compares to GUIDs
 
@@ -485,107 +491,113 @@ LongFilePath (
 }
 
 
-VOID *
-InternalAllocatePool (
-   UINTN   AllocationSize
+static
+void *
+InternalAlignedAlloc (
+  size_t  Alignment,
+  size_t  Size
   )
 {
-  VOID * Memory;
-
-  Memory = malloc(AllocationSize);
-  ASSERT(Memory != NULL);
-  return Memory;
+#ifndef _WIN32
+  return aligned_alloc (Alignment, Size);
+#else
+  return _aligned_malloc (Size, Alignment);
+#endif
 }
 
-
-VOID *
-InternalReallocatePool (
-   UINTN            OldSize,
-   UINTN            NewSize,
-   VOID             *OldBuffer  OPTIONAL
+static
+void
+InternalAlignedFree (
+  void  *Ptr
   )
 {
-  VOID  *NewBuffer;
+#ifndef _WIN32
+  free (Ptr);
+#else
+  _aligned_free (Ptr);
+#endif
+}
 
-  NewBuffer = AllocateZeroPool (NewSize);
-  if (NewBuffer != NULL && OldBuffer != NULL) {
-    memcpy (NewBuffer, OldBuffer, MIN (OldSize, NewSize));
-    free(OldBuffer);
+EFI_STATUS
+EFIAPI
+PhaseAllocatePages (
+  IN     EFI_ALLOCATE_TYPE     Type,
+  IN     EFI_MEMORY_TYPE       MemoryType,
+  IN     UINTN                 Pages,
+  IN OUT EFI_PHYSICAL_ADDRESS  *Memory
+  )
+{
+  VOID   *Buffer;
+  UINTN  BufferSize;
+
+  ASSERT (Type == AllocateAnyPages);
+
+  BufferSize = EFI_PAGES_TO_SIZE (Pages);
+  Buffer     = InternalAlignedAlloc (EFI_PAGE_SIZE, BufferSize);
+  if (Buffer == NULL) {
+    return EFI_OUT_OF_RESOURCES;
   }
-  return NewBuffer;
+
+  *Memory = (UINTN)Buffer;
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+PhaseFreePages (
+  IN EFI_PHYSICAL_ADDRESS  Memory,
+  IN UINTN                 Pages
+  )
+{
+  VOID  *Buffer;
+
+  Buffer = (VOID *)(UINTN)Memory;
+  InternalAlignedFree (Buffer);
+
+  return EFI_SUCCESS;
 }
 
 VOID *
 EFIAPI
-ReallocatePool (
-   UINTN  OldSize,
-   UINTN  NewSize,
-   VOID   *OldBuffer  OPTIONAL
+PhaseAllocatePool (
+  IN EFI_MEMORY_TYPE  MemoryType,
+  IN UINTN            AllocationSize
   )
 {
-  return InternalReallocatePool (OldSize, NewSize, OldBuffer);
-}
-
-VOID *
-InternalAllocateCopyPool (
-   UINTN            AllocationSize,
-   CONST VOID       *Buffer
-  )
-{
-  VOID  *Memory;
-
-  ASSERT (Buffer != NULL);
-
-  Memory = malloc (AllocationSize);
-  if (Memory != NULL) {
-     Memory = memcpy (Memory, Buffer, AllocationSize);
-  }
-  return Memory;
-}
-
-VOID *
-EFIAPI
-AllocateCopyPool (
-   UINTN       AllocationSize,
-   CONST VOID  *Buffer
-  )
-{
-  return InternalAllocateCopyPool (AllocationSize, Buffer);
-}
-
-VOID *
-EFIAPI
-AllocateZeroPool (
-  UINTN  AllocationSize
-  )
-{
-  VOID * Memory;
-  Memory = malloc(AllocationSize);
-  ASSERT (Memory != NULL);
-  if (Memory == NULL) {
-    fprintf(stderr, "Not memory for malloc\n");
-  }
-  memset(Memory, 0, AllocationSize);
-  return Memory;
-}
-
-VOID *
-EFIAPI
-AllocatePool (
-  UINTN  AllocationSize
-  )
-{
-  return InternalAllocatePool (AllocationSize);
+  return InternalAlignedAlloc (8, AllocationSize);
 }
 
 VOID
 EFIAPI
-FreePool (
+PhaseFreePool (
   IN VOID  *Buffer
   )
 {
   ASSERT (Buffer != NULL);
-  free (Buffer);
+  InternalAlignedFree (Buffer);
+}
+
+VOID *
+InternalAllocateAlignedPages (
+  IN EFI_MEMORY_TYPE  MemoryType,
+  IN UINTN            Pages,
+  IN UINTN            Alignment
+  )
+{
+  UINTN  BufferSize;
+
+  BufferSize = EFI_PAGES_TO_SIZE (Pages);
+  return InternalAlignedAlloc (MAX (Alignment, EFI_PAGE_SIZE), BufferSize);
+}
+
+VOID
+InternalFreeAlignedPages (
+  IN VOID   *Buffer,
+  IN UINTN  Pages
+  )
+{
+  InternalAlignedFree (Buffer);
 }
 
 VOID
