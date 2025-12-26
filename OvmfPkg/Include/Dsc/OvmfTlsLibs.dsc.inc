@@ -3,7 +3,7 @@
 ##
 
 [LibraryClasses]
-  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  IntrinsicLib|MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
 !if $(NETWORK_TLS_ENABLE) == TRUE
 !if $(FD_SIZE_IN_KB) < 4096
   OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLib.inf
