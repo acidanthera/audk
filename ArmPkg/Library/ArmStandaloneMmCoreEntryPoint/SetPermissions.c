@@ -39,8 +39,8 @@ EFI_STATUS
 EFIAPI
 LocateStandaloneMmCoreUefiImage (
   IN        EFI_FIRMWARE_VOLUME_HEADER  *BfvAddress,
-  IN  OUT   VOID                            **UefiImage,
-  IN  OUT   UINT32                          *UefiImageSize
+  IN  OUT   VOID                        **UefiImage,
+  IN  OUT   UINT32                      *UefiImageSize
   )
 {
   EFI_FFS_FILE_HEADER  *FileHeader;
@@ -62,7 +62,12 @@ LocateStandaloneMmCoreUefiImage (
     return Status;
   }
 
-  Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, UefiImage, UefiImageSize);
+  Status = FfsFindSectionData (
+             EFI_SECTION_PE32,
+             FileHeader,
+             UefiImage,
+             (UINTN *)UefiImageSize
+             );
   if (EFI_ERROR (Status)) {
     DEBUG ((
       DEBUG_ERROR,
