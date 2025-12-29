@@ -40,15 +40,8 @@ DEFINE FD_SIZE_IN_MB    = 3
   DEFINE FD_NUM_BLOCKS    = 0x300
 !endif
 
-[BuildOptions.common.EDKII.DXE_CORE,BuildOptions.common.EDKII.DXE_DRIVER,BuildOptions.common.EDKII.UEFI_DRIVER,BuildOptions.common.EDKII.UEFI_APPLICATION]
-  GCC:*_GCC_*_DLINK_FLAGS = -z common-page-size=0x1000
-  GCC:*_CLANGDWARF_*_DLINK_FLAGS = -z common-page-size=0x1000
-  CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:0x1000
-
 [BuildOptions.common.EDKII.DXE_RUNTIME_DRIVER]
-  GCC:*_GCC_*_DLINK_FLAGS = -z common-page-size=0x10000
-  GCC:*_CLANGDWARF_*_DLINK_FLAGS = -z common-page-size=0x10000
-  CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:0x10000
+  GCC:*_*_AARCH64_DLINK_FLAGS = -z max-page-size=0x10000
 
 [LibraryClasses.common]
   GptLib|MdeModulePkg/Library/GptLib/GptLib.inf
@@ -553,4 +546,3 @@ DEFINE FD_SIZE_IN_MB    = 3
   }
   OvmfPkg/PciHotPlugInitDxe/PciHotPlugInit.inf
 !endif
-

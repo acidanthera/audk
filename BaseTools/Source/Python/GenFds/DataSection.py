@@ -94,7 +94,7 @@ class DataSection (DataSectionClassObject):
             StrippedFile = os.path.join(OutputPath, ModuleName + '.stripped')
             GenFdsGlobalVariable.GenerateFirmwareImage(
                     StrippedFile,
-                    [GenFdsGlobalVariable.MacroExtend(self.SectFileName, Dict)],
+                    GenFdsGlobalVariable.MacroExtend(self.SectFileName, Dict),
                     Strip=True,
                     IsMakefile = IsMakefile
                 )

@@ -823,7 +823,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                     StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stipped')
                     GenFdsGlobalVariable.GenerateFirmwareImage(
                             StrippedFile,
-                            [File],
+                            File,
                             Strip=True,
                             IsMakefile=IsMakefile
                         )
@@ -866,7 +866,7 @@ class FfsInfStatement(FfsInfStatementClassObject):
                 StrippedFile = os.path.join(self.OutputPath, ModuleName + '.stipped')
                 GenFdsGlobalVariable.GenerateFirmwareImage(
                         StrippedFile,
-                        [GenSecInputFile],
+                        GenSecInputFile,
                         Strip=True,
                         IsMakefile=IsMakefile
                     )

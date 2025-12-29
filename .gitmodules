@@ -38,3 +38,6 @@
 [submodule "TcgTpmPkg/Library/TpmLib/TPM"]
 	path = TcgTpmPkg/Library/TpmLib/TPM
 	url = https://github.com/TrustedComputingGroup/TPM
+[submodule "OpenCorePkg"]
+	path = OpenCorePkg
+	url = https://github.com/acidanthera/OpenCorePkg.git

@@ -51,6 +51,7 @@
   UefiCpuBaseArchSupportLib
   MemoryAllocationLib
   UefiImageLib
+  MemoryAllocationLib
 
 [Guids]
   gEfiMemoryTypeInformationGuid

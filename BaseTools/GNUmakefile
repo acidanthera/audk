@@ -10,7 +10,7 @@ all: subdirs
 LANGUAGES = C Python
 
 SOURCE_SUBDIRS := $(patsubst %,Source/%,$(sort $(LANGUAGES)))
-SUBDIRS := $(SOURCE_SUBDIRS) Tests
+SUBDIRS := $(SOURCE_SUBDIRS) Tests ImageTool MicroTool
 CLEAN_SUBDIRS := $(patsubst %,%-clean,$(sort $(SUBDIRS)))
 
 .PHONY: subdirs $(SUBDIRS)

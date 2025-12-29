@@ -18,7 +18,6 @@ APPLICATIONS = \
   GenCrc32 \
   GenFfs \
   GenFv \
-  GenFw \
   GenSec \
   LzmaCompress \
   TianoCompress \
