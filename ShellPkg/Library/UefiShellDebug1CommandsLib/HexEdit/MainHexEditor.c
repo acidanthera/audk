@@ -146,15 +146,19 @@ HMainCommandDisplayHelp (
       if (KeyData.Key.UnicodeChar == L'W' - L'A' + 1) {
         break;
       }
-    } else if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0) &&
-               ((KeyData.KeyState.KeyShiftState & (EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) != 0) &&
-               ((KeyData.KeyState.KeyShiftState & ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) == 0))
+    } else if (  ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0)
+              && ((KeyData.KeyState.KeyShiftState & (EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) != 0)
+              && ((KeyData.KeyState.KeyShiftState & ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_CONTROL_PRESSED | EFI_RIGHT_CONTROL_PRESSED)) == 0))
     {
       //
       // For consoles that supports/reports shift state,
       // make sure that only CONTROL shift key is pressed.
+      // For some consoles that report shift state,
+      // CTRL+W is still translated to L'W' - L'A' + 1.
       //
-      if ((KeyData.Key.UnicodeChar == 'w') || (KeyData.Key.UnicodeChar == 'W')) {
+      if (  (KeyData.Key.UnicodeChar == 'w') || (KeyData.Key.UnicodeChar == 'W')
+         || (KeyData.Key.UnicodeChar == L'w' - L'a' + 1) || (KeyData.Key.UnicodeChar == L'W' - L'A' + 1))
+      {
         break;
       }
     }
