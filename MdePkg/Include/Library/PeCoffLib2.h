@@ -498,19 +498,6 @@ PeCoffGetSizeOfImage (
   );
 
 /**
-  Retrieves the size, in Bytes, of the Image memory space for in-place loading.
-
-  @param[in,out] Context  The context describing the Image. Must have been
-                          initialised by PeCoffInitializeContext().
-
-  @returns  The size of the Image memory space for in-place loading.
-**/
-UINT32
-PeCoffGetSizeOfImageInplace (
-  IN OUT PE_COFF_LOADER_IMAGE_CONTEXT  *Context
-  );
-
-/**
   Retrieves the Image preferred load address.
 
   @param[in,out] Context  The context describing the Image. Must have been

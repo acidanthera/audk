@@ -21,10 +21,7 @@ ScanUefiImageGetHeaderInfo (
   RETURN_STATUS  Status;
   UINT64         Address;
 
-  assert (HeaderInfo != NULL);
-  assert (Context    != NULL);
-
-  HeaderInfo->BaseAddress       = UefiImageGetPreferredAddress (Context);
+  HeaderInfo->BaseAddress       = UefiImageGetBaseAddress (Context);
   HeaderInfo->EntryPointAddress = UefiImageGetEntryPointAddress (Context);
   HeaderInfo->Machine           = UefiImageGetMachine (Context);
   HeaderInfo->Subsystem         = UefiImageGetSubsystem (Context);
@@ -66,10 +63,7 @@ ScanUefiImageGetRelocInfo (
   RelocInfo->RelocsStripped = UefiImageGetRelocsStripped (Context);
 
   if (FormatIndex == UefiImageFormatPe) {
-    return ScanPeGetRelocInfo (
-             RelocInfo,
-             (PE_COFF_LOADER_IMAGE_CONTEXT *)Context
-             );
+    return ScanPeGetRelocInfo (RelocInfo, &Context->Ctx.Pe);
   }
 
   fprintf (
@@ -97,10 +91,7 @@ ScanUefiImageGetSegmentInfo (
   SegmentInfo->SegmentAlignment = UefiImageGetSegmentAlignment (Context);
 
   if (FormatIndex == UefiImageFormatPe) {
-    return ScanPeGetSegmentInfo (
-             SegmentInfo,
-             (PE_COFF_LOADER_IMAGE_CONTEXT *)Context
-             );
+    return ScanPeGetSegmentInfo (SegmentInfo, &Context->Ctx.Pe);
   }
 
   fprintf (
@@ -213,7 +204,12 @@ ToolContextConstructUefiImage (
     return RETURN_UNSUPPORTED;
   }
 
-  Status = UefiImageInitializeContext (&Context, File, (UINT32)FileSize);
+  Status = UefiImageInitializeContext (
+             &Context,
+             File,
+             (UINT32)FileSize,
+             UEFI_IMAGE_SOURCE_FV
+             );
   if (RETURN_ERROR (Status)) {
     return Status;
   }

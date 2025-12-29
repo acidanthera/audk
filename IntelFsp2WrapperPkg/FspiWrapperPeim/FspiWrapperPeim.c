@@ -12,6 +12,7 @@
 #include <FspEas.h>
 #include <FspStatusCode.h>
 #include <FspGlobalData.h>
+
 #include <Library/PeimEntryPoint.h>
 #include <Library/PeiServicesLib.h>
 #include <Library/PeiServicesTablePointerLib.h>
@@ -27,10 +28,11 @@
 #include <Library/FspWrapperHobProcessLib.h>
 #include <Library/FspWrapperApiTestLib.h>
 #include <Library/FspMeasurementLib.h>
+#include <Library/FvLib.h>
+#include <Library/UefiImageLib.h>
+
 #include <Ppi/Tcg.h>
 #include <Ppi/FirmwareVolumeInfoMeasurementExcluded.h>
-#include <Library/PeCoffLib.h>
-#include <Library/FvLib.h>
 
 /**
   Rebase a PE32/TE Image from an FFS file.
@@ -44,33 +46,29 @@ RebasePeTeFromFfs (
   EFI_FFS_FILE_HEADER  *FileHeader
   )
 {
-  EFI_STATUS                    Status;
-  VOID                          *ImageBase;
-  PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
-  UINTN                         ImageSize;
+  EFI_STATUS                       Status;
+  VOID                             *ImageBase;
+  UINTN                            ImageSize;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
 
   Status = FfsFindSectionData (EFI_SECTION_PE32, FileHeader, &ImageBase, &ImageSize);
   if (EFI_ERROR (Status)) {
-    Status = FfsFindSectionData (EFI_SECTION_TE, FileHeader, &ImageBase, &ImageSize);
-  }
-
-  if (EFI_ERROR (Status)) {
     ASSERT_EFI_ERROR (Status);
     return Status;
   }
 
-  ZeroMem (&ImageContext, sizeof (ImageContext));
-  ImageContext.Handle    = ImageBase;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
-
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = UefiImageInitializeContext (
+             &ImageContext,
+             ImageBase,
+             (UINT32)ImageSize,
+             UEFI_IMAGE_SOURCE_FV,
+             UefiImageOriginFv
+             );
   if (EFI_ERROR (Status)) {
-    ASSERT_EFI_ERROR (Status);
     return Status;
   }
 
-  ImageContext.ImageAddress = (EFI_PHYSICAL_ADDRESS)(UINTN)ImageBase;
-  Status                    = PeCoffLoaderRelocateImage (&ImageContext);
+  Status = UefiImageRelocateImageInplaceForExecution (&ImageContext);
   ASSERT_EFI_ERROR (Status);
 
   return Status;

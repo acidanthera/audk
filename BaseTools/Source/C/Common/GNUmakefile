@@ -122,8 +122,8 @@ OBJECTS += \
 
 OBJECTS += \
   $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/CommonSupport.o \
-  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/PeCoffSupport.o \
-  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/UefiImageLibPeCoff.o
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/PeSupport.o \
+  $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageLib/UefiImageLib.o
 
 OBJECTS += \
   $(EDK2_OBJPATH)/MdePkg/Library/BaseUefiImageExtraActionLibNull/UefiImageExtraActionLib.o

@@ -49,8 +49,7 @@
   HobPrintLib
   StackCheckLib
   UefiCpuBaseArchSupportLib
-  MemoryAllocationLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   MemoryAllocationLib
 
 [Guids]

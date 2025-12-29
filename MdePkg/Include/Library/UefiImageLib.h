@@ -3,18 +3,28 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
+#include <Library/PeCoffLib2.h>
+
 typedef enum {
   UefiImageFormatPe = 0,
   UefiImageFormatMax
 } UEFI_IMAGE_FORMAT;
 
-// FIXME: Work on reasonable abstraction
-#ifndef UEFI_IMAGE_LOADER_IMAGE_CONTEXT
-  #include <Library/PeCoffLib2.h>
+#define UEFI_IMAGE_SOURCE_NON_FV  0U
+#define UEFI_IMAGE_SOURCE_FV      1U
+#define UEFI_IMAGE_SOURCE_ALL     2U
+#define UEFI_IMAGE_SOURCE_MAX     3U
 
-#define UEFI_IMAGE_LOADER_IMAGE_CONTEXT    PE_COFF_LOADER_IMAGE_CONTEXT
-#define UEFI_IMAGE_LOADER_RUNTIME_CONTEXT  PE_COFF_LOADER_RUNTIME_CONTEXT
-#endif
+typedef UINT8 UEFI_IMAGE_SOURCE;
+
+typedef struct {
+  UINT8    FormatIndex;
+  union {
+    PE_COFF_LOADER_IMAGE_CONTEXT    Pe;
+  }                               Ctx;
+} UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
+
+typedef struct UEFI_IMAGE_LOADER_RUNTIME_CONTEXT_ UEFI_IMAGE_LOADER_RUNTIME_CONTEXT;
 
 ///
 /// Image record segment that desribes the UEFI memory permission configuration
@@ -96,7 +106,8 @@ RETURN_STATUS
 UefiImageInitializeContextPreHash (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
-  IN  UINT32                           FileSize
+  IN  UINT32                           FileSize,
+  IN  UEFI_IMAGE_SOURCE                Source
   );
 
 RETURN_STATUS
@@ -123,7 +134,8 @@ RETURN_STATUS
 UefiImageInitializeContext (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
-  IN  UINT32                           FileSize
+  IN  UINT32                           FileSize,
+  IN  UEFI_IMAGE_SOURCE                Source
   );
 
 /**
@@ -236,7 +248,7 @@ UefiImageLoaderGetRuntimeContextSize (
   Relocate the Image for boot-time usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been loaded by UefiImageLoadImage().
@@ -264,7 +276,7 @@ UefiImageRelocateImage (
   the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Context             The context describing the Image. Must have
                                      been initialised by
@@ -297,7 +309,7 @@ UefiImageLoadImageForExecution (
   Relocate Image for Runtime usage.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -322,7 +334,7 @@ UefiImageRuntimeRelocateImage (
   required to execute code from the Image.
 
   May only be called when UefiImageGetRelocsStripped() returns FALSE, or with
-  BaseAddress == UefiImageGetPreferredAddress().
+  BaseAddress == UefiImageGetBaseAddress().
 
   @param[in,out] Image           The Image destination memory. Must have been
                                  relocated by UefiImageRelocateImage().
@@ -523,12 +535,6 @@ UefiImageGetImageSize (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
-// FIXME: Docs
-UINT32
-UefiImageGetImageSizeInplace (
-  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
-  );
-
 /**
   Retrieves the Image preferred load address.
 
@@ -538,7 +544,7 @@ UefiImageGetImageSizeInplace (
   @returns  The Image preferred load address.
 **/
 UINT64
-UefiImageGetPreferredAddress (
+UefiImageGetBaseAddress (
   IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
