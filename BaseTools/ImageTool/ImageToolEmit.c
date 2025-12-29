@@ -69,20 +69,26 @@ ValidateOutputFile (
   }
 
   Result = CheckToolImage (&OutputImageInfo);
+  // LCOV_EXCL_START
   if (!Result) {
     assert (false);
     ToolImageDestruct (&OutputImageInfo);
     return RETURN_UNSUPPORTED;
   }
 
+  // LCOV_EXCL_STOP
+
   Result = ToolImageCompare (&OutputImageInfo, ImageInfo);
 
   ToolImageDestruct (&OutputImageInfo);
 
+  // LCOV_EXCL_START
   if (!Result) {
     assert (false);
     return RETURN_VOLUME_CORRUPTED;
   }
+
+  // LCOV_EXCL_STOP
 
   return RETURN_SUCCESS;
 }
@@ -116,15 +122,19 @@ ToolImageEmit (
              SymbolsPath
              );
 
+  // LCOV_EXCL_START
   if (SymbolsPath == NULL) {
     SymbolsPath = "<unknown>";
   }
+
+  // LCOV_EXCL_STOP
 
   if (RETURN_ERROR (Status)) {
     fprintf (stderr, "ImageTool: Could not parse input file %s - %llx\n", SymbolsPath, (unsigned long long)Status);
     return NULL;
   }
 
+  // LCOV_EXCL_START
   if (Format == -1) {
     Format = SourceFormat;
     if (Format == -1) {
@@ -137,6 +147,8 @@ ToolImageEmit (
   if (Type != -1) {
     ImageInfo.HeaderInfo.Subsystem = (uint16_t)Type;
   }
+
+  // LCOV_EXCL_STOP
 
   ToolImageSortRelocs (&ImageInfo);
 
@@ -161,16 +173,29 @@ ToolImageEmit (
   }
 
   OutputFile = NULL;
-  if (Format == UefiImageFormatPe) {
+  // LCOV_EXCL_START
+  if (Format == UefiImageFormatUe) {
+    // LCOV_EXCL_STOP
+    OutputFile = ToolImageEmitUe (&ImageInfo, OutputFileSize, Xip, Strip);
+  }
+  // LCOV_EXCL_START
+  else if (Format == UefiImageFormatPe) {
     OutputFile = ToolImageEmitPe (&ImageInfo, OutputFileSize, Xip, Strip);
   } else {
     assert (false);
   }
 
+  // LCOV_EXCL_STOP
+
   if (OutputFile == NULL) {
     DEBUG_RAISE ();
     ToolImageDestruct (&ImageInfo);
     return NULL;
+  }
+
+  if ((Format == UefiImageFormatUe) && Xip) {
+    ToolImageDestruct (&ImageInfo);
+    return OutputFile;
   }
 
   Status = ValidateOutputFile (OutputFile, *OutputFileSize, &ImageInfo);

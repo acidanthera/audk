@@ -39,6 +39,10 @@
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
 
+{$(EDK2_PATH)\MdePkg\Library\BaseUeImageLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseUeImageLib\}.obj :
+	-@if not exist $(@D)\ mkdir $(@D)
+	$(CC) -c $(CFLAGS) $(EDK2_INC) $< -Fo$@
+
 {$(EDK2_PATH)\MdePkg\Library\BaseUefiImageLib\}.c{$(EDK2_OBJPATH)\MdePkg\Library\BaseUefiImageLib\}.obj :
 	-@if not exist $(@D)\ mkdir $(@D)
 	$(CC) -c $(CFLAGS) -DUEFI_IMAGE_FORMAT_SUPPORT_SOURCES=0x02 $(EDK2_INC) $< -Fo$@
