@@ -30,11 +30,12 @@
   **/
 VOID
 IntelTdxInitialize (
-  VOID
+  IN OUT EFI_HOB_PLATFORM_INFO  *PlatformInfoHob
   )
 {
  #ifdef MDE_CPU_X64
   RETURN_STATUS  PcdStatus;
+  UINT64         PageMask;
 
   if (!TdIsEnabled ()) {
     return;
@@ -43,8 +44,12 @@ IntelTdxInitialize (
   PcdStatus = PcdSet64S (PcdConfidentialComputingGuestAttr, CCAttrIntelTdx);
   ASSERT_RETURN_ERROR (PcdStatus);
 
-  PcdStatus = PcdSet64S (PcdTdxSharedBitMask, TdSharedPageMask ());
+  PlatformInfoHob->PcdConfidentialComputingGuestAttr = CCAttrIntelTdx;
+
+  PageMask  = TdSharedPageMask ();
+  PcdStatus = PcdSet64S (PcdTdxSharedBitMask, PageMask);
   ASSERT_RETURN_ERROR (PcdStatus);
 
+  PlatformInfoHob->PcdTdxSharedBitMask = PageMask;
  #endif
 }

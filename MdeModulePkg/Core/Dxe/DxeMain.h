@@ -85,6 +85,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #include <Library/DebugAgentLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/OrderedCollectionLib.h>
+#include <Library/CpuArchLib.h>
 
 #include <MemoryBin.h>
 
@@ -234,10 +235,10 @@ typedef struct {
 //
 // DXE Core Global Variables
 //
-extern EFI_SYSTEM_TABLE      *gDxeCoreST;
-extern EFI_RUNTIME_SERVICES  *gDxeCoreRT;
-extern EFI_DXE_SERVICES      *gDxeCoreDS;
-extern EFI_HANDLE            gDxeCoreImageHandle;
+extern EFI_SYSTEM_TABLE      *gST;
+extern EFI_RUNTIME_SERVICES  *gRT;
+extern EFI_DXE_SERVICES      *gDS;
+extern EFI_HANDLE            gImageHandle;
 
 extern BOOLEAN  gMemoryMapTerminated;
 
@@ -272,6 +273,7 @@ extern BOOLEAN  gMemoryAttributesTableForwardCfi;
 
 extern EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadModuleAtFixAddressConfigurationTable;
 extern BOOLEAN                                     gLoadFixedAddressCodeMemoryReady;
+extern LOADED_IMAGE_PRIVATE_DATA                   *mCurrentImage;
 //
 // Service Initialization Functions
 //

@@ -286,6 +286,8 @@
   PciPcdProducerLib                | OvmfPkg/Fdt/FdtPciPcdProducerLib/FdtPciPcdProducerLib.inf
   CpuExceptionHandlerLib           | UefiCpuPkg/Library/CpuExceptionHandlerLib/DxeCpuExceptionHandlerLib.inf
   PerformanceLib                   | MdeModulePkg/Library/DxeCorePerformanceLib/DxeCorePerformanceLib.inf
+  CpuArchLib                       | UefiCpuPkg/Library/CpuArchLib/CpuArchLib.inf
+  MpInitLib                        | UefiCpuPkg/Library/MpInitLib/DxeMpInitLib.inf
 
 [LibraryClasses.common.DXE_RUNTIME_DRIVER]
   PcdLib                           | MdePkg/Library/DxePcdLib/DxePcdLib.inf
@@ -585,6 +587,9 @@
       NULL                             | MdeModulePkg/Library/LzmaCustomDecompressLib/LzmaCustomDecompressLib.inf
       DevicePathLib                    | MdePkg/Library/UefiDevicePathLib/UefiDevicePathLib.inf
       ExtractGuidedSectionLib          | MdePkg/Library/DxeExtractGuidedSectionLib/DxeExtractGuidedSectionLib.inf
+      DxeServicesTableLib              | MdeModulePkg/Library/DxeCoreDxeServicesTableLib/DxeCoreDxeServicesTableLib.inf
+      UefiBootServicesTableLib         | MdeModulePkg/Library/DxeCoreUefiBootServicesTableLib/DxeCoreUefiBootServicesTableLib.inf
+      UefiRuntimeServicesTableLib      | MdeModulePkg/Library/DxeCoreUefiRuntimeServicesTableLib/DxeCoreUefiRuntimeServicesTableLib.inf
   }
 
   MdeModulePkg/Universal/ReportStatusCodeRouter/RuntimeDxe/ReportStatusCodeRouterRuntimeDxe.inf
@@ -595,10 +600,6 @@
   }
 
   MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
-  UefiCpuPkg/CpuDxe/CpuDxe.inf {
-    <LibraryClasses>
-      CpuMmuLib | UefiCpuPkg/Library/CpuMmuLib/CpuMmuLib.inf
-  }
   MdeModulePkg/Universal/WatchdogTimerDxe/WatchdogTimer.inf
   MdeModulePkg/Universal/MonotonicCounterRuntimeDxe/MonotonicCounterRuntimeDxe.inf
   MdeModulePkg/Universal/CapsuleRuntimeDxe/CapsuleRuntimeDxe.inf

@@ -72,6 +72,7 @@
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses]
   BaseMemoryLib
@@ -96,6 +97,7 @@
   PcdLib
   ImagePropertiesRecordLib
   OrderedCollectionLib
+  CpuArchLib
 
 [Guids]
   gEfiEventMemoryMapChangeGuid                  ## PRODUCES             ## Event

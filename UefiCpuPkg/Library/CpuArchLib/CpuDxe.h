@@ -34,6 +34,7 @@
 #include <Library/ReportStatusCodeLib.h>
 #include <Library/MpInitLib.h>
 #include <Library/TimerLib.h>
+#include <Library/PlatformInitLib.h>
 
 #include <Guid/IdleLoopEvent.h>
 #include <Guid/VectorHandoffTable.h>
@@ -292,5 +293,6 @@ PageFaultExceptionHandler (
   IN EFI_SYSTEM_CONTEXT  SystemContext
   );
 
-extern BOOLEAN  mIsAllocatingPageTable;
-extern UINTN    mNumberOfProcessors;
+extern BOOLEAN                mIsAllocatingPageTable;
+extern UINTN                  mNumberOfProcessors;
+extern EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob2;
