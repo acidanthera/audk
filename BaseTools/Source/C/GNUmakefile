@@ -29,7 +29,6 @@ APPLICATIONS = \
   EfiRom \
   GenFfs \
   GenFv \
-  GenFw \
   GenSec \
   GenCrc32 \
   LzmaCompress \
