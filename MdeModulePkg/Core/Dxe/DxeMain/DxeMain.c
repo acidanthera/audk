@@ -120,28 +120,6 @@ EFI_DXE_SERVICES  mDxeServices = {
   (EFI_SET_MEMORY_SPACE_CAPABILITIES)CoreSetMemorySpaceCapabilities,      // SetMemorySpaceCapabilities
 };
 
-EFI_SYSTEM_TABLE  mEfiSystemTableTemplate = {
-  {
-    EFI_SYSTEM_TABLE_SIGNATURE,                                           // Signature
-    EFI_SYSTEM_TABLE_REVISION,                                            // Revision
-    sizeof (EFI_SYSTEM_TABLE),                                            // HeaderSize
-    0,                                                                    // CRC32
-    0                                                                     // Reserved
-  },
-  NULL,                                                                   // FirmwareVendor
-  0,                                                                      // FirmwareRevision
-  NULL,                                                                   // ConsoleInHandle
-  NULL,                                                                   // ConIn
-  NULL,                                                                   // ConsoleOutHandle
-  NULL,                                                                   // ConOut
-  NULL,                                                                   // StandardErrorHandle
-  NULL,                                                                   // StdErr
-  NULL,                                                                   // RuntimeServices
-  &mBootServices,                                                         // BootServices
-  0,                                                                      // NumberOfConfigurationTableEntries
-  NULL                                                                    // ConfigurationTable
-};
-
 EFI_RUNTIME_SERVICES  mEfiRuntimeServicesTableTemplate = {
   {
     EFI_RUNTIME_SERVICES_SIGNATURE,                               // Signature
@@ -164,6 +142,28 @@ EFI_RUNTIME_SERVICES  mEfiRuntimeServicesTableTemplate = {
   (EFI_UPDATE_CAPSULE)CoreEfiNotAvailableYetArg3,                 // UpdateCapsule
   (EFI_QUERY_CAPSULE_CAPABILITIES)CoreEfiNotAvailableYetArg4,     // QueryCapsuleCapabilities
   (EFI_QUERY_VARIABLE_INFO)CoreEfiNotAvailableYetArg4             // QueryVariableInfo
+};
+
+EFI_SYSTEM_TABLE  mEfiSystemTableTemplate = {
+  {
+    EFI_SYSTEM_TABLE_SIGNATURE,                                           // Signature
+    EFI_SYSTEM_TABLE_REVISION,                                            // Revision
+    sizeof (EFI_SYSTEM_TABLE),                                            // HeaderSize
+    0,                                                                    // CRC32
+    0                                                                     // Reserved
+  },
+  NULL,                                                                   // FirmwareVendor
+  0,                                                                      // FirmwareRevision
+  NULL,                                                                   // ConsoleInHandle
+  NULL,                                                                   // ConIn
+  NULL,                                                                   // ConsoleOutHandle
+  NULL,                                                                   // ConOut
+  NULL,                                                                   // StandardErrorHandle
+  NULL,                                                                   // StdErr
+  &mEfiRuntimeServicesTableTemplate,                                      // RuntimeServices
+  &mBootServices,                                                         // BootServices
+  0,                                                                      // NumberOfConfigurationTableEntries
+  NULL                                                                    // ConfigurationTable
 };
 
 EFI_RUNTIME_ARCH_PROTOCOL  gRuntimeTemplate = {
@@ -190,16 +190,17 @@ EFI_RUNTIME_ARCH_PROTOCOL  *gRuntime = &gRuntimeTemplate;
 // DXE Core Global Variables for the EFI System Table, Boot Services Table,
 // DXE Services Table, and Runtime Services Table
 //
-EFI_DXE_SERVICES  *gDxeCoreDS = &mDxeServices;
-EFI_SYSTEM_TABLE  *gDxeCoreST = NULL;
+EFI_DXE_SERVICES   *gDS = &mDxeServices;
+EFI_BOOT_SERVICES  *gBS = &mBootServices;
+EFI_SYSTEM_TABLE   *gST = &mEfiSystemTableTemplate;
 
 //
-// For debug initialize gDxeCoreRT to template. gDxeCoreRT must be allocated from RT memory
-//  but gDxeCoreRT is used for ASSERT () and DEBUG () type macros so lets give it
+// For debug initialize gRT to template. gRT must be allocated from RT memory
+//  but gRT is used for ASSERT () and DEBUG () type macros so lets give it
 //  a value that will not cause debug infrastructure to crash early on.
 //
-EFI_RUNTIME_SERVICES  *gDxeCoreRT         = &mEfiRuntimeServicesTableTemplate;
-EFI_HANDLE            gDxeCoreImageHandle = NULL;
+EFI_RUNTIME_SERVICES  *gRT         = &mEfiRuntimeServicesTableTemplate;
+EFI_HANDLE            gImageHandle = NULL;
 
 BOOLEAN  gMemoryMapTerminated = FALSE;
 
@@ -246,18 +247,6 @@ DxeMain (
   EFI_VECTOR_HANDOFF_INFO          *VectorInfo;
 
   //
-  // Setup the default exception handlers
-  //
-  VectorInfoList = NULL;
-  GuidHob        = GetNextGuidHob (&gEfiVectorHandoffInfoPpiGuid, HobStart);
-  if (GuidHob != NULL) {
-    VectorInfoList = (EFI_VECTOR_HANDOFF_INFO *)(GET_GUID_HOB_DATA (GuidHob));
-  }
-
-  Status = InitializeCpuExceptionHandlers (VectorInfoList);
-  ASSERT_EFI_ERROR (Status);
-
-  //
   // Setup Exception Stack
   //
   Status = InitializeSeparateExceptionStacks (NULL, NULL);
@@ -297,25 +286,62 @@ DxeMain (
   // Allocate the EFI System Table and EFI Runtime Service Table from EfiRuntimeServicesData
   // Use the templates to initialize the contents of the EFI System Table and EFI Runtime Services Table
   //
-  gDxeCoreST = AllocateRuntimeCopyPool (sizeof (EFI_SYSTEM_TABLE), &mEfiSystemTableTemplate);
-  ASSERT (gDxeCoreST != NULL);
+  gST = AllocateRuntimeCopyPool (sizeof (EFI_SYSTEM_TABLE), &mEfiSystemTableTemplate);
+  ASSERT (gST != NULL);
 
-  gDxeCoreRT = AllocateRuntimeCopyPool (sizeof (EFI_RUNTIME_SERVICES), &mEfiRuntimeServicesTableTemplate);
-  ASSERT (gDxeCoreRT != NULL);
+  gRT = AllocateRuntimeCopyPool (sizeof (EFI_RUNTIME_SERVICES), &mEfiRuntimeServicesTableTemplate);
+  ASSERT (gRT != NULL);
 
-  gDxeCoreST->RuntimeServices = gDxeCoreRT;
+  gST->RuntimeServices = gRT;
+
+  //
+  // Install the DXE Services Table into the EFI System Tables's Configuration Table
+  //
+  Status = CoreInstallConfigurationTable (&gEfiDxeServicesTableGuid, gDS);
+  ASSERT_EFI_ERROR (Status);
 
   //
   // Update DXE Core Loaded Image Protocol with allocated UEFI System Table
   //
-  gDxeCoreLoadedImage->SystemTable = gDxeCoreST;
+  gDxeCoreLoadedImage->SystemTable = gST;
+
+  //
+  // Initialize the Event Services
+  //
+  Status = CoreInitializeEventServices ();
+  ASSERT_EFI_ERROR (Status);
+
+  //
+  // Register for the GUIDs of the Architectural Protocols, so the rest of the
+  // EFI Boot Services and EFI Runtime Services tables can be filled in.
+  // Also register for the GUIDs of optional protocols.
+  //
+  CoreNotifyOnProtocolInstallation ();
+
+  //
+  // Initialize CPU Architectural Protocol
+  //
+  InitializeCpu ();
+
+  MemoryProfileInstallProtocol ();
+
+  CoreInitializeMemoryAttributesTable ();
+
+  CoreInitializeMemoryProtection ();
+
+  ProtectUefiImage (mCurrentImage, &ImageContext);
 
   //
   // Call constructor for all libraries
   //
-  ProcessLibraryConstructorList (gDxeCoreImageHandle, gDxeCoreST);
+  ProcessLibraryConstructorList (gImageHandle, gST);
   PERF_CROSSMODULE_END ("PEI");
   PERF_CROSSMODULE_BEGIN ("DXE");
+
+  //
+  // Initialize Multi-processor support
+  //
+  InitializeMpSupport ();
 
   //
   // Log MemoryBaseAddress and MemoryLength again (from
@@ -335,12 +361,6 @@ DxeMain (
   // FIXME: This is done by DxeIpl, why is this needed here? Difference PEI/DXE?
   //
   UefiImageLoaderRelocateImageExtraAction (&ImageContext);
-
-  //
-  // Install the DXE Services Table into the EFI System Tables's Configuration Table
-  //
-  Status = CoreInstallConfigurationTable (&gEfiDxeServicesTableGuid, gDxeCoreDS);
-  ASSERT_EFI_ERROR (Status);
 
   //
   // Install the HOB List into the EFI System Tables's Configuration Table
@@ -381,7 +401,7 @@ DxeMain (
   CoreNewDebugImageInfoEntry (
     EFI_DEBUG_IMAGE_INFO_TYPE_NORMAL,
     gDxeCoreLoadedImage,
-    gDxeCoreImageHandle,
+    gImageHandle,
     &ImageContext
     );
 
@@ -446,26 +466,11 @@ DxeMain (
   DEBUG_CODE_END ();
 
   //
-  // Initialize the Event Services
-  //
-  Status = CoreInitializeEventServices ();
-  ASSERT_EFI_ERROR (Status);
-
-  //
-  // Give the debug agent a chance to initialize with events.
-  //
-  InitializeDebugAgent (DEBUG_AGENT_INIT_DXE_CORE_LATE, HobStart, NULL);
-
-  MemoryProfileInstallProtocol ();
-
-  CoreInitializeMemoryAttributesTable ();
-  CoreInitializeMemoryProtection ();
-
-  //
   // Get persisted vector hand-off info from GUIDeed HOB again due to HobStart may be updated,
   // and install configuration table
   //
-  GuidHob = GetNextGuidHob (&gEfiVectorHandoffInfoPpiGuid, HobStart);
+  VectorInfoList = NULL;
+  GuidHob        = GetNextGuidHob (&gEfiVectorHandoffInfoPpiGuid, HobStart);
   if (GuidHob != NULL) {
     VectorInfoList = (EFI_VECTOR_HANDOFF_INFO *)(GET_GUID_HOB_DATA (GuidHob));
     VectorInfo     = VectorInfoList;
@@ -505,25 +510,18 @@ DxeMain (
   ASSERT_EFI_ERROR (Status);
 
   //
-  // Register for the GUIDs of the Architectural Protocols, so the rest of the
-  // EFI Boot Services and EFI Runtime Services tables can be filled in.
-  // Also register for the GUIDs of optional protocols.
-  //
-  CoreNotifyOnProtocolInstallation ();
-
-  //
   // Produce Firmware Volume Protocols, one for each FV in the HOB list.
   //
-  Status = FwVolBlockDriverInit (gDxeCoreImageHandle, gDxeCoreST);
+  Status = FwVolBlockDriverInit (gImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
-  Status = FwVolDriverInit (gDxeCoreImageHandle, gDxeCoreST);
+  Status = FwVolDriverInit (gImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
   // Produce the Section Extraction Protocol
   //
-  Status = InitializeSectionExtraction (gDxeCoreImageHandle, gDxeCoreST);
+  Status = InitializeSectionExtraction (gImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -825,18 +823,18 @@ CoreExitBootServices (
   //
   // Clear the non-runtime values of the EFI System Table
   //
-  gDxeCoreST->BootServices        = NULL;
-  gDxeCoreST->ConIn               = NULL;
-  gDxeCoreST->ConsoleInHandle     = NULL;
-  gDxeCoreST->ConOut              = NULL;
-  gDxeCoreST->ConsoleOutHandle    = NULL;
-  gDxeCoreST->StdErr              = NULL;
-  gDxeCoreST->StandardErrorHandle = NULL;
+  gST->BootServices        = NULL;
+  gST->ConIn               = NULL;
+  gST->ConsoleInHandle     = NULL;
+  gST->ConOut              = NULL;
+  gST->ConsoleOutHandle    = NULL;
+  gST->StdErr              = NULL;
+  gST->StandardErrorHandle = NULL;
 
   //
   // Recompute the 32-bit CRC of the EFI System Table
   //
-  CalculateEfiHdrCrc (&gDxeCoreST->Hdr);
+  CalculateEfiHdrCrc (&gST->Hdr);
 
   //
   // Zero out the Boot Service Table

@@ -395,9 +395,8 @@ HardwareInterruptProtocolNotify (
 }
 
 EFI_STATUS
-CpuDxeInitialize (
-  IN EFI_HANDLE        ImageHandle,
-  IN EFI_SYSTEM_TABLE  *SystemTable
+InitializeCpu (
+  VOID
   )
 {
   EFI_STATUS  Status;
@@ -474,4 +473,15 @@ CpuDxeInitialize (
     );
 
   return EFI_SUCCESS;
+}
+
+/**
+  Initialize Multi-processor support.
+
+**/
+VOID
+InitializeMpSupport (
+  VOID
+  )
+{
 }

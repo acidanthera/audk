@@ -78,6 +78,10 @@
 
   ## @libraryclass   Provides functions for SMM Relocation Operation.
   SmmRelocationLib|Include/Library/SmmRelocationLib.h
+  
+  ##  @libraryclass  Installs CPU Architecture Protocol.
+  ##
+  CpuArchLib|Include/Library/CpuArchLib.h
 
 ## @libraryclass   Provides functions for AmdSysCallLib
   AmdSysCallLib|Include/Library/AmdSysCallLib.h

@@ -436,7 +436,7 @@ PromoteMemoryResource (
       }
 
       Entry->Capabilities |= EFI_MEMORY_TESTED;
-      Entry->ImageHandle   = gDxeCoreImageHandle;
+      Entry->ImageHandle   = gImageHandle;
       Entry->DeviceHandle  = NULL;
 
       //

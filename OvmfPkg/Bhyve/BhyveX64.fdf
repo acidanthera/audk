@@ -209,7 +209,6 @@ INF  MdeModulePkg/Core/RuntimeDxe/RuntimeDxe.inf
 INF  MdeModulePkg/Universal/SecurityStubDxe/SecurityStubDxe.inf
 INF  MdeModulePkg/Universal/EbcDxe/EbcDxe.inf
 INF  UefiCpuPkg/CpuIo2Dxe/CpuIo2Dxe.inf
-INF  UefiCpuPkg/CpuDxe/CpuDxe.inf
 
 INF  PcAtChipsetPkg/HpetTimerDxe/HpetTimerDxe.inf
 #INF  OvmfPkg/LocalApicTimerDxe/LocalApicTimerDxe.inf
