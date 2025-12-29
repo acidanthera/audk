@@ -1,0 +1,676 @@
+name: Build Common packages
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+
+jobs:
+  build-macos:
+    name: macOS XCODE5
+    runs-on: macos-latest
+    env:
+      JOB_TYPE: BUILD
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Add Linux Toolchain
+        run: brew tap FiloSottile/homebrew-musl-cross
+
+      - name: Install Linux Toolchain
+        run: brew install musl-cross
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: Install Dependencies
+        run: brew install openssl mingw-w64
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: ./efibuild.sh
+        env:
+          SELFPKG: Ext4Pkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build FatPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: FatPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2Pkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdeModulePkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiCpuPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build NetworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: NetworkPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: SecurityPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+  build-windows:
+    name: Windows VS2019
+    runs-on: windows-latest
+    env:
+      CC: gcc
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip iasl --no-progress
+
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          cmd <<< "mklink /D .\\UDK .\\" > /dev/null
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: ./efibuild.sh
+        env:
+          SELFPKG: Ext4Pkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build FatPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: FatPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2Pkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdeModulePkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdePkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiCpuPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build NetworkPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: NetworkPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: SecurityPkg
+          ARCHS: IA32,X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+  build-linux-clangpdb:
+    name: Linux CLANGPDB
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+  build-linux-clangdwarf:
+    name: Linux CLANGDWARF
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+  build-linux-gcc5:
+    name: Linux GCC5
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: GCC5
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build SecurityPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: SecurityPkg
+          SELFPKG_DIR: SecurityPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
