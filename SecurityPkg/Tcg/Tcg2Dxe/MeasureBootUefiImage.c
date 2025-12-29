@@ -77,7 +77,8 @@ MeasureUefiImageAndExtend (
   Status = UefiImageInitializeContextPreHash (
              &ImageContext,
              (VOID *)(UINTN)ImageAddress,
-             (UINT32)ImageSize
+             (UINT32)ImageSize,
+             UEFI_IMAGE_SOURCE_ALL
              );
   if (EFI_ERROR (Status)) {
     //

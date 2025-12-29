@@ -59,7 +59,6 @@
   SmmCpuFeaturesLib|UefiCpuPkg/Library/SmmCpuFeaturesLib/SmmCpuFeaturesLib.inf
   SmmCpuSyncLib|UefiCpuPkg/Library/SmmCpuSyncLib/SmmCpuSyncLib.inf
   PeCoffLib2|MdePkg/Library/BasePeCoffLib2/BasePeCoffLib2.inf
-  UefiImageLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageLibPeCoff.inf
   UefiImageExtraActionLib|MdePkg/Library/BaseUefiImageExtraActionLibNull/BaseUefiImageExtraActionLibNull.inf
   TpmMeasurementLib|MdeModulePkg/Library/TpmMeasurementLibNull/TpmMeasurementLibNull.inf
   CcExitLib|UefiCpuPkg/Library/CcExitLibNull/CcExitLibNull.inf
