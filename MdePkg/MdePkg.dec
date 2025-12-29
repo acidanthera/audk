@@ -2388,6 +2388,16 @@
   # @Prompt Remove X permission from WX sections.
   gEfiMdePkgTokenSpaceGuid.PcdImageLoaderRemoveXForWX|FALSE|BOOLEAN|0x40001021
 
+  ## Indicates the UEFI image file formats supported outside FVs.<BR><BR>
+  #  BIT0 - PE.<BR>
+  # @Prompt Supported UEFI image file formats outside FVs.
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportNonFv|0x01|UINT8|0x40002000
+
+  ## Indicates the UEFI image file formats supported inside FVs.<BR><BR>
+  #  BIT0 - PE.<BR>
+  # @Prompt Supported UEFI image file formats inside FVs.
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x01|UINT8|0x40002001
+
 [PcdsFixedAtBuild,PcdsPatchableInModule]
   ## Indicates the maximum length of unicode string used in the following
   #  BaseLib functions: StrLen(), StrSize(), StrCmp(), StrnCmp(), StrCpy(), StrnCpy()<BR><BR>

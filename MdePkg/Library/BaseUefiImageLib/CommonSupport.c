@@ -18,17 +18,31 @@ RETURN_STATUS
 UefiImageInitializeContext (
   OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context,
   IN  CONST VOID                       *FileBuffer,
-  IN  UINT32                           FileSize
+  IN  UINT32                           FileSize,
+  IN  UEFI_IMAGE_SOURCE                Source
   )
 {
   RETURN_STATUS Status;
 
-  Status = UefiImageInitializeContextPreHash (Context, FileBuffer, FileSize);
+  Status = UefiImageInitializeContextPreHash (
+             Context,
+             FileBuffer,
+             FileSize,
+             Source
+             );
   if (RETURN_ERROR (Status)) {
     return Status;
   }
 
   return UefiImageInitializeContextPostHash (Context);
+}
+
+UINT8
+UefiImageGetFormat (
+  IN OUT UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  )
+{
+  return Context->FormatIndex;
 }
 
 UINTN

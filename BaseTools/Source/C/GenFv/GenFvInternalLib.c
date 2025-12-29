@@ -2301,7 +2301,12 @@ Returns:
     return EFI_INVALID_PARAMETER;
   }
 
-  RETURN_STATUS Status = UefiImageInitializeContext (&Context, UefiImage, UefiImageSize);
+  RETURN_STATUS Status = UefiImageInitializeContext (
+                           &Context,
+                           UefiImage,
+                           UefiImageSize,
+                           UEFI_IMAGE_SOURCE_FV
+                           );
   if (RETURN_ERROR (Status)) {
     Error (NULL, 0, 3000, "Invalid", "Unrecognized UEFI image file.");
     return Status;
@@ -3496,7 +3501,8 @@ Returns:
     Status = UefiImageInitializeContext (
                &ImageContext,
                (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize),
-               SectPeSize
+               SectPeSize,
+               UEFI_IMAGE_SOURCE_FV
                );
     if (EFI_ERROR (Status)) {
       Error (NULL, 0, 3000, "Invalid UefiImage", "The input file is %s and the return status is %x", FileName, (int) Status);
@@ -3705,7 +3711,8 @@ Returns:
     Status = UefiImageInitializeContext (
       &ImageContext,
       (VOID *) ((UINTN) CurrentPe32Section.Pe32Section + CurSecHdrSize),
-      RebasedImageSize
+      RebasedImageSize,
+      UEFI_IMAGE_SOURCE_FV
       );
     ASSERT_EFI_ERROR (Status);
 
