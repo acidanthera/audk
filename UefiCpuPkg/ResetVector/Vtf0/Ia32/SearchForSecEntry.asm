@@ -150,10 +150,20 @@ getEntryPointOfFfsFileLoopForSections:
     jmp     getEntryPointOfFfsFileLoopForSections
 
 getEntryPointOfFfsFileFoundPe32Section:
-    add     eax, 4       ; EAX = Start of PE32 image
+    add     eax, 4       ; EAX = Start of PE or UE image
 
     cmp     word [eax], 'MZ'
+    je      getEntryPointOfFfsFileFoundPeFile
+
+    cmp     word [eax], 'UE'
     jne     getEntryPointOfFfsFileErrorReturn
+    
+    ; *EntryPoint = (VOID *)((UINTN)UeData + UeHdr.EntryPointAddress)
+    mov     ebx, dword [eax + 0x4]
+    add     eax, ebx
+    jmp     getEntryPointOfFfsFileReturn
+
+getEntryPointOfFfsFileFoundPeFile:
     movzx   ebx, word [eax + 0x3c]
     add     ebx, eax
 
@@ -171,4 +181,3 @@ getEntryPointOfFfsFileErrorReturn:
 
 getEntryPointOfFfsFileReturn:
     OneTimeCallRet GetEntryPointOfFfsFile
-

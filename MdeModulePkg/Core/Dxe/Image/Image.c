@@ -204,6 +204,8 @@ CoreInitializeImageServices (
   UINT64                     DxeCoreImageLength;
   VOID                       *DxeCoreEntryPoint;
   EFI_PEI_HOB_POINTERS       DxeCoreHob;
+  EFI_HOB_GUID_TYPE          *GuidHob;
+  HOB_IMAGE_CONTEXT          *Hob;
 
   //
   // Searching for image hob
@@ -234,20 +236,43 @@ CoreInitializeImageServices (
   //
   Image = &mCorePrivateImage;
 
-  //
-  // FIXME: This is not a proper solution, because DxeCore may not be XIP
-  //
-  Status = UefiImageInitializeContext (
-             ImageContext,
-             (VOID *) (UINTN) DxeCoreImageBaseAddress,
-             (UINT32) DxeCoreImageLength,
-             UEFI_IMAGE_SOURCE_FV
-             );
-  ASSERT_EFI_ERROR (Status);
+  GuidHob  = GetFirstGuidHob (&gUefiImageLoaderImageContextGuid);
+  if (GuidHob == NULL) {
+    DEBUG ((DEBUG_ERROR, "UefiImageLoaderImageContextGuid HOB is missing!\n"));
+    ASSERT (FALSE);
+  }
 
-  // FIXME: DxeCore is dynamically loaded by DxeIpl, can't it pass the context?
+  Hob = (HOB_IMAGE_CONTEXT *)GET_GUID_HOB_DATA (GuidHob);
+
+  ImageContext->FormatIndex = Hob->FormatIndex;
+
   if (ImageContext->FormatIndex == UefiImageFormatPe) {
-    ImageContext->Ctx.Pe.ImageBuffer = (VOID *) ImageContext->Ctx.Pe.FileBuffer;
+    ImageContext->Ctx.Pe.ImageBuffer         = (VOID *)(UINTN)Hob->Ctx.Pe.ImageBuffer;
+    ImageContext->Ctx.Pe.AddressOfEntryPoint = Hob->Ctx.Pe.AddressOfEntryPoint;
+    ImageContext->Ctx.Pe.ImageType           = Hob->Ctx.Pe.ImageType;
+    ImageContext->Ctx.Pe.FileBuffer          = (CONST VOID *)(UINTN)Hob->Ctx.Pe.FileBuffer;
+    ImageContext->Ctx.Pe.ExeHdrOffset        = Hob->Ctx.Pe.ExeHdrOffset;
+    ImageContext->Ctx.Pe.SizeOfImage         = Hob->Ctx.Pe.SizeOfImage;
+    ImageContext->Ctx.Pe.FileSize            = Hob->Ctx.Pe.FileSize;
+    ImageContext->Ctx.Pe.Subsystem           = Hob->Ctx.Pe.Subsystem;
+    ImageContext->Ctx.Pe.SectionAlignment    = Hob->Ctx.Pe.SectionAlignment;
+    ImageContext->Ctx.Pe.SectionsOffset      = Hob->Ctx.Pe.SectionsOffset;
+    ImageContext->Ctx.Pe.NumberOfSections    = Hob->Ctx.Pe.NumberOfSections;
+    ImageContext->Ctx.Pe.SizeOfHeaders       = Hob->Ctx.Pe.SizeOfHeaders;
+  } else if (ImageContext->FormatIndex == UefiImageFormatUe) {
+    ImageContext->Ctx.Ue.ImageBuffer              = (VOID *)(UINTN)Hob->Ctx.Ue.ImageBuffer;
+    ImageContext->Ctx.Ue.FileBuffer               = (CONST UINT8 *)(UINTN)Hob->Ctx.Ue.FileBuffer;
+    ImageContext->Ctx.Ue.EntryPointAddress        = Hob->Ctx.Ue.EntryPointAddress;
+    ImageContext->Ctx.Ue.LoadTablesFileOffset     = Hob->Ctx.Ue.LoadTablesFileOffset;
+    ImageContext->Ctx.Ue.NumLoadTables            = Hob->Ctx.Ue.NumLoadTables;
+    ImageContext->Ctx.Ue.LoadTables               = (CONST UE_LOAD_TABLE *)(UINTN)Hob->Ctx.Ue.LoadTables;
+    ImageContext->Ctx.Ue.Segments                 = (CONST VOID *)(UINTN)Hob->Ctx.Ue.Segments;
+    ImageContext->Ctx.Ue.LastSegmentIndex         = Hob->Ctx.Ue.LastSegmentIndex;
+    ImageContext->Ctx.Ue.SegmentAlignment         = Hob->Ctx.Ue.SegmentAlignment;
+    ImageContext->Ctx.Ue.ImageSize                = Hob->Ctx.Ue.ImageSize;
+    ImageContext->Ctx.Ue.Subsystem                = Hob->Ctx.Ue.Subsystem;
+    ImageContext->Ctx.Ue.SegmentImageInfoIterSize = Hob->Ctx.Ue.SegmentImageInfoIterSize;
+    ImageContext->Ctx.Ue.SegmentsFileOffset       = Hob->Ctx.Ue.SegmentsFileOffset;
   } else {
     ASSERT (FALSE);
   }
@@ -427,7 +452,7 @@ GetUefiImageFixLoadingAssignedAddress (
   Status       = CheckAndMarkFixLoadingMemoryUsageBitMap (FixLoadingAddress, ImageDestSize);
   *LoadAddress = FixLoadingAddress;
 
-   DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
+  DEBUG ((EFI_D_INFO|EFI_D_LOAD, "LOADING MODULE FIXED INFO: Loading module at fixed address 0x%11p. Status = %r \n", (VOID *)(UINTN)FixLoadingAddress, Status));
   return Status;
 }
 
@@ -716,7 +741,7 @@ CoreLoadPeImage (
   //
   // Get the image entry point.
   //
-  Image->EntryPoint   = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
+  Image->EntryPoint = (EFI_IMAGE_ENTRY_POINT)(UefiImageLoaderGetImageEntryPoint (ImageContext));
 
   //
   // Fill in the image information for the Loaded Image Protocol
@@ -1194,7 +1219,7 @@ CoreLoadImageCommon (
              &ImageContext,
              FHand.Source,
              (UINT32) FHand.SourceSize,
-             ImageIsFromFv
+             ImageIsFromFv ? UEFI_IMAGE_SOURCE_FV : UEFI_IMAGE_SOURCE_NON_FV
              );
   if (EFI_ERROR (Status)) {
     ASSERT (FALSE);
@@ -1209,8 +1234,8 @@ CoreLoadImageCommon (
     SecurityStatus = gSecurity2->FileAuthentication (
                                    gSecurity2,
                                    OriginalFilePath,
-                                  &ImageContext,
-                                  sizeof (ImageContext),
+                                   &ImageContext,
+                                   sizeof (ImageContext),
                                    BootPolicy
                                    );
     if (!EFI_ERROR (SecurityStatus) && ImageIsFromFv) {
