@@ -97,6 +97,7 @@
   ## PRODUCES
   ## CONSUMES
   gEfiPeiLoadFilePpiGuid
+  gEfiPeiLoadFileWithHobPpiGuid
   gEfiPeiSecurity2PpiGuid                       ## NOTIFY
   gEfiTemporaryRamSupportPpiGuid                ## SOMETIMES_CONSUMES
   gEfiTemporaryRamDonePpiGuid                   ## SOMETIMES_CONSUMES
