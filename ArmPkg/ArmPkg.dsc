@@ -57,6 +57,7 @@
   PeCoffLib2|MdePkg/Library/BasePeCoffLib2/BasePeCoffLib2.inf
   UefiImageLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageLibPeCoff.inf
   UefiImageExtraActionLib|MdePkg/Library/BaseUefiImageExtraActionLibNull/BaseUefiImageExtraActionLibNull.inf
+  CpuArchLib|ArmPkg/Library/CpuArchLib/CpuArchLib.inf
 
   UefiHiiServicesLib|MdeModulePkg/Library/UefiHiiServicesLib/UefiHiiServicesLib.inf
   HiiLib|MdeModulePkg/Library/UefiHiiLib/UefiHiiLib.inf
@@ -118,8 +119,8 @@
   ArmPkg/Library/SemiHostingSerialPortLib/SemiHostingSerialPortLib.inf
   ArmPkg/Library/SemihostLib/SemihostLib.inf
   ArmPkg/Library/ArmExceptionLib/ArmExceptionLib.inf
+  ArmPkg/Library/CpuArchLib/CpuArchLib.inf
 
-  ArmPkg/Drivers/CpuDxe/CpuDxe.inf
   ArmPkg/Drivers/CpuPei/CpuPei.inf
   ArmPkg/Drivers/ArmGicDxe/ArmGicDxe.inf
   ArmPkg/Drivers/ArmGicDxe/ArmGicV2Dxe.inf

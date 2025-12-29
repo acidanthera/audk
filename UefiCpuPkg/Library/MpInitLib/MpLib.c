@@ -9,13 +9,17 @@
 **/
 
 #include "MpLib.h"
+
 #include <Library/CcExitLib.h>
 #include <Register/Amd/SevSnpMsr.h>
+#include <Library/PlatformInitLib.h>
+
 #include <Register/Amd/Ghcb.h>
 
-EFI_GUID  mCpuInitMpLibHobGuid = CPU_INIT_MP_LIB_HOB_GUID;
-EFI_GUID  mMpHandOffGuid       = MP_HANDOFF_GUID;
-EFI_GUID  mMpHandOffConfigGuid = MP_HANDOFF_CONFIG_GUID;
+EFI_GUID               mCpuInitMpLibHobGuid = CPU_INIT_MP_LIB_HOB_GUID;
+EFI_GUID               mMpHandOffGuid       = MP_HANDOFF_GUID;
+EFI_GUID               mMpHandOffConfigGuid = MP_HANDOFF_CONFIG_GUID;
+EFI_HOB_PLATFORM_INFO  *mPlatformInfoHob    = NULL;
 
 RELOCATE_AP_LOOP_ENTRY  mReservedApLoop;
 UINTN                   mReservedTopOfApStack;
@@ -611,7 +615,7 @@ CollectProcessorCount (
   // FinishedCount is the number of check-in APs.
   //
   CpuMpData->CpuCount = CpuMpData->FinishedCount + 1;
-  ASSERT (CpuMpData->CpuCount <= PcdGet32 (PcdCpuMaxLogicalProcessorNumber));
+  ASSERT (CpuMpData->CpuCount <= mPlatformInfoHob->PcdCpuMaxLogicalProcessorNumber);
 
   return CpuMpData->CpuCount;
 }
@@ -1180,7 +1184,7 @@ AllocateResetVectorBelow1Mb (
       // of processors for calculating the total stack area.
       //
       ApResetStackSize = (AP_RESET_STACK_SIZE *
-                          PcdGet32 (PcdCpuMaxLogicalProcessorNumber));
+                          mPlatformInfoHob->PcdCpuMaxLogicalProcessorNumber);
 
       //
       // Invoke GetWakeupBuffer a second time to allocate the stack area
@@ -1332,7 +1336,7 @@ WakeUpAP (
     }
 
     if (CpuMpData->InitFlag == ApInitConfig) {
-      if (PcdGet32 (PcdCpuBootLogicalProcessorNumber) > 0) {
+      if (mPlatformInfoHob->PcdCpuBootLogicalProcessorNumber > 0) {
         //
         // The AP enumeration algorithm below is suitable only when the
         // platform can tell us the *exact* boot CPU count in advance.
@@ -1348,7 +1352,7 @@ WakeUpAP (
         //
         TimedWaitForApFinish (
           CpuMpData,
-          PcdGet32 (PcdCpuBootLogicalProcessorNumber) - 1,
+          mPlatformInfoHob->PcdCpuBootLogicalProcessorNumber - 1,
           MAX_UINT32 // approx. 71 minutes
           );
       } else {
@@ -1386,7 +1390,7 @@ WakeUpAP (
         //
         TimedWaitForApFinish (
           CpuMpData,
-          PcdGet32 (PcdCpuMaxLogicalProcessorNumber) - 1,
+          mPlatformInfoHob->PcdCpuMaxLogicalProcessorNumber - 1,
           PcdGet32 (PcdCpuApInitTimeOutInMicroSeconds)
           );
 
@@ -2111,6 +2115,12 @@ MpInitLibInitialize (
   UINTN                    BackupBufferAddr;
   UINTN                    ApIdtBase;
   IA32_CR0                 Cr0;
+  EFI_HOB_GUID_TYPE        *GuidHob;
+
+  GuidHob = GetFirstGuidHob (&gUefiOvmfPkgPlatformInfoGuid);
+  if (GuidHob != NULL) {
+    mPlatformInfoHob = (EFI_HOB_PLATFORM_INFO *)(GET_GUID_HOB_DATA (GuidHob));
+  }
 
   FirstMpHandOff = GetNextMpHandOffHob (NULL);
   if (FirstMpHandOff != NULL) {
@@ -2130,7 +2140,7 @@ MpInitLibInitialize (
       MaxLogicalProcessorNumber += MpHandOff->CpuCount;
     }
   } else {
-    MaxLogicalProcessorNumber = PcdGet32 (PcdCpuMaxLogicalProcessorNumber);
+    MaxLogicalProcessorNumber = mPlatformInfoHob->PcdCpuMaxLogicalProcessorNumber;
   }
 
   ASSERT (MaxLogicalProcessorNumber != 0);
@@ -2214,7 +2224,7 @@ MpInitLibInitialize (
   CpuMpData->SevEsIsEnabled   = ConfidentialComputingGuestHas (CCAttrAmdSevEs);
   CpuMpData->SevSnpIsEnabled  = ConfidentialComputingGuestHas (CCAttrAmdSevSnp);
   CpuMpData->SevEsAPBuffer    = (UINTN)-1;
-  CpuMpData->GhcbBase         = PcdGet64 (PcdGhcbBase);
+  CpuMpData->GhcbBase         = mPlatformInfoHob->GhcbBase;
   CpuMpData->UseSevEsAPMethod = CpuMpData->SevEsIsEnabled && !CpuMpData->SevSnpIsEnabled;
 
   if (CpuMpData->SevSnpIsEnabled) {
@@ -3395,7 +3405,7 @@ ConfidentialComputingGuestHas (
   //
   // Get the current CC attribute.
   //
-  CurrentAttr = PcdGet64 (PcdConfidentialComputingGuestAttr);
+  CurrentAttr = mPlatformInfoHob->PcdConfidentialComputingGuestAttr;
 
   //
   // If attr is for the AMD group then call AMD specific checks.
