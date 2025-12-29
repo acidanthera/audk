@@ -58,6 +58,39 @@
   StackCheckLib|MdePkg/Library/StackCheckLibNull/StackCheckLibNull.inf
 !endif
 
+  #
+  # For security and code size optimization reasons, the UefiImageLib design is
+  # complicated. To not expose FV-only UEFI image formats via, e.g., DxeCore to
+  # untrusted sources, UefiImageLib can be configured to support different UEFI
+  # image formats per source. While compilers generally manage to optimize the
+  # initial parsing steps, complex control flow can make them lose track of the
+  # UefiImageLib source property and thus conditionally call into code for UEFI
+  # image formats that are not required by the module at all (e.g., because it
+  # only ever deals with FV images).
+  #
+  # To have the code for unsupported UEFI image file formats removed,
+  # UefiImageLib comes in multiple flavours that support FV-only, non-FV-only,
+  # or all UEFI image formats. These flavours are supposed to be used by
+  # top-level modules that have a clear scope. As libraries may depend on
+  # UefiImageLib too, however, they should consume the general UefiImageLib with
+  # no clear flavour.
+  #
+  # If they consume libraries with UefiImageLib dependencies, modules must have
+  # their general UefiImageLib set to their corresponding flavour for correct
+  # linkage. In order to make this easier, there is a heuristic below, based on
+  # module types, to set the most likely instance of UefiImageLib. In rare
+  # cases, manual overriding in the platform DSC may be necessary.
+  #
+  UefiImageOnlyNonFvLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyNonFvLib.inf
+  UefiImageOnlyFvLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyFvLib.inf
+  UefiImageAllLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageAllLib.inf
+
+[LibraryClasses.common.USER_DEFINED, LibraryClasses.common.SEC, LibraryClasses.common.PEI_CORE, LibraryClasses.common.PEIM, LibraryClasses.common.SMM_CORE, LibraryClasses.common.MM_CORE_STANDALONE, LibraryClasses.common.DXE_SMM_DRIVER, LibraryClasses.common.MM_STANDALONE]
+  UefiImageLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyFvLib.inf
+
+[LibraryClasses.common.DXE_CORE, LibraryClasses.common.DXE_DRIVER, LibraryClasses.common.DXE_RUNTIME_DRIVER, LibraryClasses.common.UEFI_DRIVER, LibraryClasses.common.UEFI_APPLICATION]
+  UefiImageLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageAllLib.inf
+
 [LibraryClasses.common.SEC, LibraryClasses.common.PEI_CORE]
   # edk2 does not implement exception handling for SEC and PEI_CORE, so StackCheckLibNull is used, as failing
   # stack cookies will generate an exception, which if unhandled can lead to a hung system state. If a platform
