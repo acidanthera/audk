@@ -376,7 +376,7 @@ InitializePlatform (
     PlatformIdInitialization (PeiServices);
   }
 
-  IntelTdxInitialize ();
+  IntelTdxInitialize (PlatformInfoHob);
   InstallFeatureControlCallback (PlatformInfoHob);
   if (PlatformInfoHob->SmmSmramRequire) {
     RelocateSmBase ();

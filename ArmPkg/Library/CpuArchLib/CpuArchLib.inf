@@ -1,6 +1,6 @@
 #/** @file
 #
-#  DXE CPU driver
+#  This library installs CPU Architecture Protocol
 #
 #  Copyright (c) 2009, Apple Inc. All rights reserved.<BR>
 #  Copyright (c) 2011-2013, ARM Limited. All rights reserved.
@@ -11,12 +11,11 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = ArmCpuDxe
-  FILE_GUID                      = B8D9777E-D72A-451F-9BDB-BAFB52A68415
-  MODULE_TYPE                    = DXE_DRIVER
+  BASE_NAME                      = CpuArchLib
+  FILE_GUID                      = 47EE96CC-33FA-482B-8AD6-DD8C21AA3752
+  MODULE_TYPE                    = DXE_CORE
   VERSION_STRING                 = 1.0
-
-  ENTRY_POINT                    = CpuDxeInitialize
+  LIBRARY_CLASS                  = CpuArchLib
 
 [Sources.Common]
   CpuDxe.c
@@ -47,7 +46,6 @@
   DxeServicesTableLib
   HobLib
   MemoryAllocationLib
-  UefiDriverEntryPoint
   UefiLib
 
 [Protocols]

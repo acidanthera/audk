@@ -1,5 +1,5 @@
 ## @file
-#  CPU driver installs CPU Architecture Protocol and CPU MP protocol.
+#  This library installs CPU Architecture Protocol and CPU MP protocol.
 #
 #  Copyright (c) 2008 - 2019, Intel Corporation. All rights reserved.<BR>
 #  Copyright (c) 2017, AMD Incorporated. All rights reserved.<BR>
@@ -11,16 +11,17 @@
 
 [Defines]
   INF_VERSION                    = 0x00010005
-  BASE_NAME                      = CpuDxe
-  MODULE_UNI_FILE                = CpuDxe.uni
-  FILE_GUID                      = 1A1E4886-9517-440e-9FDE-3BE44CEE2136
-  MODULE_TYPE                    = DXE_DRIVER
+  BASE_NAME                      = CpuArchLib
+  MODULE_UNI_FILE                = CpuArchLib.uni
+  FILE_GUID                      = EF9CBDF2-BD7C-48F1-9D87-EE83A0269EEE
+  MODULE_TYPE                    = DXE_CORE
   VERSION_STRING                 = 1.0
-  ENTRY_POINT                    = InitializeCpu
+  LIBRARY_CLASS                  = CpuArchLib
 
 [Packages]
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
+  OvmfPkg/OvmfPkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
 
 [LibraryClasses.common]
@@ -33,11 +34,10 @@
   HobLib
   MemoryAllocationLib
   MpInitLib
-  PeCoffGetEntryPointLib
   ReportStatusCodeLib
+  SerialPortLib
   TimerLib
   UefiBootServicesTableLib
-  UefiDriverEntryPoint
   UefiLib
 
 [LibraryClasses.IA32, LibraryClasses.X64]
@@ -82,16 +82,15 @@
 [Guids]
   gIdleLoopEventGuid                            ## CONSUMES           ## Event
   gEfiVectorHandoffTableGuid                    ## SOMETIMES_CONSUMES ## SystemTable
+  gUefiOvmfPkgPlatformInfoGuid                  ## CONSUMES  ## HOB
 
 [Ppis]
   gEfiSecPlatformInformation2PpiGuid            ## UNDEFINED # HOB
   gEfiSecPlatformInformationPpiGuid             ## UNDEFINED # HOB
 
 [Pcd]
-  gEfiMdeModulePkgTokenSpaceGuid.PcdPteMemoryEncryptionAddressOrMask    ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdHeapGuardPropertyMask               ## CONSUMES
   gEfiMdeModulePkgTokenSpaceGuid.PcdNullPointerDetectionPropertyMask    ## CONSUMES
-  gEfiMdeModulePkgTokenSpaceGuid.PcdTdxSharedBitMask                    ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuStackSwitchExceptionList              ## CONSUMES
   gUefiCpuPkgTokenSpaceGuid.PcdCpuKnownGoodStackSize                    ## CONSUMES
 

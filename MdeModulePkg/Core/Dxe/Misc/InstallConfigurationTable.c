@@ -45,18 +45,18 @@ CoreInstallConfigurationTable (
     return EFI_INVALID_PARAMETER;
   }
 
-  EfiConfigurationTable = gDxeCoreST->ConfigurationTable;
+  EfiConfigurationTable = gST->ConfigurationTable;
 
   //
   // Search all the table for an entry that matches Guid
   //
-  for (Index = 0; Index < gDxeCoreST->NumberOfTableEntries; Index++) {
-    if (CompareGuid (Guid, &(gDxeCoreST->ConfigurationTable[Index].VendorGuid))) {
+  for (Index = 0; Index < gST->NumberOfTableEntries; Index++) {
+    if (CompareGuid (Guid, &(gST->ConfigurationTable[Index].VendorGuid))) {
       break;
     }
   }
 
-  if (Index < gDxeCoreST->NumberOfTableEntries) {
+  if (Index < gST->NumberOfTableEntries) {
     //
     // A match was found, so this is either a modify or a delete operation
     //
@@ -65,7 +65,7 @@ CoreInstallConfigurationTable (
       // If Table is not NULL, then this is a modify operation.
       // Modify the table entry and return.
       //
-      gDxeCoreST->ConfigurationTable[Index].VendorTable = Table;
+      gST->ConfigurationTable[Index].VendorTable = Table;
 
       //
       // Signal Configuration Table change
@@ -78,15 +78,15 @@ CoreInstallConfigurationTable (
     //
     // A match was found and Table is NULL, so this is a delete operation.
     //
-    gDxeCoreST->NumberOfTableEntries--;
+    gST->NumberOfTableEntries--;
 
     //
     // Copy over deleted entry
     //
     CopyMem (
       &(EfiConfigurationTable[Index]),
-      &(gDxeCoreST->ConfigurationTable[Index + 1]),
-      (gDxeCoreST->NumberOfTableEntries - Index) * sizeof (EFI_CONFIGURATION_TABLE)
+      &(gST->ConfigurationTable[Index + 1]),
+      (gST->NumberOfTableEntries - Index) * sizeof (EFI_CONFIGURATION_TABLE)
       );
   } else {
     //
@@ -101,7 +101,7 @@ CoreInstallConfigurationTable (
     }
 
     //
-    // Assume that Index == gDxeCoreST->NumberOfTableEntries
+    // Assume that Index == gST->NumberOfTableEntries
     //
     if ((Index * sizeof (EFI_CONFIGURATION_TABLE)) >= mSystemTableAllocateSize) {
       //
@@ -116,30 +116,30 @@ CoreInstallConfigurationTable (
         return EFI_OUT_OF_RESOURCES;
       }
 
-      if (gDxeCoreST->ConfigurationTable != NULL) {
+      if (gST->ConfigurationTable != NULL) {
         //
         // Copy the old table to the new table.
         //
         CopyMem (
           EfiConfigurationTable,
-          gDxeCoreST->ConfigurationTable,
+          gST->ConfigurationTable,
           Index * sizeof (EFI_CONFIGURATION_TABLE)
           );
 
         //
         // Record the old table pointer.
         //
-        OldTable = gDxeCoreST->ConfigurationTable;
+        OldTable = gST->ConfigurationTable;
 
         //
         // As the CoreInstallConfigurationTable() may be re-entered by CoreFreePool()
         // in its calling stack, updating System table to the new table pointer must
         // be done before calling CoreFreePool() to free the old table.
-        // It can make sure the gDxeCoreST->ConfigurationTable point to the new table
+        // It can make sure the gST->ConfigurationTable point to the new table
         // and avoid the errors of use-after-free to the old table by the reenter of
         // CoreInstallConfigurationTable() in CoreFreePool()'s calling stack.
         //
-        gDxeCoreST->ConfigurationTable = EfiConfigurationTable;
+        gST->ConfigurationTable = EfiConfigurationTable;
 
         //
         // Free the old table after updating System Table to the new table pointer.
@@ -149,7 +149,7 @@ CoreInstallConfigurationTable (
         //
         // Update System Table
         //
-        gDxeCoreST->ConfigurationTable = EfiConfigurationTable;
+        gST->ConfigurationTable = EfiConfigurationTable;
       }
     }
 
@@ -162,13 +162,13 @@ CoreInstallConfigurationTable (
     //
     // This is an add operation, so increment the number of table entries
     //
-    gDxeCoreST->NumberOfTableEntries++;
+    gST->NumberOfTableEntries++;
   }
 
   //
   // Fix up the CRC-32 in the EFI System Table
   //
-  CalculateEfiHdrCrc (&gDxeCoreST->Hdr);
+  CalculateEfiHdrCrc (&gST->Hdr);
 
   //
   // Signal Configuration Table change

@@ -71,6 +71,9 @@ typedef struct {
   BOOLEAN                  QemuFwCfgChecked;
 
   QEMU_FW_CFG_WORK_AREA    QemuFwCfgWorkArea;
+
+  UINT64                   PteMemoryEncryptionAddressOrMask;
+  UINT64                   GhcbBase;
 } EFI_HOB_PLATFORM_INFO;
 #pragma pack()
 

@@ -9,6 +9,4 @@
 
 #string STR_PROPERTIES_MODULE_NAME
 #language en-US
-"CPU Architectural and CPU Multi-processor DXE Driver"
-
-
+"CPU Architectural and CPU Multi-processor DXE library"
