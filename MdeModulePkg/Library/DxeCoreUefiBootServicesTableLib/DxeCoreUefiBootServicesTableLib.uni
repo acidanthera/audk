@@ -1,0 +1,13 @@
+// /** @file
+// Dummy instance of UEFI Boot Services Table Library for DxeCore.
+//
+// Copyright (c) 2021, Marvin Häuser. All rights reserved.<BR>
+//
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+//
+// **/
+
+
+#string STR_MODULE_ABSTRACT             #language en-US "Dummy instance of UEFI Boot Services Table Library for DxeCore"
+
+#string STR_MODULE_DESCRIPTION          #language en-US "Dummy instance of UEFI Boot Services Table Library for DxeCore."
