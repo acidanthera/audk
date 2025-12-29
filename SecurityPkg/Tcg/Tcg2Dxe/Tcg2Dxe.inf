@@ -64,7 +64,7 @@
   ReportStatusCodeLib
   Tcg2PhysicalPresenceLib
   Tpm2HelpLib
-  UefiImageLib
+  UefiImageAllLib
 
 [Guids]
   ## SOMETIMES_CONSUMES     ## Variable:L"SecureBoot"

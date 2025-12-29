@@ -39,7 +39,7 @@
   BaseMemoryLib
   UefiLib
   FspWrapperApiLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   CacheMaintenanceLib
   DxeServicesLib
   PerformanceLib

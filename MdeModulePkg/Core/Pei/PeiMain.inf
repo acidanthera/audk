@@ -63,7 +63,7 @@
   DebugLib
   MemoryAllocationLib
   CacheMaintenanceLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   PeiServicesTablePointerLib
   PcdLib
   TimerLib

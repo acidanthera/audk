@@ -49,7 +49,7 @@
   UefiDriverEntryPoint
   BaseLib
   S3BootScriptLib
-  UefiImageLib
+  UefiImageOnlyFvLib
   DxeServicesLib
   UefiBootServicesTableLib
   CacheMaintenanceLib
