@@ -1,12 +1,6 @@
 ## @file
-# Instance of Memory Allocation Library using SMM Services Table,
-# with memory profile support.
-#
-# Memory Allocation Library that uses services from the SMM Services Table to
-# allocate and free memory, with memory profile support.
-#
-# The implementation of this instance is copied from UefiMemoryAllocationLib
-# in MdePkg and updated to support both MemoryAllocationLib and MemoryProfileLib.
+# Instance of Memory Profile Library using the EDK II SMM Memory Profile
+# Protocol.
 #
 # Copyright (c) 2010 - 2018, Intel Corporation. All rights reserved.<BR>
 # SPDX-License-Identifier: BSD-2-Clause-Patent
@@ -21,9 +15,6 @@
   MODULE_TYPE                    = DXE_SMM_DRIVER
   VERSION_STRING                 = 1.0
   PI_SPECIFICATION_VERSION       = 0x0001000A
-  LIBRARY_CLASS                  = MemoryAllocationLib|DXE_SMM_DRIVER
-  CONSTRUCTOR                    = SmmMemoryAllocationLibConstructor
-  DESTRUCTOR                     = SmmMemoryAllocationLibDestructor
   LIBRARY_CLASS                  = MemoryProfileLib|DXE_SMM_DRIVER
   CONSTRUCTOR                    = SmmMemoryProfileLibConstructor
 
@@ -32,7 +23,6 @@
 #
 
 [Sources]
-  MemoryAllocationLib.c
   SmmMemoryProfileLib.c
 
 [Packages]
@@ -41,7 +31,6 @@
 
 [LibraryClasses]
   DebugLib
-  BaseMemoryLib
   SmmServicesTableLib
   UefiBootServicesTableLib
 
