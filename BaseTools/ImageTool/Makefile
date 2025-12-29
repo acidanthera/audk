@@ -17,10 +17,11 @@ OUT_DIR  = .\Windows
 
 OV = $(UDK_PATH)\MdePkg\Library\BaseOverflowLib
 PE = $(UDK_PATH)\MdePkg\Library\BasePeCoffLib2
+UE = $(UDK_PATH)\MdePkg\Library\BaseUeImageLib
 UA = $(UDK_PATH)\MdePkg\Library\BaseUefiImageExtraActionLibNull
 
-OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj UefiImageScan.obj PeScan.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj ImageToolEmit.obj
-OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UA)}UefiImageExtraActionLib.obj DynamicBuffer.obj
+OBJECTS = ImageTool.obj Image.obj PeEmit32.obj PeEmit64.obj PeEmitCommon.obj UefiImageScan.obj PeScan.obj UeScan.obj UeEmit.obj ElfScan32.obj ElfScan64.obj ElfScanCommon.obj BinEmit.obj ImageToolEmit.obj
+OBJECTS = $(OBJECTS) {$(OV)}BaseAlignment.obj BaseBitOverflow.obj {$(UE)}UeImageLib.obj {$(UA)}UefiImageExtraActionLib.obj DynamicBuffer.obj
 OBJECTS = $(OBJECTS) {$(PE)}PeCoffInit.obj PeCoffInfo.obj PeCoffRelocate.obj PeCoffLoad.obj PeCoffHii.obj PeCoffDebug.obj PeCoffHash.obj
 
 BASE = $(UDK_PATH)\MdePkg\Library\BaseLib
@@ -33,7 +34,7 @@ CMEM = $(UDK_PATH)\MdeModulePkg\Library\CommonMemoryAllocationLib
 USER = $(OC_USER)\User\Library
 OBJECTS = $(OBJECTS) {$(BASE)}SafeString.obj String.obj SwapBytes16.obj SwapBytes32.obj CpuDeadLoop.obj CheckSum.obj QuickSort.obj LinkedList.obj
 OBJECTS = $(OBJECTS) {$(OUT)}DebugLib.obj {$(PRIN)}PrintLib.obj PrintLibInternal.obj {$(ERRO)}BaseDebugPrintErrorLevelLib.obj
-OBJECTS = $(OBJECTS) {$(UIMG)}UefiImageLib.obj PeSupport.obj CommonSupport.obj
+OBJECTS = $(OBJECTS) {$(UIMG)}UefiImageLib.obj UeSupport.obj PeSupport.obj CommonSupport.obj
 OBJECTS = $(OBJECTS) {$(USER)}UserFile.obj UserBaseMemoryLib.obj UserMath.obj UserPcd.obj UserMisc.obj UserGlobalVar.obj UserBootServices.obj
 OBJECTS = $(OBJECTS) {$(BMPN)}BaseMemoryProfileLibNull.obj {$(CMEM)}CommonMemoryAllocationLib.obj {$(CMEM)}CommonMemoryAllocationLibEx.obj
 
@@ -70,6 +71,10 @@ cleanall:
 	@move $@ $(OUT_DIR)\
 
 {$(PE)}.c.obj :
+  $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
+	@move $@ $(OUT_DIR)\
+
+{$(UE)}.c.obj :
   $(CC) -c $(CFLAGS) $(INC) $< -Fo$@
 	@move $@ $(OUT_DIR)\
 

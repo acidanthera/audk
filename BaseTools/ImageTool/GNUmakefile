@@ -7,10 +7,10 @@
 PROJECT = ImageTool
 PRODUCT = $(PROJECT)$(INFIX)$(SUFFIX)
 OBJS    = $(PROJECT).o
-OBJS    += Image.o UefiImageScan.o PeEmit32.o PeEmit64.o PeEmitCommon.o PeScan.o ElfScan32.o ElfScan64.o ElfScanCommon.o BinEmit.o ImageToolEmit.o
-OBJS    += UefiImageExtraActionLib.o
+OBJS    += Image.o UefiImageScan.o UeEmit.o UeScan.o PeEmit32.o PeEmit64.o PeEmitCommon.o PeScan.o ElfScan32.o ElfScan64.o ElfScanCommon.o BinEmit.o ImageToolEmit.o
+OBJS    += UeImageLib.o UefiImageExtraActionLib.o
 OBJS    += PeCoffInit.o PeCoffInfo.o PeCoffLoad.o PeCoffRelocate.o PeCoffHii.o PeCoffDebug.o PeCoffHash.o
-OBJS    += PeSupport.o UefiImageLib.o CommonSupport.o DynamicBuffer.o
+OBJS    += PeSupport.o UeSupport.o UefiImageLib.o CommonSupport.o DynamicBuffer.o
 
 WERROR   = 1
 DEBUG    = 1
@@ -20,7 +20,8 @@ UDK_PATH = ../..
 
 VPATH  += ../../MdePkg/Library/BasePeCoffLib2:$\
 					../../MdePkg/Library/BaseUefiImageExtraActionLibNull:$\
-					../../MdePkg/Library/BaseUefiImageLib
+					../../MdePkg/Library/BaseUefiImageLib:$\
+					../../MdePkg/Library/BaseUeImageLib
 
 include $(OC_USER)/User/Makefile
 

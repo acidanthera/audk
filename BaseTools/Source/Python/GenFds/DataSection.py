@@ -79,10 +79,10 @@ class DataSection (DataSectionClassObject):
                         CopyLongFilePath(MapFile, CopyMapFile)
 
         #Get PE Section alignment when align is set to AUTO
-        if self.Alignment == 'Auto' and self.SecType in (BINARY_FILE_TYPE_PE32):
+        if self.Alignment == 'Auto' and self.SecType in (BINARY_FILE_TYPE_PE32, BINARY_FILE_TYPE_UE):
             self.Alignment = "0"
         NoStrip = True
-        if self.SecType in (BINARY_FILE_TYPE_PE32):
+        if self.SecType in (BINARY_FILE_TYPE_PE32, BINARY_FILE_TYPE_UE):
             if self.KeepReloc is not None:
                 NoStrip = self.KeepReloc
 
@@ -100,6 +100,16 @@ class DataSection (DataSectionClassObject):
                     IsMakefile = IsMakefile
                 )
             self.SectFileName = StrippedFile
+
+        if self.SecType == BINARY_FILE_TYPE_UE:
+            UeFile = os.path.join( OutputPath, ModuleName + 'Ue.raw')
+            GenFdsGlobalVariable.GenerateFirmwareImage(
+                    UeFile,
+                    GenFdsGlobalVariable.MacroExtend(self.SectFileName, Dict),
+                    Format = "UE",
+                    IsMakefile = IsMakefile
+                )
+            self.SectFileName = UeFile
 
         OutputFile = os.path.join (OutputPath, ModuleName + SUP_MODULE_SEC + SecNum + SectionSuffix.get(self.SecType))
         OutputFile = os.path.normpath(OutputFile)

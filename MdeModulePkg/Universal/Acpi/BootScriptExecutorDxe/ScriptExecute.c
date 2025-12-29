@@ -317,17 +317,19 @@ ReadyToLockEventNotify (
              UEFI_IMAGE_SOURCE_FV
              );
   ASSERT_EFI_ERROR (Status);
+
   ImageSize      = UefiImageGetImageSize (&ImageContext);
   ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
   Pages          = EFI_SIZE_TO_PAGES (ImageSize);
   LoadAddress    = 0xFFFFFFFF;
-  Status         = AllocateAlignedPagesEx (
-                     AllocateMaxAddress,
-                     EfiReservedMemoryType,
-                     Pages,
-                     ImageAlignment,
-                     &LoadAddress
-                     );
+
+  Status = AllocateAlignedPagesEx (
+             AllocateMaxAddress,
+             EfiReservedMemoryType,
+             Pages,
+             ImageAlignment,
+             &LoadAddress
+             );
   ASSERT_EFI_ERROR (Status);
 
   //
