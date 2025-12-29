@@ -90,13 +90,13 @@ PAGE_ATTRIBUTE_TABLE  mPageAttributeTable[] = {
 PAGE_TABLE_POOL                *mPageTablePool    = NULL;
 BOOLEAN                        mPageTablePoolLock = FALSE;
 PAGE_TABLE_LIB_PAGING_CONTEXT  mPagingContext;
-EFI_SMM_BASE2_PROTOCOL         *mSmmBase2 = NULL;
+EFI_SMM_BASE2_PROTOCOL         *mSmmBase2         = NULL;
 
 //
 // Record the page fault exception count for one instruction execution.
 //
 UINTN  *mPFEntryCount;
-UINT64                    *(*mLastPFEntryPointer)[MAX_PF_ENTRY_COUNT];
+UINT64 *(*mLastPFEntryPointer)[MAX_PF_ENTRY_COUNT];
 
 /**
  Check if current execution environment is in SMM mode or not, via
@@ -308,9 +308,9 @@ GetPageTableEntry (
 
   // Make sure AddressEncMask is contained to smallest supported address field.
   //
-  AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask) & PAGING_1G_ADDRESS_MASK_64;
+  AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask & PAGING_1G_ADDRESS_MASK_64;
   if (AddressEncMask == 0) {
-    AddressEncMask = PcdGet64 (PcdTdxSharedBitMask) & PAGING_1G_ADDRESS_MASK_64;
+    AddressEncMask = mPlatformInfoHob2->PcdTdxSharedBitMask & PAGING_1G_ADDRESS_MASK_64;
   }
 
   if (PagingContext->MachineType == IMAGE_FILE_MACHINE_X64) {
@@ -566,7 +566,7 @@ SplitPage (
 
   // Make sure AddressEncMask is contained to smallest supported address field.
   //
-  AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask) & PAGING_1G_ADDRESS_MASK_64;
+  AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask & PAGING_1G_ADDRESS_MASK_64;
 
   if (PageAttribute == Page2M) {
     //
@@ -1059,9 +1059,9 @@ RefreshGcdMemoryAttributesFromPaging (
         //
         // Get the mask for the memory encryption bit for Tdx and Sev
         //
-        AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask);
+        AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask;
         if (AddressEncMask == 0) {
-          AddressEncMask = PcdGet64 (PcdTdxSharedBitMask);
+          AddressEncMask = mPlatformInfoHob2->PcdTdxSharedBitMask;
         }
 
         //
@@ -1663,7 +1663,7 @@ EfiGetMemoryAttributes (
 
   // Make sure AddressEncMask is contained to smallest supported address field.
   //
-  AddressEncMask = PcdGet64 (PcdPteMemoryEncryptionAddressOrMask) & PAGING_1G_ADDRESS_MASK_64;
+  AddressEncMask = mPlatformInfoHob2->PteMemoryEncryptionAddressOrMask & PAGING_1G_ADDRESS_MASK_64;
 
   GetCurrentPagingContext (&CurrentPagingContext);
 
