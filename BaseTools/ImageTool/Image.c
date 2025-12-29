@@ -16,10 +16,13 @@ CheckToolImageSegment (
 {
   bool  Overflow;
 
+  // LCOV_EXCL_START
   if (!IS_ALIGNED (Segment->ImageSize, SegmentInfo->SegmentAlignment)) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   if (Segment->Write && Segment->Execute) {
     DEBUG_RAISE ();
@@ -36,10 +39,13 @@ CheckToolImageSegment (
                Segment->ImageSize,
                PreviousEndAddress
                );
+  // LCOV_EXCL_START
   if (Overflow) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   return true;
 }
@@ -54,20 +60,26 @@ CheckToolImageSegmentInfo (
   uint32_t  Index;
   bool      Result;
 
+  // LCOV_EXCL_START
   if (!IS_POW2 (SegmentInfo->SegmentAlignment)) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   if (SegmentInfo->NumSegments == 0) {
     DEBUG_RAISE ();
     return false;
   }
 
+  // LCOV_EXCL_START
   if (!IS_ALIGNED (SegmentInfo->Segments[0].ImageAddress, SegmentInfo->SegmentAlignment)) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   *ImageSize = SegmentInfo->Segments[0].ImageAddress;
   for (Index = 0; Index < SegmentInfo->NumSegments; ++Index) {
@@ -100,15 +112,21 @@ CheckToolImageHeaderInfo (
     return false;
   }
 
+  // LCOV_EXCL_START
   if (!IS_ALIGNED (HeaderInfo->BaseAddress, SegmentInfo->SegmentAlignment)) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
 
+  // LCOV_EXCL_STOP
+
+  // LCOV_EXCL_START
   if (HeaderInfo->BaseAddress + ImageSize < HeaderInfo->BaseAddress) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   return true;
 }
@@ -140,7 +158,9 @@ ToolImageGetRelocSize (
   uint8_t  Type
   )
 {
+  // LCOV_EXCL_START
   switch (Type) {
+    // LCOV_EXCL_STOP
     case EFI_IMAGE_REL_BASED_HIGHLOW:
     {
       return sizeof (UINT32);
@@ -158,11 +178,18 @@ ToolImageGetRelocSize (
     }
  #endif
 
+    // LCOV_EXCL_START
     default:
     {
-      return 0;
+      break;
     }
+      // LCOV_EXCL_STOP
   }
+
+  // LCOV_EXCL_START
+  assert (false);
+  return 0;
+  // LCOV_EXCL_STOP
 }
 
 static
@@ -218,11 +245,10 @@ CheckToolImageReloc (
  #endif
 
   // FIXME: Update drivers?
-  if (((Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) ||
-       (Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_SAL_RUNTIME_DRIVER)) &&
+  if ((Image->HeaderInfo.Subsystem == EFI_IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER) &&
       Segment->Write)
   {
-    printf ("!!! writable reloc at %x !!!\n", Reloc->Target);
+    printf ("WARNING: Writable reloc at %x!\n", Reloc->Target);
     // DEBUG_RAISE ();
     // return false;
   }
@@ -248,10 +274,13 @@ CheckToolImageRelocInfo (
     return true;
   }
 
+  // LCOV_EXCL_START
   if (RelocInfo->RelocsStripped) {
-    DEBUG_RAISE ();
+    assert (false);
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   if (RelocInfo->NumRelocs > (MAX_UINT32 / sizeof (UINT16))) {
     DEBUG_RAISE ();
@@ -267,10 +296,13 @@ CheckToolImageRelocInfo (
     }
 
     RelocSize = ToolImageGetRelocSize (RelocInfo->Relocs[Index].Type);
+    // LCOV_EXCL_START
     if (RelocSize == 0) {
-      DEBUG_RAISE ();
+      assert (false);
       return false;
     }
+
+    // LCOV_EXCL_STOP
 
     Result = CheckToolImageReloc (Image, &RelocInfo->Relocs[Index], RelocSize);
     if (!Result) {
@@ -292,6 +324,7 @@ CheckToolImageDebugInfo (
 {
   if (DebugInfo->SymbolsPathLen > MAX_UINT8) {
     DEBUG_RAISE ();
+    printf ("ERROR: Debug symbol path exceeds maximum allowed range of %u bytes!\n", MAX_UINT8);
     return false;
   }
 
@@ -362,33 +395,47 @@ ToolImageDestruct (
   image_tool_image_info_t  *Image
   )
 {
-  uint8_t  Index;
+  uint16_t  Index;
 
+  // LCOV_EXCL_START
   if (Image->SegmentInfo.Segments != NULL) {
+    // LCOV_EXCL_STOP
     for (Index = 0; Index < Image->SegmentInfo.NumSegments; ++Index) {
+      // LCOV_EXCL_START
       if (Image->SegmentInfo.Segments[Index].Name != NULL) {
+        // LCOV_EXCL_STOP
         FreePool (Image->SegmentInfo.Segments[Index].Name);
       }
 
+      // LCOV_EXCL_START
       if (Image->SegmentInfo.Segments[Index].Data != NULL) {
+        // LCOV_EXCL_STOP
         FreePool (Image->SegmentInfo.Segments[Index].Data);
       }
     }
 
+    // LCOV_EXCL_START
     if (Image->SegmentInfo.Segments != NULL) {
+      // LCOV_EXCL_STOP
       FreePool (Image->SegmentInfo.Segments);
     }
   }
 
+  // LCOV_EXCL_START
   if (Image->HiiInfo.Data != NULL) {
+    // LCOV_EXCL_STOP
     FreePool (Image->HiiInfo.Data);
   }
 
+  // LCOV_EXCL_START
   if (Image->RelocInfo.Relocs != NULL) {
+    // LCOV_EXCL_STOP
     FreePool (Image->RelocInfo.Relocs);
   }
 
+  // LCOV_EXCL_START
   if (Image->DebugInfo.SymbolsPath != NULL) {
+    // LCOV_EXCL_STOP
     FreePool (Image->DebugInfo.SymbolsPath);
   }
 
@@ -448,7 +495,9 @@ ToolImageRelocate (
                     );
     assert (Segment != NULL);
 
+    // LCOV_EXCL_START
     switch (Reloc->Type) {
+      // LCOV_EXCL_STOP
       case EFI_IMAGE_REL_BASED_HIGHLOW:
       {
         assert (RemainingSize >= sizeof (UINT32));
@@ -480,11 +529,13 @@ ToolImageRelocate (
       }
  #endif
 
+      // LCOV_EXCL_START
       default:
       {
         assert (false);
         return false;
       }
+        // LCOV_EXCL_STOP
     }
   }
 
@@ -536,14 +587,14 @@ ToolImageSortRelocs (
 
 bool
 ToolImageCompare (
-  const image_tool_image_info_t  *Image1,
-  const image_tool_image_info_t  *Image2
+  const image_tool_image_info_t  *DestImage,
+  const image_tool_image_info_t  *SourceImage
   )
 {
   int         CmpResult;
   uint32_t    SegIndex;
-  const char  *Name1;
-  const char  *Name2;
+  const char  *DestName;
+  const char  *SourceName;
   uint32_t    NameIndex;
 
   //
@@ -551,14 +602,17 @@ ToolImageCompare (
   //
 
   CmpResult = memcmp (
-                &Image1->HeaderInfo,
-                &Image2->HeaderInfo,
-                sizeof (Image1->HeaderInfo)
+                &DestImage->HeaderInfo,
+                &SourceImage->HeaderInfo,
+                sizeof (DestImage->HeaderInfo)
                 );
+  // LCOV_EXCL_START
   if (CmpResult != 0) {
     DEBUG_RAISE ();
     return false;
   }
+
+  // LCOV_EXCL_STOP
 
   //
   // Compare SegmentInfo.
@@ -567,56 +621,84 @@ ToolImageCompare (
   //
 
   CmpResult = memcmp (
-                &Image1->SegmentInfo,
-                &Image2->SegmentInfo,
+                &DestImage->SegmentInfo,
+                &SourceImage->SegmentInfo,
                 OFFSET_OF (image_tool_segment_info_t, Segments)
                 );
+  // LCOV_EXCL_START
   if (CmpResult != 0) {
     DEBUG_RAISE ();
     return false;
   }
 
-  for (SegIndex = 0; SegIndex < Image1->SegmentInfo.NumSegments; ++SegIndex) {
+  // LCOV_EXCL_STOP
+
+  for (SegIndex = 0; SegIndex < DestImage->SegmentInfo.NumSegments; ++SegIndex) {
     CmpResult = memcmp (
-                  &Image1->SegmentInfo.Segments[SegIndex],
-                  &Image2->SegmentInfo.Segments[SegIndex],
+                  &DestImage->SegmentInfo.Segments[SegIndex],
+                  &SourceImage->SegmentInfo.Segments[SegIndex],
                   OFFSET_OF (image_tool_segment_t, Name)
                   );
+    // LCOV_EXCL_START
     if (CmpResult != 0) {
       DEBUG_RAISE ();
       return false;
     }
 
+    // LCOV_EXCL_STOP
+
     //
     // Don't assume images generally support arbitrarily long names or names in
     // general. Check prefix equiality as a best effort.
     //
-    Name1 = Image1->SegmentInfo.Segments[SegIndex].Name;
-    Name2 = Image2->SegmentInfo.Segments[SegIndex].Name;
-    if ((Name1 != NULL) && (Name2 != NULL)) {
+    DestName   = DestImage->SegmentInfo.Segments[SegIndex].Name;
+    SourceName = SourceImage->SegmentInfo.Segments[SegIndex].Name;
+
+    // LCOV_EXCL_START
+    if ((DestName != NULL) && (SourceName == NULL)) {
+      assert (false);
+      return false;
+    }
+
+    // LCOV_EXCL_STOP
+
+    //
+    // When omitting the debug info, some file formats (e.g., UE) may not
+    // contain segment names.
+    //
+    if (DestName != NULL) {
       for (
            NameIndex = 0;
-           Name1[NameIndex] != '\0' && Name2[NameIndex] != '\0';
+           DestName[NameIndex] != '\0' &&
+           // LCOV_EXCL_START
+           SourceName[NameIndex] != '\0';
+           // LCOV_EXCL_STOP
            ++NameIndex
            )
       {
-        if (Name1[NameIndex] != Name2[NameIndex]) {
+        // LCOV_EXCL_START
+        if (DestName[NameIndex] != SourceName[NameIndex]) {
           DEBUG_RAISE ();
           return false;
         }
+
+        // LCOV_EXCL_STOP
       }
     }
 
-    if (Image1->SegmentInfo.Segments[SegIndex].ImageSize != 0) {
+    if (DestImage->SegmentInfo.Segments[SegIndex].ImageSize != 0) {
       CmpResult = memcmp (
-                    Image1->SegmentInfo.Segments[SegIndex].Data,
-                    Image2->SegmentInfo.Segments[SegIndex].Data,
-                    Image1->SegmentInfo.Segments[SegIndex].ImageSize
+                    DestImage->SegmentInfo.Segments[SegIndex].Data,
+                    SourceImage->SegmentInfo.Segments[SegIndex].Data,
+                    DestImage->SegmentInfo.Segments[SegIndex].ImageSize
                     );
+      // LCOV_EXCL_START
       if (CmpResult != 0) {
         DEBUG_RAISE ();
         return false;
       }
+
+      // LCOV_EXCL_STOP
     }
   }
 
@@ -625,25 +707,31 @@ ToolImageCompare (
   //
 
   CmpResult = memcmp (
-                &Image1->RelocInfo,
-                &Image2->RelocInfo,
+                &DestImage->RelocInfo,
+                &SourceImage->RelocInfo,
                 OFFSET_OF (image_tool_reloc_info_t, Relocs)
                 );
+  // LCOV_EXCL_START
   if (CmpResult != 0) {
     DEBUG_RAISE ();
     return false;
   }
 
-  if (Image1->RelocInfo.NumRelocs != 0) {
+  // LCOV_EXCL_STOP
+
+  if (DestImage->RelocInfo.NumRelocs != 0) {
     CmpResult = memcmp (
-                  Image1->RelocInfo.Relocs,
-                  Image2->RelocInfo.Relocs,
-                  Image1->RelocInfo.NumRelocs * sizeof (*Image1->RelocInfo.Relocs)
+                  DestImage->RelocInfo.Relocs,
+                  SourceImage->RelocInfo.Relocs,
+                  DestImage->RelocInfo.NumRelocs * sizeof (*DestImage->RelocInfo.Relocs)
                   );
+    // LCOV_EXCL_START
     if (CmpResult != 0) {
       DEBUG_RAISE ();
       return false;
     }
+
+    // LCOV_EXCL_STOP
   }
 
   //
@@ -651,55 +739,70 @@ ToolImageCompare (
   //
 
   CmpResult = memcmp (
-                &Image1->HiiInfo,
-                &Image2->HiiInfo,
+                &DestImage->HiiInfo,
+                &SourceImage->HiiInfo,
                 OFFSET_OF (image_tool_hii_info_t, Data)
                 );
+  // LCOV_EXCL_START
   if (CmpResult != 0) {
     DEBUG_RAISE ();
     return false;
   }
 
-  if (Image1->HiiInfo.DataSize != 0) {
+  // LCOV_EXCL_STOP
+
+  // LCOV_EXCL_START
+  if (DestImage->HiiInfo.DataSize != 0) {
     CmpResult = memcmp (
-                  Image1->HiiInfo.Data,
-                  Image2->HiiInfo.Data,
-                  Image1->HiiInfo.DataSize
+                  DestImage->HiiInfo.Data,
+                  SourceImage->HiiInfo.Data,
+                  DestImage->HiiInfo.DataSize
                   );
     if (CmpResult != 0) {
       DEBUG_RAISE ();
       return false;
     }
   }
+
+  // LCOV_EXCL_STOP
 
   //
   // Compare DebugInfo.
   //
 
   CmpResult = memcmp (
-                &Image1->DebugInfo,
-                &Image2->DebugInfo,
+                &DestImage->DebugInfo,
+                &SourceImage->DebugInfo,
                 OFFSET_OF (image_tool_debug_info_t, SymbolsPath)
                 );
+  // LCOV_EXCL_START
   if (CmpResult != 0) {
     DEBUG_RAISE ();
     return false;
   }
 
-  if ((Image1->DebugInfo.SymbolsPath != NULL) != (Image2->DebugInfo.SymbolsPath != NULL)) {
+  // LCOV_EXCL_STOP
+
+  // LCOV_EXCL_START
+  if ((DestImage->DebugInfo.SymbolsPath != NULL) != (SourceImage->DebugInfo.SymbolsPath != NULL)) {
     DEBUG_RAISE ();
     return false;
   }
 
-  if (Image1->DebugInfo.SymbolsPath != NULL) {
+  // LCOV_EXCL_STOP
+
+  if (DestImage->DebugInfo.SymbolsPath != NULL) {
     CmpResult = strcmp (
-                  Image1->DebugInfo.SymbolsPath,
-                  Image2->DebugInfo.SymbolsPath
+                  DestImage->DebugInfo.SymbolsPath,
+                  SourceImage->DebugInfo.SymbolsPath
                   );
+    // LCOV_EXCL_START
     if (CmpResult != 0) {
       DEBUG_RAISE ();
       return false;
     }
+
+    // LCOV_EXCL_STOP
   }
 
   return true;

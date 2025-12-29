@@ -12,10 +12,21 @@ EFI_PEI_LOAD_FILE_PPI  mPeiLoadImagePpi = {
   PeiLoadImageLoadImageWrapper
 };
 
-EFI_PEI_PPI_DESCRIPTOR  gPpiLoadFilePpiList = {
-  (EFI_PEI_PPI_DESCRIPTOR_PPI | EFI_PEI_PPI_DESCRIPTOR_TERMINATE_LIST),
-  &gEfiPeiLoadFilePpiGuid,
-  &mPeiLoadImagePpi
+EFI_PEI_LOAD_FILE_WITH_HOB_PPI  mPeiLoadImageWithHobPpi = {
+  PeiLoadImageLoadImageWithHob
+};
+
+EFI_PEI_PPI_DESCRIPTOR  gPpiLoadFilePpiList[] = {
+  {
+    EFI_PEI_PPI_DESCRIPTOR_PPI,
+    &gEfiPeiLoadFileWithHobPpiGuid,
+    &mPeiLoadImageWithHobPpi
+  },
+  {
+    (EFI_PEI_PPI_DESCRIPTOR_PPI | EFI_PEI_PPI_DESCRIPTOR_TERMINATE_LIST),
+    &gEfiPeiLoadFilePpiGuid,
+    &mPeiLoadImagePpi
+  }
 };
 
 /**
@@ -501,7 +512,6 @@ PeiLoadImageLoadImage (
              &ImageAddress,
              &DebugBase
              );
-
   if (EFI_ERROR (Status)) {
     return Status;
   }
@@ -541,7 +551,145 @@ PeiLoadImageLoadImage (
              EfiFileName,
              sizeof (EfiFileName)
              );
+  if (!RETURN_ERROR (Status)) {
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
+  }
 
+  DEBUG ((DEBUG_INFO | DEBUG_LOAD, "\n"));
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+PeiLoadImageLoadImageWithHob (
+  IN     EFI_PEI_FILE_HANDLE   FileHandle,
+  OUT    EFI_PHYSICAL_ADDRESS  *ImageAddressArg   OPTIONAL,
+  OUT    UINT64                *ImageSizeArg      OPTIONAL,
+  OUT    EFI_PHYSICAL_ADDRESS  *EntryPoint,
+  OUT    UINT32                *AuthenticationState,
+  OUT    HOB_IMAGE_CONTEXT     *Hob
+  )
+{
+  EFI_STATUS                       Status;
+  VOID                             *Pe32Data;
+  UINT32                           Pe32DataSize;
+  EFI_PHYSICAL_ADDRESS             ImageAddress;
+  UINT16                           Machine;
+  UINTN                            DebugBase;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
+  CHAR8                            EfiFileName[512];
+
+  *EntryPoint          = 0;
+  *AuthenticationState = 0;
+
+  //
+  // Try to find the exe section.
+  //
+  Status = PeiServicesFfsFindSectionData4 (
+             EFI_SECTION_PE32,
+             0,
+             FileHandle,
+             &Pe32Data,
+             &Pe32DataSize,
+             AuthenticationState
+             );
+  if (EFI_ERROR (Status)) {
+    //
+    // PEI core only carry the loader function for PE32 executables
+    // If this two section does not exist, just return.
+    //
+    return Status;
+  }
+
+  DEBUG ((DEBUG_INFO, "Loading PEIM %g\n", FileHandle));
+
+  //
+  // If memory is installed, perform the shadow operations
+  //
+  Status = LoadAndRelocateUefiImage (
+             FileHandle,
+             Pe32Data,
+             Pe32DataSize,
+             &ImageContext,
+             &ImageAddress,
+             &DebugBase
+             );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  //
+  // Save ImageContext into DXE CORE HOB
+  //
+  Hob->FormatIndex = ImageContext.FormatIndex;
+
+  if (Hob->FormatIndex == UefiImageFormatPe) {
+    Hob->Ctx.Pe.ImageBuffer         = (UINT32)(UINTN)ImageContext.Ctx.Pe.ImageBuffer;
+    Hob->Ctx.Pe.AddressOfEntryPoint = ImageContext.Ctx.Pe.AddressOfEntryPoint;
+    Hob->Ctx.Pe.ImageType           = ImageContext.Ctx.Pe.ImageType;
+    Hob->Ctx.Pe.FileBuffer          = (UINT32)(UINTN)ImageContext.Ctx.Pe.FileBuffer;
+    Hob->Ctx.Pe.ExeHdrOffset        = ImageContext.Ctx.Pe.ExeHdrOffset;
+    Hob->Ctx.Pe.SizeOfImage         = ImageContext.Ctx.Pe.SizeOfImage;
+    Hob->Ctx.Pe.FileSize            = ImageContext.Ctx.Pe.FileSize;
+    Hob->Ctx.Pe.Subsystem           = ImageContext.Ctx.Pe.Subsystem;
+    Hob->Ctx.Pe.SectionAlignment    = ImageContext.Ctx.Pe.SectionAlignment;
+    Hob->Ctx.Pe.SectionsOffset      = ImageContext.Ctx.Pe.SectionsOffset;
+    Hob->Ctx.Pe.NumberOfSections    = ImageContext.Ctx.Pe.NumberOfSections;
+    Hob->Ctx.Pe.SizeOfHeaders       = ImageContext.Ctx.Pe.SizeOfHeaders;
+  } else if (Hob->FormatIndex == UefiImageFormatUe) {
+    Hob->Ctx.Ue.ImageBuffer              = (UINT32)(UINTN)ImageContext.Ctx.Ue.ImageBuffer;
+    Hob->Ctx.Ue.FileBuffer               = (UINT32)(UINTN)ImageContext.Ctx.Ue.FileBuffer;
+    Hob->Ctx.Ue.EntryPointAddress        = ImageContext.Ctx.Ue.EntryPointAddress;
+    Hob->Ctx.Ue.LoadTablesFileOffset     = ImageContext.Ctx.Ue.LoadTablesFileOffset;
+    Hob->Ctx.Ue.NumLoadTables            = ImageContext.Ctx.Ue.NumLoadTables;
+    Hob->Ctx.Ue.LoadTables               = (UINT32)(UINTN)ImageContext.Ctx.Ue.LoadTables;
+    Hob->Ctx.Ue.Segments                 = (UINT32)(UINTN)ImageContext.Ctx.Ue.Segments;
+    Hob->Ctx.Ue.LastSegmentIndex         = ImageContext.Ctx.Ue.LastSegmentIndex;
+    Hob->Ctx.Ue.SegmentAlignment         = ImageContext.Ctx.Ue.SegmentAlignment;
+    Hob->Ctx.Ue.ImageSize                = ImageContext.Ctx.Ue.ImageSize;
+    Hob->Ctx.Ue.Subsystem                = ImageContext.Ctx.Ue.Subsystem;
+    Hob->Ctx.Ue.SegmentImageInfoIterSize = ImageContext.Ctx.Ue.SegmentImageInfoIterSize;
+    Hob->Ctx.Ue.SegmentsFileOffset       = ImageContext.Ctx.Ue.SegmentsFileOffset;
+  } else {
+    ASSERT (FALSE);
+  }
+
+  //
+  // Got the entry point from the loaded Pe32Data
+  //
+  *EntryPoint = UefiImageLoaderGetImageEntryPoint (&ImageContext);
+
+  if (ImageAddressArg != NULL) {
+    *ImageAddressArg = ImageAddress;
+  }
+
+  if (ImageSizeArg != NULL) {
+    *ImageSizeArg = UefiImageGetImageSize (&ImageContext);
+  }
+
+  Machine = UefiImageGetMachine (&ImageContext);
+
+  //
+  // Print debug message: Loading PEIM at 0x12345678 EntryPoint=0x12345688 Driver.efi
+  //
+  if (Machine != EFI_IMAGE_MACHINE_IA64) {
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p DebugBase=0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)DebugBase, (VOID *)(UINTN)*EntryPoint));
+  } else {
+    //
+    // For IPF Image, the real entry point should be print.
+    //
+    DEBUG ((DEBUG_INFO | DEBUG_LOAD, "Loading PEIM at 0x%11p DebugBase=0x%11p EntryPoint=0x%11p ", (VOID *)(UINTN)ImageAddress, (VOID *)(UINTN)DebugBase, (VOID *)(UINTN)(*(UINT64 *)(UINTN)*EntryPoint)));
+  }
+
+  //
+  // Print Module Name by PeImage PDB file name.
+  //
+  Status = UefiImageGetModuleNameFromSymbolsPath (
+             &ImageContext,
+             EfiFileName,
+             sizeof (EfiFileName)
+             );
   if (!RETURN_ERROR (Status)) {
     DEBUG ((DEBUG_INFO | DEBUG_LOAD, "%a", EfiFileName));
   }
@@ -748,13 +896,13 @@ InitializeImageServices (
     // The first time we are XIP (running from FLASH). We need to remember the
     // FLASH address so we can reinstall the memory version that runs faster
     //
-    PrivateData->XipLoadFile = &gPpiLoadFilePpiList;
+    PrivateData->XipLoadFile = gPpiLoadFilePpiList;
     PeiServicesInstallPpi (PrivateData->XipLoadFile);
   } else {
     //
     // 2nd time we are running from memory so replace the XIP version with the
     // new memory version.
     //
-    PeiServicesReInstallPpi (PrivateData->XipLoadFile, &gPpiLoadFilePpiList);
+    PeiServicesReInstallPpi (PrivateData->XipLoadFile, gPpiLoadFilePpiList);
   }
 }

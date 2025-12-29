@@ -93,12 +93,7 @@ UefiImageGetModuleNameFromSymbolsPath (
   // the debug symbols for the Image.
   //
   StartIndex = 0;
-  for (
-       Index = 0;
-       Index < SymbolsPathSize && SymbolsPath[Index] != '\0';
-       ++Index
-       )
-  {
+  for (Index = 0; Index < SymbolsPathSize - 1; ++Index) {
     if ((SymbolsPath[Index] == '\\') || (SymbolsPath[Index] == '/')) {
       StartIndex = Index + 1;
     }
@@ -110,7 +105,7 @@ UefiImageGetModuleNameFromSymbolsPath (
   //
   for (
        Index = 0;
-       Index < MIN (ModuleNameSize, SymbolsPathSize);
+       Index < MIN (ModuleNameSize, SymbolsPathSize) - 1;
        ++Index
        )
   {
@@ -120,7 +115,7 @@ UefiImageGetModuleNameFromSymbolsPath (
     }
 
     if (ModuleName[Index] == '.') {
-      if (Index > ModuleNameSize - 3) {
+      if (Index >= ModuleNameSize - 4) {
         break;
       }
 
@@ -145,7 +140,7 @@ UefiImageDebugPrintImageRecord (
   IN CONST UEFI_IMAGE_RECORD  *ImageRecord
   )
 {
-  UINT16  SegmentIndex;
+  UINT32  SegmentIndex;
   UINTN   SegmentAddress;
 
   ASSERT (ImageRecord != NULL);

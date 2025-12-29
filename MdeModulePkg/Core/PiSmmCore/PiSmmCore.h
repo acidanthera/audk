@@ -1398,3 +1398,14 @@ SmmInsertImageRecord (
   IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
   IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
   );
+
+/**
+  Insert image record.
+
+  @param[in]  DriverEntry    Driver information
+**/
+VOID
+SmmInsertImageRecord (
+  IN EFI_LOADED_IMAGE_PROTOCOL        *LoadedImage,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext
+  );

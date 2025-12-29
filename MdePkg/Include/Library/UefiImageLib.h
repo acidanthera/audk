@@ -3,10 +3,12 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
+#include <Library/UeImageLib.h>
 #include <Library/PeCoffLib2.h>
 
 typedef enum {
   UefiImageFormatPe = 0,
+  UefiImageFormatUe = 1,
   UefiImageFormatMax
 } UEFI_IMAGE_FORMAT;
 
@@ -15,11 +17,52 @@ typedef enum {
 #define UEFI_IMAGE_SOURCE_ALL     2U
 #define UEFI_IMAGE_SOURCE_MAX     3U
 
+// FIXME: Get rid of pointers.
+typedef struct {
+  UINT32    ImageBuffer;
+  UINT32    AddressOfEntryPoint;
+  UINT8     ImageType;
+  UINT32    FileBuffer;
+  UINT32    ExeHdrOffset;
+  UINT32    SizeOfImage;
+  UINT32    FileSize;
+  UINT16    Subsystem;
+  UINT32    SectionAlignment;
+  UINT32    SectionsOffset;
+  UINT16    NumberOfSections;
+  UINT32    SizeOfHeaders;
+} PE_HOB_IMAGE_CONTEXT;
+
+typedef struct {
+  UINT32    ImageBuffer;
+  UINT32    FileBuffer;
+  UINT32    EntryPointAddress;
+  UINT32    LoadTablesFileOffset;
+  UINT8     NumLoadTables;
+  UINT32    LoadTables;
+  UINT32    Segments;
+  UINT8     LastSegmentIndex;
+  UINT32    SegmentAlignment;
+  UINT32    ImageSize;
+  UINT8     Subsystem;
+  UINT8     SegmentImageInfoIterSize;
+  UINT32    SegmentsFileOffset;
+} UE_HOB_IMAGE_CONTEXT;
+
+typedef struct {
+  UINT8    FormatIndex;
+  union {
+    UE_HOB_IMAGE_CONTEXT    Ue;
+    PE_HOB_IMAGE_CONTEXT    Pe;
+  }                       Ctx;
+} HOB_IMAGE_CONTEXT;
+
 typedef UINT8 UEFI_IMAGE_SOURCE;
 
 typedef struct {
   UINT8    FormatIndex;
   union {
+    UE_LOADER_IMAGE_CONTEXT         Ue;
     PE_COFF_LOADER_IMAGE_CONTEXT    Pe;
   }                               Ctx;
 } UEFI_IMAGE_LOADER_IMAGE_CONTEXT;
@@ -573,6 +616,22 @@ UefiImageGetRelocsStripped (
 **/
 UINTN
 UefiImageLoaderGetImageAddress (
+  IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
+  );
+
+/**
+  Retrieves the Image debug address. Due to post-processing, the debug address
+  may deviate from the load address. Symbolication must use this address.
+
+  May be called only after UefiImageLoadImage() has succeeded.
+
+  @param[in,out] Context  The context describing the Image. Must have been
+                          initialised by UefiImageInitializeContext().
+
+  @returns  The Image debug address.
+**/
+UINTN
+UefiImageLoaderGetDebugAddress (
   IN CONST UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *Context
   );
 
