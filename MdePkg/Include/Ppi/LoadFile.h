@@ -12,10 +12,13 @@
 #ifndef __LOAD_FILE_PPI_H__
 #define __LOAD_FILE_PPI_H__
 
+#include <Library/UefiImageLib.h>
+
 #define EFI_PEI_LOAD_FILE_PPI_GUID \
   { 0xb9e0abfe, 0x5979, 0x4914, { 0x97, 0x7f, 0x6d, 0xee, 0x78, 0xc2, 0x78, 0xa6 } }
 
-typedef struct _EFI_PEI_LOAD_FILE_PPI EFI_PEI_LOAD_FILE_PPI;
+typedef struct _EFI_PEI_LOAD_FILE_PPI           EFI_PEI_LOAD_FILE_PPI;
+typedef struct _EFI_PEI_LOAD_FILE_WITH_HOB_PPI  EFI_PEI_LOAD_FILE_WITH_HOB_PPI;
 
 /**
   Loads a PEIM into memory for subsequent execution.
@@ -56,6 +59,17 @@ EFI_STATUS
   OUT UINT32                         *AuthenticationState
   );
 
+typedef
+EFI_STATUS
+(EFIAPI *EFI_PEI_LOAD_FILE_WITH_HOB)(
+  IN  EFI_PEI_FILE_HANDLE            FileHandle,
+  OUT EFI_PHYSICAL_ADDRESS           *ImageAddress,
+  OUT UINT64                         *ImageSize,
+  OUT EFI_PHYSICAL_ADDRESS           *EntryPoint,
+  OUT UINT32                         *AuthenticationState,
+  OUT HOB_IMAGE_CONTEXT              *Hob
+  );
+
 ///
 /// This PPI is a pointer to the Load File service.
 /// This service will be published by a PEIM. The PEI Foundation
@@ -65,6 +79,11 @@ struct _EFI_PEI_LOAD_FILE_PPI {
   EFI_PEI_LOAD_FILE    LoadFile;
 };
 
+struct _EFI_PEI_LOAD_FILE_WITH_HOB_PPI {
+  EFI_PEI_LOAD_FILE_WITH_HOB    LoadFile;
+};
+
 extern EFI_GUID  gEfiPeiLoadFilePpiGuid;
+extern EFI_GUID  gEfiPeiLoadFileWithHobPpiGuid;
 
 #endif

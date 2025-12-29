@@ -72,6 +72,7 @@
   MdePkg/MdePkg.dec
   MdeModulePkg/MdeModulePkg.dec
   UefiCpuPkg/UefiCpuPkg.dec
+  OvmfPkg/OvmfPkg.dec
 
 [LibraryClasses]
   BaseMemoryLib
@@ -126,6 +127,7 @@
   gEfiMemoryAttributesTableGuid                 ## SOMETIMES_PRODUCES   ## SystemTable
   gEfiEndOfDxeEventGroupGuid                    ## SOMETIMES_CONSUMES   ## Event
   gEfiHobMemoryAllocStackGuid                   ## SOMETIMES_CONSUMES   ## SystemTable
+  gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
 
 [Ppis]
   gEfiVectorHandoffInfoPpiGuid                  ## UNDEFINED # HOB

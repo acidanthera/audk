@@ -84,6 +84,7 @@
   UefiImageOnlyNonFvLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyNonFvLib.inf
   UefiImageOnlyFvLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyFvLib.inf
   UefiImageAllLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageAllLib.inf
+  UeImageLib|MdePkg/Library/BaseUeImageLib/BaseUeImageLib.inf
 
 [LibraryClasses.common.USER_DEFINED, LibraryClasses.common.SEC, LibraryClasses.common.PEI_CORE, LibraryClasses.common.PEIM, LibraryClasses.common.SMM_CORE, LibraryClasses.common.MM_CORE_STANDALONE, LibraryClasses.common.DXE_SMM_DRIVER, LibraryClasses.common.MM_STANDALONE]
   UefiImageLib|MdePkg/Library/BaseUefiImageLib/BaseUefiImageOnlyFvLib.inf

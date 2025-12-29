@@ -191,6 +191,11 @@
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageVariableSize   | 0x40000
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwSpareSize   | 0x40000
   gEfiMdeModulePkgTokenSpaceGuid.PcdFlashNvStorageFtwWorkingSize | 0x40000
+  
+  #
+  # Firmware volume supports UE, and may require PE.
+  #
+  gEfiMdePkgTokenSpaceGuid.PcdUefiImageFormatSupportFv|0x03
 
 [PcdsPatchableInModule.common]
   # we need to provide a resolution for this PCD that supports PcdSet64()

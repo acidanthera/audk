@@ -1489,6 +1489,17 @@ PeiLoadImageLoadImageWrapper (
   OUT    UINT32                       *AuthenticationState
   );
 
+EFI_STATUS
+EFIAPI
+PeiLoadImageLoadImageWithHob (
+  IN     EFI_PEI_FILE_HANDLE   FileHandle,
+  OUT    EFI_PHYSICAL_ADDRESS  *ImageAddressArg   OPTIONAL,
+  OUT    UINT64                *ImageSizeArg      OPTIONAL,
+  OUT    EFI_PHYSICAL_ADDRESS  *EntryPoint,
+  OUT    UINT32                *AuthenticationState,
+  OUT    HOB_IMAGE_CONTEXT     *Hob
+  );
+
 /**
 
   Provide a callback for when the security PPI is installed.
