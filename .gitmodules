@@ -35,3 +35,6 @@
 [submodule "SecurityPkg/DeviceSecurity/SpdmLib/libspdm"]
 	path = SecurityPkg/DeviceSecurity/SpdmLib/libspdm
 	url = https://github.com/DMTF/libspdm.git
+[submodule "OpenCorePkg"]
+	path = OpenCorePkg
+	url = https://github.com/acidanthera/OpenCorePkg.git

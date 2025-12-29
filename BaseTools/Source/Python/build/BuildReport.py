@@ -643,11 +643,11 @@ class ModuleReport(object):
             if os.path.isfile(DefaultEFIfile):
                 Tempfile = os.path.join(OutputDir, self.ModuleName + "_hash.tmp")
                 # rebase the efi image since its base address may not zero
-                cmd = ["GenFw", "--rebase", str(0), "-o", Tempfile, DefaultEFIfile]
+                cmd = ["ImageTool GenImage -b 0 -o", Tempfile, DefaultEFIfile]
                 try:
                     PopenObject = subprocess.Popen(' '.join(cmd), stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
                 except Exception as X:
-                    EdkLogger.error("GenFw", COMMAND_FAILURE, ExtraData="%s: %s" % (str(X), cmd[0]))
+                    EdkLogger.error("ImageTool", COMMAND_FAILURE, ExtraData="%s: %s" % (str(X), cmd[0]))
                 EndOfProcedure = threading.Event()
                 EndOfProcedure.clear()
                 if PopenObject.stderr:
@@ -660,7 +660,7 @@ class ModuleReport(object):
                 if PopenObject.stderr:
                     StdErrThread.join()
                 if PopenObject.returncode != 0:
-                    EdkLogger.error("GenFw", COMMAND_FAILURE, "Failed to generate firmware hash image for %s" % (DefaultEFIfile))
+                    EdkLogger.error("ImageTool", COMMAND_FAILURE, "Failed to generate firmware hash image for %s" % (DefaultEFIfile))
                 if os.path.isfile(Tempfile):
                     self.Hash = hashlib.sha1()
                     buf = open(Tempfile, 'rb').read()
