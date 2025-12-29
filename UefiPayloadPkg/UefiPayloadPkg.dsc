@@ -191,19 +191,6 @@
 [BuildOptions.AARCH64]
   GCC:*_*_*_CC_FLAGS         = -mcmodel=tiny -mstrict-align
 
-[BuildOptions.common.EDKII.DXE_RUNTIME_DRIVER]
-  GCC:*_*_*_DLINK_FLAGS      = -z common-page-size=0x1000
-  XCODE:*_*_*_DLINK_FLAGS    = -seg1addr 0x1000 -segalign 0x1000
-  XCODE:*_*_*_MTOC_FLAGS     = -align 0x1000
-  CLANGPDB:*_*_*_DLINK_FLAGS = /ALIGN:4096
-  MSFT:*_*_*_DLINK_FLAGS     = /ALIGN:4096
-
-[BuildOptions.IA32.EDKII.DXE_RUNTIME_DRIVER, BuildOptions.X64.EDKII.DXE_RUNTIME_DRIVER]
-  GCC:*_*_*_DLINK_FLAGS      = -z common-page-size=0x1000
-
-[BuildOptions.AARCH64.EDKII.DXE_RUNTIME_DRIVER]
-  GCC:*_*_*_DLINK_FLAGS      = -z common-page-size=0x10000
-
 ################################################################################
 #
 # SKU Identification section - list of all SKU IDs supported by this Platform.
@@ -474,7 +461,7 @@
 !if $(MULTIPLE_DEBUG_PORT_SUPPORT) == TRUE
   SerialPortLib|UefiPayloadPkg/Library/BaseSerialPortLibHob/BaseSerialPortLibHob.inf
 !endif
-  MemoryAllocationLib|UefiPayloadPkg/Library/UefiPayloadEntryMemoryAllocationLib/UefiPayloadEntryMemoryAllocationLib.inf
+  MemoryAllocationLib|UefiPayloadPkg/Library/UefiPayloadMemoryAllocationLib/UefiPayloadMemoryAllocationLib.inf
 
 [LibraryClasses.common.DXE_CORE]
   DxeHobListLib|UefiPayloadPkg/Library/DxeHobListLibNull/DxeHobListLibNull.inf
