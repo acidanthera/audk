@@ -198,11 +198,17 @@ MenuBarDispatchControlHotKey (
     //
     // For consoles that supports/reports shift state,
     // make sure only CONTROL is pressed.
+    // For some consoles that report shift state,
+    // Ctrl+A is still translated to 1 (UnicodeChar).
     //
     if ((KeyData->Key.UnicodeChar >= L'A') && (KeyData->Key.UnicodeChar <= L'Z')) {
       ControlIndex = KeyData->Key.UnicodeChar - L'A' + 1;
     } else if ((KeyData->Key.UnicodeChar >= L'a') && (KeyData->Key.UnicodeChar <= L'z')) {
       ControlIndex = KeyData->Key.UnicodeChar - L'a' + 1;
+    } else if ((KeyData->Key.UnicodeChar >= L'A' - L'A' + 1) && (KeyData->Key.UnicodeChar <= L'Z' - L'A' + 1)) {
+      ControlIndex = KeyData->Key.UnicodeChar;
+    } else if ((KeyData->Key.UnicodeChar >= L'a' - L'a' + 1) && (KeyData->Key.UnicodeChar <= L'z' - L'z' + 1)) {
+      ControlIndex = KeyData->Key.UnicodeChar;
     }
   }
 

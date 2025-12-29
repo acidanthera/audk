@@ -129,6 +129,8 @@ InputBarRefresh (
   UINTN                  EventIndex;
   UINTN                  CursorRow;
   UINTN                  CursorCol;
+  BOOLEAN                ShiftPressed;
+  BOOLEAN                ModifiersPressed;
 
   //
   // variable initialization
@@ -182,19 +184,24 @@ InputBarRefresh (
       continue;
     }
 
-    if (((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0) &&
-        (KeyData.KeyState.KeyShiftState != EFI_SHIFT_STATE_VALID))
-    {
-      //
-      // Shift key pressed.
-      //
+    ModifiersPressed = ((KeyData.KeyState.KeyShiftState & EFI_SHIFT_STATE_VALID) != 0)
+                       && (KeyData.KeyState.KeyShiftState != EFI_SHIFT_STATE_VALID);
+
+    //
+    // TRUE if Shift is pressed and no other modifiers are pressed
+    //
+    ShiftPressed = ModifiersPressed &&
+                   ((KeyData.KeyState.KeyShiftState &
+                     ~(EFI_SHIFT_STATE_VALID | EFI_LEFT_SHIFT_PRESSED | EFI_RIGHT_SHIFT_PRESSED)) == 0);
+
+    if (ModifiersPressed && !ShiftPressed) {
       continue;
     }
 
     //
     // pressed ESC
     //
-    if (KeyData.Key.ScanCode == SCAN_ESC) {
+    if (!ModifiersPressed && (KeyData.Key.ScanCode == SCAN_ESC)) {
       Size   = 0;
       Status = EFI_NOT_READY;
       break;
@@ -203,9 +210,11 @@ InputBarRefresh (
     //
     // return pressed
     //
-    if ((KeyData.Key.UnicodeChar == CHAR_LINEFEED) || (KeyData.Key.UnicodeChar == CHAR_CARRIAGE_RETURN)) {
+    if (  !ModifiersPressed
+       && ((KeyData.Key.UnicodeChar == CHAR_LINEFEED) || (KeyData.Key.UnicodeChar == CHAR_CARRIAGE_RETURN)))
+    {
       break;
-    } else if (KeyData.Key.UnicodeChar == CHAR_BACKSPACE) {
+    } else if (!ModifiersPressed && (KeyData.Key.UnicodeChar == CHAR_BACKSPACE)) {
       //
       // backspace
       //
@@ -216,7 +225,9 @@ InputBarRefresh (
           InputBarPrintInput (LastColumn, LastRow);
         }
       }
-    } else if ((KeyData.Key.UnicodeChar <= 127) && (KeyData.Key.UnicodeChar >= 32)) {
+    } else if (  (!ModifiersPressed || ShiftPressed)
+              && (KeyData.Key.UnicodeChar <= 127) && (KeyData.Key.UnicodeChar >= 32))
+    {
       //
       // VALID ASCII char pressed
       //
