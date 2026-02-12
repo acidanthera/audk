@@ -145,7 +145,7 @@ jobs:
           SKIP_PACKAGE: 1
 
   build-windows:
-    name: Windows VS2019
+    name: Windows VS2022
     runs-on: windows-latest
     env:
       CC: gcc
@@ -156,6 +156,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: true
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x86
 
       - name: Install Dependencies
         run: |
