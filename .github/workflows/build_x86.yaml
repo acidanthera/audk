@@ -123,7 +123,7 @@ jobs:
           path: XCODE5_fw_artifacts.zip
 
   build-windows:
-    name: Windows VS2019
+    name: Windows VS2022
     runs-on: windows-latest
     env:
       CC: gcc
@@ -134,6 +134,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x86
 
       - name: Install Dependencies
         run: |
