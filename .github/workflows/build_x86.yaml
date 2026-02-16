@@ -1,0 +1,610 @@
+name: Build X86 Firmwares
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+  QEMU_VERSION_TAG: qemu-ci-9.2.2-r1
+  WINPE_VERSION_TAG: images-winpe-1.0
+
+jobs:
+  build-macos:
+    name: macOS XCODE5
+    runs-on: macos-latest
+    env:
+      JOB_TYPE: BUILD
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Add Linux Toolchain
+        run: brew tap FiloSottile/homebrew-musl-cross
+
+      - name: Install Linux Toolchain
+        run: brew install musl-cross
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: Install Dependencies
+        run: brew install openssl mingw-w64
+        env:
+          HOMEBREW_NO_INSTALL_CLEANUP: 1
+          HOMEBREW_NO_AUTO_UPDATE: 1
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: XCODE5
+
+      - name: Zip artifacts
+        run: zip XCODE5_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: XCODE5 Firmware Artifacts
+          path: XCODE5_fw_artifacts.zip
+
+  build-windows:
+    name: Windows VS2022
+    runs-on: windows-latest
+    env:
+      CC: gcc
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - uses: TheMrMilchmann/setup-msvc-dev@v4
+        with:
+          arch: x86
+
+      - name: Install Dependencies
+        run: |
+          choco install make nasm zip iasl --no-progress
+
+      - name: CI Bootstrap
+        run: |
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          cmd <<< "mklink /D .\\UDK .\\" > /dev/null
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: UefiPayloadPkg
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: VS2019
+
+      - name: Zip artifacts
+        run: zip VS2019_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: VS2019 Firmware Artifacts
+          path: VS2019_fw_artifacts.zip
+
+  build-linux-clangpdb:
+    name: Linux CLANGPDB
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGPDB
+
+      - name: Zip artifacts
+        run: zip CLANGPDB_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLANGPDB Firmware Artifacts
+          path: CLANGPDB_fw_artifacts.zip
+
+  build-linux-clangdwarf:
+    name: Linux CLANGDWARF
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: CLANGDWARF
+
+      - name: Zip artifacts
+        run: zip CLANGDWARF_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: CLANGDWARF Firmware Artifacts
+          path: CLANGDWARF_fw_artifacts.zip
+
+  build-linux-gcc5:
+    name: Linux GCC5
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC5
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG,NOOPT
+          TOOLCHAIN: GCC5
+
+      - name: Zip artifacts
+        run: zip GCC5_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCC5 Firmware Artifacts
+          path: GCC5_fw_artifacts.zip
+
+  test-firmwares:
+    name: Test
+    runs-on: ubuntu-22.04
+    needs: [build-macos, build-windows, build-linux-clangpdb, build-linux-clangdwarf, build-linux-gcc5]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "Ovmf", archs: "X64,3264", toolchain: "XCODE5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "X64,3264", toolchain: "GCC5", targets: "RELEASE,DEBUG,NOOPT"},
+        ]
+    steps:
+      - name: Checkout ocbuild repository
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/ocbuild
+          ref: master
+          path: ./
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip libglib2.0-dev libfdt-dev libpixman-1-dev libepoxy-dev libcapstone-dev libsdl2-dev libnuma-dev libgtk-3-dev libvte-2.91-dev libbrlapi-dev libiscsi-dev libnfs-dev  librbd-dev libxen-dev
+          python3 -m pip install -r requirements.txt
+
+      - name: Downloading QEMU
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.QEMU_VERSION_TAG }}
+          fileName: "qemu.tar.xz"
+
+      - name: Installing QEMU and add to PATH
+        run: |
+          echo "${HOME}/qemu/bin" >> $GITHUB_PATH
+          tar -xJf ./qemu.tar.xz -C $HOME
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.package.toolchain }} Firmware Artifacts
+
+      - name: Unzip artifacts
+        run: unzip "$TOOLCHAIN"_fw_artifacts.zip
+        env:
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Downloading Windows PE X64 iso
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.WINPE_VERSION_TAG }}
+          fileName: "winpe_X64.iso"
+
+      - name: Run TestConsole
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestLinux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run Windows PE
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-winpe --test-winpe-path winpe_X64.iso
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
