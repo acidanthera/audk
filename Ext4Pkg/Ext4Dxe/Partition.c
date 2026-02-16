@@ -89,6 +89,7 @@ Ext4SetupFile (
   File->Protocol.GetPosition = Ext4GetPosition;
   File->Protocol.GetInfo     = Ext4GetInfo;
   File->Protocol.SetInfo     = Ext4SetInfo;
+  File->Protocol.Flush       = Ext4Flush;
 
   File->Partition = Partition;
 }

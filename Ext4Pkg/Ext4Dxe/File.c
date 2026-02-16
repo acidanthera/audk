@@ -556,6 +556,37 @@ Ext4WriteFile (
 }
 
 /**
+  Flushes all modified data associated with a file to a device
+
+  @param[in]      This        A pointer to the EFI_FILE_PROTOCOL instance that is the file
+                              handle to flush data.
+
+  @retval EFI_SUCCESS          The data was flushed.
+  @retval EFI_NO_MEDIA         The device has no medium.
+  @retval EFI_DEVICE_ERROR     The device reported an error.
+  @retval EFI_VOLUME_CORRUPTED The file system structures are corrupted.
+  @retval EFI_WRITE_PROTECTED  The file or medium is write-protected.
+  @retval EFI_ACCESS_DENIED    The file was opened read only.
+  @retval EFI_VOLUME_FULL      The volume is full.
+
+**/
+EFI_STATUS
+EFIAPI
+Ext4Flush (
+  IN EFI_FILE_PROTOCOL  *This
+  )
+{
+  EXT4_FILE  *File;
+
+  File = EXT4_FILE_FROM_THIS (This);
+  if (!(File->OpenMode & EFI_FILE_MODE_WRITE)) {
+    return EFI_ACCESS_DENIED;
+  }
+
+  return EFI_WRITE_PROTECTED;
+}
+
+/**
   Returns a file's current position.
 
   @param[in]   This            A pointer to the EFI_FILE_PROTOCOL instance that is the file
