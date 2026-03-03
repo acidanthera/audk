@@ -123,8 +123,6 @@ InternalQemuFwCfgDmaBytes (
   CpuDeadLoop ();
 }
 
-#ifdef TDX_PEI_LESS_BOOT
-
 /**
   Check if the Ovmf work area is built as HobList before invoking Hob services.
 
@@ -210,5 +208,3 @@ QemuFwCfgInitCache (
   DEBUG ((DEBUG_INFO, "QemuFwCfgInitCache Pass!!!\n"));
   return RETURN_SUCCESS;
 }
-
-#endif

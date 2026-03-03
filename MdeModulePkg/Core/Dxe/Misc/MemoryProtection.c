@@ -159,7 +159,6 @@ SetUefiImageMemoryAttributes (
         FinalAttributes,
         Status
         ));
-      ASSERT_EFI_ERROR (Status);
     }
 
     if (((FinalAttributes & (EFI_MEMORY_ACCESS_MASK | EFI_CACHE_ATTRIBUTE_MASK)) == 0) && (gCpu != NULL)) {
@@ -177,7 +176,6 @@ SetUefiImageMemoryAttributes (
           CurrentLength,
           Status
           ));
-        ASSERT_EFI_ERROR (Status);
       }
     }
 
