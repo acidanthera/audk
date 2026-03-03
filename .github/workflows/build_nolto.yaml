@@ -1,0 +1,549 @@
+name: Build Firmwares using GCC without Link Time Optimization
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+  FORCE_INSTALL: 1
+  WERROR: 1
+  QEMU_VERSION_TAG: qemu-ci-9.2.2-r1
+  WINPE_VERSION_TAG: images-winpe-1.0
+
+jobs:
+  build-linux-arm:
+    name: Linux GCC ARM
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lsb-release wget software-properties-common gnupg build-essential nasm uuid-dev libssl-dev iasl curl git zip gcc-aarch64-linux-gnu
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          touch UDK.ready
+
+      - name: Prepare efibuild.sh
+        run: |
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          chmod +x ./efibuild.sh
+          ln -s `pwd` UDK
+
+      - name: Build BaseTools
+        run: ./efibuild.sh
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build ArmPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPkg
+          SELFPKG_DIR: ArmPkg
+          TOOLCHAINS: GCC
+          ARCHS: AARCH64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build ArmPlatformPkg
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmPlatformPkg
+          SELFPKG_DIR: ArmPlatformPkg
+          TOOLCHAINS: GCC
+          ARCHS: AARCH64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build ArmVirtQemu
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: ArmVirtQemu
+          SELFPKG_DIR: ArmVirtPkg
+          TOOLCHAINS: GCC
+          ARCHS: AARCH64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          GCC_AARCH64_PREFIX: aarch64-linux-gnu-
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/ArmVirtQemu-"$arch"/"$target"_"$TOOLCHAIN"/FV/QEMU_EFI.fd ./firmware_artifacts/ArmVirtQemu/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: AARCH64
+          TARGETS: RELEASE,DEBUG
+          TOOLCHAIN: GCC
+
+      - name: Zip artifacts
+        run: zip GCC_no_lto_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCC Firmware NO_LTO Artifacts
+          path: GCC_no_lto_artifacts.zip
+
+  build-linux-amd:
+    name: Linux GCC AMD
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build OvmfPkgX64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgX64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build OvmfPkgIa32X64
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32X64
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build UefiPayloadPkg with X64 PEI/DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC
+          ARCHS: X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiPayloadPkg
+          SELFPKG_DIR: UefiPayloadPkg
+          TOOLCHAINS: GCC
+          ARCHS: X64
+          ARCHS_EXT: IA32
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Prepare artifacts with firmwares
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              mkdir -p ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"
+              cp ./Build/Ovmf"$arch"/"$target"_"$TOOLCHAIN"/FV/OVMF.fd ./firmware_artifacts/Ovmf/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+              done
+          done
+        env:
+          ARCHS: X64,3264
+          TARGETS: RELEASE,DEBUG
+          TOOLCHAIN: GCC
+
+      - name: Zip artifacts
+        run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: GCC Firmware Artifacts
+          path: GCC_fw_artifacts.zip
+
+  build-linux-common:
+    name: Linux GCC Common
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Use Docker in rootless mode.
+        uses: ScribeMD/rootless-docker@0.2.2
+
+      - name: Build BaseTools
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SKIP_BUILD: 1
+
+      - name: Build Ext4Pkg
+        run: docker compose run build-package
+        env:
+          SELFPKG: Ext4Pkg
+          SELFPKG_DIR: Ext4Pkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build FatPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: FatPkg
+          SELFPKG_DIR: FatPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build IntelFsp2Pkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2Pkg
+          SELFPKG_DIR: IntelFsp2Pkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build IntelFsp2WrapperPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: IntelFsp2WrapperPkg
+          SELFPKG_DIR: IntelFsp2WrapperPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build MdeModulePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdeModulePkg
+          SELFPKG_DIR: MdeModulePkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build MdePkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: MdePkg
+          SELFPKG_DIR: MdePkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build UefiCpuPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UefiCpuPkg
+          SELFPKG_DIR: UefiCpuPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build UnitTestFrameworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: UnitTestFrameworkPkg
+          SELFPKG_DIR: UnitTestFrameworkPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+      - name: Build NetworkPkg
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: NetworkPkg
+          SELFPKG_DIR: NetworkPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32,X64
+          TARGETS: RELEASE,DEBUG
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
+
+  test-arm:
+    name: Test ARM
+    runs-on: ubuntu-22.04
+    needs: [build-linux-arm]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "ArmVirtQemu", archs: "AARCH64", toolchain: "GCC", targets: "RELEASE,DEBUG"},
+        ]
+    steps:
+      - name: Checkout ocbuild repository
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/ocbuild
+          ref: master
+          path: ./
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip libglib2.0-dev libfdt-dev libpixman-1-dev libepoxy-dev libcapstone-dev libsdl2-dev libnuma-dev libgtk-3-dev libvte-2.91-dev libbrlapi-dev libiscsi-dev libnfs-dev  librbd-dev libxen-dev
+          python3 -m pip install -r requirements.txt
+
+      - name: Downloading QEMU
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.QEMU_VERSION_TAG }}
+          fileName: "qemu.tar.xz"
+
+      - name: Installing QEMU and add to PATH
+        run: |
+          echo "${HOME}/qemu/bin" >> $GITHUB_PATH
+          tar -xJf ./qemu.tar.xz -C $HOME
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.package.toolchain }} Firmware NO_LTO Artifacts
+
+      - name: Unzip artifacts
+        run: unzip "$TOOLCHAIN"_no_lto_artifacts.zip
+        env:
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Downloading Windows PE AARCH64 iso
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.WINPE_VERSION_TAG }}
+          fileName: "winpe_AARCH64.iso"
+
+      - name: Run TestConsole
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch "$arch"
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestLinux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux --fw-arch "$arch"
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run Windows PE aarch64
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            echo Checking "$PACKAGE"AARCH64 "$target"_"$TOOLCHAIN"
+              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/AARCH64/"$target"_"$TOOLCHAIN"/FW.fd --fw-arch AARCH64 --test-winpe --test-winpe-path ./winpe_AARCH64.iso
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+  test-amd:
+    name: Test AMD
+    runs-on: ubuntu-22.04
+    needs: [build-linux-amd]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        package: [
+          {name: "Ovmf", archs: "X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG"},
+        ]
+    steps:
+      - name: Checkout ocbuild repository
+        uses: actions/checkout@v4
+        with:
+          repository: acidanthera/ocbuild
+          ref: master
+          path: ./
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y python3 python3-pip libglib2.0-dev libfdt-dev libpixman-1-dev libepoxy-dev libcapstone-dev libsdl2-dev libnuma-dev libgtk-3-dev libvte-2.91-dev libbrlapi-dev libiscsi-dev libnfs-dev  librbd-dev libxen-dev
+          python3 -m pip install -r requirements.txt
+
+      - name: Downloading QEMU
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.QEMU_VERSION_TAG }}
+          fileName: "qemu.tar.xz"
+
+      - name: Installing QEMU and add to PATH
+        run: |
+          echo "${HOME}/qemu/bin" >> $GITHUB_PATH
+          tar -xJf ./qemu.tar.xz -C $HOME
+
+      - name: Download a single artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.package.toolchain }} Firmware Artifacts
+
+      - name: Unzip artifacts
+        run: unzip "$TOOLCHAIN"_fw_artifacts.zip
+        env:
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Downloading Windows PE X64 iso
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.WINPE_VERSION_TAG }}
+          fileName: "winpe_X64.iso"
+
+      - name: Run TestConsole
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+                echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run TestLinux
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+                python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-linux
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}
+
+      - name: Run Windows PE
+        if: always()
+        run: |
+          IFS=', ' read -r -a TARGETS <<< "$TARGETS"
+          IFS=', ' read -r -a ARCHS <<< "$ARCHS"
+          for target in "${TARGETS[@]}"; do
+            for arch in "${ARCHS[@]}"; do
+              echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
+              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-winpe --test-winpe-path winpe_X64.iso
+            done
+          done
+        env:
+          PACKAGE: ${{ matrix.package.name }}
+          ARCHS: ${{ matrix.package.archs }}
+          TARGETS: ${{ matrix.package.targets }}
+          TOOLCHAIN: ${{ matrix.package.toolchain }}

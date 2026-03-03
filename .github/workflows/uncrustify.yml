@@ -1,0 +1,39 @@
+name: Uncrustify
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+env:
+  PROJECT_TYPE: UEFI
+
+jobs:
+  analyze-uncrustify:
+    name: Check Codestyle
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install curl git
+          sudo python3 -m pip install gitpython requests pyyaml
+
+      - name: CI Bootstrap
+        run: |
+          src=$(/usr/bin/curl -LfsS https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+
+      - name: Run Uncrustify
+        run: |
+          python3 -c "$(/usr/bin/curl https://raw.githubusercontent.com/acidanthera/ocbuild/master/uncstrap/uncstrap.py)" --custom-config-path ./.pytool/Plugin/UncrustifyCheck/uncrustify.cfg ./Uncrustify.yml || exit 1
+
+      - name: Upload to Artifacts
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: Uncrustify Artifacts
+          path: ./uncrustify.diff

@@ -71,6 +71,7 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
                 "DynamicTablesPkg",
                 "EmbeddedPkg",
                 "EmulatorPkg",
+                "Ext4Pkg",
                 "IntelFsp2Pkg",
                 "IntelFsp2WrapperPkg",
                 "ManageabilityPkg",
@@ -212,6 +213,8 @@ class Settings(CiBuildSettingsManager, UpdateSettingsManager, SetupSettingsManag
             "SecurityPkg/DeviceSecurity/SpdmLib/libspdm", False))
         rs.append(RequiredSubmodule(
             "TcgTpmPkg/Library/TpmLib/TPM", False))
+        rs.append(RequiredSubmodule(
+            "OpenCorePkg", False))
         return rs
 
     def GetName(self):
