@@ -376,9 +376,13 @@ SetupLinuxMemmap (
   Efi->efi_memdesc_version  = DescriptorVersion;
   Efi->efi_memmap           = (UINT32)(UINTN)MemoryMapPtr;
   Efi->efi_memmap_size      = (UINT32)MemoryMapSize;
+ #ifdef MDE_CPU_IA32
+  Efi->efi_loader_signature = SIGNATURE_32 ('E', 'L', '3', '2');
+ #else
   Efi->efi_systab_hi        = (UINT32)(((UINT64)(UINTN)gST) >> 32);
   Efi->efi_memmap_hi        = (UINT32)(((UINT64)(UINTN)MemoryMapPtr) >> 32);
   Efi->efi_loader_signature = SIGNATURE_32 ('E', 'L', '6', '4');
+ #endif
 
   gBS->ExitBootServices (gImageHandle, MapKey);
 }

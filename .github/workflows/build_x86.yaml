@@ -57,6 +57,17 @@ jobs:
           SELFPKG: MdePkg
           SKIP_BUILD: 1
 
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
+
       - name: Build OvmfPkgX64
         if: always()
         run: ./efibuild.sh
@@ -109,7 +120,7 @@ jobs:
               done
           done
         env:
-          ARCHS: X64,3264
+          ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: XCODE5
 
@@ -159,6 +170,17 @@ jobs:
           SELFPKG: MdePkg
           SKIP_BUILD: 1
 
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: ./efibuild.sh
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          ARCHS: IA32
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
+
       - name: Build OvmfPkgX64
         if: always()
         run: ./efibuild.sh
@@ -211,7 +233,7 @@ jobs:
               done
           done
         env:
-          ARCHS: X64,3264
+          ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: VS2019
 
@@ -241,6 +263,19 @@ jobs:
           SELFPKG: MdePkg
           SKIP_BUILD: 1
 
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGPDB
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
+
       - name: Build OvmfPkgX64
         if: always()
         run: docker compose run build-package
@@ -303,7 +338,7 @@ jobs:
               done
           done
         env:
-          ARCHS: X64,3264
+          ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: CLANGPDB
 
@@ -333,6 +368,19 @@ jobs:
           SELFPKG: MdePkg
           SKIP_BUILD: 1
 
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: CLANGDWARF
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
+
       - name: Build OvmfPkgX64
         if: always()
         run: docker compose run build-package
@@ -395,7 +443,7 @@ jobs:
               done
           done
         env:
-          ARCHS: X64,3264
+          ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: CLANGDWARF
 
@@ -425,6 +473,19 @@ jobs:
           SELFPKG: MdePkg
           SKIP_BUILD: 1
 
+      - name: Build OvmfPkgIa32
+        if: always()
+        run: docker compose run build-package
+        env:
+          SELFPKG: OvmfPkgIa32
+          SELFPKG_DIR: OvmfPkg
+          TOOLCHAINS: GCC
+          ARCHS: IA32
+          TARGETS: RELEASE,DEBUG,NOOPT
+          SKIP_TESTS: 1
+          SKIP_PACKAGE: 1
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
+
       - name: Build OvmfPkgX64
         if: always()
         run: docker compose run build-package
@@ -487,7 +548,7 @@ jobs:
               done
           done
         env:
-          ARCHS: X64,3264
+          ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
           TOOLCHAIN: GCC
 
@@ -509,11 +570,11 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          {name: "Ovmf", archs: "X64,3264", toolchain: "XCODE5", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "XCODE5", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
         ]
     steps:
       - name: Checkout ocbuild repository
@@ -558,6 +619,13 @@ jobs:
           tag: ${{ env.WINPE_VERSION_TAG }}
           fileName: "winpe_X64.iso"
 
+      - name: Downloading Windows PE IA32 iso
+        uses: robinraju/release-downloader@v1.7
+        with:
+          repository: "acidanthera/OcBinaryData"
+          tag: ${{ env.WINPE_VERSION_TAG }}
+          fileName: "winpe_IA32.iso"
+
       - name: Run TestConsole
         if: always()
         run: |
@@ -599,8 +667,13 @@ jobs:
           IFS=', ' read -r -a ARCHS <<< "$ARCHS"
           for target in "${TARGETS[@]}"; do
             for arch in "${ARCHS[@]}"; do
+              if [ "$arch" = "Ia32" ]; then
+                WINPE_FILENAME=winpe_IA32.iso
+              elif [ "$arch" = "X64" ] || [ "$arch" = "3264" ]; then
+                WINPE_FILENAME=winpe_X64.iso
+              fi
               echo Checking "$PACKAGE""$arch" "$target"_"$TOOLCHAIN"
-              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-winpe --test-winpe-path winpe_X64.iso
+              python3 test_qemu_fw.py ./firmware_artifacts/"$PACKAGE"/"$arch"/"$target"_"$TOOLCHAIN"/FW.fd --test-winpe --test-winpe-path "$WINPE_FILENAME"
             done
           done
         env:
