@@ -3,24 +3,43 @@
 
   Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
   Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
-  Copyright (c) Microsoft Corporation.
 
   SPDX-License-Identifier: BSD-2-Clause-Patent
 
 **/
 
-#include <Uefi.h>
-#include <Pi/PiBootMode.h>
-#include <Pi/PiHob.h>
+#include <PiPei.h>
+#include <Uefi/UefiSpec.h>
 
-#include <Library/HobLib.h>
-#include <Library/DebugLib.h>
+#include <Library/BaseLib.h>
 #include <Library/BaseMemoryLib.h>
-#include <Library/MemoryAllocationLib.h>
-#include <Library/PayloadEntryHelperLib.h>
+#include <Library/PhaseMemoryAllocationLib.h>
+#include <Library/DebugLib.h>
+#include <Library/HobLib.h>
+#include <Guid/MemoryAllocationHob.h>
+
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultCodeType = EfiBootServicesCode;
 
 /**
-  Allocates one or more pages of type MemoryType.
+  Add a new HOB to the HOB List.
+
+  @param HobType            Type of the new HOB.
+  @param HobLength          Length of the new HOB to allocate.
+
+  @return  NULL if there is no space to create a hob.
+  @return  The address point to the new created hob.
+
+**/
+VOID *
+EFIAPI
+CreateHob (
+  IN  UINT16  HobType,
+  IN  UINT16  HobLength
+  );
+
+/**
+  Allocates one or more pages .
 
   Allocates the number of pages of MemoryType and returns a pointer to the
   allocated buffer.  The buffer returned is aligned on a 4KB boundary.
@@ -32,10 +51,9 @@
   @param   MemoryType            The MemoryType
   @return  A pointer to the allocated buffer or NULL if allocation fails.
 **/
-STATIC
 VOID *
 EFIAPI
-InternalAllocatePages (
+PayloadAllocatePages (
   IN UINTN            Pages,
   IN EFI_MEMORY_TYPE  MemoryType
   )
@@ -103,29 +121,37 @@ PhaseAllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
-  return InternalAllocatePages (Pages, EfiBootServicesData);
-}
+  EFI_PEI_HOB_POINTERS        Hob;
+  EFI_PHYSICAL_ADDRESS        Offset;
+  EFI_HOB_HANDOFF_INFO_TABLE  *HobTable;
 
-/**
-  Allocates one or more 4KB pages of type EfiReservedMemoryType.
+  ASSERT (Type == AllocateAnyPages);
 
-  Allocates the number of 4KB pages of type EfiReservedMemoryType and returns a pointer to the
-  allocated buffer.  The buffer returned is aligned on a 4KB boundary.  If Pages is 0, then NULL
-  is returned.  If there is not enough memory remaining to satisfy the request, then NULL is
-  returned.
+  Hob.Raw  = GetHobList ();
+  HobTable = Hob.HandoffInformationTable;
 
-  @param  Pages                 The number of 4 KB pages to allocate.
+  if (Pages == 0) {
+    return EFI_INVALID_PARAMETER;
+  }
 
-  @return A pointer to the allocated buffer or NULL if allocation fails.
+  // Make sure allocation address is page aligned.
+  Offset = HobTable->EfiFreeMemoryTop & EFI_PAGE_MASK;
+  if (Offset != 0) {
+    HobTable->EfiFreeMemoryTop -= Offset;
+  }
 
-**/
-VOID *
-EFIAPI
-AllocateReservedPages (
-  IN UINTN  Pages
-  )
-{
-  return InternalAllocatePages (Pages, EfiReservedMemoryType);
+  //
+  // Check available memory for the allocation
+  //
+  if (HobTable->EfiFreeMemoryTop - ((Pages * EFI_PAGE_SIZE) + sizeof (EFI_HOB_MEMORY_ALLOCATION)) < HobTable->EfiFreeMemoryBottom) {
+    return EFI_OUT_OF_RESOURCES;
+  }
+
+  HobTable->EfiFreeMemoryTop -= Pages * EFI_PAGE_SIZE;
+  BuildMemoryAllocationHob (HobTable->EfiFreeMemoryTop, Pages * EFI_PAGE_SIZE, MemoryType);
+
+  *Memory = HobTable->EfiFreeMemoryTop;
+  return EFI_SUCCESS;
 }
 
 /**
