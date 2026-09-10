@@ -46,11 +46,19 @@ SECTIONS {
   } :data
 
   .eh_frame : ALIGN(CONSTANT(MAXPAGESIZE)) {
-    KEEP (*(.eh_frame))
+    KEEP (*(.eh_frame .eh_frame_hdr))
   }
 
   .rela (INFO) : {
     *(.rela .rela.*)
+  }
+
+  .rel.debug_info (INFO) : {
+    *(.rel.debug_info)
+  }
+
+  .rel.debug_line (INFO) : {
+    *(.rel.debug_line)
   }
 
   .build-id (INFO) : { *(.note.gnu.build-id) }
