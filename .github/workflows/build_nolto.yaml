@@ -51,13 +51,12 @@ jobs:
         env:
           SELFPKG: ArmPkg
           SELFPKG_DIR: ArmPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build ArmPlatformPkg
         if: always()
@@ -65,13 +64,12 @@ jobs:
         env:
           SELFPKG: ArmPlatformPkg
           SELFPKG_DIR: ArmPlatformPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build ArmVirtQemu
         if: always()
@@ -79,13 +77,12 @@ jobs:
         env:
           SELFPKG: ArmVirtQemu
           SELFPKG_DIR: ArmVirtPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
           GCC_AARCH64_PREFIX: aarch64-linux-gnu-
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Prepare artifacts with firmwares
         if: always()
@@ -101,7 +98,7 @@ jobs:
         env:
           ARCHS: AARCH64
           TARGETS: RELEASE,DEBUG
-          TOOLCHAIN: GCC
+          TOOLCHAIN: GCCNOLTO
 
       - name: Zip artifacts
         run: zip GCC_no_lto_artifacts.zip ./firmware_artifacts/* -r
@@ -135,12 +132,12 @@ jobs:
         env:
           SELFPKG: OvmfPkgIa32
           SELFPKG_DIR: OvmfPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D WINDOWS_10_IA32 -D EDK2_GCC_NOLTO
+          BUILD_ARGUMENTS: -D WINDOWS_10_IA32
 
       - name: Build OvmfPkgX64
         if: always()
@@ -148,12 +145,11 @@ jobs:
         env:
           SELFPKG: OvmfPkgX64
           SELFPKG_DIR: OvmfPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build OvmfPkgIa32X64
         if: always()
@@ -161,13 +157,12 @@ jobs:
         env:
           SELFPKG: OvmfPkgIa32X64
           SELFPKG_DIR: OvmfPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build UefiPayloadPkg with X64 PEI/DXE
         if: always()
@@ -175,12 +170,11 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           SELFPKG_DIR: UefiPayloadPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build UefiPayloadPkg with Ia32 PEI and X64 DXE
         if: always()
@@ -188,13 +182,12 @@ jobs:
         env:
           SELFPKG: UefiPayloadPkg
           SELFPKG_DIR: UefiPayloadPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: X64
           ARCHS_EXT: IA32
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Prepare artifacts with firmwares
         if: always()
@@ -210,7 +203,7 @@ jobs:
         env:
           ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG
-          TOOLCHAIN: GCC
+          TOOLCHAIN: GCCNOLTO
 
       - name: Zip artifacts
         run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
@@ -243,12 +236,11 @@ jobs:
         env:
           SELFPKG: Ext4Pkg
           SELFPKG_DIR: Ext4Pkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build FatPkg
         if: always()
@@ -256,12 +248,11 @@ jobs:
         env:
           SELFPKG: FatPkg
           SELFPKG_DIR: FatPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build IntelFsp2Pkg
         if: always()
@@ -269,12 +260,11 @@ jobs:
         env:
           SELFPKG: IntelFsp2Pkg
           SELFPKG_DIR: IntelFsp2Pkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build IntelFsp2WrapperPkg
         if: always()
@@ -282,12 +272,11 @@ jobs:
         env:
           SELFPKG: IntelFsp2WrapperPkg
           SELFPKG_DIR: IntelFsp2WrapperPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build MdeModulePkg
         if: always()
@@ -295,12 +284,11 @@ jobs:
         env:
           SELFPKG: MdeModulePkg
           SELFPKG_DIR: MdeModulePkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build MdePkg
         if: always()
@@ -308,12 +296,11 @@ jobs:
         env:
           SELFPKG: MdePkg
           SELFPKG_DIR: MdePkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build UefiCpuPkg
         if: always()
@@ -321,12 +308,11 @@ jobs:
         env:
           SELFPKG: UefiCpuPkg
           SELFPKG_DIR: UefiCpuPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build UnitTestFrameworkPkg
         if: always()
@@ -334,12 +320,11 @@ jobs:
         env:
           SELFPKG: UnitTestFrameworkPkg
           SELFPKG_DIR: UnitTestFrameworkPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
       - name: Build NetworkPkg
         if: always()
@@ -347,12 +332,11 @@ jobs:
         env:
           SELFPKG: NetworkPkg
           SELFPKG_DIR: NetworkPkg
-          TOOLCHAINS: GCC
+          TOOLCHAINS: GCCNOLTO
           ARCHS: IA32,X64
           TARGETS: RELEASE,DEBUG
           SKIP_TESTS: 1
           SKIP_PACKAGE: 1
-          BUILD_ARGUMENTS: -D EDK2_GCC_NOLTO
 
   test-arm:
     name: Test ARM
@@ -363,7 +347,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          {name: "ArmVirtQemu", archs: "AARCH64", toolchain: "GCC", targets: "RELEASE,DEBUG"},
+          {name: "ArmVirtQemu", archs: "AARCH64", toolchain: "GCCNOLTO", targets: "RELEASE,DEBUG"},
         ]
     steps:
       - name: Checkout ocbuild repository
@@ -465,7 +449,7 @@ jobs:
       fail-fast: false
       matrix:
         package: [
-          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "GCCNOLTO", targets: "RELEASE,DEBUG"},
         ]
     steps:
       - name: Checkout ocbuild repository
