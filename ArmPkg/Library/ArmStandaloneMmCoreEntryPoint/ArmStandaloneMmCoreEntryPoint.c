@@ -1188,7 +1188,7 @@ CEntryPoint (
     }
 
     if ((ImageRecord->Segments[SectionIndex].Attributes & EFI_MEMORY_RO) == 0) {
-      ArmClearMemoryRegionReadOnly (
+      ArmSetMemoryRegionReadWritePerm (
         Address,
         ImageRecord->Segments[SectionIndex].Size
         );
