@@ -62,7 +62,8 @@
   UefiLib
   PrintLib
   ReportStatusCodeLib
-
+  IntrinsicLib
+  
 [Protocols]
   gEfiPciIoProtocolGuid                       ## TO_START
   ## BY_START
