@@ -14,7 +14,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 
 #pragma once
 
-  #include <IndustryStandard/PeImage.h>
+#include <IndustryStandard/PeImage.h>
 //
 // Return status codes from the PE/COFF Loader services
 //
