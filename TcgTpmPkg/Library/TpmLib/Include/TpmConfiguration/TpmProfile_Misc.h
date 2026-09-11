@@ -14,8 +14,8 @@
 #pragma once
 
 // YES & NO defined by TpmBuildSwitches.h
-#if(YES != 1 || NO != 0)
-#  error YES or NO incorrectly set
+#if (YES != 1 || NO != 0)
+  #error YES or NO incorrectly set
 #endif
 
 // clang-format off
@@ -47,13 +47,13 @@
 #define NV_CLOCK_UPDATE_INTERVAL   12
 #define NUM_POLICY_PCR             1
 
-#define ORDERLY_BITS               8
-#define MAX_SYM_DATA               128
-#define MAX_RNG_ENTROPY_SIZE       64
-#define RAM_INDEX_SPACE            512
-#define ENABLE_PCR_NO_INCREMENT    YES
+#define ORDERLY_BITS             8
+#define MAX_SYM_DATA             128
+#define MAX_RNG_ENTROPY_SIZE     64
+#define RAM_INDEX_SPACE          512
+#define ENABLE_PCR_NO_INCREMENT  YES
 
-#define SIZE_OF_X509_SERIAL_NUMBER 20
+#define SIZE_OF_X509_SERIAL_NUMBER  20
 
 // amount of space the platform can provide in PERSISTENT_DATA during
 // manufacture
@@ -62,16 +62,16 @@
 // structure padding space for these structures.  Used if a
 // particular configuration needs them to be aligned to a
 // specific size
-#define ORDERLY_DATA_PADDING            0
-#define STATE_CLEAR_DATA_PADDING        0
-#define STATE_RESET_DATA_PADDING        0
+#define ORDERLY_DATA_PADDING      0
+#define STATE_CLEAR_DATA_PADDING  0
+#define STATE_RESET_DATA_PADDING  0
 
 // configuration values that may vary by SIMULATION/DEBUG
 #if SIMULATION && DEBUG
 // This forces the use of a smaller context slot size. This reduction reduces the
 // range of the epoch allowing the tester to force the epoch to occur faster than
 // the normal production size
-#  define CONTEXT_SLOT UINT8
+#define CONTEXT_SLOT  UINT8
 #else
-#  define CONTEXT_SLOT UINT16
+#define CONTEXT_SLOT  UINT16
 #endif

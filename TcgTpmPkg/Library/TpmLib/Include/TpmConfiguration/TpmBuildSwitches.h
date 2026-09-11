@@ -57,13 +57,13 @@
 // ENABLE_TPM_DEBUG_PRINT enables arbitrary string printing.
 // enables the TPM_DEBUG_PRINT macro to route debugging strings
 // to the _plat_debug_out function
-#define ENABLE_TPM_DEBUG_PRINT      (YES * SIMULATION)
+#define ENABLE_TPM_DEBUG_PRINT  (YES * SIMULATION)
 
 //  ENABLE_TPM_DEBUG_TRACE enables code tracing macros - depends on TPM_DEBUG_PRINT
-#define ENABLE_TPM_DEBUG_TRACE      (NO  * ENABLE_TPM_DEBUG_PRINT)
+#define ENABLE_TPM_DEBUG_TRACE  (NO  * ENABLE_TPM_DEBUG_PRINT)
 
 //  ENABLE_CRYPTO_DEBUG enables printing of actual crypto values. This is entirely insecure.
-#define ENABLE_CRYPTO_DEBUG         (YES * ENABLE_TPM_DEBUG_PRINT)
+#define ENABLE_CRYPTO_DEBUG  (YES * ENABLE_TPM_DEBUG_PRINT)
 
 // The CRYPTO_LIB_REPORTING switch allows the TPM to report its
 // crypto library implementation, e.g., at simulation startup.
@@ -162,7 +162,7 @@
 // Implementation alternatives - don't  change external behavior
 ////////////////////////////////////////////////////////////////
 // does the target system have longjmp support, AND we want to use it?
-#define LONGJMP_SUPPORTED           NO
+#define LONGJMP_SUPPORTED  NO
 
 // This define is used to enable the new table-driven marshaling code.
 #define TABLE_DRIVEN_MARSHAL  NO

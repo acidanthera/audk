@@ -12,7 +12,7 @@
 
 #pragma once
 
-  #include <Library/PeCoffLib.h>
+#include <Library/PeCoffLib.h>
 
 /**
   Performs additional actions after a PE/COFF image has been loaded and relocated.
