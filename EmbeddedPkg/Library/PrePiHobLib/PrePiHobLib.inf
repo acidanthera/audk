@@ -35,7 +35,6 @@
   BaseLib
   BaseMemoryLib
   DebugLib
-  PeCoffLib
   PrePiHobListPointerLib
 
 [Guids]
@@ -52,6 +51,3 @@
 
 [FeaturePcd]
   gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob
-
-[Protocols]
-  gPeCoffLoaderProtocolGuid ## PRODUCES
