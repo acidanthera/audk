@@ -16,7 +16,7 @@ env:
 
 jobs:
   build-linux-arm:
-    name: Linux GCC ARM
+    name: Linux GCCNOLTO ARM
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -101,16 +101,16 @@ jobs:
           TOOLCHAIN: GCCNOLTO
 
       - name: Zip artifacts
-        run: zip GCC_no_lto_artifacts.zip ./firmware_artifacts/* -r
+        run: zip GCCNOLTO_ARM_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GCC Firmware NO_LTO Artifacts
-          path: GCC_no_lto_artifacts.zip
+          name: GCCNOLTO Firmware ARM Artifacts
+          path: GCCNOLTO_ARM_artifacts.zip
 
   build-linux-amd:
-    name: Linux GCC AMD
+    name: Linux GCCNOLTO AMD
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
@@ -206,13 +206,13 @@ jobs:
           TOOLCHAIN: GCCNOLTO
 
       - name: Zip artifacts
-        run: zip GCC_fw_artifacts.zip ./firmware_artifacts/* -r
+        run: zip GCCNOLTO_AMD_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: GCC Firmware Artifacts
-          path: GCC_fw_artifacts.zip
+          name: GCCNOLTO Firmware AMD Artifacts
+          path: GCCNOLTO_AMD_artifacts.zip
 
   build-linux-common:
     name: Linux GCC Common
@@ -378,10 +378,10 @@ jobs:
       - name: Download a single artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.package.toolchain }} Firmware NO_LTO Artifacts
+          name: ${{ matrix.package.toolchain }} Firmware ARM Artifacts
 
       - name: Unzip artifacts
-        run: unzip "$TOOLCHAIN"_no_lto_artifacts.zip
+        run: unzip "$TOOLCHAIN"_ARM_artifacts.zip
         env:
           TOOLCHAIN: ${{ matrix.package.toolchain }}
 
@@ -480,10 +480,10 @@ jobs:
       - name: Download a single artifact
         uses: actions/download-artifact@v4
         with:
-          name: ${{ matrix.package.toolchain }} Firmware Artifacts
+          name: ${{ matrix.package.toolchain }} Firmware AMD Artifacts
 
       - name: Unzip artifacts
-        run: unzip "$TOOLCHAIN"_fw_artifacts.zip
+        run: unzip "$TOOLCHAIN"_AMD_artifacts.zip
         env:
           TOOLCHAIN: ${{ matrix.package.toolchain }}
 
