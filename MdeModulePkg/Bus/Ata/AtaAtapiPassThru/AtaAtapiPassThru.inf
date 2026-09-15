@@ -55,6 +55,7 @@
   TimerLib
   ReportStatusCodeLib
   PcdLib
+  IntrinsicLib
 
 [Protocols]
   gEfiAtaPassThruProtocolGuid                   ## BY_START
