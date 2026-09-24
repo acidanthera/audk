@@ -103,6 +103,7 @@ class ToolDefClassObject(object):
         else:
             EdkLogger.error("tools_def.txt parser", FILE_NOT_FOUND, ExtraData=FileName)
 
+        Branch = 0
         for Index in range(len(FileContent)):
             Line = FileContent[Index].strip()
             if Line == "" or Line[0] == '#':
@@ -111,6 +112,26 @@ class ToolDefClassObject(object):
             if '#' in Line:
                 EdkLogger.error("tools_def.txt parser", FILE_PARSE_FAILURE,
                                 "tools_def.txt: Inline comments are not allowed. Line: " + str(Index + 1))
+                                
+            if Line.startswith("!ifdef"):
+                Condition = Line[6:].strip()
+                Reference = GlobalData.gMacroRefPattern.findall(Condition)
+                if Reference[0] in GlobalData.gCommandLineDefines:
+                    Branch = 1
+                else:
+                    Branch = -1
+                continue
+
+            if Line.startswith("!else"):
+                Branch *= -1
+                continue
+
+            if Line.startswith("!endif"):
+                Branch = 0
+                continue
+
+            if Branch == -1:
+                continue
 
             if Line.startswith("!include"):
                 IncFile = Line[8:].strip()

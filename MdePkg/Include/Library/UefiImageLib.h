@@ -3,6 +3,11 @@
 #ifndef UEFI_IMAGE_LIB_H_
 #define UEFI_IMAGE_LIB_H_
 
+typedef enum {
+  UefiImageFormatPe = 0,
+  UefiImageFormatMax
+} UEFI_IMAGE_FORMAT;
+
 // FIXME: Work on reasonable abstraction
 #ifndef UEFI_IMAGE_LOADER_IMAGE_CONTEXT
   #include <Library/PeCoffLib2.h>
