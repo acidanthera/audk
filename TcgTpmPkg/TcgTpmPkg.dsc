@@ -43,7 +43,7 @@
   OemHookStatusCodeLib|MdeModulePkg/Library/OemHookStatusCodeLibNull/OemHookStatusCodeLibNull.inf
   HashApiLib|CryptoPkg/Library/BaseHashApiLib/BaseHashApiLib.inf
   OpensslLib|CryptoPkg/Library/OpensslLib/OpensslLibFull.inf
-  IntrinsicLib|CryptoPkg/Library/IntrinsicLib/IntrinsicLib.inf
+  IntrinsicLib|MdePkg/Library/IntrinsicLib/IntrinsicLib.inf
 
 [LibraryClasses.AARCH64]
   ArmLib|MdePkg/Library/ArmLib/ArmBaseLib.inf

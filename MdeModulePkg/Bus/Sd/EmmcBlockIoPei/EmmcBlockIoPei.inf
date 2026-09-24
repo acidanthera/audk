@@ -44,6 +44,7 @@
   PeimEntryPoint
   PeiServicesLib
   DebugLib
+  IntrinsicLib
 
 [Ppis]
   gEfiPeiVirtualBlockIoPpiGuid                  ## PRODUCES
@@ -57,4 +58,3 @@
 
 [UserExtensions.TianoCore."ExtraFiles"]
   EmmcBlockIoPeiExtra.uni
-

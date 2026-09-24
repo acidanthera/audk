@@ -110,26 +110,6 @@ realloc (
   return NULL;
 }
 
-void *
-memcpy (
-  void          *dest,
-  const void    *src,
-  unsigned int  count
-  )
-{
-  return CopyMem (dest, src, (UINTN)count);
-}
-
-void *
-memset (
-  void          *dest,
-  int           ch,
-  unsigned int  count
-  )
-{
-  return SetMem (dest, (UINTN)count, (UINT8)ch);
-}
-
 void
 free (
   void  *ptr

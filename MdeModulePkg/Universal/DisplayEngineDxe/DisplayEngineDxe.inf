@@ -45,6 +45,7 @@
   HiiLib
   MemoryAllocationLib
   CustomizedDisplayLib
+  IntrinsicLib
 
 [Protocols]
   gEdkiiFormDisplayEngineProtocolGuid   ## PRODUCES

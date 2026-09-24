@@ -68,6 +68,7 @@
   UefiDriverEntryPoint
   DebugLib
   PcdLib
+  IntrinsicLib
 
 [Guids]
   gEfiFileInfoGuid                      ## SOMETIMES_CONSUMES   ## UNDEFINED

@@ -52,7 +52,8 @@
   BaseLib
   PcdLib
   HobLib
-
+  IntrinsicLib
+  
 [Guids]
   gEfiAcpi10TableGuid                           ## PRODUCES           ## SystemTable
   gEfiAcpiTableGuid                             ## PRODUCES           ## SystemTable
