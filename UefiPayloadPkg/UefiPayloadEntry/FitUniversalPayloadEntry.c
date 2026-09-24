@@ -533,7 +533,7 @@ FitUplEntryPoint (
     FdtBase = (VOID *)BootloaderParameter;
     if (FdtCheckHeader (FdtBase) == 0) {
       CustomFdtNodeParser ((VOID *)FdtBase, (VOID *)HobListPtr);
-      FdtBaseResvd = AllocateReservedPages (PcdGet8 (PcdFDTPageSize));
+      FdtBaseResvd = PayloadAllocatePages (PcdGet8 (PcdFDTPageSize), EfiReservedMemoryType);
     }
   }
 

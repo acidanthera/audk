@@ -257,7 +257,6 @@
   HobLib|UefiPayloadPkg/Library/DxeHobLib/DxeHobLib.inf
   CustomFdtNodeParserLib|UefiPayloadPkg/Library/CustomFdtNodeParserNullLib/CustomFdtNodeParserNullLib.inf
   PayloadEntryHelperLib|UefiPayloadPkg/Library/PayloadEntryHelperLib/PayloadEntryHelperLib.inf
-  MemoryAllocationLib|UefiPayloadPkg/Library/PayloadEntryMemoryAllocationLib/PayloadEntryMemoryAllocationLib.inf
 
   #
   # UEFI & PI
@@ -469,6 +468,7 @@
 !if $(MULTIPLE_DEBUG_PORT_SUPPORT) == TRUE
   SerialPortLib|UefiPayloadPkg/Library/BaseSerialPortLibHob/BaseSerialPortLibHob.inf
 !endif
+  MemoryAllocationLib|UefiPayloadPkg/Library/UefiPayloadMemoryAllocationLib/UefiPayloadMemoryAllocationLib.inf
 
 [LibraryClasses.common.DXE_CORE]
   DxeHobListLib|UefiPayloadPkg/Library/DxeHobListLibNull/DxeHobListLibNull.inf

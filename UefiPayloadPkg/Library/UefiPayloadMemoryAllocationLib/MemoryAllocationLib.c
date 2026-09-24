@@ -1,46 +1,92 @@
 /** @file
-  Instance of Memory Allocation Library based on POSIX APIs
 
-  Uses POSIX APIs malloc() and free() to allocate and free memory.
 
-  Copyright (c) 2018 - 2020, Intel Corporation. All rights reserved.<BR>
+  Copyright (c) 2008 - 2009, Apple Inc. All rights reserved.<BR>
+  Copyright (c) 2020, Intel Corporation. All rights reserved.<BR>
+
   SPDX-License-Identifier: BSD-2-Clause-Patent
+
 **/
 
-#include <stdlib.h>
-#include <string.h>
+#include <PiPei.h>
+#include <Uefi/UefiSpec.h>
 
-#include <Uefi.h>
+#include <Library/BaseLib.h>
+#include <Library/BaseMemoryLib.h>
 #include <Library/PhaseMemoryAllocationLib.h>
 #include <Library/DebugLib.h>
-
-///
-/// Signature for PAGE_HEAD structure
-/// Used to verify that buffer being freed was allocated by this library.
-///
-#define PAGE_HEAD_PRIVATE_SIGNATURE  SIGNATURE_32 ('P', 'H', 'D', 'R')
-
-///
-/// Structure placed immediately before an aligned allocation to store the
-/// information required to free the entire buffer allocated to support then
-/// aligned allocation.
-///
-typedef struct {
-  UINT32    Signature;
-  VOID      *AllocatedBuffer;
-  UINTN     TotalPages;
-  VOID      *AlignedBuffer;
-  UINTN     AlignedPages;
-} PAGE_HEAD;
-
-#define POOL_HEAD_PRIVATE_SIGNATURE  SIGNATURE_32 ('P', 'O', 'H', 'D')
-
-typedef struct {
-  UINT32    Signature;
-  UINT32    TotalSize;
-} POOL_HEAD;
+#include <Library/HobLib.h>
+#include <Guid/MemoryAllocationHob.h>
 
 GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultDataType = EfiBootServicesData;
+GLOBAL_REMOVE_IF_UNREFERENCED CONST EFI_MEMORY_TYPE  gPhaseDefaultCodeType = EfiBootServicesCode;
+
+/**
+  Add a new HOB to the HOB List.
+
+  @param HobType            Type of the new HOB.
+  @param HobLength          Length of the new HOB to allocate.
+
+  @return  NULL if there is no space to create a hob.
+  @return  The address point to the new created hob.
+
+**/
+VOID *
+EFIAPI
+CreateHob (
+  IN  UINT16  HobType,
+  IN  UINT16  HobLength
+  );
+
+/**
+  Allocates one or more pages .
+
+  Allocates the number of pages of MemoryType and returns a pointer to the
+  allocated buffer.  The buffer returned is aligned on a 4KB boundary.
+  If Pages is 0, then NULL is returned.
+  If there is not enough memory availble to satisfy the request, then NULL
+  is returned.
+
+  @param   Pages                 The number of 4 KB pages to allocate.
+  @param   MemoryType            The MemoryType
+  @return  A pointer to the allocated buffer or NULL if allocation fails.
+**/
+VOID *
+EFIAPI
+PayloadAllocatePages (
+  IN UINTN            Pages,
+  IN EFI_MEMORY_TYPE  MemoryType
+  )
+{
+  EFI_PEI_HOB_POINTERS        Hob;
+  EFI_PHYSICAL_ADDRESS        Offset;
+  EFI_HOB_HANDOFF_INFO_TABLE  *HobTable;
+
+  Hob.Raw  = GetHobList ();
+  HobTable = Hob.HandoffInformationTable;
+
+  if (Pages == 0) {
+    return NULL;
+  }
+
+  // Make sure allocation address is page alligned.
+  Offset = HobTable->EfiFreeMemoryTop & EFI_PAGE_MASK;
+  if (Offset != 0) {
+    HobTable->EfiFreeMemoryTop -= Offset;
+  }
+
+  //
+  // Check available memory for the allocation
+  //
+  if (HobTable->EfiFreeMemoryTop - ((Pages * EFI_PAGE_SIZE) + sizeof (EFI_HOB_MEMORY_ALLOCATION)) < HobTable->EfiFreeMemoryBottom) {
+    return NULL;
+  }
+
+  HobTable->EfiFreeMemoryTop -= Pages * EFI_PAGE_SIZE;
+  BuildMemoryAllocationHob (HobTable->EfiFreeMemoryTop, Pages * EFI_PAGE_SIZE, MemoryType);
+
+  return (VOID *)(UINTN)HobTable->EfiFreeMemoryTop;
+}
 
 /**
   Allocates one or more 4KB pages of a certain memory type.
@@ -75,40 +121,36 @@ PhaseAllocatePages (
   IN OUT EFI_PHYSICAL_ADDRESS  *Memory
   )
 {
-  PAGE_HEAD  PageHead;
-  PAGE_HEAD  *PageHeadPtr;
-  UINTN      Alignment;
-  UINTN      AlignmentMask;
+  EFI_PEI_HOB_POINTERS        Hob;
+  EFI_PHYSICAL_ADDRESS        Offset;
+  EFI_HOB_HANDOFF_INFO_TABLE  *HobTable;
 
   ASSERT (Type == AllocateAnyPages);
 
-  Alignment     = SIZE_4KB;
-  AlignmentMask = Alignment - 1;
+  Hob.Raw  = GetHobList ();
+  HobTable = Hob.HandoffInformationTable;
+
+  if (Pages == 0) {
+    return EFI_INVALID_PARAMETER;
+  }
+
+  // Make sure allocation address is page aligned.
+  Offset = HobTable->EfiFreeMemoryTop & EFI_PAGE_MASK;
+  if (Offset != 0) {
+    HobTable->EfiFreeMemoryTop -= Offset;
+  }
 
   //
-  // We need reserve Alignment pages for PAGE_HEAD, as meta data.
+  // Check available memory for the allocation
   //
-  PageHead.Signature       = PAGE_HEAD_PRIVATE_SIGNATURE;
-  PageHead.TotalPages      = Pages + EFI_SIZE_TO_PAGES (Alignment) * 2;
-  PageHead.AlignedPages    = Pages;
-  PageHead.AllocatedBuffer = malloc (EFI_PAGES_TO_SIZE (PageHead.TotalPages));
-  if (PageHead.AllocatedBuffer == NULL) {
+  if (HobTable->EfiFreeMemoryTop - ((Pages * EFI_PAGE_SIZE) + sizeof (EFI_HOB_MEMORY_ALLOCATION)) < HobTable->EfiFreeMemoryBottom) {
     return EFI_OUT_OF_RESOURCES;
   }
 
-  ASSERT (PageHead.AllocatedBuffer != NULL);
+  HobTable->EfiFreeMemoryTop -= Pages * EFI_PAGE_SIZE;
+  BuildMemoryAllocationHob (HobTable->EfiFreeMemoryTop, Pages * EFI_PAGE_SIZE, MemoryType);
 
-  DEBUG_CLEAR_MEMORY (PageHead.AllocatedBuffer, EFI_PAGES_TO_SIZE (PageHead.TotalPages));
-
-  PageHead.AlignedBuffer = (VOID *)(((UINTN)PageHead.AllocatedBuffer + AlignmentMask) & ~AlignmentMask);
-  if ((UINTN)PageHead.AlignedBuffer - (UINTN)PageHead.AllocatedBuffer < sizeof (PAGE_HEAD)) {
-    PageHead.AlignedBuffer = (VOID *)((UINTN)PageHead.AlignedBuffer + Alignment);
-  }
-
-  PageHeadPtr = (VOID *)((UINTN)PageHead.AlignedBuffer - sizeof (PAGE_HEAD));
-  memcpy (PageHeadPtr, &PageHead, sizeof (PAGE_HEAD));
-
-  *Memory = (UINTN)PageHead.AlignedBuffer;
+  *Memory = HobTable->EfiFreeMemoryTop;
   return EFI_SUCCESS;
 }
 
@@ -140,33 +182,13 @@ PhaseFreePages (
   IN UINTN                 Pages
   )
 {
-  PAGE_HEAD  *PageHeadPtr;
-  VOID       *AllocatedBuffer;
-  UINTN      Length;
-
-  ASSERT (Memory != NULL);
-
-  PageHeadPtr = ((PAGE_HEAD *)Memory) - 1;
-
-  ASSERT (PageHeadPtr != NULL);
-  ASSERT (PageHeadPtr->Signature == PAGE_HEAD_PRIVATE_SIGNATURE);
-  ASSERT (PageHeadPtr->AlignedPages == Pages);
-  ASSERT (PageHeadPtr->AllocatedBuffer != NULL);
-
-  AllocatedBuffer = PageHeadPtr->AllocatedBuffer;
-  Length          = EFI_PAGES_TO_SIZE (PageHeadPtr->TotalPages);
-
-  DEBUG_CLEAR_MEMORY (AllocatedBuffer, Length);
-
-  free (AllocatedBuffer);
-
   return EFI_SUCCESS;
 }
 
 /**
-  Allocates a buffer of a certain pool type.
+  Allocates a buffer of type EfiBootServicesData.
 
-  Allocates the number bytes specified by AllocationSize of a certain pool type and returns a
+  Allocates the number bytes specified by AllocationSize of type EfiBootServicesData and returns a
   pointer to the allocated buffer.  If AllocationSize is 0, then a valid buffer of 0 size is
   returned.  If there is not enough memory remaining to satisfy the request, then NULL is returned.
 
@@ -183,20 +205,15 @@ PhaseAllocatePool (
   IN UINTN            AllocationSize
   )
 {
-  POOL_HEAD  *PoolHead;
-  UINTN      TotalSize;
+  EFI_HOB_MEMORY_POOL  *Hob;
 
-  TotalSize = sizeof (POOL_HEAD) + AllocationSize;
-  PoolHead  = malloc (TotalSize);
-  if (PoolHead == NULL) {
+  if (AllocationSize > 0x4000) {
+    // Please use AllocatePages for big allocations
     return NULL;
   }
 
-  DEBUG_CLEAR_MEMORY (PoolHead, TotalSize);
-  PoolHead->Signature = POOL_HEAD_PRIVATE_SIGNATURE;
-  PoolHead->TotalSize = (UINT32)TotalSize;
-
-  return (VOID *)(PoolHead + 1);
+  Hob = (EFI_HOB_MEMORY_POOL *)CreateHob (EFI_HOB_TYPE_MEMORY_POOL, (UINT16)(sizeof (EFI_HOB_MEMORY_POOL) + AllocationSize));
+  return (VOID *)(Hob + 1);
 }
 
 /**
@@ -210,7 +227,7 @@ PhaseAllocatePool (
   If Buffer was not allocated with a pool allocation function in the Memory Allocation Library,
   then ASSERT().
 
-  @param  Buffer  The pointer to the buffer to free.
+  @param  Buffer                The pointer to the buffer to free.
 
 **/
 VOID
@@ -219,16 +236,7 @@ PhaseFreePool (
   IN VOID  *Buffer
   )
 {
-  POOL_HEAD  *PoolHead;
-
-  ASSERT (Buffer != NULL);
-
-  PoolHead = ((POOL_HEAD *)Buffer) - 1;
-
-  ASSERT (PoolHead != NULL);
-  ASSERT (PoolHead->Signature == POOL_HEAD_PRIVATE_SIGNATURE);
-  ASSERT (PoolHead->TotalSize >= sizeof (POOL_HEAD));
-
-  DEBUG_CLEAR_MEMORY (PoolHead, PoolHead->TotalSize);
-  free (PoolHead);
+  //
+  // PEI phase does not support to free pool, so leave it as NOP.
+  //
 }

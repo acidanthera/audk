@@ -37,4 +37,4 @@
   MdePkg/MdePkg.dec
 
 [LibraryClasses]
-  MemoryProfileLib
+  CommonMemoryAllocationLib
