@@ -1,0 +1,19 @@
+name: Check for LF line endings
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  lf-check:
+    name: LF Check
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: lf-check.sh
+        run: |
+          .github/scripts/lf-check.sh

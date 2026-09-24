@@ -1,0 +1,13 @@
+name: audk
+services:
+  build-package:
+    extends:
+      service: dev-edk2
+      file: OpenCorePkg/docker-compose.yaml
+    environment:
+      - SELFPKG
+      - SELFPKG_DIR
+    entrypoint:
+      - /bin/bash
+      - -c
+      - "{ . ~/.edk2_rc.sh && eval \"$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh)\" && curl -o ./efibuild.sh \"https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh\" && rm -f UDK && ln -s `pwd` UDK && touch UDK.ready && . ./efibuild.sh; } || exit 1"
