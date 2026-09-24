@@ -48,7 +48,6 @@
   DxeServicesLib
   MemoryAllocationLib
   PcdLib
-  PeCoffGetEntryPointLib
   SmmMemLib
   SmmServicesTableLib
   SynchronizationLib

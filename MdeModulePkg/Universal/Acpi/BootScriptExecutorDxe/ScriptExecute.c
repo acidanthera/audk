@@ -226,10 +226,9 @@ S3BootScriptExecutorEntryFunction (
 **/
 VOID
 RegisterMemoryProfileImage (
-  IN EFI_GUID          *FileName,
-  IN PHYSICAL_ADDRESS  ImageBase,
-  IN UINT64            ImageSize,
-  IN EFI_FV_FILETYPE   FileType
+  IN EFI_GUID                         *FileName,
+  IN UEFI_IMAGE_LOADER_IMAGE_CONTEXT  *ImageContext,
+  IN EFI_FV_FILETYPE                  FileType
   )
 {
   EFI_STATUS                         Status;
@@ -247,8 +246,7 @@ RegisterMemoryProfileImage (
       Status = ProfileProtocol->RegisterImage (
                                   ProfileProtocol,
                                   (EFI_DEVICE_PATH_PROTOCOL *)FilePath,
-                                  ImageBase,
-                                  ImageSize,
+                                  ImageContext,
                                   FileType
                                   );
     }
@@ -275,9 +273,11 @@ ReadyToLockEventNotify (
   UINTN                            BufferSize;
   EFI_HANDLE                       NewImageHandle;
   UINTN                            Pages;
-  EFI_PHYSICAL_ADDRESS             FfsBuffer;
-  PE_COFF_LOADER_IMAGE_CONTEXT     ImageContext;
+  UEFI_IMAGE_LOADER_IMAGE_CONTEXT  ImageContext;
+  UINT32                           ImageSize;
+  UINT32                           ImageAlignment;
   EFI_GCD_MEMORY_SPACE_DESCRIPTOR  MemDesc;
+  EFI_PHYSICAL_ADDRESS             LoadAddress;
 
   Status = gBS->LocateProtocol (&gEfiDxeSmmReadyToLockProtocolGuid, NULL, &Interface);
   if (EFI_ERROR (Status)) {
@@ -307,56 +307,40 @@ ReadyToLockEventNotify (
              &BufferSize
              );
   ASSERT_EFI_ERROR (Status);
-  ImageContext.Handle    = Buffer;
-  ImageContext.ImageRead = PeCoffLoaderImageReadFromMemory;
   //
   // Get information about the image being loaded
   //
-  Status = PeCoffLoaderGetImageInfo (&ImageContext);
+  Status = UefiImageInitializeContext (&ImageContext, Buffer, (UINT32)BufferSize);
   ASSERT_EFI_ERROR (Status);
-  if (ImageContext.SectionAlignment > EFI_PAGE_SIZE) {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)(ImageContext.ImageSize + ImageContext.SectionAlignment));
-  } else {
-    Pages = EFI_SIZE_TO_PAGES ((UINTN)ImageContext.ImageSize);
-  }
-
-  FfsBuffer = 0xFFFFFFFF;
-  Status    = gBS->AllocatePages (
+  ImageSize      = UefiImageGetImageSize (&ImageContext);
+  ImageAlignment = UefiImageGetSegmentAlignment (&ImageContext);
+  Pages          = EFI_SIZE_TO_PAGES (ImageSize);
+  LoadAddress    = 0xFFFFFFFF;
+  Status         = AllocateAlignedPagesEx (
                      AllocateMaxAddress,
                      EfiReservedMemoryType,
                      Pages,
-                     &FfsBuffer
+                     ImageAlignment,
+                     &LoadAddress
                      );
   ASSERT_EFI_ERROR (Status);
 
   //
   // Make sure that the buffer can be used to store code.
   //
-  Status = gDS->GetMemorySpaceDescriptor (FfsBuffer, &MemDesc);
+  Status = gDS->GetMemorySpaceDescriptor (LoadAddress, &MemDesc);
   if (!EFI_ERROR (Status) && ((MemDesc.Attributes & EFI_MEMORY_XP) != 0)) {
     gDS->SetMemorySpaceAttributes (
-           FfsBuffer,
+           LoadAddress,
            EFI_PAGES_TO_SIZE (Pages),
            MemDesc.Attributes & (~EFI_MEMORY_XP)
            );
   }
 
-  ImageContext.ImageAddress = (PHYSICAL_ADDRESS)(UINTN)FfsBuffer;
-  //
-  // Align buffer on section boundary
-  //
-  ImageContext.ImageAddress += ImageContext.SectionAlignment - 1;
-  ImageContext.ImageAddress &= ~((EFI_PHYSICAL_ADDRESS)ImageContext.SectionAlignment - 1);
   //
   // Load the image to our new buffer
   //
-  Status = PeCoffLoaderLoadImage (&ImageContext);
-  ASSERT_EFI_ERROR (Status);
-
-  //
-  // Relocate the image in our new buffer
-  //
-  Status = PeCoffLoaderRelocateImage (&ImageContext);
+  Status = UefiImageLoadImageForExecution (&ImageContext, (VOID *)(UINTN)LoadAddress, ImageSize, NULL, 0);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -364,19 +348,13 @@ ReadyToLockEventNotify (
   //
   gBS->FreePool (Buffer);
 
-  //
-  // Flush the instruction cache so the image data is written before we execute it
-  //
-  InvalidateInstructionCacheRange ((VOID *)(UINTN)ImageContext.ImageAddress, (UINTN)ImageContext.ImageSize);
-
   RegisterMemoryProfileImage (
     &gEfiCallerIdGuid,
-    ImageContext.ImageAddress,
-    ImageContext.ImageSize,
+    &ImageContext,
     EFI_FV_FILETYPE_DRIVER
     );
 
-  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(ImageContext.EntryPoint))(NewImageHandle, gST);
+  Status = ((EFI_IMAGE_ENTRY_POINT)(UINTN)(UefiImageLoaderGetImageEntryPoint (&ImageContext)))(NewImageHandle, gST);
   ASSERT_EFI_ERROR (Status);
 
   //
@@ -385,8 +363,8 @@ ReadyToLockEventNotify (
   //
   Status = SaveLockBox (
              &mBootScriptExecutorImageGuid,
-             (VOID *)(UINTN)ImageContext.ImageAddress,
-             (UINTN)ImageContext.ImageSize
+             (VOID *)(UINTN)LoadAddress,
+             (UINTN)UefiImageGetImageSize (&ImageContext)
              );
   ASSERT_EFI_ERROR (Status);
 

@@ -52,7 +52,6 @@
   BaseMemoryLib
   DevicePathLib
   PerformanceLib
-  PeCoffGetEntryPointLib
   UefiBootServicesTableLib
   UefiRuntimeServicesTableLib
   DxeServicesTableLib

@@ -19,7 +19,7 @@ EFI_STATUS
 MmAddToDriverList (
   IN EFI_FIRMWARE_VOLUME_HEADER  *FwVolHeader,
   IN VOID                        *Pe32Data,
-  IN UINTN                       Pe32DataSize,
+  IN UINT32                      Pe32DataSize,
   IN VOID                        *Depex,
   IN UINTN                       DepexSize,
   IN EFI_GUID                    *DriverName
@@ -65,12 +65,12 @@ MmCoreFfsFindMmDriver (
   EFI_STATUS                  DepexStatus;
   EFI_FFS_FILE_HEADER         *FileHeader;
   VOID                        *Pe32Data;
-  UINTN                       Pe32DataSize;
+  UINT32                      Pe32DataSize;
   VOID                        *Depex;
-  UINTN                       DepexSize;
+  UINT32                      DepexSize;
   EFI_COMMON_SECTION_HEADER   *Section;
   VOID                        *SectionData;
-  UINTN                       SectionDataSize;
+  UINT32                      SectionDataSize;
   UINT32                      DstBufferSize;
   VOID                        *ScratchBuffer;
   UINT32                      ScratchBufferSize;

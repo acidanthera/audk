@@ -45,5 +45,6 @@
   MemLibWrapper
 
 [BuildOptions]
-  *_CLANGPDB_*_CC_FLAGS   = -Wno-non-literal-null-conversion
-  *_CLANGDWARF_*_CC_FLAGS = -Wno-non-literal-null-conversion
+  CLANGPDB:*_*_*_CC_FLAGS = -Wno-non-literal-null-conversion
+  GCC:*_*_*_CC_FLAGS      = -Wno-non-literal-null-conversion
+  XCODE:*_*_*_CC_FLAGS    = -Wno-non-literal-null-conversion

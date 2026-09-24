@@ -53,7 +53,7 @@
 #include <Library/DevicePathLib.h>
 #include <Library/PrintLib.h>
 #include <Library/HandleParsingLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
+
 #include <Library/HandleParsingLib.h>
 
 extern        EFI_HII_HANDLE  gShellDriver1HiiHandle;

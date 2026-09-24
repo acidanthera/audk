@@ -361,7 +361,7 @@ def LoadEmulatorEfiSymbols(frame, bp_loc , internal_dict):
     #
     # VOID
     # SecGdbScriptBreak (
-    #   char                *FileName,
+    #   const char          *FileName,
     #   int                 FileNameLength,
     #   long unsigned int   LoadAddress,
     #   int                 AddSymbolFlag
@@ -394,7 +394,7 @@ def LoadEmulatorEfiSymbols(frame, bp_loc , internal_dict):
 
     debugger = frame.thread.process.target.debugger
     if frame.FindVariable ("AddSymbolFlag").GetValueAsUnsigned() == 1:
-        LoadAddress = frame.FindVariable ("LoadAddress").GetValueAsUnsigned() - 0x240
+        LoadAddress = frame.FindVariable ("LoadAddress").GetValueAsUnsigned()
 
         debugger.HandleCommand ("target modules add  %s" % FileName)
         print("target modules load --slid 0x%x %s" % (LoadAddress, FileName))

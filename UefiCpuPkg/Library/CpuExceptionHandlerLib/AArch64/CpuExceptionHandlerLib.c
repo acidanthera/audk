@@ -14,7 +14,6 @@
 #include <Library/BaseLib.h>
 #include <Library/CpuExceptionHandlerLib.h>
 #include <Library/DebugLib.h>
-#include <Library/PeCoffGetEntryPointLib.h>
 #include <Library/PrintLib.h>
 #include <Library/SerialPortLib.h>
 #include <Protocol/DebugSupport.h>
@@ -312,14 +311,13 @@ DumpCpuContext (
   UnicodeSPrintAsciiFormat (UnicodeBuffer, MAX_PRINT_CHARS, Buffer);
 
   DEBUG_CODE_BEGIN ();
-  CHAR8   *Pdb, *PrevPdb;
-  UINTN   ImageBase;
-  UINTN   PeCoffSizeOfHeader;
-  UINT64  *Fp;
-  UINT64  RootFp[2];
-  UINTN   Idx;
+  CONST CHAR8  *Pdb, *PrevPdb;
+  UINTN        ImageBase;
+  UINT64       *Fp;
+  UINT64       RootFp[2];
+  UINTN        Idx;
 
-  PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase, &PeCoffSizeOfHeader);
+  PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase);
   if (Pdb != NULL) {
     DEBUG ((
       DEBUG_ERROR,
@@ -344,7 +342,7 @@ DumpCpuContext (
     }
 
     for (Fp = RootFp; Fp[0] != 0; Fp = (UINT64 *)Fp[0]) {
-      Pdb = GetImageName (Fp[1], &ImageBase, &PeCoffSizeOfHeader);
+      Pdb = GetImageName (Fp[1], &ImageBase);
       if (Pdb != NULL) {
         if (Pdb != PrevPdb) {
           Idx++;
@@ -365,14 +363,14 @@ DumpCpuContext (
       }
     }
 
-    PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase, &PeCoffSizeOfHeader);
+    PrevPdb = Pdb = GetImageName (SystemContext.SystemContextAArch64->ELR, &ImageBase);
     if (Pdb != NULL) {
       DEBUG ((DEBUG_ERROR, "\n[ 0] %a\n", Pdb));
     }
 
     Idx = 0;
     for (Fp = RootFp; Fp[0] != 0; Fp = (UINT64 *)Fp[0]) {
-      Pdb = GetImageName (Fp[1], &ImageBase, &PeCoffSizeOfHeader);
+      Pdb = GetImageName (Fp[1], &ImageBase);
       if ((Pdb != NULL) && (Pdb != PrevPdb)) {
         DEBUG ((DEBUG_ERROR, "[% 2d] %a\n", ++Idx, Pdb));
         PrevPdb = Pdb;

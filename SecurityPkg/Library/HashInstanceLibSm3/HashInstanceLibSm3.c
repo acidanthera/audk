@@ -83,10 +83,7 @@ Sm3HashUpdate (
   IN UINTN        DataToHashLen
   )
 {
-  VOID  *Sm3Ctx;
-
-  Sm3Ctx = (VOID *)HashHandle;
-  Sm3Update (Sm3Ctx, DataToHash, DataToHashLen);
+  Sm3Update ((VOID *)HashHandle, DataToHash, DataToHashLen);
 
   return EFI_SUCCESS;
 }
@@ -102,17 +99,15 @@ Sm3HashUpdate (
 EFI_STATUS
 EFIAPI
 Sm3HashFinal (
-  IN HASH_HANDLE          HashHandle,
+  IN  HASH_HANDLE         HashHandle,
   OUT TPML_DIGEST_VALUES  *DigestList
   )
 {
   UINT8  Digest[SM3_256_DIGEST_SIZE];
-  VOID   *Sm3Ctx;
 
-  Sm3Ctx = (VOID *)HashHandle;
-  Sm3Final (Sm3Ctx, Digest);
+  Sm3Final ((VOID *)HashHandle, Digest);
 
-  FreePool (Sm3Ctx);
+  FreePool ((VOID *)HashHandle);
 
   Tpm2SetSm3ToDigestList (DigestList, Digest);
 

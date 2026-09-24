@@ -79,7 +79,6 @@
   CpuLib
   ReportStatusCodeLib
   SmmCpuFeaturesLib
-  PeCoffGetEntryPointLib
   PerformanceLib
   CpuPageTableLib
   MmSaveStateLib

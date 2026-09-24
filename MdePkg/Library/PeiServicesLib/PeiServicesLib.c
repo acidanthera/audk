@@ -325,6 +325,38 @@ PeiServicesFfsFindSectionData3 (
 }
 
 /**
+  This service enables PEIMs to discover sections of a given instance and type within a valid FFS file.
+
+  @param  SectionType           The value of the section type to find.
+  @param  SectionInstance       Section instance to find.
+  @param  FileHandle            A pointer to the file header that contains the set
+                                of sections to be searched.
+  @param  SectionData           A pointer to the discovered section, if successful.
+  @param  SectionDataSize       The size of the discovered section, if successful.
+  @param  AuthenticationStatus  A pointer to the authentication status for this section.
+
+  @retval EFI_SUCCESS           The section was found.
+  @retval EFI_NOT_FOUND         The section was not found.
+
+**/
+EFI_STATUS
+EFIAPI
+PeiServicesFfsFindSectionData4 (
+  IN EFI_SECTION_TYPE     SectionType,
+  IN UINTN                SectionInstance,
+  IN EFI_PEI_FILE_HANDLE  FileHandle,
+  OUT VOID                **SectionData,
+  OUT UINT32              *SectionDataSize,
+  OUT UINT32              *AuthenticationStatus
+  )
+{
+  CONST EFI_PEI_SERVICES  **PeiServices;
+
+  PeiServices = GetPeiServicesTablePointer ();
+  return (*PeiServices)->FindSectionData4 (PeiServices, SectionType, SectionInstance, FileHandle, SectionData, SectionDataSize, AuthenticationStatus);
+}
+
+/**
   This service enables PEIMs to register the permanent memory configuration
   that has been initialized with the PEI Foundation.
 

@@ -761,107 +761,6 @@ EdbLoadSymbol (
 
 /**
 
-  Located PDB path name in PE image.
-
-  @param  ImageBase - base of PE to search
-
-  @return Pointer into image at offset of PDB file name if PDB file name is found,
-  Otherwise a pointer to an empty string.
-
-**/
-CHAR8 *
-GetPdbPath (
-  VOID  *ImageBase
-  )
-{
-  CHAR8                            *PdbPath;
-  UINT32                           DirCount;
-  EFI_IMAGE_DOS_HEADER             *DosHdr;
-  EFI_IMAGE_OPTIONAL_HEADER_UNION  *NtHdr;
-  EFI_IMAGE_OPTIONAL_HEADER32      *OptionalHdr32;
-  EFI_IMAGE_OPTIONAL_HEADER64      *OptionalHdr64;
-  EFI_IMAGE_DATA_DIRECTORY         *DirectoryEntry;
-  EFI_IMAGE_DEBUG_DIRECTORY_ENTRY  *DebugEntry;
-  VOID                             *CodeViewEntryPointer;
-
-  //
-  // Init value
-  //
-  CodeViewEntryPointer = NULL;
-  PdbPath              = NULL;
-  DosHdr               = ImageBase;
-
-  //
-  // Check magic
-  //
-  if (DosHdr->e_magic != EFI_IMAGE_DOS_SIGNATURE) {
-    return NULL;
-  }
-
-  NtHdr = (EFI_IMAGE_OPTIONAL_HEADER_UNION *)((UINT8 *)DosHdr + DosHdr->e_lfanew);
-  //
-  // Check Machine, filter for EBC
-  //
-  if (NtHdr->Pe32.FileHeader.Machine != EFI_IMAGE_MACHINE_EBC) {
-    //
-    // If not EBC, return NULL
-    //
-    return NULL;
-  }
-
-  //
-  // Get DirectoryEntry
-  // EBC spec says PE32+, but implementation uses PE32. So check dynamically here.
-  //
-  if (NtHdr->Pe32.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
-    OptionalHdr32  = (VOID *)&NtHdr->Pe32.OptionalHeader;
-    DirectoryEntry = (EFI_IMAGE_DATA_DIRECTORY *)&(OptionalHdr32->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG]);
-  } else if (NtHdr->Pe32Plus.OptionalHeader.Magic == EFI_IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
-    OptionalHdr64  = (VOID *)&NtHdr->Pe32Plus.OptionalHeader;
-    DirectoryEntry = (EFI_IMAGE_DATA_DIRECTORY *)&(OptionalHdr64->DataDirectory[EFI_IMAGE_DIRECTORY_ENTRY_DEBUG]);
-  } else {
-    return NULL;
-  }
-
-  if (DirectoryEntry->VirtualAddress == 0) {
-    return NULL;
-  }
-
-  //
-  // Go through DirectoryEntry
-  //
-  for (DirCount = 0;
-       (DirCount < DirectoryEntry->Size / sizeof (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY)) && CodeViewEntryPointer == NULL;
-       DirCount++
-       )
-  {
-    DebugEntry = (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY *)(DirectoryEntry->VirtualAddress + (UINTN)ImageBase + DirCount * sizeof (EFI_IMAGE_DEBUG_DIRECTORY_ENTRY));
-    if (DebugEntry->Type == EFI_IMAGE_DEBUG_TYPE_CODEVIEW) {
-      //
-      // Match DebugEntry, only CODEVIEW_SIGNATURE_NB10 and CODEVIEW_SIGNATURE_RSDS are supported.
-      //
-      CodeViewEntryPointer = (VOID *)((UINTN)DebugEntry->RVA + (UINTN)ImageBase);
-      switch (*(UINT32 *)CodeViewEntryPointer) {
-        case CODEVIEW_SIGNATURE_NB10:
-          PdbPath = (CHAR8 *)CodeViewEntryPointer + sizeof (EFI_IMAGE_DEBUG_CODEVIEW_NB10_ENTRY);
-          break;
-        case CODEVIEW_SIGNATURE_RSDS:
-          PdbPath = (CHAR8 *)CodeViewEntryPointer + sizeof (EFI_IMAGE_DEBUG_CODEVIEW_RSDS_ENTRY);
-          break;
-        default:
-          break;
-      }
-    }
-  }
-
-  //
-  // Done successfully
-  //
-  return PdbPath;
-}
-
-/**
-
   Check whether PDB file and MAP file have same name.
 
   @param  PdbFileName - PDB file name
@@ -873,14 +772,14 @@ GetPdbPath (
 **/
 BOOLEAN
 MatchPdbAndMap (
-  IN CHAR8   *PdbFileName,
-  IN CHAR16  *MapFileName
+  IN CONST CHAR8   *PdbFileName,
+  IN CONST CHAR16  *MapFileName
   )
 {
-  UINTN  PdbNameSize;
-  UINTN  MapNameSize;
-  CHAR8  *PurePdbFileName;
-  UINTN  Index;
+  UINTN        PdbNameSize;
+  UINTN        MapNameSize;
+  CONST CHAR8  *PurePdbFileName;
+  UINTN        Index;
 
   //
   // remove dir name
@@ -1003,7 +902,7 @@ EdbPatchSymbolRVA (
   EFI_STATUS                  Status;
   UINTN                       ImageNumber;
   EFI_DEBUG_IMAGE_INFO        *ImageTable;
-  CHAR8                       *PdbPath;
+  CONST CHAR8                 *PdbPath;
   VOID                        *ImageBase;
   VOID                        *CandidateImageBase;
   EFI_DEBUGGER_SYMBOL_OBJECT  *Object;
@@ -1058,7 +957,7 @@ EdbPatchSymbolRVA (
     //
     // Get PDB path
     //
-    PdbPath = GetPdbPath (ImageBase);
+    PdbPath = ImageTable[ImageNumber].NormalImage->PdbPath;
     if (PdbPath == NULL) {
       continue;
     }

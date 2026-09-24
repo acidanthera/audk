@@ -54,7 +54,6 @@
 
 [LibraryClasses]
   BaseMemoryLib
-  PeCoffGetEntryPointLib
   ReportStatusCodeLib
   PeiServicesLib
   PerformanceLib
@@ -64,7 +63,7 @@
   DebugLib
   MemoryAllocationLib
   CacheMaintenanceLib
-  PeCoffLib
+  UefiImageLib
   PeiServicesTablePointerLib
   PcdLib
   TimerLib
