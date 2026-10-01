@@ -42,12 +42,12 @@ jobs:
 
       - name: CI Bootstrap
         run: |
-          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(/usr/bin/curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/audk-202608/ci-bootstrap.sh) && eval "$src" || exit 1
           touch UDK.ready
 
       - name: Prepare efibuild.sh
         run: |
-          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/audk-202608/efibuild.sh || exit 1
           chmod +x ./efibuild.sh
           ln -s `pwd` UDK
 
@@ -155,12 +155,12 @@ jobs:
 
       - name: CI Bootstrap
         run: |
-          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/master/ci-bootstrap.sh) && eval "$src" || exit 1
+          src=$(curl -Lfs https://raw.githubusercontent.com/acidanthera/ocbuild/audk-202608/ci-bootstrap.sh) && eval "$src" || exit 1
           touch UDK.ready
 
       - name: Prepare efibuild.sh
         run: |
-          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/master/efibuild.sh || exit 1
+          curl -o ./efibuild.sh https://raw.githubusercontent.com/acidanthera/ocbuild/audk-202608/efibuild.sh || exit 1
           chmod +x ./efibuild.sh
           cmd <<< "mklink /D .\\UDK .\\" > /dev/null
 
@@ -235,16 +235,16 @@ jobs:
         env:
           ARCHS: Ia32,X64,3264
           TARGETS: RELEASE,DEBUG,NOOPT
-          TOOLCHAIN: VS2019
+          TOOLCHAIN: VS2022
 
       - name: Zip artifacts
-        run: zip VS2019_fw_artifacts.zip ./firmware_artifacts/* -r
+        run: zip VS2022_fw_artifacts.zip ./firmware_artifacts/* -r
 
       - name: Upload to Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: VS2019 Firmware Artifacts
-          path: VS2019_fw_artifacts.zip
+          name: VS2022 Firmware Artifacts
+          path: VS2022_fw_artifacts.zip
 
   build-linux-clangpdb:
     name: Linux CLANGPDB
@@ -571,7 +571,7 @@ jobs:
       matrix:
         package: [
           {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "XCODE5", targets: "RELEASE,DEBUG,NOOPT"},
-          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "VS2019", targets: "RELEASE,DEBUG,NOOPT"},
+          {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "VS2022", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGPDB", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "CLANGDWARF", targets: "RELEASE,DEBUG,NOOPT"},
           {name: "Ovmf", archs: "Ia32,X64,3264", toolchain: "GCC", targets: "RELEASE,DEBUG,NOOPT"},
@@ -581,7 +581,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: acidanthera/ocbuild
-          ref: master
+          ref: audk-202608
           path: ./
 
       - name: Install dependencies
