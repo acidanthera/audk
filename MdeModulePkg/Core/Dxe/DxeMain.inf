@@ -22,7 +22,7 @@
 #
 # The following information is for reference only and not required by the build tools.
 #
-#  VALID_ARCHITECTURES           = IA32 X64 EBC (EBC is for build only) ARM AARCH64
+#  VALID_ARCHITECTURES           = IA32 X64 EBC (EBC is for build only) AARCH64
 #
 
 [Sources]
@@ -78,10 +78,6 @@
 [Sources.X64]
   SysCall/X64/InitializeX64.c
   SysCall/X64/CoreBootServices.nasm
-
-[Sources.ARM]
-  SysCall/ARM/InitializeARM.c
-  SysCall/ARM/CoreBootServices.S
 
 [Sources.AARCH64]
   SysCall/AARCH64/InitializeAARCH64.c
@@ -152,7 +148,7 @@
   gUefiImageLoaderImageContextGuid              ## CONSUMES             ## HOB
   gEfiGlobalVariableGuid                        ## SOMETIMES_CONSUMES   ## SysCall
 
-[Guids.ARM, Guids.AARCH64]
+[Guids.AARCH64]
   gArmVirtSystemMemorySizeGuid                  ## SOMETIMES_CONSUMES   ## SysCall
   gEarlyPL011BaseAddressGuid                    ## SOMETIMES_CONSUMES   ## SysCall
 
@@ -237,7 +233,7 @@
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaBase                            ## CONSUMES
   gUefiOvmfPkgTokenSpaceGuid.PcdOvmfWorkAreaSize                            ## CONSUMES
 
-[Pcd.ARM, Pcd.AARCH64]
+[Pcd.AARCH64]
   gArmTokenSpaceGuid.PcdSystemMemoryBase                                    ## CONSUMES
 
 # [Hob]

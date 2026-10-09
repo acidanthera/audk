@@ -18,7 +18,7 @@
 #
 # The following information is for reference only and not required by the build tools.
 #
-#  VALID_ARCHITECTURES           = IA32 X64 ARM AARCH64
+#  VALID_ARCHITECTURES           = IA32 X64 AARCH64
 #
 
 [Sources]
@@ -33,9 +33,6 @@
 
 [Sources.X64]
   X64/SysCall.nasm
-
-[Sources.ARM]
-  ARM/SysCall.S
 
 [Sources.AARCH64]
   AARCH64/SysCall.S
@@ -64,6 +61,6 @@
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType  ## CONSUMES
-  
+
 [Depex]
   TRUE

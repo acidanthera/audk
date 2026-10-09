@@ -400,20 +400,6 @@ CoreFileSetPosition (
              This,
              Position
              );
-#elif defined (MDE_CPU_ARM)
-  //
-  // UINT64 Position is passed as 2 words in 2 registers and is aligned on 8 bytes.
-  // R0 == This, R1 == NULL, R2 == Position_Low, R3 == Position_High.
-  //
-  Status = GoToUserSpace (
-             4,
-             EntryPoint,
-             UserDriver,
-             This,
-             NULL,
-             (UINT32)Position,
-             (UINT32)(Position >> 32)
-             );
 #endif
 
   gUserPageTable = OldPageTable;
@@ -727,26 +713,6 @@ CoreFileOpen (
              UserSpaceFileName,
              OpenMode,
              Attributes
-             );
-#elif defined (MDE_CPU_ARM)
-  //
-  // UINT64 OpenMode and Attributes are each passed as 2 words on stack.
-  // Each of them is aligned on 8 bytes.
-  // R0 == This, R1 == UserSpaceNewHandle, R2 == UserSpaceFileName, R3 == NULL,
-  // [SP] == OpenMode, [SP + 8] == Attributes.
-  //
-  Status = GoToUserSpace (
-             8,
-             EntryPoint,
-             UserDriver,
-             This,
-             UserSpaceNewHandle,
-             UserSpaceFileName,
-             NULL,
-             (UINT32)OpenMode,
-             (UINT32)(OpenMode >> 32),
-             (UINT32)Attributes,
-             (UINT32)(Attributes >> 32)
              );
 #endif
   if (EFI_ERROR (Status)) {
