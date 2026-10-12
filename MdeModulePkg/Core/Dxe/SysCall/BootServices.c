@@ -132,9 +132,6 @@ FindGuid (
   } else if (CompareGuid (UserSpace, &gEfiSimpleFileSystemProtocolGuid)) {
     *Core     = &gEfiSimpleFileSystemProtocolGuid;
     *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
-  } else if (CompareGuid (UserSpace, &gEfiUnicodeCollationProtocolGuid)) {
-    *Core     = &gEfiUnicodeCollationProtocolGuid;
-    *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
   } else if (CompareGuid (UserSpace, &gEfiGlobalVariableGuid)) {
     *Core = &gEfiGlobalVariableGuid;
   } else if (CompareGuid (UserSpace, &gEfiUnicodeCollation2ProtocolGuid)) {
@@ -231,7 +228,7 @@ PrepareUserSpaceInterface (
     BlockIo->Media = (EFI_BLOCK_IO_MEDIA *)mUserSpaceInterfacePointer;
 
     mUserSpaceInterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
-  } else if (CompareGuid (Guid, &gEfiUnicodeCollationProtocolGuid)) {
+  } else if (CompareGuid (Guid, &gEfiUnicodeCollation2ProtocolGuid)) {
     Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)UserSpaceInterface;
 
     ASSERT ((mUserSpaceInterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= UserSpaceLimit);
@@ -528,9 +525,7 @@ CallBootService (
           CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
 
           CoreSimpleFileSystem->OpenVolume = CoreSimpleFileSystemOpenVolume;
-        } else if (  (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollationProtocolGuid))
-                  || (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid)))
-        {
+        } else if (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid)) {
           CoreUnicodeCollation = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreArgList[Index + 1];
 
           CoreUnicodeCollation->StriColl   = CoreUnicodeCollationStriColl;

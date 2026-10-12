@@ -57,7 +57,7 @@
   gEfiDiskIoProtocolGuid               ## SOMETIMES_CONSUMES
   gEfiBlockIoProtocolGuid              ## SOMETIMES_CONSUMES
   gEfiDevicePathProtocolGuid           ## SOMETIMES_CONSUMES
-  gEfiUnicodeCollationProtocolGuid     ## SOMETIMES_CONSUMES
+  gEfiUnicodeCollation2ProtocolGuid    ## SOMETIMES_CONSUMES
 
 [Pcd]
   gEfiMdeModulePkgTokenSpaceGuid.PcdMaxMemoryType  ## CONSUMES

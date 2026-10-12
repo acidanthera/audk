@@ -89,7 +89,7 @@ FixInterface (
     DevicePath->GetNextDevicePathInstance = NULL;
     DevicePath->IsDevicePathMultiInstance = NULL;
     DevicePath->CreateDeviceNode          = NULL;
-  } else if (CompareGuid (Protocol, &gEfiUnicodeCollationProtocolGuid)) {
+  } else if (CompareGuid (Protocol, &gEfiUnicodeCollation2ProtocolGuid)) {
     Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)*Interface;
 
     Unicode->StriColl   = UserSpaceUnicodeStriColl;
