@@ -41,7 +41,7 @@ all:
 $(APP) : $(OBJECTS)
 	-@if not exist $(BIN_PATH) mkdir $(BIN_PATH)
 	@cd $(OUT_DIR)
-	$(LD) /nologo /debug /OPT:REF /OPT:ICF=10 /incremental:no /nodefaultlib:libc.lib /out:..\$@ $(LIBS) $**
+	$(LD) /nologo /debug /OPT:ICF=10 /incremental:no /nodefaultlib:libc.lib /out:..\$@ $(LIBS) $**
 	@copy /y ..\$@ $(BIN_PATH)\$@.exe
 
 .PHONY:clean
