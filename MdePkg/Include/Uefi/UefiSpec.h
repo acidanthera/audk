@@ -2048,10 +2048,10 @@ typedef enum {
   // Protocols
   //
   SysCallBlockIoReset,
-  SysCallBlockIoRead = 14,
+  SysCallBlockIoRead  = 14,
   SysCallBlockIoWrite = 15,
   SysCallBlockIoFlush,
-  SysCallDiskIoRead = 17,
+  SysCallDiskIoRead  = 17,
   SysCallDiskIoWrite = 18,
   SysCallUnicodeStriColl,
   SysCallUnicodeMetaiMatch,
@@ -2066,11 +2066,11 @@ typedef enum {
   SysCallMax
 } SYS_CALL_TYPE;
 
-#define SC_FREE_PAGES     7
-#define SC_BLOCK_IO_READ  14
-#define SC_BLOCK_IO_WRITE 15
-#define SC_DISK_IO_READ   17
-#define SC_DISK_IO_WRITE  18
+#define SC_FREE_PAGES      7
+#define SC_BLOCK_IO_READ   14
+#define SC_BLOCK_IO_WRITE  15
+#define SC_DISK_IO_READ    17
+#define SC_DISK_IO_WRITE   18
 
 ///
 /// Contains a set of GUID/pointer pairs comprised of the ConfigurationTable field in the
@@ -2158,16 +2158,16 @@ typedef struct {
 } EFI_SYSTEM_TABLE;
 
 typedef struct {
-  EFI_SYSTEM_TABLE     SystemTable;
-  VOID                 *EntryPoint;
-  EFI_BOOT_SERVICES    *BootServices;
-  EFI_RUNTIME_SERVICES *RuntimeServices;
+  EFI_SYSTEM_TABLE        SystemTable;
+  VOID                    *EntryPoint;
+  EFI_BOOT_SERVICES       *BootServices;
+  EFI_RUNTIME_SERVICES    *RuntimeServices;
 } USER_SPACE_DATA;
 
 typedef struct {
-  UINT8  NumberOfArguments;
-  VOID   *EntryPoint;
-  UINTN  Arguments[];
+  UINT8    NumberOfArguments;
+  VOID     *EntryPoint;
+  UINTN    Arguments[];
 } USER_SPACE_CALL_DATA;
 
 /**

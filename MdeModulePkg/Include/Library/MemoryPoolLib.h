@@ -20,7 +20,7 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 #define GUARD_HEAP_TYPE_ALL         \
         (GUARD_HEAP_TYPE_PAGE|GUARD_HEAP_TYPE_POOL|GUARD_HEAP_TYPE_FREED)
 
-#define MAX_MEMORY_TYPE        FixedPcdGet32 (PcdMaxMemoryType)
+#define MAX_MEMORY_TYPE  FixedPcdGet32 (PcdMaxMemoryType)
 
 /**
   Called to initialize the pool.

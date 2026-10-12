@@ -8,9 +8,9 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-#define MAX_CALL 1
+#define MAX_CALL  1
 
-LIST_ENTRY gUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (gUserSpaceDriversHead);
+LIST_ENTRY  gUserSpaceDriversHead = INITIALIZE_LIST_HEAD_VARIABLE (gUserSpaceDriversHead);
 
 EFI_STATUS
 EFIAPI
@@ -55,6 +55,7 @@ GoToUserSpace (
   for (Index = 0; Index < Number; ++Index) {
     Input->Arguments[Index] = VA_ARG (Marker, UINTN);
   }
+
   VA_END (Marker);
 
   SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
@@ -274,7 +275,7 @@ EFIAPI
 CoreFileRead (
   IN     EFI_FILE_PROTOCOL  *This,
   IN OUT UINTN              *BufferSize,
-     OUT VOID               *Buffer
+  OUT VOID                  *Buffer
   )
 {
   EFI_STATUS            Status;
@@ -289,6 +290,7 @@ CoreFileRead (
   if ((This == NULL) || (BufferSize == NULL)) {
     return EFI_INVALID_PARAMETER;
   }
+
   //
   // gUserPageTable must be set before alloctation of EfiUserSpaceMemoryType pages.
   //
@@ -381,7 +383,7 @@ CoreFileSetPosition (
   EntryPoint = (VOID *)This->SetPosition;
   ForbidSupervisorAccessToUserMemory ();
 
-#if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
+ #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   Status = GoToUserSpace (
              2,
              EntryPoint,
@@ -389,7 +391,7 @@ CoreFileSetPosition (
              This,
              Position
              );
-#elif defined (MDE_CPU_IA32)
+ #elif defined (MDE_CPU_IA32)
   //
   // UINT64 Position is passed as 2 double words on stack.
   //
@@ -400,7 +402,7 @@ CoreFileSetPosition (
              This,
              Position
              );
-#endif
+ #endif
 
   gUserPageTable = OldPageTable;
 
@@ -472,7 +474,7 @@ CoreFileGetInfo (
   IN     EFI_FILE_PROTOCOL  *This,
   IN     EFI_GUID           *InformationType,
   IN OUT UINTN              *BufferSize,
-     OUT VOID               *Buffer
+  OUT VOID                  *Buffer
   )
 {
   EFI_STATUS            Status;
@@ -583,7 +585,7 @@ EFI_STATUS
 EFIAPI
 CoreFileOpenEx (
   IN     EFI_FILE_PROTOCOL  *This,
-     OUT EFI_FILE_PROTOCOL  **NewHandle,
+  OUT EFI_FILE_PROTOCOL     **NewHandle,
   IN     CHAR16             *FileName,
   IN     UINT64             OpenMode,
   IN     UINT64             Attributes,
@@ -670,7 +672,7 @@ CoreFileOpen (
              &UserSpacePages
              );
   if (EFI_ERROR (Status)) {
-    *NewHandle = NULL;
+    *NewHandle     = NULL;
     gUserPageTable = OldPageTable;
     return Status;
   }
@@ -689,7 +691,7 @@ CoreFileOpen (
     return Status;
   }
 
-#if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
+ #if defined (MDE_CPU_X64) || defined (MDE_CPU_AARCH64)
   Status = GoToUserSpace (
              5,
              EntryPoint,
@@ -700,7 +702,7 @@ CoreFileOpen (
              OpenMode,
              Attributes
              );
-#elif defined (MDE_CPU_IA32)
+ #elif defined (MDE_CPU_IA32)
   //
   // UINT64 OpenMode and Attributes are each passed as 2 double words on stack.
   //
@@ -714,7 +716,7 @@ CoreFileOpen (
              OpenMode,
              Attributes
              );
-#endif
+ #endif
   if (EFI_ERROR (Status)) {
     *NewHandle = NULL;
     CoreFreePages (UserSpacePages, PagesNumber);
@@ -778,7 +780,7 @@ EFI_STATUS
 EFIAPI
 CoreSimpleFileSystemOpenVolume (
   IN  EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *This,
-  OUT EFI_FILE_PROTOCOL                 **Root
+  OUT EFI_FILE_PROTOCOL                **Root
   )
 {
   EFI_STATUS            Status;
@@ -810,7 +812,7 @@ CoreSimpleFileSystemOpenVolume (
              &Physical
              );
   if (EFI_ERROR (Status)) {
-    *Root = NULL;
+    *Root          = NULL;
     gUserPageTable = OldPageTable;
     return Status;
   }

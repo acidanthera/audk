@@ -99,11 +99,11 @@ InitializePlatform (
   IN OUT EFI_SYSTEM_TABLE  *System
   )
 {
-  UINT64                  Msr;
-  IA32_CR4                Cr4;
-  IA32_EFLAGS32           Eflags;
-  UINT32                  Ebx;
-  UINT32                  Edx;
+  UINT64         Msr;
+  IA32_CR4       Cr4;
+  IA32_EFLAGS32  Eflags;
+  UINT32         Ebx;
+  UINT32         Edx;
 
   Ebx = 0;
   Edx = 0;
@@ -206,5 +206,4 @@ MapPlatform (
           FixedPcdGet32 (PcdOvmfWorkAreaSize),
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
-
 }

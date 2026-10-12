@@ -243,8 +243,8 @@ ArchSetupExceptionStack (
     IOBitMapPointer             = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdUartIoPortBaseAddress) / 8);
     Offset                      = (UINT8)(FixedPcdGet16 (PcdUartIoPortBaseAddress) & 0x7U);
     *(UINT16 *)IOBitMapPointer &= ~((1U << Offset) | (1U << (Offset + 1))
-                                  | (1U << (Offset + 3)) | (1U << (Offset + 4))
-                                  | (1U << (Offset + 5)) | (1U << (Offset + 6)));
+                                    | (1U << (Offset + 3)) | (1U << (Offset + 4))
+                                    | (1U << (Offset + 5)) | (1U << (Offset + 6)));
 
     IOBitMapPointer   = (UINT8 *)((UINTN)IOBitMap + FixedPcdGet16 (PcdDebugIoPort) / 8);
     Offset            = (UINT8)(FixedPcdGet16 (PcdDebugIoPort) & 0x7U);

@@ -117,8 +117,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
 ///
 #define DEPEX_STACK_SIZE_INCREMENT  0x1000
 
-#define STACK_SIZE                  0x20000
-#define USER_SPACE_INTERFACES_PAGES 20
+#define STACK_SIZE                   0x20000
+#define USER_SPACE_INTERFACES_PAGES  20
 
 typedef struct {
   EFI_GUID     *ProtocolGuid;
@@ -236,11 +236,11 @@ typedef struct {
 } LOADED_IMAGE_PRIVATE_DATA;
 
 typedef struct {
-  VOID        *CoreWrapper;
-  VOID        *UserSpaceDriver;
-  UINTN       UserPageTable;
-  UINT8       NumberOfCalls;
-  LIST_ENTRY  Link;
+  VOID          *CoreWrapper;
+  VOID          *UserSpaceDriver;
+  UINTN         UserPageTable;
+  UINT8         NumberOfCalls;
+  LIST_ENTRY    Link;
 } USER_SPACE_DRIVER;
 
 #define LOADED_IMAGE_PRIVATE_DATA_FROM_THIS(a) \

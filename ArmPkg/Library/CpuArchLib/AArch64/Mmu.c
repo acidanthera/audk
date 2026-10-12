@@ -573,7 +573,6 @@ GetMemoryRegion (
     TranslationTable = (UINT64 *)UserPageTable;
   }
 
-
   // Initialize the output parameters. These paramaters are only valid if the
   // result is EFI_SUCCESS.
   *RegionLength     = 0;

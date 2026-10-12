@@ -693,7 +693,7 @@ InitializeMpExceptionStackSwitchHandlers (
     if (SwitchStackData[Index].Status == EFI_BUFFER_TOO_SMALL) {
       ASSERT (SwitchStackData[Index].BufferSize != 0);
       SwitchStackData[Index].BufferSize = ALIGN_VALUE (SwitchStackData[Index].BufferSize, EFI_PAGE_SIZE);
-      BufferSize += SwitchStackData[Index].BufferSize;
+      BufferSize                       += SwitchStackData[Index].BufferSize;
     } else {
       ASSERT (SwitchStackData[Index].Status == EFI_SUCCESS);
       ASSERT (SwitchStackData[Index].BufferSize == 0);

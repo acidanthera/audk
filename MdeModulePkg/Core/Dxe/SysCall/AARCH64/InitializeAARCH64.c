@@ -150,7 +150,7 @@ InitializePlatform (
   //
   // Disable Hierarchical permissions just in case.
   //
-  Tcr = ArmGetTCR ();
+  Tcr  = ArmGetTCR ();
   Tcr |= TCR_EL1_HPD0_MASK | TCR_EL1_HPD1_MASK;
   ArmSetTCR (Tcr);
 
@@ -226,9 +226,9 @@ CallUserSpace (
   )
 {
   return ArmCallUserSpace (
-            Data,
-            UserStackTop,
-            gUserSpaceEntryPoint,
-            gUserPageTable
-            );
+           Data,
+           UserStackTop,
+           gUserSpaceEntryPoint,
+           gUserPageTable
+           );
 }

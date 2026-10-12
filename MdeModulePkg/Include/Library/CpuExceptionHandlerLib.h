@@ -21,11 +21,11 @@ EFI_STATUS
   );
 
 typedef struct {
-  UINTN  ExceptionStackBase;
-  UINTN  ExceptionStackSize;
-  UINTN  ExceptionHandlerBase;
-  UINTN  ExceptionHandlerSize;
-  UINTN  ExceptionDataBase;
+  UINTN    ExceptionStackBase;
+  UINTN    ExceptionStackSize;
+  UINTN    ExceptionHandlerBase;
+  UINTN    ExceptionHandlerSize;
+  UINTN    ExceptionDataBase;
 } EXCEPTION_ADDRESSES;
 
 /**

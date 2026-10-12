@@ -52,51 +52,43 @@ FixInterface (
   IN OUT VOID      **Interface
   )
 {
-  EFI_LOADED_IMAGE_PROTOCOL          *LoadedImage;
-  EFI_BLOCK_IO_PROTOCOL              *BlockIo;
-  EFI_DISK_IO_PROTOCOL               *DiskIo;
-  EFI_DEVICE_PATH_UTILITIES_PROTOCOL *DevicePath;
-  EFI_UNICODE_COLLATION_PROTOCOL     *Unicode;
+  EFI_LOADED_IMAGE_PROTOCOL           *LoadedImage;
+  EFI_BLOCK_IO_PROTOCOL               *BlockIo;
+  EFI_DISK_IO_PROTOCOL                *DiskIo;
+  EFI_DEVICE_PATH_UTILITIES_PROTOCOL  *DevicePath;
+  EFI_UNICODE_COLLATION_PROTOCOL      *Unicode;
 
   ASSERT (Protocol != NULL);
   ASSERT (Interface != NULL);
 
   if (CompareGuid (Protocol, &gEfiDevicePathProtocolGuid)) {
-
   } else if (CompareGuid (Protocol, &gEfiLoadedImageProtocolGuid)) {
-
     LoadedImage = (EFI_LOADED_IMAGE_PROTOCOL *)*Interface;
 
     LoadedImage->Unload = NULL;
-
   } else if (CompareGuid (Protocol, &gEfiBlockIoProtocolGuid)) {
-
     BlockIo = (EFI_BLOCK_IO_PROTOCOL *)*Interface;
 
     BlockIo->Reset       = UserSpaceBlockIoReset;
     BlockIo->ReadBlocks  = UserSpaceBlockIoRead;
     BlockIo->WriteBlocks = UserSpaceBlockIoWrite;
     BlockIo->FlushBlocks = UserSpaceBlockIoFlush;
-
   } else if (CompareGuid (Protocol, &gEfiDiskIoProtocolGuid)) {
-
     DiskIo = (EFI_DISK_IO_PROTOCOL *)*Interface;
 
     DiskIo->ReadDisk  = UserSpaceDiskIoRead;
     DiskIo->WriteDisk = UserSpaceDiskIoWrite;
-
   } else if (CompareGuid (Protocol, &gEfiDevicePathUtilitiesProtocolGuid)) {
     DevicePath = (EFI_DEVICE_PATH_UTILITIES_PROTOCOL *)*Interface;
 
-    DevicePath->GetDevicePathSize = NULL;
-    DevicePath->DuplicateDevicePath = NULL;
-    DevicePath->AppendDevicePath = NULL;
-    DevicePath->AppendDeviceNode = NULL;
-    DevicePath->AppendDevicePathInstance = NULL;
+    DevicePath->GetDevicePathSize         = NULL;
+    DevicePath->DuplicateDevicePath       = NULL;
+    DevicePath->AppendDevicePath          = NULL;
+    DevicePath->AppendDeviceNode          = NULL;
+    DevicePath->AppendDevicePathInstance  = NULL;
     DevicePath->GetNextDevicePathInstance = NULL;
     DevicePath->IsDevicePathMultiInstance = NULL;
-    DevicePath->CreateDeviceNode = NULL;
-
+    DevicePath->CreateDeviceNode          = NULL;
   } else if (CompareGuid (Protocol, &gEfiUnicodeCollationProtocolGuid)) {
     Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)*Interface;
 
@@ -106,7 +98,6 @@ FixInterface (
     Unicode->StrUpr     = UserSpaceUnicodeStrUpr;
     Unicode->FatToStr   = UserSpaceUnicodeFatToStr;
     Unicode->StrToFat   = UserSpaceUnicodeStrToFat;
-
   } else {
     return EFI_UNSUPPORTED;
   }
@@ -193,9 +184,9 @@ EFIAPI
 UserSpaceGetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
-     OUT UINTN                  *MapKey,
-     OUT UINTN                  *DescriptorSize,
-     OUT UINT32                 *DescriptorVersion
+  OUT UINTN                     *MapKey,
+  OUT UINTN                     *DescriptorSize,
+  OUT UINT32                    *DescriptorVersion
   )
 {
   DEBUG ((DEBUG_ERROR, "UserSpace: GetMemoryMap is not supported\n"));
@@ -389,7 +380,7 @@ UserSpaceLocateHandle (
   IN     EFI_GUID                *Protocol   OPTIONAL,
   IN     VOID                    *SearchKey  OPTIONAL,
   IN OUT UINTN                   *BufferSize,
-     OUT EFI_HANDLE              *Buffer
+  OUT EFI_HANDLE                 *Buffer
   )
 {
   DEBUG ((DEBUG_ERROR, "UserSpace: LocateHandle is not supported\n"));
@@ -402,7 +393,7 @@ EFIAPI
 UserSpaceLocateDevicePath (
   IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
-     OUT EFI_HANDLE                *Device
+  OUT EFI_HANDLE                   *Device
   )
 {
   DEBUG ((DEBUG_ERROR, "UserSpace: LocateDevicePath is not supported\n"));
@@ -634,7 +625,7 @@ UserSpaceLocateHandleBuffer (
   IN     EFI_GUID                *Protocol OPTIONAL,
   IN     VOID                    *SearchKey OPTIONAL,
   IN OUT UINTN                   *NumberHandles,
-     OUT EFI_HANDLE              **Buffer
+  OUT EFI_HANDLE                 **Buffer
   )
 {
   EFI_STATUS  Status;
@@ -652,8 +643,9 @@ UserSpaceLocateHandleBuffer (
                Buffer
                );
 
-  if ((!EFI_ERROR (StatusBS)) && (NumberHandles != NULL) && (*NumberHandles != 0)
-    && (Buffer != NULL) && (*Buffer != NULL)) {
+  if (  (!EFI_ERROR (StatusBS)) && (NumberHandles != NULL) && (*NumberHandles != 0)
+     && (Buffer != NULL) && (*Buffer != NULL))
+  {
     PoolSize = *NumberHandles * sizeof (EFI_HANDLE *);
 
     Status = UserSpaceAllocatePool (EfiUserSpaceMemoryType, PoolSize, &Pool);
@@ -720,6 +712,7 @@ UserSpaceInstallMultipleProtocolInterfaces (
   while (VA_ARG (Marker, VOID *) != NULL) {
     ++NumberOfArguments;
   }
+
   VA_END (Marker);
 
   Status = UserSpaceAllocatePool (
@@ -735,6 +728,7 @@ UserSpaceInstallMultipleProtocolInterfaces (
   for (Index = 0; Index < NumberOfArguments; ++Index) {
     Arguments[Index] = VA_ARG (Marker, VOID *);
   }
+
   VA_END (Marker);
 
   Status = SysCall (

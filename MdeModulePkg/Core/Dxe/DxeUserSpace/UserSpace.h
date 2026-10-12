@@ -127,9 +127,9 @@ EFIAPI
 UserSpaceGetMemoryMap (
   IN OUT UINTN                  *MemoryMapSize,
   IN OUT EFI_MEMORY_DESCRIPTOR  *MemoryMap,
-     OUT UINTN                  *MapKey,
-     OUT UINTN                  *DescriptorSize,
-     OUT UINT32                 *DescriptorVersion
+  OUT UINTN                     *MapKey,
+  OUT UINTN                     *DescriptorSize,
+  OUT UINT32                    *DescriptorVersion
   );
 
 /**
@@ -421,7 +421,7 @@ UserSpaceLocateHandle (
   IN     EFI_GUID                *Protocol   OPTIONAL,
   IN     VOID                    *SearchKey  OPTIONAL,
   IN OUT UINTN                   *BufferSize,
-     OUT EFI_HANDLE              *Buffer
+  OUT EFI_HANDLE                 *Buffer
   );
 
 /**
@@ -444,7 +444,7 @@ EFIAPI
 UserSpaceLocateDevicePath (
   IN     EFI_GUID                  *Protocol,
   IN OUT EFI_DEVICE_PATH_PROTOCOL  **DevicePath,
-     OUT EFI_HANDLE                *Device
+  OUT EFI_HANDLE                   *Device
   );
 
 /**
@@ -891,7 +891,7 @@ UserSpaceLocateHandleBuffer (
   IN     EFI_GUID                *Protocol OPTIONAL,
   IN     VOID                    *SearchKey OPTIONAL,
   IN OUT UINTN                   *NumberHandles,
-     OUT EFI_HANDLE              **Buffer
+  OUT EFI_HANDLE                 **Buffer
   );
 
 /**
@@ -1328,9 +1328,9 @@ EFIAPI
 UserSpaceGetVariable (
   IN     CHAR16    *VariableName,
   IN     EFI_GUID  *VendorGuid,
-     OUT UINT32    *Attributes     OPTIONAL,
+  OUT UINT32       *Attributes     OPTIONAL,
   IN OUT UINTN     *DataSize,
-     OUT VOID      *Data           OPTIONAL
+  OUT VOID         *Data           OPTIONAL
   );
 
 /**

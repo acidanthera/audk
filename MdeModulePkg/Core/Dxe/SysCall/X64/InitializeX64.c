@@ -409,5 +409,4 @@ MapPlatform (
           FixedPcdGet32 (PcdOvmfWorkAreaSize),
           EFI_MEMORY_XP | EFI_MEMORY_USER
           );
-
 }

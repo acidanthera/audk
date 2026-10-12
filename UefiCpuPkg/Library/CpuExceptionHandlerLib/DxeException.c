@@ -32,9 +32,9 @@ STATIC CONST EFI_DEBUG_IMAGE_INFO_TABLE_HEADER  *mDebugImageInfoTable = NULL;
 
 EXCEPTION_ADDRESSES  mAddresses;
 
-extern UINTN         ExceptionHandlerBase;
-extern UINTN         ExceptionHandlerEnd;
-extern UINTN         CorePageTable;
+extern UINTN  ExceptionHandlerBase;
+extern UINTN  ExceptionHandlerEnd;
+extern UINTN  CorePageTable;
 
 /**
   Common exception handler.

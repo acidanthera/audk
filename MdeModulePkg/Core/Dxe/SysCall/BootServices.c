@@ -8,17 +8,17 @@
 #include "DxeMain.h"
 #include "SupportedProtocols.h"
 
-LIST_ENTRY mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
+LIST_ENTRY  mProtocolsHead = INITIALIZE_LIST_HEAD_VARIABLE (mProtocolsHead);
 
 typedef struct {
-  VOID        *Core;
-  VOID        *UserSpace;
-  LIST_ENTRY  Link;
+  VOID          *Core;
+  VOID          *UserSpace;
+  LIST_ENTRY    Link;
 } INTERFACE;
 
 UINTN  mUserSpaceInterfacePointer = 0;
 
-CHAR8 *SysCallNames[] = {
+CHAR8  *SysCallNames[] = {
   //
   // BootServices
   //
@@ -106,64 +106,40 @@ FindGuid (
   ASSERT (CoreSize != NULL);
 
   if (CompareGuid (UserSpace, &gEfiDevicePathUtilitiesProtocolGuid)) {
-
     *Core     = &gEfiDevicePathUtilitiesProtocolGuid;
     *CoreSize = sizeof (EFI_DEVICE_PATH_UTILITIES_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiLoadedImageProtocolGuid)) {
-
     *Core     = &gEfiLoadedImageProtocolGuid;
     *CoreSize = sizeof (EFI_LOADED_IMAGE_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiBlockIoProtocolGuid)) {
-
     *Core     = &gEfiBlockIoProtocolGuid;
     *CoreSize = sizeof (EFI_BLOCK_IO_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiDiskIoProtocolGuid)) {
-
     *Core     = &gEfiDiskIoProtocolGuid;
     *CoreSize = sizeof (EFI_DISK_IO_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiDriverBindingProtocolGuid)) {
-
     *Core     = &gEfiDriverBindingProtocolGuid;
     *CoreSize = sizeof (EFI_DRIVER_BINDING_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiComponentNameProtocolGuid)) {
-
     *Core     = &gEfiComponentNameProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiComponentName2ProtocolGuid)) {
-
     *Core     = &gEfiComponentName2ProtocolGuid;
     *CoreSize = sizeof (EFI_COMPONENT_NAME2_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiDevicePathProtocolGuid)) {
-
     *Core     = &gEfiDevicePathProtocolGuid;
     *CoreSize = sizeof (EFI_DEVICE_PATH_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiSimpleFileSystemProtocolGuid)) {
-
     *Core     = &gEfiSimpleFileSystemProtocolGuid;
     *CoreSize = sizeof (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiUnicodeCollationProtocolGuid)) {
-
     *Core     = &gEfiUnicodeCollationProtocolGuid;
     *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
-
   } else if (CompareGuid (UserSpace, &gEfiGlobalVariableGuid)) {
-
-    *Core     = &gEfiGlobalVariableGuid;
-
+    *Core = &gEfiGlobalVariableGuid;
   } else if (CompareGuid (UserSpace, &gEfiUnicodeCollation2ProtocolGuid)) {
-
     *Core     = &gEfiUnicodeCollation2ProtocolGuid;
     *CoreSize = sizeof (EFI_UNICODE_COLLATION_PROTOCOL);
-
   } else {
     DEBUG ((DEBUG_ERROR, "Core: Unknown protocol - %g.\n", UserSpace));
     return EFI_NOT_FOUND;
@@ -209,12 +185,12 @@ PrepareUserSpaceInterface (
   IN UINT32    CoreSize
   )
 {
-  EFI_STATUS                     Status;
-  UINTN                          UserSpaceLimit;
-  VOID                           *UserSpaceInterface;
-  EFI_BLOCK_IO_PROTOCOL          *BlockIo;
-  EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
-  INTERFACE                      *Protocol;
+  EFI_STATUS                      Status;
+  UINTN                           UserSpaceLimit;
+  VOID                            *UserSpaceInterface;
+  EFI_BLOCK_IO_PROTOCOL           *BlockIo;
+  EFI_UNICODE_COLLATION_PROTOCOL  *Unicode;
+  INTERFACE                       *Protocol;
 
   ASSERT (Guid != NULL);
   ASSERT (CoreInterface != NULL);
@@ -256,7 +232,6 @@ PrepareUserSpaceInterface (
 
     mUserSpaceInterfacePointer += sizeof (EFI_BLOCK_IO_MEDIA);
   } else if (CompareGuid (Guid, &gEfiUnicodeCollationProtocolGuid)) {
-
     Unicode = (EFI_UNICODE_COLLATION_PROTOCOL *)UserSpaceInterface;
 
     ASSERT ((mUserSpaceInterfacePointer + AsciiStrSize (Unicode->SupportedLanguages)) <= UserSpaceLimit);
@@ -289,6 +264,7 @@ CopyUserArguments (
 {
   UINTN   *Arguments;
   UINT64  Attributes;
+
   //
   // Check User variables.
   //
@@ -337,32 +313,32 @@ CallBootService (
   IN UINTN  ReturnSP
   )
 {
-  EFI_STATUS           Status;
-  EFI_STATUS           StatusBS;
-  UINT64               Attributes;
-  VOID                 *Interface;
-  EFI_GUID             *CoreProtocol;
-  UINT32               MemoryCoreSize;
-  UINTN                Argument4;
-  UINTN                Argument5;
-  UINTN                Argument6;
-  UINTN                Index;
-  VOID                 **UserArgList;
-  VOID                 **CoreArgList;
-  EFI_HANDLE           CoreHandle;
-  UINT32               PagesNumber;
-  EFI_PHYSICAL_ADDRESS UserSpacePages;
-  USER_SPACE_DRIVER    *NewDriver;
-  UINTN                *Arguments;
-  EFI_PHYSICAL_ADDRESS PhysAddr;
+  EFI_STATUS            Status;
+  EFI_STATUS            StatusBS;
+  UINT64                Attributes;
+  VOID                  *Interface;
+  EFI_GUID              *CoreProtocol;
+  UINT32                MemoryCoreSize;
+  UINTN                 Argument4;
+  UINTN                 Argument5;
+  UINTN                 Argument6;
+  UINTN                 Index;
+  VOID                  **UserArgList;
+  VOID                  **CoreArgList;
+  EFI_HANDLE            CoreHandle;
+  UINT32                PagesNumber;
+  EFI_PHYSICAL_ADDRESS  UserSpacePages;
+  USER_SPACE_DRIVER     *NewDriver;
+  UINTN                 *Arguments;
+  EFI_PHYSICAL_ADDRESS  PhysAddr;
 
   EFI_DRIVER_BINDING_PROTOCOL      *CoreDriverBinding;
   EFI_SIMPLE_FILE_SYSTEM_PROTOCOL  *CoreSimpleFileSystem;
   EFI_UNICODE_COLLATION_PROTOCOL   *CoreUnicodeCollation;
 
-  EFI_BLOCK_IO_PROTOCOL          *BlockIo;
-  EFI_DISK_IO_PROTOCOL           *DiskIo;
-  EFI_UNICODE_COLLATION_PROTOCOL *Unicode;
+  EFI_BLOCK_IO_PROTOCOL           *BlockIo;
+  EFI_DISK_IO_PROTOCOL            *DiskIo;
+  EFI_UNICODE_COLLATION_PROTOCOL  *Unicode;
 
   CoreProtocol = NULL;
   Argument4    = 0;
@@ -424,6 +400,7 @@ CallBootService (
 
         *(VOID **)Arguments[3] = Interface;
       }
+
       ForbidSupervisorAccessToUserMemory ();
 
       break;
@@ -534,6 +511,7 @@ CallBootService (
 
         InsertTailList (&gUserSpaceDriversHead, &NewDriver->Link);
       }
+
       ForbidSupervisorAccessToUserMemory ();
 
       ASSERT (Index == (Arguments[2] - 1));
@@ -550,8 +528,9 @@ CallBootService (
           CoreSimpleFileSystem = (EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *)CoreArgList[Index + 1];
 
           CoreSimpleFileSystem->OpenVolume = CoreSimpleFileSystemOpenVolume;
-        } else if ((CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollationProtocolGuid))
-            || (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid))) {
+        } else if (  (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollationProtocolGuid))
+                  || (CompareGuid ((EFI_GUID *)CoreArgList[Index], &gEfiUnicodeCollation2ProtocolGuid)))
+        {
           CoreUnicodeCollation = (EFI_UNICODE_COLLATION_PROTOCOL *)CoreArgList[Index + 1];
 
           CoreUnicodeCollation->StriColl   = CoreUnicodeCollationStriColl;
@@ -584,7 +563,7 @@ CallBootService (
       FreePool (CoreArgList);
       break;
 
-    Exit:
+Exit:
       ForbidSupervisorAccessToUserMemory ();
 
       while (Index > 0) {
@@ -657,6 +636,7 @@ CallBootService (
 
         *(VOID **)Arguments[3] = Interface;
       }
+
       ForbidSupervisorAccessToUserMemory ();
 
       break;
@@ -880,6 +860,7 @@ CallBootService (
           break;
         }
       }
+
       ForbidSupervisorAccessToUserMemory ();
 
       Status = gRT->GetVariable (
@@ -900,6 +881,7 @@ CallBootService (
       if ((UINT32 *)Arguments[3] != NULL) {
         *(UINT32 *)Arguments[3] = (UINT32)Attributes;
       }
+
       ForbidSupervisorAccessToUserMemory ();
 
       FreePool ((VOID *)Argument6);

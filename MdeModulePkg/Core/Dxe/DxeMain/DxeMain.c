@@ -980,21 +980,22 @@ CoreExitBootServices (
       CoreFreePages (
         (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData->SystemTable.ConfigurationTable,
         EFI_SIZE_TO_PAGES (gUserSpaceData->SystemTable.NumberOfTableEntries * sizeof (EFI_CONFIGURATION_TABLE))
-      );
+        );
     }
+
     ForbidSupervisorAccessToUserMemory ();
 
     CoreFreePages (
       (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
       EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
-    );
+      );
 
     gUserSpaceData = NULL;
 
     CoreFreePages (
       (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceInterfaces,
       USER_SPACE_INTERFACES_PAGES
-    );
+      );
 
     FreeProtocolsList ();
   }

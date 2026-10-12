@@ -96,8 +96,8 @@ EFI_RUNTIME_SERVICES  mRuntimeServices = {
 VOID
 EFIAPI
 UserSpaceEntryPoint (
- IN USER_SPACE_CALL_DATA  *Data
- );
+  IN USER_SPACE_CALL_DATA  *Data
+  );
 
 typedef
 EFI_STATUS
@@ -201,39 +201,39 @@ UserSpaceCall (
   switch (Data->NumberOfArguments) {
     case 0:
       Function0 = (FUNCTION_0)Data->EntryPoint;
-      Status = Function0 ();
+      Status    = Function0 ();
       break;
     case 1:
       Function1 = (FUNCTION_1)Data->EntryPoint;
-      Status = Function1 (Data->Arguments[0]);
+      Status    = Function1 (Data->Arguments[0]);
       break;
     case 2:
       Function2 = (FUNCTION_2)Data->EntryPoint;
-      Status = Function2 (Data->Arguments[0], Data->Arguments[1]);
+      Status    = Function2 (Data->Arguments[0], Data->Arguments[1]);
       break;
     case 3:
       Function3 = (FUNCTION_3)Data->EntryPoint;
-      Status = Function3 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2]);
+      Status    = Function3 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2]);
       break;
     case 4:
       Function4 = (FUNCTION_4)Data->EntryPoint;
-      Status = Function4 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3]);
+      Status    = Function4 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3]);
       break;
     case 5:
       Function5 = (FUNCTION_5)Data->EntryPoint;
-      Status = Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
+      Status    = Function5 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4]);
       break;
     case 6:
       Function6 = (FUNCTION_6)Data->EntryPoint;
-      Status = Function6 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5]);
+      Status    = Function6 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5]);
       break;
     case 7:
       Function7 = (FUNCTION_7)Data->EntryPoint;
-      Status = Function7 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6]);
+      Status    = Function7 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6]);
       break;
     case 8:
       Function8 = (FUNCTION_8)Data->EntryPoint;
-      Status = Function8 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6], Data->Arguments[7]);
+      Status    = Function8 (Data->Arguments[0], Data->Arguments[1], Data->Arguments[2], Data->Arguments[3], Data->Arguments[4], Data->Arguments[5], Data->Arguments[6], Data->Arguments[7]);
       break;
     default:
       Status = EFI_UNSUPPORTED;

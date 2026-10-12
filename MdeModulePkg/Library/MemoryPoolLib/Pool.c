@@ -300,7 +300,7 @@ CoreInternalAllocatePool (
   // If it's not a valid type, fail it
   //
   if (mIsCore && (((PoolType >= EfiMaxMemoryType) && (PoolType < MEMORY_TYPE_OEM_RESERVED_MIN)) ||
-      (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType)))
+                  (PoolType == EfiConventionalMemory) || (PoolType == EfiPersistentMemory) || (PoolType == EfiUnacceptedMemoryType)))
   {
     return EFI_INVALID_PARAMETER;
   }
@@ -410,10 +410,10 @@ CoreAllocatePoolI (
   ASSERT_LOCKED (&mPoolMemoryLock);
 
   if (mIsCore &&
-     ((PoolType == EfiReservedMemoryType) ||
-      (PoolType == EfiACPIMemoryNVS) ||
-      (PoolType == EfiRuntimeServicesCode) ||
-      (PoolType == EfiRuntimeServicesData)))
+      ((PoolType == EfiReservedMemoryType) ||
+       (PoolType == EfiACPIMemoryNVS) ||
+       (PoolType == EfiRuntimeServicesCode) ||
+       (PoolType == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {
@@ -744,10 +744,10 @@ CoreFreePoolI (
   DEBUG ((DEBUG_POOL, "FreePool: %p (len %lx) %,ld\n", Head->Data, (UINT64)(Head->Size - POOL_OVERHEAD), (UINT64)Pool->Used));
 
   if (mIsCore &&
-     ((Head->Type == EfiReservedMemoryType) ||
-      (Head->Type == EfiACPIMemoryNVS) ||
-      (Head->Type == EfiRuntimeServicesCode) ||
-      (Head->Type == EfiRuntimeServicesData)))
+      ((Head->Type == EfiReservedMemoryType) ||
+       (Head->Type == EfiACPIMemoryNVS) ||
+       (Head->Type == EfiRuntimeServicesCode) ||
+       (Head->Type == EfiRuntimeServicesData)))
   {
     Granularity = RUNTIME_PAGE_ALLOCATION_GRANULARITY;
   } else {

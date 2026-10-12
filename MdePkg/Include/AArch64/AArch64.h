@@ -32,8 +32,8 @@
 #define AARCH64_MMFR0_TGRAN4_MASK    (0xFUL << AARCH64_MMFR0_TGRAN4_FIELD)
 
 // ID_AA64MMFR1 - AArch64 Memory Model Feature Register 1 definitions
-#define AARCH64_MMFR1_VH  (0xF << 8)
-#define AARCH64_MMFR1_PAN (0xF << 20)
+#define AARCH64_MMFR1_VH   (0xF << 8)
+#define AARCH64_MMFR1_PAN  (0xF << 20)
 
 // ID_AA64PFR0 - AArch64 Processor Feature Register 0 definitions
 #define AARCH64_PFR0_FP   (0xF << 16)
@@ -56,7 +56,7 @@
 #define SCR_AW   (1 << 5)
 
 // SCTLR - System Control Register definitions
-#define SCTLR_EPAN          BIT57
+#define SCTLR_EPAN  BIT57
 
 // MIDR - Main ID Register definitions
 #define ARM_CPU_TYPE_SHIFT  4
