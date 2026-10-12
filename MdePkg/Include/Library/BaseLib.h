@@ -5652,7 +5652,7 @@ typedef union {
   UINTN    UintN;
 } IA32_CR4;
 
-#pragma pack (1)
+  #pragma pack (1)
 
 //
 // Global Descriptor Entry structures
@@ -5662,10 +5662,10 @@ typedef struct {
   UINT16    SegmentLimit_15_0;
   UINT16    BaseAddress_15_0;
   UINT8     BaseAddress_23_16;
-  UINT8     Type : 4;
-  UINT8     S    : 1;
-  UINT8     DPL  : 2;
-  UINT8     P    : 1;
+  UINT8     Type               : 4;
+  UINT8     S                  : 1;
+  UINT8     DPL                : 2;
+  UINT8     P                  : 1;
   UINT8     SegmentLimit_19_16 : 4;
   UINT8     AVL                : 1;
   UINT8     L                  : 1;
@@ -5681,19 +5681,19 @@ typedef struct {
   //
   // Type
   //
-  UINT8     Accessed           : 1;
-  UINT8     Writable           : 1;
-  UINT8     ExpansionDirection : 1;
-  UINT8     IsCode             : 1;
+  UINT8     Accessed                 : 1;
+  UINT8     Writable                 : 1;
+  UINT8     ExpansionDirection       : 1;
+  UINT8     IsCode                   : 1;
   UINT8     IsNotSystemSegment       : 1;
   UINT8     DescriptorPrivilegeLevel : 2;
   UINT8     SegmentPresent           : 1;
 
-  UINT8     SegmentLimit_19_16 : 4;
-  UINT8     Available          : 1;
-  UINT8     Reserved           : 1;
-  UINT8     UpperBound         : 1;
-  UINT8     Granularity        : 1;
+  UINT8     SegmentLimit_19_16       : 4;
+  UINT8     Available                : 1;
+  UINT8     Reserved                 : 1;
+  UINT8     UpperBound               : 1;
+  UINT8     Granularity              : 1;
   UINT8     BaseAddress_31_24;
 } DATA_SEGMENT_32;
 
@@ -5704,19 +5704,19 @@ typedef struct {
   //
   // Type
   //
-  UINT8     Accessed   : 1;
-  UINT8     Readable   : 1;
-  UINT8     Conforming : 1;
-  UINT8     IsCode     : 1;
+  UINT8     Accessed                 : 1;
+  UINT8     Readable                 : 1;
+  UINT8     Conforming               : 1;
+  UINT8     IsCode                   : 1;
   UINT8     IsNotSystemSegment       : 1;
   UINT8     DescriptorPrivilegeLevel : 2;
   UINT8     SegmentPresent           : 1;
 
-  UINT8     SegmentLimit_19_16 : 4;
-  UINT8     Available          : 1;
-  UINT8     Reserved           : 1;
-  UINT8     Is32Bit            : 1;
-  UINT8     Granularity        : 1;
+  UINT8     SegmentLimit_19_16       : 4;
+  UINT8     Available                : 1;
+  UINT8     Reserved                 : 1;
+  UINT8     Is32Bit                  : 1;
+  UINT8     Granularity              : 1;
   UINT8     BaseAddress_31_24;
 } CODE_SEGMENT_32;
 
@@ -5726,19 +5726,19 @@ typedef struct {
   //
   // Type
   //
-  UINT8     Accessed   : 1;
-  UINT8     Readable   : 1;
-  UINT8     Conforming : 1;
-  UINT8     IsCode     : 1;
+  UINT8     Accessed                 : 1;
+  UINT8     Readable                 : 1;
+  UINT8     Conforming               : 1;
+  UINT8     IsCode                   : 1;
   UINT8     IsNotSystemSegment       : 1;
   UINT8     DescriptorPrivilegeLevel : 2;
   UINT8     SegmentPresent           : 1;
 
-  UINT8     Reserved3   : 4;
-  UINT8     Available   : 1;
-  UINT8     LongMode    : 1;
-  UINT8     Is32Bit     : 1;
-  UINT8     Granularity : 1;
+  UINT8     Reserved3                : 4;
+  UINT8     Available                : 1;
+  UINT8     LongMode                 : 1;
+  UINT8     Is32Bit                  : 1;
+  UINT8     Granularity              : 1;
   UINT8     Reserved4;
 } CODE_SEGMENT_64;
 
@@ -5752,9 +5752,9 @@ typedef struct {
   UINT8     DescriptorPrivilegeLevel : 2;
   UINT8     SegmentPresent           : 1;
 
-  UINT8     SegmentLimit_19_16 : 4;
-  UINT8     Reserved           : 3;
-  UINT8     Granularity        : 1;
+  UINT8     SegmentLimit_19_16       : 4;
+  UINT8     Reserved                 : 3;
+  UINT8     Granularity              : 1;
   UINT8     BaseAddress_31_24;
 } SYSTEM_SEGMENT;
 
@@ -5762,8 +5762,8 @@ typedef struct {
   UINT16    OffsetInSegment_15_0;
   UINT16    SegmentSelector;
 
-  UINT8     ParameterCount : 5;
-  UINT8     Reserved       : 3;
+  UINT8     ParameterCount           : 5;
+  UINT8     Reserved                 : 3;
 
   UINT8     Type                     : 4;
   UINT8     IsNotSystemSegment       : 1;
@@ -5773,38 +5773,38 @@ typedef struct {
 } CALL_GATE_32;
 
 typedef struct {
-  CALL_GATE_32  Common;
-  UINT32        OffsetInSegment_63_31;
-  UINT32        Reserved;
+  CALL_GATE_32    Common;
+  UINT32          OffsetInSegment_63_31;
+  UINT32          Reserved;
 } CALL_GATE_64;
 
 typedef struct {
-  SEGMENT_DESCRIPTOR Null;
-  DATA_SEGMENT_32    Linear;
-  CODE_SEGMENT_32    LinearCode;
-  CODE_SEGMENT_32    SysCode;
-  DATA_SEGMENT_32    SysData;
-  CODE_SEGMENT_32    Ring3Code32;
-  DATA_SEGMENT_32    Ring3Data32;
-  CODE_SEGMENT_32    SysCode16;
-  CODE_SEGMENT_64    LinearCode64;
-  DATA_SEGMENT_32    LinearData64;
-  SEGMENT_DESCRIPTOR Spare5;
-  DATA_SEGMENT_32    Ring3Data64;
-  CODE_SEGMENT_64    Ring3Code64;
+  SEGMENT_DESCRIPTOR    Null;
+  DATA_SEGMENT_32       Linear;
+  CODE_SEGMENT_32       LinearCode;
+  CODE_SEGMENT_32       SysCode;
+  DATA_SEGMENT_32       SysData;
+  CODE_SEGMENT_32       Ring3Code32;
+  DATA_SEGMENT_32       Ring3Data32;
+  CODE_SEGMENT_32       SysCode16;
+  CODE_SEGMENT_64       LinearCode64;
+  DATA_SEGMENT_32       LinearData64;
+  SEGMENT_DESCRIPTOR    Spare5;
+  DATA_SEGMENT_32       Ring3Data64;
+  CODE_SEGMENT_64       Ring3Code64;
 } GDT;
 
-#pragma pack ()
+  #pragma pack ()
 
-#define RING0_DATA32_SEL   OFFSET_OF (GDT, SysData)
-#define RING0_CODE32_SEL   OFFSET_OF (GDT, SysCode)
-#define RING3_DATA32_SEL   OFFSET_OF (GDT, Ring3Data32)
-#define RING3_CODE32_SEL   OFFSET_OF (GDT, Ring3Code32)
+#define RING0_DATA32_SEL  OFFSET_OF (GDT, SysData)
+#define RING0_CODE32_SEL  OFFSET_OF (GDT, SysCode)
+#define RING3_DATA32_SEL  OFFSET_OF (GDT, Ring3Data32)
+#define RING3_CODE32_SEL  OFFSET_OF (GDT, Ring3Code32)
 
-#define RING0_DATA64_SEL   OFFSET_OF (GDT, LinearData64)
-#define RING0_CODE64_SEL   OFFSET_OF (GDT, LinearCode64)
-#define RING3_DATA64_SEL   OFFSET_OF (GDT, Ring3Data64)
-#define RING3_CODE64_SEL   OFFSET_OF (GDT, Ring3Code64)
+#define RING0_DATA64_SEL  OFFSET_OF (GDT, LinearData64)
+#define RING0_CODE64_SEL  OFFSET_OF (GDT, LinearCode64)
+#define RING3_DATA64_SEL  OFFSET_OF (GDT, Ring3Data64)
+#define RING3_CODE64_SEL  OFFSET_OF (GDT, Ring3Code64)
 
 ///
 /// Byte packed structure for a segment descriptor in a GDT/LDT.

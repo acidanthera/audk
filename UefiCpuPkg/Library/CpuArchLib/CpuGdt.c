@@ -162,16 +162,16 @@ STATIC GDT  mGdtTemplate = {
     .DescriptorPrivilegeLevel = 0,
     .SegmentPresent           = 1,
 
-    .SegmentLimit_19_16       = 0xF,
-    .Available                = 0,
-    .Reserved                 = 0,
-    .Is32Bit                  = 0,
-    .Granularity              = 1,
-    .BaseAddress_31_24        = 0x0
+    .SegmentLimit_19_16 = 0xF,
+    .Available          = 0,
+    .Reserved           = 0,
+    .Is32Bit            = 0,
+    .Granularity        = 1,
+    .BaseAddress_31_24  = 0x0
   },
-  .LinearCode64 = {
-    .Reserved1                = 0x0,
-    .Reserved2                = 0x0,
+  .LinearCode64               = {
+    .Reserved1 = 0x0,
+    .Reserved2 = 0x0,
 
     .Accessed                 = 0,
     .Readable                 = 1,
@@ -181,17 +181,17 @@ STATIC GDT  mGdtTemplate = {
     .DescriptorPrivilegeLevel = 0,
     .SegmentPresent           = 1,
 
-    .Reserved3                = 0x0,
-    .Available                = 0,
-    .LongMode                 = 1,
-    .Is32Bit                  = 0,
-    .Granularity              = 1,
-    .Reserved4                = 0x0
+    .Reserved3   = 0x0,
+    .Available   = 0,
+    .LongMode    = 1,
+    .Is32Bit     = 0,
+    .Granularity = 1,
+    .Reserved4   = 0x0
   },
-  .LinearData64 = {
-    .SegmentLimit_15_0        = 0xFFFF,
-    .BaseAddress_15_0         = 0x0,
-    .BaseAddress_23_16        = 0x0,
+  .LinearData64               = {
+    .SegmentLimit_15_0 = 0xFFFF,
+    .BaseAddress_15_0  = 0x0,
+    .BaseAddress_23_16 = 0x0,
 
     .Accessed                 = 0,
     .Writable                 = 1,
