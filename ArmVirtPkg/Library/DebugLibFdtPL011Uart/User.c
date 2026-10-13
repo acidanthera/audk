@@ -91,3 +91,20 @@ DebugLibFdtPL011UartWrite (
 
   return PL011UartWrite (mDebugLibFdtPL011UartAddress, Buffer, NumberOfBytes);
 }
+
+/**
+  Retrieve the serial debug print error level override.
+
+  @param[out] Value  On success, the debug log level bitmask.
+
+  @retval EFI_SUCCESS            The debug level was retrieved successfully.
+  @retval EFI_INVALID_PARAMETER  Value is NULL.
+  @retval EFI_NOT_FOUND          The debug level is not available.
+**/
+EFI_STATUS
+GetSerialDebugPrintErrorLevel (
+  OUT UINT32  *Value
+  )
+{
+  return EFI_NOT_FOUND;
+}

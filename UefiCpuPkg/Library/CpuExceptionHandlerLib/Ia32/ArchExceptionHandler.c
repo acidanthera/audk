@@ -330,7 +330,7 @@ ArchSetupExceptionStack (
   @param[in] ExceptionType  Exception type.
   @param[in] SystemContext  Processor context to be display.
 **/
-VOID
+EFI_STATUS
 EFIAPI
 DumpCpuContext (
   IN EFI_EXCEPTION_TYPE  ExceptionType,
@@ -428,6 +428,8 @@ DumpCpuContext (
     "FXSAVE_STATE - %08x\n",
     &SystemContext.SystemContextIa32->FxSaveState
     );
+
+  return EFI_SUCCESS;
 }
 
 /**

@@ -72,13 +72,14 @@ RegisterCpuInterruptHandler (
   @param[in] ExceptionType  Exception type.
   @param[in] SystemContext  Processor context to be display.
 **/
-VOID
+EFI_STATUS
 EFIAPI
 DumpCpuContext (
   IN EFI_EXCEPTION_TYPE  ExceptionType,
   IN EFI_SYSTEM_CONTEXT  SystemContext
   )
 {
+  return EFI_SUCCESS;
 }
 
 /**

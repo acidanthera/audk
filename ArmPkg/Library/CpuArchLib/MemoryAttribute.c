@@ -251,7 +251,8 @@ ClearMemoryAttributes (
       Status = GetMemoryRegion (
                  &RegionAddress,
                  &RegionLength,
-                 &RegionAttributes
+                 &RegionAttributes,
+                 0
                  );
       if (EFI_ERROR (Status)) {
         return EFI_UNSUPPORTED;

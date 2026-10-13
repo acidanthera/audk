@@ -12,6 +12,7 @@
 #include <Library/MemoryPoolLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiRuntimeServicesTableLib.h>
+#include <Library/BaseEfiMemWrapper.h>
 
 #include "UserSpace.h"
 
@@ -64,8 +65,8 @@ EFI_BOOT_SERVICES  mBootServices = {
   (EFI_INSTALL_MULTIPLE_PROTOCOL_INTERFACES)UserSpaceInstallMultipleProtocolInterfaces,      // InstallMultipleProtocolInterfaces
   (EFI_UNINSTALL_MULTIPLE_PROTOCOL_INTERFACES)UserSpaceUninstallMultipleProtocolInterfaces,  // UninstallMultipleProtocolInterfaces
   (EFI_CALCULATE_CRC32)UserSpaceCalculateCrc32,                                              // CalculateCrc32
-  (EFI_COPY_MEM)CopyMem,                                                                     // CopyMem
-  (EFI_SET_MEM)SetMem,                                                                       // SetMem
+  (EFI_COPY_MEM)EfiCopyMem,                                                                  // CopyMem
+  (EFI_SET_MEM)EfiSetMem,                                                                    // SetMem
   (EFI_CREATE_EVENT_EX)UserSpaceCreateEventEx,                                               // CreateEventEx
 };
 

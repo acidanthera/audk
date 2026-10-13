@@ -1010,7 +1010,9 @@ ArmMakeUserPageTableTemplate (
              ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes),
              0,
              TranslationTable,
-             FALSE
+             FALSE,
+             ArmLpa2Enabled (),
+             0
              );
   if (EFI_ERROR (Status)) {
     FreePages (TranslationTable, 1);
