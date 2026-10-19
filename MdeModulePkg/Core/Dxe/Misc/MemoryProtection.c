@@ -111,7 +111,7 @@ SetUefiImageMemoryAttributes (
     }
 
     // Preserve the existing caching and virtual attributes, but remove the hardware access bits
-    FinalAttributes = (Descriptor.Attributes & ~EFI_MEMORY_ACCESS_MASK) | (Attributes & EFI_MEMORY_ATTRIBUTE_MASK);
+    FinalAttributes = (Descriptor.Attributes & ~(EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_USER)) | (Attributes & EFI_MEMORY_ATTRIBUTE_MASK);
 
     DEBUG ((DEBUG_VERBOSE, "SetUefiImageMemoryAttributes - 0x%016lx - 0x%016lx (0x%016lx)\n", CurrentAddress, CurrentLength, FinalAttributes));
 

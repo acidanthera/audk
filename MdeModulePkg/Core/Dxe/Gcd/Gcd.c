@@ -698,7 +698,7 @@ ConverToCpuArchAttributes (
 {
   UINT64  CpuArchAttributes;
 
-  CpuArchAttributes = Attributes & EFI_MEMORY_ACCESS_MASK;
+  CpuArchAttributes = Attributes & (EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_USER);
 
   if ((Attributes & EFI_MEMORY_UC) == EFI_MEMORY_UC) {
     CpuArchAttributes |= EFI_MEMORY_UC;

@@ -719,22 +719,21 @@ InitInterruptDescriptorTable (
 
   AsmReadIdtr (&IdtDescriptor);
   IdtEntryCount = (IdtDescriptor.Limit + 1) / sizeof (IA32_IDT_GATE_DESCRIPTOR);
-  if (IdtEntryCount < X86_CPU_INTERRUPT_NUM) {
-    //
-    // Increase Interrupt Descriptor Table and Copy the old IDT table in
-    //
-    IdtTable = AllocatePages (EFI_SIZE_TO_PAGES (sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM));
-    ASSERT (IdtTable != NULL);
-    SetMem (IdtTable, sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM, 0);
-    CopyMem (IdtTable, (VOID *)IdtDescriptor.Base, sizeof (IA32_IDT_GATE_DESCRIPTOR) * IdtEntryCount);
 
-    //
-    // Load Interrupt Descriptor Table
-    //
-    IdtDescriptor.Base  = (UINTN)IdtTable;
-    IdtDescriptor.Limit = (UINT16)(sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM - 1);
-    AsmWriteIdtr (&IdtDescriptor);
-  }
+  //
+  // Allocate aligned by 4KB Interrupt Descriptor Table and Copy the old IDT table in
+  //
+  IdtTable = AllocatePages (EFI_SIZE_TO_PAGES (sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM));
+  ASSERT (IdtTable != NULL);
+  SetMem (IdtTable, sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM, 0);
+  CopyMem (IdtTable, (VOID *)IdtDescriptor.Base, sizeof (IA32_IDT_GATE_DESCRIPTOR) * IdtEntryCount);
+
+  //
+  // Load Interrupt Descriptor Table
+  //
+  IdtDescriptor.Base  = (UINTN)IdtTable;
+  IdtDescriptor.Limit = (UINT16)(sizeof (IA32_IDT_GATE_DESCRIPTOR) * X86_CPU_INTERRUPT_NUM - 1);
+  AsmWriteIdtr (&IdtDescriptor);
 
   Status = InitializeCpuExceptionHandlers (VectorInfo);
   ASSERT_EFI_ERROR (Status);
