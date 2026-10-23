@@ -992,8 +992,14 @@ ArmMakeUserPageTableTemplate (
   UINTN       T0SZ;
   UINTN       RootTableEntryCount;
   EFI_STATUS  Status;
+  UINT64      CcaProtectionAttribute;
 
-  MaxAddressBits      = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
+  if (ArmHas52BitTgran4 ()) {
+    MaxAddressBits = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS);
+  } else {
+    MaxAddressBits = MIN (ArmGetPhysicalAddressBits (), MAX_VA_BITS_48);
+  }
+
   T0SZ                = 64 - MaxAddressBits;
   RootTableEntryCount = GetRootTableEntryCount (T0SZ);
 
@@ -1004,15 +1010,19 @@ ArmMakeUserPageTableTemplate (
 
   ZeroMem (TranslationTable, RootTableEntryCount * sizeof (UINT64));
 
+  CcaProtectionAttribute = MemoryTable->VirtualBase ^ MemoryTable->PhysicalBase;
+
+  ASSERT (((CcaProtectionAttribute & (CcaProtectionAttribute - 1)) == 0));
+
   Status = UpdateRegionMapping (
              MemoryTable->VirtualBase,
              MemoryTable->Length,
-             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes),
+             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes) | CcaProtectionAttribute,
              0,
              TranslationTable,
              FALSE,
              ArmLpa2Enabled (),
-             0
+             CcaProtectionAttribute
              );
   if (EFI_ERROR (Status)) {
     FreePages (TranslationTable, 1);

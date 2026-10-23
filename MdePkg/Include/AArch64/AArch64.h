@@ -163,7 +163,7 @@
   ASM_PFX(tbl):                   \
   entries                         \
   .org 0x800;                     \
-  .section .text
+  .previous
 
 #define VECTOR_ENTRY(tbl, off)    \
   .org off;
