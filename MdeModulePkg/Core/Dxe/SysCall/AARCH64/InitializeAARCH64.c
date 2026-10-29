@@ -12,8 +12,6 @@
 
 #include "DxeMain.h"
 
-UINTN  gUserPageTable;
-
 STATIC UINTN  mConfigurationTable;
 STATIC UINTN  mConfigurationTableSize;
 STATIC UINTN  mUartBaseAddress;

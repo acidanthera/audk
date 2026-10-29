@@ -9,6 +9,7 @@
 
 extern ASM_PFX(CallBootService)
 extern ASM_PFX(gUserSpaceEntryPoint)
+extern ASM_PFX(gUserPageTable)
 
 extern ASM_PFX(AsmReadMsr64)
 
@@ -247,10 +248,6 @@ ALIGN   4096
 
 global ASM_PFX(gCorePageTable)
 ASM_PFX(gCorePageTable):
-  resd 1
-
-global ASM_PFX(gUserPageTable)
-ASM_PFX(gUserPageTable):
   resd 1
 
 ALIGN   4096

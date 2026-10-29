@@ -9,6 +9,7 @@
 
 extern ASM_PFX(CallBootService)
 extern ASM_PFX(gUserSpaceEntryPoint)
+extern ASM_PFX(gUserPageTable)
 
 DEFAULT REL
 SECTION .text
@@ -263,10 +264,6 @@ ALIGN   4096
 
 global ASM_PFX(gCorePageTable)
 ASM_PFX(gCorePageTable):
-  resq 1
-
-global ASM_PFX(gUserPageTable)
-ASM_PFX(gUserPageTable):
   resq 1
 
 ALIGN   4096

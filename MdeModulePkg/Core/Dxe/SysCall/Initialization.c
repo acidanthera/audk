@@ -8,6 +8,7 @@
 #include "DxeMain.h"
 
 VOID             *gUserSpaceEntryPoint;
+UINTN            gUserPageTable;
 USER_SPACE_DATA  *gUserSpaceData;
 VOID             *gUserSpaceInterfaces;
 
