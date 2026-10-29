@@ -197,7 +197,7 @@ CoreInitializePool (
 
   mIsCore = IsCore;
 
-  for (Type = 0; Type < EfiMaxMemoryType; Type++) {
+  for (Type = 0; Type < MAX_MEMORY_TYPE; Type++) {
     mPoolHead[Type].Signature  = 0;
     mPoolHead[Type].Used       = 0;
     mPoolHead[Type].MemoryType = (EFI_MEMORY_TYPE)Type;
