@@ -19,6 +19,11 @@ SECTION .text
 ;------------------------------------------------------------------------------
 global ASM_PFX(SysCall)
 ASM_PFX(SysCall):
+  ; SysCall() does not use nonvolatile registers RBX, RBP, RDI, RSI, RSP, R12, R13, R14, and R15.
+  ; CoreBootServices() - syscall, uses only RBP, RSP and restores them.
+  ; CallBootService() uses and restores all nonvolatile registers.
+  ; So there is no need for additional operations with them in SysCall().
+  ;
   ; Save Type for CoreBootServices().
   mov     r10, rcx
   ; Construct User Arguments[].
@@ -26,10 +31,14 @@ ASM_PFX(SysCall):
   jg      continue
   push    r9
   push    r8
+  ; CallBootService() reserves but does not use UserArguments[0].
   lea     r8, [rsp - 8]
   add     rsp, 8*2
   jmp     makecall
 continue:
+  ; Although first 4 arguments are passed through registers RCX, RDX, R8, R9,
+  ; compiler reserves space for them on stack, when total number of arguments
+  ; is greater than 4.
   mov     [rsp + 8*4], r9
   mov     [rsp + 8*3], r8
   lea     r8, [rsp + 8*2]
