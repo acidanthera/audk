@@ -253,6 +253,7 @@ typedef
 EFI_STATUS
 (EFIAPI *EFI_CPU_GET_MEMORY_ATTRIBUTES)(
   IN  EFI_CPU_ARCH_PROTOCOL             *This,
+  IN  UINTN                             UserPageTable OPTIONAL,
   IN  EFI_PHYSICAL_ADDRESS              Address,
   OUT UINT64                            *Attributes
   );

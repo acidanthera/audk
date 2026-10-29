@@ -323,6 +323,7 @@ EFI_STATUS
 EFIAPI
 CpuGetMemoryAttributes (
   IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  UINTN                  UserPageTable OPTIONAL,
   IN  EFI_PHYSICAL_ADDRESS   Address,
   OUT UINT64                 *Attributes
   )
@@ -333,7 +334,7 @@ CpuGetMemoryAttributes (
   UINTN       RegionArmAttributes;
 
   RegionBaseAddress = Address;
-  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, 0);
+  Status            = GetMemoryRegion (&RegionBaseAddress, &RegionLength, &RegionArmAttributes, UserPageTable);
 
   if (EFI_ERROR (Status)) {
     *Attributes = 0;

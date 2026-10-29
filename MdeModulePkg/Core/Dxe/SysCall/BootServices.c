@@ -265,9 +265,9 @@ CopyUserArguments (
   //
   // Check User variables.
   //
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
+  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArguments + (NumberOfArguments + 1) * sizeof (UINTN) - 1), &Attributes);
+  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArguments + (NumberOfArguments + 1) * sizeof (UINTN) - 1), &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
   AllowSupervisorAccessToUserMemory ();
@@ -368,13 +368,13 @@ CallBootService (
       // Argument 2: VOID      *CoreRegistration
       // Argument 3: VOID      **Interface
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -410,14 +410,14 @@ CallBootService (
       // Argument 5: EFI_HANDLE  CoreControllerHandle
       // Argument 6: UINT32      Attributes
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       if ((VOID **)Arguments[3] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
 
@@ -454,13 +454,13 @@ CallBootService (
       // Argument 2: UINTN       NumberOfArguments
       // Argument 3: VOID        **UserArgList
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_HANDLE *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + sizeof (EFI_HANDLE *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] * sizeof (VOID *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] * sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       CoreArgList = AllocatePool (Arguments[2] * sizeof (VOID *));
@@ -474,9 +474,9 @@ CallBootService (
       UserArgList = (VOID **)Arguments[3];
 
       for (Index = 0; UserArgList[Index] != NULL; Index += 2) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index] + sizeof (EFI_GUID) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index] + sizeof (EFI_GUID) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Status = FindGuid ((EFI_GUID *)UserArgList[Index], (EFI_GUID **)&CoreArgList[Index], &MemoryCoreSize);
@@ -484,9 +484,9 @@ CallBootService (
           goto Exit;
         }
 
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index + 1], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArgList[Index + 1], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index + 1] + MemoryCoreSize - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)((UINTN)UserArgList[Index + 1] + MemoryCoreSize - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         CoreArgList[Index + 1] = AllocateCopyPool (MemoryCoreSize, (VOID *)UserArgList[Index + 1]);
@@ -576,9 +576,9 @@ Exit:
       // Argument 3: EFI_HANDLE  CoreAgentHandle
       // Argument 4: EFI_HANDLE  CoreControllerHandle
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -602,13 +602,13 @@ Exit:
       // Argument 2: EFI_GUID    *Protocol
       // Argument 3: VOID        **Interface
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (VOID *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -649,9 +649,9 @@ Exit:
                       (EFI_PHYSICAL_ADDRESS *)&Argument4
                       );
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (EFI_PHYSICAL_ADDRESS) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -666,9 +666,9 @@ Exit:
       //
       PhysAddr = *(EFI_PHYSICAL_ADDRESS *)&Arguments[2];
 
-      gCpu->GetMemoryAttributes (gCpu, PhysAddr, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, PhysAddr, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, PhysAddr + Arguments[1] * EFI_PAGE_SIZE - 1, &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, PhysAddr + Arguments[1] * EFI_PAGE_SIZE - 1, &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Status = gBS->FreePages (PhysAddr, Arguments[1]);
@@ -698,9 +698,9 @@ Exit:
       // Argument 5: EFI_HANDLE              **Buffer
       //
       if ((EFI_GUID *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
@@ -720,9 +720,9 @@ Exit:
                         );
 
       if ((UINTN *)Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
@@ -731,9 +731,9 @@ Exit:
       }
 
       if ((EFI_HANDLE **)Arguments[5] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + sizeof (EFI_HANDLE *) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         PagesNumber = (UINT32)EFI_SIZE_TO_PAGES (Argument4 * sizeof (EFI_HANDLE *));
@@ -765,13 +765,13 @@ Exit:
       // Argument 2: UINTN   DataSize
       // Argument 3: UINT32  *Crc32
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + Arguments[2] - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + Arguments[2] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32 *) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32 *) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument4 = (UINTN)AllocatePool (Arguments[2]);
@@ -803,21 +803,21 @@ Exit:
       // Argument 4: UINTN     *DataSize
       // Argument 5: VOID      *Data           OPTIONAL
       //
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[1], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + sizeof (EFI_GUID) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       if ((UINT32 *)Arguments[3] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + sizeof (UINT32) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
       }
 
       AllowSupervisorAccessToUserMemory ();
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + StrSize ((CHAR16 *)Arguments[1]) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[1] + StrSize ((CHAR16 *)Arguments[1]) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument6 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[1]), (CHAR16 *)Arguments[1]);
@@ -834,17 +834,17 @@ Exit:
         break;
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + sizeof (UINTN) - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       Argument4 = *(UINTN *)Arguments[4];
 
       if ((VOID *)Arguments[5] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[5], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + Argument4 - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[5] + Argument4 - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocatePool (Argument4);
@@ -935,9 +935,9 @@ Exit:
                           (VOID *)Argument5
                           );
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -970,9 +970,9 @@ Exit:
         break;
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -1035,9 +1035,9 @@ Exit:
                          (VOID *)Argument5
                          );
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -1070,9 +1070,9 @@ Exit:
         break;
       }
 
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-      gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
       ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
       AllowSupervisorAccessToUserMemory ();
@@ -1104,11 +1104,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
@@ -1120,11 +1120,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[3] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[3]), (CHAR16 *)Arguments[3]);
@@ -1168,11 +1168,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
@@ -1184,11 +1184,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[3] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + StrSize ((CHAR16 *)Arguments[3]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[3]), (CHAR16 *)Arguments[3]);
@@ -1231,11 +1231,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
@@ -1274,11 +1274,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
@@ -1319,9 +1319,9 @@ Exit:
       }
 
       if ((CHAR8 *)Arguments[3] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[3], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[3] + Arguments[2] - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
@@ -1334,9 +1334,9 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + 2 * (Arguments[2] + 1) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + 2 * (Arguments[2] + 1) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocateZeroPool (2 * (Arguments[2] + 1));
@@ -1386,11 +1386,11 @@ Exit:
       }
 
       if ((CHAR16 *)Arguments[2] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[2], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         AllowSupervisorAccessToUserMemory ();
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[2] + StrSize ((CHAR16 *)Arguments[2]) - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument4 = (UINTN)AllocateCopyPool (StrSize ((CHAR16 *)Arguments[2]), (CHAR16 *)Arguments[2]);
@@ -1402,9 +1402,9 @@ Exit:
       }
 
       if ((CHAR8 *)Arguments[4] != NULL) {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Arguments[4], &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(Arguments[4] + Arguments[3] - 1), &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         Argument5 = (UINTN)AllocatePool (Arguments[3]);

@@ -40,12 +40,12 @@ SysCallBootService (
 
   ArmEnableInterrupts ();
 
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)Context.SystemContextAArch64->SP_EL0, &Attributes);
+  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Context.SystemContextAArch64->SP_EL0, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
   UserArguments = (UINTN *)(Context.SystemContextAArch64->SP_EL0 - 7 * sizeof (UINTN));
 
-  gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
+  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
   ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
   AllowSupervisorAccessToUserMemory ();

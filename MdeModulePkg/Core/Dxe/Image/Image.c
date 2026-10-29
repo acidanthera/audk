@@ -1727,7 +1727,7 @@ CoreStartImage (
           CpuDeadLoop ();
         }
       } else {
-        gCpu->GetMemoryAttributes (gCpu, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
+        gCpu->GetMemoryAttributes (gCpu, Image->UserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
         ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
 
         gUserPageTable = Image->UserPageTable;

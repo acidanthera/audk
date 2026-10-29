@@ -1147,7 +1147,7 @@ ApplyMemoryProtectionPolicy (
     // FreePages
     //
     if (gUserPageTable != 0) {
-      gCpu->GetMemoryAttributes (gCpu, Memory, &CurrentAttributes);
+      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, Memory, &CurrentAttributes);
 
       if ((CurrentAttributes & EFI_MEMORY_USER) != 0) {
         gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);

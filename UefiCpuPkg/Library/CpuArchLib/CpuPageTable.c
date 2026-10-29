@@ -409,6 +409,7 @@ EFI_STATUS
 EFIAPI
 CpuGetMemoryAttributes (
   IN  EFI_CPU_ARCH_PROTOCOL  *This,
+  IN  UINTN                  UserPageTable OPTIONAL,
   IN  EFI_PHYSICAL_ADDRESS   Address,
   OUT UINT64                 *Attributes
   )
@@ -420,6 +421,14 @@ CpuGetMemoryAttributes (
   ASSERT (Attributes != NULL);
 
   GetCurrentPagingContext (&PagingContext);
+
+  if (UserPageTable != 0) {
+    if (PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) {
+      PagingContext.ContextData.Ia32.PageTableBase = (UINT32)UserPageTable;
+    } else {
+      PagingContext.ContextData.X64.PageTableBase = (UINT64)UserPageTable;
+    }
+  }
 
   if ((PagingContext.MachineType == IMAGE_FILE_MACHINE_I386) &&
       ((PagingContext.ContextData.Ia32.Attributes & PAGE_TABLE_LIB_PAGING_CONTEXT_IA32_X64_ATTRIBUTES_PAE) == 0))
