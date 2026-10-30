@@ -163,47 +163,66 @@ InitializePlatform (
   return EFI_SUCCESS;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 MapPlatform (
   IN OUT UINTN  UserPageTable
   )
 {
+  EFI_STATUS       Status;
   IA32_DESCRIPTOR  IdtDescriptor;
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          (UINTN)&gCorePageTable,
-          SIZE_4KB,
-          EFI_MEMORY_RO | EFI_MEMORY_XP
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   (UINTN)&gCorePageTable,
+                   SIZE_4KB,
+                   EFI_MEMORY_RO | EFI_MEMORY_XP
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set gCorePageTable attributes - %r.\n", Status));
+    return Status;
+  }
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mExceptionAddresses->ExceptionStackBase,
-          mExceptionAddresses->ExceptionStackSize,
-          EFI_MEMORY_XP
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mExceptionAddresses->ExceptionStackBase,
+                   mExceptionAddresses->ExceptionStackSize,
+                   EFI_MEMORY_XP
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionStack attributes - %r.\n", Status));
+    return Status;
+  }
 
   AsmReadIdtr (&IdtDescriptor);
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          IdtDescriptor.Base,
-          SIZE_4KB,
-          EFI_MEMORY_RO | EFI_MEMORY_XP
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   IdtDescriptor.Base,
+                   SIZE_4KB,
+                   EFI_MEMORY_RO | EFI_MEMORY_XP
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set Idt attributes - %r.\n", Status));
+    return Status;
+  }
 
   //
   // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          FixedPcdGet32 (PcdOvmfWorkAreaBase),
-          FixedPcdGet32 (PcdOvmfWorkAreaSize),
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   FixedPcdGet32 (PcdOvmfWorkAreaBase),
+                   FixedPcdGet32 (PcdOvmfWorkAreaSize),
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set PcdOvmfWorkArea attributes - %r.\n", Status));
+    return Status;
+  }
+
+  return EFI_SUCCESS;
 }

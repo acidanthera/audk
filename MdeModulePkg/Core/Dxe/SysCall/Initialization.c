@@ -33,7 +33,7 @@ InitializePlatform (
   IN OUT EFI_SYSTEM_TABLE  *System
   );
 
-VOID
+EFI_STATUS
 EFIAPI
 MapPlatform (
   IN OUT UINTN  UserPageTable
@@ -87,7 +87,13 @@ InitializeUserSpace (
   // Initialize DxeUserSpace with Supervisor privileges.
   //
   mDxeUserSpace = GetUefiImageRecord (Image);
-  ASSERT (mDxeUserSpace != NULL);
+  if (mDxeUserSpace == NULL) {
+    CoreFreePages (
+      (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+      EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
+      );
+    return EFI_NOT_FOUND;
+  }
 
   SetUefiImageProtectionAttributes (mDxeUserSpace, FALSE);
 
@@ -164,33 +170,45 @@ InitializeUserPageTable (
   //
   // Map gUserSpaceData, gUserSpaceInterfaces, DxeUserSpace
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          (UINTN)gUserSpaceData,
-          ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   (UINTN)gUserSpaceData,
+                   ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set gUserSpaceData attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          (UINTN)gUserSpaceInterfaces,
-          EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   (UINTN)gUserSpaceInterfaces,
+                   EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set gUserSpaceInterfaces attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
   SectionAddress = mDxeUserSpace->StartAddress;
   for (Index = 0; Index < mDxeUserSpace->NumSegments; Index++) {
     ImageRecordSegment = &mDxeUserSpace->Segments[Index];
 
-    gCpu->SetUserMemoryAttributes (
-            gCpu,
-            UserPageTable,
-            SectionAddress,
-            ImageRecordSegment->Size,
-            ImageRecordSegment->Attributes | EFI_MEMORY_USER
-            );
+    Status = gCpu->SetUserMemoryAttributes (
+                     gCpu,
+                     UserPageTable,
+                     SectionAddress,
+                     ImageRecordSegment->Size,
+                     ImageRecordSegment->Attributes | EFI_MEMORY_USER
+                     );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Core: Failed to set DxeUserSpace #%d attributes - %r.\n", Index, Status));
+      CpuDeadLoop ();
+    }
 
     SectionAddress += ImageRecordSegment->Size;
   }
@@ -198,60 +216,86 @@ InitializeUserPageTable (
   //
   // Map CoreBootServices, CoreStackBase
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          (UINTN)&SysCallBase,
-          (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
-          EFI_MEMORY_RO
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   (UINTN)&SysCallBase,
+                   (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
+                   EFI_MEMORY_RO
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set CoreBootServices attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mCoreStackBase,
-          mCoreStackSize,
-          EFI_MEMORY_XP
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mCoreStackBase,
+                   mCoreStackSize,
+                   EFI_MEMORY_XP
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set CoreStack attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
   //
   // Map ExceptionHandlers
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mExceptionAddresses->ExceptionHandlerBase,
-          mExceptionAddresses->ExceptionHandlerSize,
-          EFI_MEMORY_RO
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mExceptionAddresses->ExceptionHandlerBase,
+                   mExceptionAddresses->ExceptionHandlerSize,
+                   EFI_MEMORY_RO
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionHandlers attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mExceptionAddresses->ExceptionDataBase,
-          SIZE_4KB,
-          EFI_MEMORY_XP
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mExceptionAddresses->ExceptionDataBase,
+                   SIZE_4KB,
+                   EFI_MEMORY_XP
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionData attributes - %r.\n", Status));
+    CpuDeadLoop ();
+  }
 
-  MapPlatform (UserPageTable);
+  Status = MapPlatform (UserPageTable);
+  if (EFI_ERROR (Status)) {
+    CpuDeadLoop ();
+  }
 
   //
   // Map User Image
   //
   UserImageRecord = GetUefiImageRecord (Image);
-  ASSERT (UserImageRecord != NULL);
+  if (UserImageRecord == NULL) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to get UserImageRecord.\n"));
+    CpuDeadLoop ();
+  }
 
   SectionAddress = UserImageRecord->StartAddress;
   for (Index = 0; Index < UserImageRecord->NumSegments; Index++) {
     ImageRecordSegment = &UserImageRecord->Segments[Index];
 
-    gCpu->SetUserMemoryAttributes (
-            gCpu,
-            UserPageTable,
-            SectionAddress,
-            ImageRecordSegment->Size,
-            ImageRecordSegment->Attributes | EFI_MEMORY_USER
-            );
+    Status = gCpu->SetUserMemoryAttributes (
+                     gCpu,
+                     UserPageTable,
+                     SectionAddress,
+                     ImageRecordSegment->Size,
+                     ImageRecordSegment->Attributes | EFI_MEMORY_USER
+                     );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Core: Failed to set User Image #%d attributes - %r.\n", Index, Status));
+      CpuDeadLoop ();
+    }
 
     SectionAddress += ImageRecordSegment->Size;
   }

@@ -1072,9 +1072,10 @@ ApplyMemoryProtectionPolicy (
   IN  UINT64                Length
   )
 {
-  UINT64  OldAttributes;
-  UINT64  NewAttributes;
-  UINT64  CurrentAttributes;
+  EFI_STATUS  Status;
+  UINT64      OldAttributes;
+  UINT64      NewAttributes;
+  UINT64      CurrentAttributes;
 
   //
   // The policy configured in PcdDxeNxMemoryProtectionPolicy
@@ -1140,17 +1141,26 @@ ApplyMemoryProtectionPolicy (
     }
 
     if ((gUserPageTable != 0) && (NewType == EfiUserSpaceMemoryType)) {
-      gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, NewAttributes);
+      Status = gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, NewAttributes);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
     }
   } else {
     //
     // FreePages
     //
     if (gUserPageTable != 0) {
-      gCpu->GetMemoryAttributes (gCpu, gUserPageTable, Memory, &CurrentAttributes);
+      Status = gCpu->GetMemoryAttributes (gCpu, gUserPageTable, Memory, &CurrentAttributes);
+      if (EFI_ERROR (Status)) {
+        return Status;
+      }
 
       if ((CurrentAttributes & EFI_MEMORY_USER) != 0) {
-        gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
+        Status = gCpu->SetUserMemoryAttributes (gCpu, gUserPageTable, Memory, Length, EFI_MEMORY_RP);
+        if (EFI_ERROR (Status)) {
+          return Status;
+        }
       }
     }
   }

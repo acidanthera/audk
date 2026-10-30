@@ -169,29 +169,42 @@ InitializePlatform (
   return EFI_SUCCESS;
 }
 
-VOID
+EFI_STATUS
 EFIAPI
 MapPlatform (
   IN OUT UINTN  UserPageTable
   )
 {
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mConfigurationTable,
-          ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  EFI_STATUS  Status;
+
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mConfigurationTable,
+                   ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set ConfigurationTable attributes - %r.\n", Status));
+    return Status;
+  }
+
   //
   // Necessary fix for DEBUG printings.
   //
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserPageTable,
-          mUartBaseAddress,
-          SIZE_4KB,
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserPageTable,
+                   mUartBaseAddress,
+                   SIZE_4KB,
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Failed to set UartBase attributes - %r.\n", Status));
+    return Status;
+  }
+
+  return EFI_SUCCESS;
 }
 
 VOID

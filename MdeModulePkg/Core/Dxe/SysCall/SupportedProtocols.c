@@ -60,13 +60,16 @@ GoToUserSpace (
 
   SetUefiImageMemoryAttributes (UserStackBase, STACK_SIZE, EFI_MEMORY_XP | EFI_MEMORY_USER);
 
-  gCpu->SetUserMemoryAttributes (
-          gCpu,
-          UserDriver->UserPageTable,
-          UserStackBase,
-          STACK_SIZE,
-          EFI_MEMORY_XP | EFI_MEMORY_USER
-          );
+  Status = gCpu->SetUserMemoryAttributes (
+                   gCpu,
+                   UserDriver->UserPageTable,
+                   UserStackBase,
+                   STACK_SIZE,
+                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   ++UserDriver->NumberOfCalls;
   //
