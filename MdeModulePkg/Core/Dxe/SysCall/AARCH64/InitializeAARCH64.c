@@ -25,6 +25,13 @@ ArmCallUserSpace (
   IN UINTN                 UserPageTable
   );
 
+EFI_STATUS
+EFIAPI
+CheckArgument (
+  IN UINTN  Argument,
+  IN UINTN  Size
+  );
+
 STATIC
 EFI_STATUS
 EFIAPI
@@ -34,17 +41,15 @@ SysCallBootService (
 {
   EFI_STATUS  Status;
   UINTN       *UserArguments;
-  UINT64      Attributes;
 
   ArmEnableInterrupts ();
 
-  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)Context.SystemContextAArch64->SP_EL0, &Attributes);
-  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
-
   UserArguments = (UINTN *)(Context.SystemContextAArch64->SP_EL0 - 7 * sizeof (UINTN));
 
-  gCpu->GetMemoryAttributes (gCpu, gUserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)UserArguments, &Attributes);
-  ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+  Status = CheckArgument ((UINTN)UserArguments, 7 * sizeof (UINTN));
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
 
   AllowSupervisorAccessToUserMemory ();
   //

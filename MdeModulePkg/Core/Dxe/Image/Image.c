@@ -1727,8 +1727,14 @@ CoreStartImage (
           CpuDeadLoop ();
         }
       } else {
-        gCpu->GetMemoryAttributes (gCpu, Image->UserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
-        ASSERT ((Attributes & EFI_MEMORY_USER) != 0);
+        Status = gCpu->GetMemoryAttributes (gCpu, Image->UserPageTable, (EFI_PHYSICAL_ADDRESS)(UINTN)Image->EntryPoint, &Attributes);
+        if (EFI_ERROR (Status)) {
+          return Status;
+        }
+
+        if ((Attributes & EFI_MEMORY_USER) == 0) {
+          return EFI_SECURITY_VIOLATION;
+        }
 
         gUserPageTable = Image->UserPageTable;
 
