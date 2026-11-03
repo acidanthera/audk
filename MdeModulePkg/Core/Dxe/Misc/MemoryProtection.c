@@ -111,7 +111,7 @@ SetUefiImageMemoryAttributes (
     }
 
     // Preserve the existing caching and virtual attributes, but remove the hardware access bits
-    FinalAttributes = (Descriptor.Attributes & ~(EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_USER)) | (Attributes & EFI_MEMORY_ATTRIBUTE_MASK);
+    FinalAttributes = (Descriptor.Attributes & ~(EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL)) | (Attributes & EFI_MEMORY_ATTRIBUTE_MASK);
 
     DEBUG ((DEBUG_VERBOSE, "SetUefiImageMemoryAttributes - 0x%016lx - 0x%016lx (0x%016lx)\n", CurrentAddress, CurrentLength, FinalAttributes));
 
@@ -187,11 +187,13 @@ SetUefiImageMemoryAttributes (
 
   @param[in]  ImageRecord    A UEFI image record
   @param[in]  IsUser         Whether UEFI image record is User Image.
+  @param[in]  IsGlobal       Whether UEFI image record should be present in all address spaces.
 **/
 VOID
 SetUefiImageProtectionAttributes (
   IN UEFI_IMAGE_RECORD  *ImageRecord,
-  IN BOOLEAN            IsUser
+  IN BOOLEAN            IsUser,
+  IN BOOLEAN            IsGlobal
   )
 {
   UEFI_IMAGE_RECORD_SEGMENT  *ImageRecordSegment;
@@ -199,7 +201,8 @@ SetUefiImageProtectionAttributes (
   UINT32                     Index;
   UINT32                     Attribute;
 
-  Attribute = IsUser ? EFI_MEMORY_USER : 0;
+  Attribute  = IsUser ? EFI_MEMORY_USER : 0;
+  Attribute |= IsGlobal ? EFI_MEMORY_GLOBAL : 0;
 
   SectionAddress = ImageRecord->StartAddress;
   for (Index = 0; Index < ImageRecord->NumSegments; Index++) {
@@ -337,9 +340,9 @@ ProtectUefiImage (
     // CPU ARCH present. Update memory attribute directly.
     //
     if (PcdGetBool (PcdEnableUserSpace)) {
-      SetUefiImageProtectionAttributes (ImageRecord, IsUserImage);
+      SetUefiImageProtectionAttributes (ImageRecord, IsUserImage, FALSE);
     } else {
-      SetUefiImageProtectionAttributes (ImageRecord, FALSE);
+      SetUefiImageProtectionAttributes (ImageRecord, FALSE, FALSE);
     }
   }
 
@@ -809,7 +812,7 @@ MemoryProtectionCpuArchProtocolNotify (
     //
     // CPU ARCH present. Update memory attribute directly.
     //
-    SetUefiImageProtectionAttributes (ImageRecord, FALSE);
+    SetUefiImageProtectionAttributes (ImageRecord, FALSE, FALSE);
   }
 
 Done:

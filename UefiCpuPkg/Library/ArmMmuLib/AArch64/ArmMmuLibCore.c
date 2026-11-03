@@ -571,7 +571,7 @@ FillTranslationTable (
   return UpdateRegionMapping (
            MemoryRegion->VirtualBase,
            MemoryRegion->Length,
-           ArmMemoryAttributeToPageAttribute (MemoryRegion->Attributes) | TT_AF | CcaProtectionAttribute,
+           ArmMemoryAttributeToPageAttribute (MemoryRegion->Attributes) | TT_AF | TT_NG | CcaProtectionAttribute,
            0,
            RootTable,
            FALSE,
@@ -640,6 +640,10 @@ GcdAttributeToPageAttribute (
     }
   }
 
+  if ((GcdAttributes & EFI_MEMORY_GLOBAL) == 0) {
+    PageAttributes |= TT_NG;
+  }
+
   return PageAttributes;
 }
 
@@ -697,9 +701,9 @@ ArmSetMemoryAttributes (
     // No memory type was set in Attributes, so we are going to update the
     // permissions only.
     //
-    PageAttributes   &= TT_AP_MASK | TT_UXN_MASK | TT_PXN_MASK | TT_AF;
+    PageAttributes   &= TT_AP_MASK | TT_UXN_MASK | TT_PXN_MASK | TT_AF | TT_NG;
     PageAttributeMask = ~(TT_ADDRESS_MASK_BLOCK_ENTRY | TT_AP_MASK |
-                          TT_PXN_MASK | TT_XN_MASK | TT_AF);
+                          TT_PXN_MASK | TT_XN_MASK | TT_AF | TT_NG);
     if (AttributeMask != 0) {
       if (((AttributeMask & ~(UINT64)(EFI_MEMORY_RP|EFI_MEMORY_RO|EFI_MEMORY_XP)) != 0) ||
           ((Attributes & ~AttributeMask) != 0))
@@ -709,7 +713,7 @@ ArmSetMemoryAttributes (
 
       // Add attributes omitted from AttributeMask to the set of attributes to preserve
       PageAttributeMask |= GcdAttributeToPageAttribute (~AttributeMask) &
-                           (TT_AP_MASK | TT_UXN_MASK | TT_PXN_MASK | TT_AF);
+                           (TT_AP_MASK | TT_UXN_MASK | TT_PXN_MASK | TT_AF | TT_NG);
     }
   } else {
     ASSERT (AttributeMask == 0);
@@ -1017,7 +1021,7 @@ ArmMakeUserPageTableTemplate (
   Status = UpdateRegionMapping (
              MemoryTable->VirtualBase,
              MemoryTable->Length,
-             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes) | CcaProtectionAttribute,
+             ArmMemoryAttributeToPageAttribute (MemoryTable->Attributes) | TT_NG | CcaProtectionAttribute,
              0,
              TranslationTable,
              FALSE,

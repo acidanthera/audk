@@ -269,11 +269,11 @@ ASM_PFX(CommonExceptionEntry):
   ldr      x4, [x1]
   EL1_OR_EL2(x3)
 1:msr      ttbr0_el1, x4
-  tlbi     vmalle1
   b        3f
 2:msr      ttbr0_el2, x4
-  tlbi     alle2
-3:dsb      sy
+3:mov      x2, #0
+  tlbi     aside1, x2
+  dsb      sy
   isb
 
 NoTTBR0Switch:
@@ -300,11 +300,11 @@ NoTTBR0Switch:
   ldr      x4, [x28, #(FP_CONTEXT_SIZE + 0x30)] // UserPageTable
   EL1_OR_EL2(x3)
 1:msr      ttbr0_el1, x4
-  tlbi     vmalle1
   b        3f
 2:msr      ttbr0_el2, x4
-  tlbi     alle2
-3:dsb      sy
+3:mov      x2, #0
+  tlbi     aside1, x2
+  dsb      sy
   isb
 
 NoTTBR0Switch2:

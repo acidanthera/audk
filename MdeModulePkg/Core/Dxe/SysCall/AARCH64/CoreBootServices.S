@@ -100,13 +100,13 @@ ASM_FUNC(ArmCallUserSpace)
 1:msr  elr_el1, x2
   msr  spsr_el1, x6
   msr  ttbr0_el1, x3
-  tlbi vmalle1
   b    3f
 2:msr  elr_el2, x2
   msr  spsr_el2, x6
   msr  ttbr0_el2, x3
-  tlbi alle2
-3:dsb   sy
+3:mov  x7, #0
+  tlbi aside1, x7
+  dsb  sy
   isb
   eret
 

@@ -2829,11 +2829,13 @@ SetUefiImageMemoryAttributes (
 
   @param[in]  ImageRecord    A UEFI image record
   @param[in]  IsUser         Whether UEFI image record is User Image.
+  @param[in]  IsGlobal       Whether UEFI image record should be present in all address spaces.
 **/
 VOID
 SetUefiImageProtectionAttributes (
   IN UEFI_IMAGE_RECORD  *ImageRecord,
-  IN BOOLEAN            IsUser
+  IN BOOLEAN            IsUser,
+  IN BOOLEAN            IsGlobal
   );
 
 EFI_STATUS

@@ -41,6 +41,12 @@ MapPlatform (
 
 EFI_STATUS
 EFIAPI
+MapPlatformGlobal (
+  VOID
+  );
+
+EFI_STATUS
+EFIAPI
 InitializeUserSpace (
   IN EFI_HANDLE                 ImageHandle,
   IN LOADED_IMAGE_PRIVATE_DATA  *Image
@@ -71,7 +77,7 @@ InitializeUserSpace (
   SetUefiImageMemoryAttributes (
     (UINTN)gUserSpaceData,
     ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
+    EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
     );
 
   Status = InitializePlatform (&gUserSpaceData->SystemTable);
@@ -95,7 +101,7 @@ InitializeUserSpace (
     return EFI_NOT_FOUND;
   }
 
-  SetUefiImageProtectionAttributes (mDxeUserSpace, FALSE);
+  SetUefiImageProtectionAttributes (mDxeUserSpace, FALSE, TRUE);
 
   AllowSupervisorAccessToUserMemory ();
   Status = Image->EntryPoint (ImageHandle, (EFI_SYSTEM_TABLE *)gUserSpaceData);
@@ -106,7 +112,7 @@ InitializeUserSpace (
   gUserSpaceData->SystemTable.RuntimeServices = gUserSpaceData->RuntimeServices;
   ForbidSupervisorAccessToUserMemory ();
 
-  SetUefiImageProtectionAttributes (mDxeUserSpace, TRUE);
+  SetUefiImageProtectionAttributes (mDxeUserSpace, TRUE, TRUE);
 
   Status = CoreAllocatePages (
              AllocateAnyPages,
@@ -127,7 +133,7 @@ InitializeUserSpace (
   SetUefiImageMemoryAttributes (
     (UINTN)gUserSpaceInterfaces,
     EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
-    EFI_MEMORY_XP | EFI_MEMORY_USER
+    EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
     );
 
   mExceptionAddresses = GetExceptionAddresses ();
@@ -143,6 +149,68 @@ InitializeUserSpace (
 
     PeiHob.Raw = GET_NEXT_HOB (PeiHob);
   }
+
+  //
+  // Map CoreBootServices, CoreStackBase, ExceptionHandlers as global pages.
+  //
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   (UINTN)&SysCallBase,
+                   (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
+                   EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
+    goto Fail;
+  }
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   mCoreStackBase,
+                   mCoreStackSize,
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
+    goto Fail;
+  }
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   mExceptionAddresses->ExceptionHandlerBase,
+                   mExceptionAddresses->ExceptionHandlerSize,
+                   EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
+    goto Fail;
+  }
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   mExceptionAddresses->ExceptionDataBase,
+                   SIZE_4KB,
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
+    goto Fail;
+  }
+
+  Status = MapPlatformGlobal ();
+  if (EFI_ERROR (Status)) {
+    goto Fail;
+  }
+
+  return EFI_SUCCESS;
+
+Fail:
+
+  CoreFreePages (
+    (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
+    EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
+    );
+
+  CoreFreePages (
+    (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceInterfaces,
+    USER_SPACE_INTERFACES_PAGES
+    );
 
   return Status;
 }
@@ -175,7 +243,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    (UINTN)gUserSpaceData,
                    ALIGN_VALUE (sizeof (USER_SPACE_DATA), EFI_PAGE_SIZE),
-                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set gUserSpaceData attributes - %r.\n", Status));
@@ -187,7 +255,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    (UINTN)gUserSpaceInterfaces,
                    EFI_PAGES_TO_SIZE (USER_SPACE_INTERFACES_PAGES),
-                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set gUserSpaceInterfaces attributes - %r.\n", Status));
@@ -203,7 +271,7 @@ InitializeUserPageTable (
                      UserPageTable,
                      SectionAddress,
                      ImageRecordSegment->Size,
-                     ImageRecordSegment->Attributes | EFI_MEMORY_USER
+                     ImageRecordSegment->Attributes | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
                      );
     if (EFI_ERROR (Status)) {
       DEBUG ((DEBUG_ERROR, "Core: Failed to set DxeUserSpace #%d attributes - %r.\n", Index, Status));
@@ -221,7 +289,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    (UINTN)&SysCallBase,
                    (UINTN)&SysCallEnd - (UINTN)&SysCallBase,
-                   EFI_MEMORY_RO
+                   EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set CoreBootServices attributes - %r.\n", Status));
@@ -233,7 +301,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    mCoreStackBase,
                    mCoreStackSize,
-                   EFI_MEMORY_XP
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set CoreStack attributes - %r.\n", Status));
@@ -248,7 +316,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    mExceptionAddresses->ExceptionHandlerBase,
                    mExceptionAddresses->ExceptionHandlerSize,
-                   EFI_MEMORY_RO
+                   EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionHandlers attributes - %r.\n", Status));
@@ -260,7 +328,7 @@ InitializeUserPageTable (
                    UserPageTable,
                    mExceptionAddresses->ExceptionDataBase,
                    SIZE_4KB,
-                   EFI_MEMORY_XP
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionData attributes - %r.\n", Status));

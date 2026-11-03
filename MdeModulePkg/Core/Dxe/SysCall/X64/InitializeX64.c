@@ -304,10 +304,10 @@ InitializePlatform (
   Edx = 0;
 
   //
-  // Forbid global pages.
+  // Enable global pages.
   //
   Cr4.UintN    = AsmReadCr4 ();
-  Cr4.Bits.PGE = 0;
+  Cr4.Bits.PGE = 1;
   AsmWriteCr4 (Cr4.UintN);
 
   //
@@ -380,7 +380,7 @@ MapPlatform (
                    UserPageTable,
                    (UINTN)&gCorePageTable,
                    SIZE_4KB,
-                   EFI_MEMORY_RO | EFI_MEMORY_XP
+                   EFI_MEMORY_RO | EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set gCorePageTable attributes - %r.\n", Status));
@@ -392,7 +392,7 @@ MapPlatform (
                    UserPageTable,
                    mExceptionAddresses->ExceptionStackBase,
                    mExceptionAddresses->ExceptionStackSize,
-                   EFI_MEMORY_XP
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set ExceptionStack attributes - %r.\n", Status));
@@ -424,6 +424,37 @@ MapPlatform (
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set PcdOvmfWorkArea attributes - %r.\n", Status));
+    return Status;
+  }
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+MapPlatformGlobal (
+  VOID
+  )
+{
+  EFI_STATUS  Status;
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   (UINTN)&gCorePageTable,
+                   SIZE_4KB,
+                   EFI_MEMORY_RO | EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
+    return Status;
+  }
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   mExceptionAddresses->ExceptionStackBase,
+                   mExceptionAddresses->ExceptionStackSize,
+                   EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 

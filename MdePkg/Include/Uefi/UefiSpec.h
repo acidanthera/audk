@@ -118,6 +118,10 @@ typedef enum {
 // If this flag is clear, the memory region contains supervisor code or data.
 //
 #define EFI_MEMORY_USER  0x0000000000200000ULL
+//
+// If this flag is set, the memory region is global.
+//
+#define EFI_MEMORY_GLOBAL  0x0000000000400000ULL
 
 //
 // Runtime memory attribute
@@ -144,7 +148,7 @@ typedef enum {
 //
 #define EFI_CACHE_ATTRIBUTE_MASK   (EFI_MEMORY_UC | EFI_MEMORY_WC | EFI_MEMORY_WT | EFI_MEMORY_WB | EFI_MEMORY_UCE | EFI_MEMORY_WP)
 #define EFI_MEMORY_ACCESS_MASK     (EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_RO)
-#define EFI_MEMORY_ATTRIBUTE_MASK  (EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_SP | EFI_MEMORY_CPU_CRYPTO | EFI_MEMORY_USER)
+#define EFI_MEMORY_ATTRIBUTE_MASK  (EFI_MEMORY_ACCESS_MASK | EFI_MEMORY_SP | EFI_MEMORY_CPU_CRYPTO | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL)
 
 ///
 /// Memory descriptor version number.

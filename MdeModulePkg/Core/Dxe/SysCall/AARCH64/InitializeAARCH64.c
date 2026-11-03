@@ -187,7 +187,7 @@ MapPlatform (
                    UserPageTable,
                    mConfigurationTable,
                    ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
-                   EFI_MEMORY_XP | EFI_MEMORY_USER
+                   EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set ConfigurationTable attributes - %r.\n", Status));
@@ -206,6 +206,27 @@ MapPlatform (
                    );
   if (EFI_ERROR (Status)) {
     DEBUG ((DEBUG_ERROR, "Core: Failed to set UartBase attributes - %r.\n", Status));
+    return Status;
+  }
+
+  return EFI_SUCCESS;
+}
+
+EFI_STATUS
+EFIAPI
+MapPlatformGlobal (
+  VOID
+  )
+{
+  EFI_STATUS  Status;
+
+  Status = gCpu->SetMemoryAttributes (
+                   gCpu,
+                   mConfigurationTable,
+                   ALIGN_VALUE (mConfigurationTableSize, EFI_PAGE_SIZE),
+                   EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL
+                   );
+  if (EFI_ERROR (Status)) {
     return Status;
   }
 

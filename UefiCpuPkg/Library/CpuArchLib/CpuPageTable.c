@@ -32,6 +32,7 @@
 #define IA32_PG_A       BIT5
 #define IA32_PG_D       BIT6
 #define IA32_PG_PS      BIT7
+#define IA32_PG_G       BIT8
 #define IA32_PG_PAT_2M  BIT12
 #define IA32_PG_PAT_4K  IA32_PG_PS
 #define IA32_PG_PMNT    BIT62
@@ -402,6 +403,10 @@ GetAttributesFromPageEntry (
     Attributes |= EFI_MEMORY_USER;
   }
 
+  if ((*PageEntry & IA32_PG_G) != 0) {
+    Attributes |= EFI_MEMORY_GLOBAL;
+  }
+
   return Attributes;
 }
 
@@ -557,6 +562,27 @@ ConvertPageEntryAttribute (
     switch (PageAction) {
       case PageActionAssign:
         NewPageEntry &= ~(UINT64)IA32_PG_U;
+        break;
+      case PageActionSet:
+      case PageActionClear:
+        break;
+    }
+  }
+
+  if ((Attributes & EFI_MEMORY_GLOBAL) != 0) {
+    switch (PageAction) {
+      case PageActionAssign:
+      case PageActionSet:
+        NewPageEntry |= IA32_PG_G;
+        break;
+      case PageActionClear:
+        NewPageEntry &= ~(UINT64)IA32_PG_G;
+        break;
+    }
+  } else {
+    switch (PageAction) {
+      case PageActionAssign:
+        NewPageEntry &= ~(UINT64)IA32_PG_G;
         break;
       case PageActionSet:
       case PageActionClear:
@@ -1089,9 +1115,9 @@ RefreshGcdMemoryAttributesFromPaging (
   PageLength    = 0;
 
   if (IsExecuteDisableEnabled ()) {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_USER;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL;
   } else {
-    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_USER;
+    Capabilities = EFI_MEMORY_RO | EFI_MEMORY_RP | EFI_MEMORY_USER | EFI_MEMORY_GLOBAL;
   }
 
   for (Index = 0; Index < NumberOfDescriptors; Index++) {

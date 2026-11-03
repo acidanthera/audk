@@ -116,6 +116,10 @@ PageAttributeToGcdAttribute (
     GcdAttributes |= EFI_MEMORY_USER;
   }
 
+  if ((PageAttributes & TT_NG) == 0) {
+    GcdAttributes |= EFI_MEMORY_GLOBAL;
+  }
+
   return GcdAttributes;
 }
 
@@ -428,6 +432,10 @@ EfiAttributeToArmAttribute (
   // Process eXecute Never attribute
   if ((EfiAttributes & EFI_MEMORY_XP) != 0) {
     ArmAttributes |= TT_PXN_MASK | TT_UXN_MASK;
+  }
+
+  if ((EfiAttributes & EFI_MEMORY_GLOBAL) == 0) {
+    ArmAttributes |= TT_NG;
   }
 
   return ArmAttributes;
