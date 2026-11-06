@@ -37,6 +37,7 @@
   DebugLib
   DxeServicesTableLib
   HobLib
+  IoLib
   MemoryAllocationLib
   PcdLib
   PlatformFvbLib
@@ -67,4 +68,3 @@
 
 [Depex]
   TRUE
-
