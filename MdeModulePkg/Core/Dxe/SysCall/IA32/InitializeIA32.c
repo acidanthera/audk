@@ -212,16 +212,18 @@ MapPlatform (
   //
   // Necessary fix for ProcessLibraryConstructorList() -> DxeCcProbeLibConstructor()
   //
-  Status = gCpu->SetUserMemoryAttributes (
-                   gCpu,
-                   UserPageTable,
-                   FixedPcdGet32 (PcdOvmfWorkAreaBase),
-                   FixedPcdGet32 (PcdOvmfWorkAreaSize),
-                   EFI_MEMORY_XP | EFI_MEMORY_USER
-                   );
-  if (EFI_ERROR (Status)) {
-    DEBUG ((DEBUG_ERROR, "Core: Failed to set PcdOvmfWorkArea attributes - %r.\n", Status));
-    return Status;
+  if (FixedPcdGet32 (PcdOvmfWorkAreaSize) != 0) {
+    Status = gCpu->SetUserMemoryAttributes (
+                     gCpu,
+                     UserPageTable,
+                     FixedPcdGet32 (PcdOvmfWorkAreaBase),
+                     FixedPcdGet32 (PcdOvmfWorkAreaSize),
+                     EFI_MEMORY_XP | EFI_MEMORY_USER
+                     );
+    if (EFI_ERROR (Status)) {
+      DEBUG ((DEBUG_ERROR, "Core: Failed to set PcdOvmfWorkArea attributes - %r.\n", Status));
+      return Status;
+    }
   }
 
   return EFI_SUCCESS;
@@ -242,6 +244,7 @@ MapPlatformGlobal (
                    EFI_MEMORY_RO | EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set gCorePageTable attributes.\n"));
     return Status;
   }
 
@@ -252,6 +255,7 @@ MapPlatformGlobal (
                    EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set ExceptionStackBase attributes.\n"));
     return Status;
   }
 

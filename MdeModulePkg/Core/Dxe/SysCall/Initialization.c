@@ -67,6 +67,7 @@ InitializeUserSpace (
              &Physical
              );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not allocate USER_SPACE_DATA.\n"));
     return Status;
   }
 
@@ -121,6 +122,7 @@ InitializeUserSpace (
              &Physical
              );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not allocate USER_SPACE_INTERFACES_PAGES.\n"));
     CoreFreePages (
       (EFI_PHYSICAL_ADDRESS)(UINTN)gUserSpaceData,
       EFI_SIZE_TO_PAGES (sizeof (USER_SPACE_DATA))
@@ -139,6 +141,7 @@ InitializeUserSpace (
   mExceptionAddresses = GetExceptionAddresses ();
 
   PeiHob.Raw = GetHobList ();
+  ASSERT (PeiHob.Raw != NULL);
   while ((PeiHob.Raw = GetNextHob (EFI_HOB_TYPE_MEMORY_ALLOCATION, PeiHob.Raw)) != NULL) {
     MemoryHob = PeiHob.MemoryAllocation;
     if (CompareGuid (&gEfiHobMemoryAllocStackGuid, &MemoryHob->AllocDescriptor.Name)) {
@@ -160,6 +163,7 @@ InitializeUserSpace (
                    EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set CoreBootServices attributes.\n"));
     goto Fail;
   }
 
@@ -170,6 +174,7 @@ InitializeUserSpace (
                    EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set CoreStackBase attributes.\n"));
     goto Fail;
   }
 
@@ -180,6 +185,7 @@ InitializeUserSpace (
                    EFI_MEMORY_RO | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set ExceptionHandlers attributes.\n"));
     goto Fail;
   }
 
@@ -190,6 +196,7 @@ InitializeUserSpace (
                    EFI_MEMORY_XP | EFI_MEMORY_GLOBAL
                    );
   if (EFI_ERROR (Status)) {
+    DEBUG ((DEBUG_ERROR, "Core: Could not set ExceptionDataBase attributes.\n"));
     goto Fail;
   }
 
